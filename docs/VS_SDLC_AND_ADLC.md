@@ -1,4 +1,4 @@
-# A2-DLC against SDLC and the "ADLC" lifecycle
+# SDLC vs ADLC vs A2-DLC: who grades the code an AI agent writes
 
 This page compares `a2dlc` (protocol v3.4, binary v0.4.0) with the two lifecycles that circulate most in 2026 talks about agent-written code:
 
