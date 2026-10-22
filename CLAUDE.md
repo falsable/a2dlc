@@ -23,6 +23,7 @@ Go is not installed on the host, and it will not be installed. Everything runs i
 - **The core knows no languages.** The engine is the one that discovers the targets inside the changed files; no TS or Python logic in `internal/`.
 - **Gate outputs and signatures stay out of the `tree_hash`** (`gitx.Excluded`). If they went in, approving would make the verdict stale.
 - **`check` without `--base` compares against the upstream.** Against HEAD, after committing, it would not see what was committed, and an unsigned waiver would pass the push (covered by `TestCheckAgainstHEADDoesNotWashCommittedChanges`).
+- **The gate is the push, never the commit.** `install` writes no pre-commit: agents commit and merge their worktrees with no human in the loop; `pre-push` (`verify`) is where a behavior change needs a signed waiver.
 - **Agent hooks go through `a2dlc hook <agent>`.** In Claude, the Stop hook treats exit 1 as "does not block": wiring `check` directly would let FAILs through.
 
 ## Never
