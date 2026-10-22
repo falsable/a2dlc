@@ -55,6 +55,19 @@ ADLC's Test phase is a rule: "every session verifies its own work first". Made e
 
 Of the five cases that must block: the changed-files reading blocks 2 and lets 3 through (the toothless test, the regression in a file the session did not touch, the method no oracle examined); the whole-suite reading blocks all 9 cases, the 4 good ones included, because of the pre-existing red; the suite reading with the base's reds discounted blocks 3 and lets 2 through (the toothless test and the unexamined method), and the discounting is the bookkeeping a2dlc's baseline gate automates. a2dlc blocks 5 of 5 and passes the 4 that must pass, with no false block. Under the most generous reading, self-verification still passes a test that proves nothing and code that nothing examined, which is the Circular Trap stated in one table. The frozen cases are not edited.
 
+## Measured head to head on external data: 38 real agent patches
+
+The nine cases above were written by this project. `e2e/bench-swe-abs/RESULTS.md` holds a run over data this project did not write: 10 SWE-bench Verified instances and 38 patches submitted by real coding agents, labelled by SWE-ABS (18 rejected by its abstract tests, 20 accepted). Every one of the 38 was submitted by its agent as done, so under the ADLC rule all 38 pass self-verification by construction: the agent verified its own work and shipped. The SWE-ABS label plays the part of SDLC's separate QA stage: tests the author did not write.
+
+| Gate | Rejected patches blocked (18) | Accepted patches blocked (20) | Note |
+|---|---|---|---|
+| ADLC self-verification | 0 | 0 | By construction: the agent declared each patch done. |
+| a2dlc Lite, engine alone (VARA 1) | 0 blocked, 11 empty `PASS` | 0 | Refuted on 2026-10-17: the engine saw nothing in 25 of 38 checks. It is why the oracle became test-mediated. |
+| a2dlc Lite, repo tests + coverage precondition (A1) | 12 (`INCONCLUSIVE`, `uncovered_change` or `tooling`), 6 `PASS` | 11 `INCONCLUSIVE`, 8 `PASS`, 1 error | No gold involved. It blocks two thirds of the bad patches by refusing to approve what nothing examined, and blocks half of the good ones for the same reason. |
+| a2dlc with Saboteur overlay and peer oracle (A2) | 18 `FAIL` | 0 `FAIL`, 5 `INCONCLUSIVE` | The peer is the gold patch: an upper bound. A3, without gold, was not measured. |
+
+On external data the difference is the same as on the nine frozen cases: self-verification cannot block a patch its author believes in; a2dlc without gold blocks 12 of 18 bad patches at the price of 11 false blocks on good ones, all of them as `INCONCLUSIVE` that name what was not examined; with an independent oracle it blocks 18 of 18 with no false `FAIL`. The 38 checks were not re-run for this page; the figures are the rows of `RESULTS.md`, with their Wilson intervals there.
+
 ## Where the claim does not hold
 
 - **Work that is not executable code.** UI judgement, prose, product and architecture decisions that no test expresses. SDLC's human design review covers those; a2dlc narrows review only where an engine, a test or a signature can decide.
@@ -70,6 +83,6 @@ Of the five cases that must block: the changed-files reading blocks 2 and lets 3
 
 ## How this page was checked
 
-On 2026-10-22, `gofmt -l .`, `go vet ./...` and `go test -count=1 ./...` ran in `golang:1.23-bookworm` with `--network none` on the tree this page was written against. Every test named above passed. Two tests failed, both because that image ships `python3` and no `python`, and both are tracked in bead `a2dlc-96s`: `TestStage6AutoConsumerRunsWhenCodeGraphReachesAChange` and `TestDiscoverRunsIndexerAndReportsBlastRadius`. Neither backs a row of this page. The SWE-ABS and mutation figures are the ones already recorded in `COVERAGE_AND_BENCHMARKS.md` and `e2e/bench-swe-abs/RESULTS.md`, each with its script and frozen fixtures; they were not re-run for this page. The gates-py figures were re-run for it, with the two scripts named above.
+On 2026-10-22, `gofmt -l .`, `go vet ./...` and `go test -count=1 ./...` ran in `golang:1.23-bookworm` with `--network none` on the tree this page was written against. Every test named above passed. Two tests failed on the first run because that image ships `python3` and no `python` (`TestStage6AutoConsumerRunsWhenCodeGraphReachesAChange`, `TestDiscoverRunsIndexerAndReportsBlastRadius`, bead `a2dlc-96s`); the fake indexers now pick whichever interpreter is on the path, and both pass in the image. The SWE-ABS and mutation figures are the ones already recorded in `COVERAGE_AND_BENCHMARKS.md` and `e2e/bench-swe-abs/RESULTS.md`, each with its script and frozen fixtures; they were not re-run for this page. The gates-py figures were re-run for it, with the two scripts named above.
 
 A separate read-only review of a first draft of this page, run the same day by an agent that had not written it, re-ran every named test by name (all passed), found two citations that pointed at the wrong line, and found three ways the alert payload of `a2dlc_intent_from_signal` could decide more than the draft claimed: raise the inherited cap, loosen a declared sentinel threshold, and overwrite another slice's intent. The tool now refuses the three and `TestIntentFromSignalInheritsBudgetInvariantsAndThreshold` covers them; the review's other findings (the budget cap is not mandatory at the schema, the SWE-ABS arm is an upper bound, the costs are two single runs, the §10 limits listed above) are in the rows they concern.

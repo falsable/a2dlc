@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -10,6 +11,19 @@ import (
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/engine"
 )
+
+// pythonBin is the interpreter the fake indexers run with: `python` on the host, `python3` where only that exists
+// (golang:1.23-bookworm). The test is skipped where neither is installed.
+func pythonBin(t *testing.T) string {
+	t.Helper()
+	for _, name := range []string{"python", "python3"} {
+		if _, err := exec.LookPath(name); err == nil {
+			return name
+		}
+	}
+	t.Skip("no python interpreter on PATH")
+	return ""
+}
 
 // The expand-and-contract linter looks at statement by statement, with the line where each one starts, and is not
 // fooled by comments or by an ADD COLUMN (the allowed expand).
@@ -266,7 +280,7 @@ else:
 	base, tree, changed := candidateOver(t, a, dir, map[string]string{"src/calc.py": "def calc(): return 42\n"})
 	ic := contract.IntegrationConfig{
 		Indexer: &contract.IndexerConfig{
-			Command:  fmt.Sprintf("python %s", filepath.ToSlash(script)),
+			Command:  fmt.Sprintf("%s %s", pythonBin(t), filepath.ToSlash(script)),
 			MaxDepth: 3,
 		},
 	}
@@ -291,7 +305,7 @@ func TestDiscoverIndexerFailureIsANote(t *testing.T) {
 	base, tree, changed := candidateOver(t, a, dir, map[string]string{"src/calc.py": "def calc(): return 42\n"})
 	ic := contract.IntegrationConfig{
 		Indexer: &contract.IndexerConfig{
-			Command: "python -c \"import sys; sys.stderr.write('crash'); sys.exit(1)\"",
+			Command: pythonBin(t) + " -c \"import sys; sys.stderr.write('crash'); sys.exit(1)\"",
 		},
 	}
 	edges, blast, notes, err := a.Discover(context.Background(), base, tree, changed, ic)

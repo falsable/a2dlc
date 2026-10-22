@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -12,6 +13,19 @@ import (
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/engine"
 )
+
+// pythonBin is the interpreter the fake indexer runs with: `python` on the host, `python3` where only that exists
+// (golang:1.23-bookworm). The test is skipped where neither is installed.
+func pythonBin(t *testing.T) string {
+	t.Helper()
+	for _, name := range []string{"python", "python3"} {
+		if _, err := exec.LookPath(name); err == nil {
+			return name
+		}
+	}
+	t.Skip("no python interpreter on PATH")
+	return ""
+}
 
 // runnerConsumer simulates each consumer's image: by $A2DLC_CONSUMER it answers the "test state" lines of its script
 // as JUnit (without a script: a run without JUnit) and notes which image and which candidate it saw in /work.
@@ -368,7 +382,7 @@ resp = {
 with open(os.path.join(io, "response.json"), "w") as f:
     json.dump(resp, f)
 `)
-	cmd := fmt.Sprintf("python %s", filepath.ToSlash(script))
+	cmd := fmt.Sprintf("%s %s", pythonBin(t), filepath.ToSlash(script))
 	write(t, dir, ".a2dlc/config.json", fmt.Sprintf(`{"schema_version":1,"engines":[],"integration":{`+
 		`"indexer":{"command":%q,"max_depth":3},`+
 		`"consumers":[{"name":"billing","image":"billing:1","command":"run","contracts":["docs/**"],"auto":true},`+
