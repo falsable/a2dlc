@@ -1,0 +1,15 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.media.v1",
+ "contract_hash": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+ "ok": false,
+ "findings": [
+  { "severity": "error", "check": "function_exists", "where": "src/calc.py::mediana", "message": "src/calc.py has signatures in the candidate and median is not among them" },
+  { "severity": "error", "check": "open_assumption", "where": "nan", "message": "open assumption of criticality high: a person answers it before building" }
+ ],
+ "trace_coverage": {
+  "rule": "a probe covers a clause if its description, input or expected names the function (its short name, as a whole word, case-insensitive) and shares with the clause a word of 4 or more letters that is neither empty nor the function's name",
+  "severity": "error",
+  "uncovered": []
+ }
+}

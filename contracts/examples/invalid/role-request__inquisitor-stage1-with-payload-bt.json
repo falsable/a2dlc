@@ -1,0 +1,44 @@
+{
+ "schema_version": 1,
+ "run_id": "run-5d1e7a0c9b42",
+ "slice_id": "calc.media.v1",
+ "mode": "greenfield",
+ "role": "inquisitor",
+ "stage": "1",
+ "attempt": 1,
+ "inputs": [
+  {
+   "path": "/in/request.json",
+   "sha256": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+  },
+  {
+   "path": "/in/catalogue.json",
+   "sha256": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  {
+   "path": "/in/contract_alpha.json",
+   "sha256": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+  },
+  {
+   "path": "/in/contract_beta.json",
+   "sha256": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+  }
+ ],
+ "workdir": null,
+ "payload": {
+  "intent": {
+   "goal": "arithmetic mean",
+   "invariants": [
+    "there is no average of nothing",
+    "a NaN is a caller error"
+   ]
+  },
+  "backtranslation": {
+   "prose": "media takes a list of finite floats and returns its arithmetic mean without modifying it. With an empty list it raises ValueError.",
+   "examples": [
+    "media([2.5]) devuelve 2.5",
+    "media([]) lanza ValueError"
+   ]
+  }
+ }
+}

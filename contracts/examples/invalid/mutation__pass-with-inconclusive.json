@@ -1,0 +1,72 @@
+{
+ "schema_version": 1,
+ "round": 1,
+ "threshold": 0.8,
+ "max_mutants": 30,
+ "tests": [
+  "tests/test_calc.py",
+  "tests/test_calc_saboteur.py"
+ ],
+ "red_on_candidate": [],
+ "mutants": [
+  {
+   "id": "m001",
+   "file": "src/calc.py",
+   "line": 14,
+   "operator": "comparison",
+   "description": "comparison == changed to !=",
+   "status": "killed",
+   "killed_by": [
+    "tests/test_calc.py::tests.test_calc::test_media_vacia"
+   ]
+  },
+  {
+   "id": "m002",
+   "file": "src/calc.py",
+   "line": 15,
+   "operator": "constant",
+   "description": "numeric constant changed: +1",
+   "status": "killed",
+   "killed_by": [
+    "tests/test_calc_saboteur.py::tests.test_calc_saboteur::test_un_elemento"
+   ]
+  },
+  {
+   "id": "m003",
+   "file": "src/calc.py",
+   "line": 17,
+   "operator": "arithmetic",
+   "description": "arithmetic operator / changed to *",
+   "status": "killed",
+   "killed_by": [
+    "tests/test_calc.py::tests.test_calc::test_media"
+   ]
+  },
+  {
+   "id": "m004",
+   "file": "src/calc.py",
+   "line": 17,
+   "operator": "return_none",
+   "description": "return <value> changed to return None",
+   "status": "inconclusive",
+   "killed_by": [],
+   "reason": "the tests exceeded timeout_s=300"
+  }
+ ],
+ "not_generated": [],
+ "pruned_equivalent": [
+  {
+   "file": "src/calc.py",
+   "line": 16,
+   "reason": "equivalent: logging-only statement"
+  }
+ ],
+ "unsupported": [
+  {
+   "file": "src/lib/routes.ts",
+   "reason": "the typescript engine does not mutate: the engine reported an error: operation mutate not supported"
+  }
+ ],
+ "kill_rate": 1.0,
+ "verdict": "PASS"
+}

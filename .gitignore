@@ -1,0 +1,24 @@
+progress.md
+.claude/settings.local.json
+CLAUDE.local.md
+.a2dlc/verdict.json
+.a2dlc/reports/
+dist/
+bin/
+*.exe
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*
+__pycache__/
+.a2dlc/escalations.json
+.a2dlc/run/
+
+# Maintainer-only, kept on disk out of the public tree (a2dlc-dkv)
+CLAUDE.local.md
+AGENTS.md
+.agents/
+.beads/hooks/

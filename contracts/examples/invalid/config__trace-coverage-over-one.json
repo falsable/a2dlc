@@ -1,0 +1,54 @@
+{
+ "schema_version": 1,
+ "engines": [
+  {
+   "language": "python",
+   "image": "a2dlc-engine-py:0.1",
+   "paths": [
+    "src/**"
+   ],
+   "budget": {
+    "per_condition_timeout_s": 10
+   }
+  }
+ ],
+ "tests": {
+  "image": "a2dlc-tests-py:0.1",
+  "paths": [
+   "tests/**"
+  ],
+  "source_paths": [
+   "src/**",
+   "scripts/**"
+  ],
+  "command": "python -m coverage run -m pytest -q -p no:cacheprovider -o junit_family=xunit1 --junitxml=\"$A2DLC_JUNIT\" $A2DLC_TESTS; python -m coverage xml -o \"$A2DLC_COVERAGE\"",
+  "baseline_command": "python -m coverage run -m pytest -q -p no:cacheprovider -o junit_family=xunit1 --junitxml=\"$A2DLC_JUNIT\" tests; python -m coverage xml -o \"$A2DLC_COVERAGE\"",
+  "invalid_base_failures": [
+   "ImportError",
+   "ModuleNotFoundError",
+   "^collection"
+  ],
+  "reruns": 3,
+  "timeout_s": 300,
+  "trace_coverage": {
+   "min_branch": 1.5
+  },
+  "golden_master": {
+   "command": "./golden.sh record",
+   "image": "a2dlc-tests-py:0.2",
+   "cases": "golden/cases/*.json"
+  }
+ },
+ "protected_paths": [
+  "tests/human/**",
+  "contracts/**"
+ ],
+ "supply_chain": {
+  "allowlist_file": ".a2dlc/deps.allow.json"
+ },
+ "integration": {
+  "generated_clients": [
+   "clients/gen/**"
+  ]
+ }
+}

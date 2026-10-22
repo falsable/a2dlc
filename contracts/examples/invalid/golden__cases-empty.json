@@ -1,0 +1,9 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.subtract.b11",
+ "base": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+ "image": "a2dlc-tests-py:0.2",
+ "command": "./golden.sh record",
+ "cases": [],
+ "recorded_at": "2026-10-18T10:00:00Z"
+}

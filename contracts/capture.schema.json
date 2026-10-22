@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/capture.schema.json",
+  "title": "Behavioral capture of a refactor (.a2dlc/run/<slice>/capture.json)",
+  "description": "Stage 1 in refactor mode, deterministic and without LLM: the existing tests in the base that touch the changed files (the safety net the legacy already had) and the candidate's public signatures in those files. selection says by which rule the tests were chosen: the core knows no languages, so it is a declared textual heuristic. traces[] (when present) is the recorded I/O of each call of the changed functions, with the branches it took. branch_coverage is the fraction of branches the traces cover. The VCR of anonymized real traffic is not part of this artifact.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "base_sha": { "$ref": "defs.schema.json#/$defs/git_sha" },
+    "changed_files": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Source files changed from the base to the working tree, outside tests.paths." },
+    "selection": { "type": "string", "minLength": 1 },
+    "tests": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Files of the base under tests.paths that the selection rule chose." },
+    "signatures": { "type": "array", "items": { "$ref": "engine-signatures-response.schema.json#/properties/files/items" } },
+    "engine_errors": { "type": "array", "items": { "$ref": "verdict.schema.json#/properties/engine_errors/items" } },
+    "traces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "function": { "type": "string", "minLength": 1, "description": "The id <repo-relative path>::<qualname> of a base function, for example calc.py::sign, never the bare name." },
+          "input": { "type": "string" },
+          "output": { "type": "string" },
+          "branch_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1, "pattern": "^[0-9]+->[0-9]+$", "description": "<from line>-><to line> of a decision (if, for or while) of that function." } }
+        },
+        "required": ["function", "input", "output", "branch_ids"],
+        "additionalProperties": false
+      }
+    },
+    "branch_coverage": { "type": "number", "minimum": 0, "maximum": 1 }
+  },
+  "required": ["schema_version", "slice_id", "base_sha", "changed_files", "selection", "tests", "signatures", "engine_errors"],
+  "additionalProperties": false
+}

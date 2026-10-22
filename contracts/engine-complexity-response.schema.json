@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-complexity-response.schema.json",
+  "title": "Engine response to operation: complexity (/io/response.json)",
+  "description": "Complexity of what the candidate changed relative to the base, per file in changed_files: it is the Occam selection metric between builders (§5 Stage 5, N=2), lexicographic. loc_added and loc_removed are the file's diff lines. cyclomatic is the cyclomatic complexity (McCabe: 1 per function plus each decision) summed over the functions the candidate added or changed; ast_nodes, the AST nodes of those same functions. null when the file is not code for the engine or does not parse: the core does not count it as zero. A file the engine does not measure does not appear; the core lists it as unmeasured.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "files": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/complexity_file" }
+    },
+    "error": { "type": ["string", "null"] }
+  },
+  "required": ["schema_version", "files", "error"],
+  "additionalProperties": false,
+  "$defs": {
+    "complexity_file": {
+      "type": "object",
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "loc_added": { "type": "integer", "minimum": 0 },
+        "loc_removed": { "type": "integer", "minimum": 0 },
+        "cyclomatic": { "type": ["integer", "null"], "minimum": 0 },
+        "ast_nodes": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "required": ["file", "loc_added", "loc_removed", "cyclomatic", "ast_nodes"],
+      "additionalProperties": false
+    }
+  }
+}

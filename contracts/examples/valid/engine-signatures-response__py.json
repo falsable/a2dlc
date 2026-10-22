@@ -1,0 +1,6 @@
+{"schema_version": 1,
+ "files": [{"file": "src/calc.py", "symbols": [
+   {"name": "media", "signature": "def media(xs: list[float]) -> float", "doc": "Arithmetic mean; raises ValueError with an empty list.", "lines": [12, 18]},
+   {"name": "Caja", "signature": "class Caja", "doc": null, "lines": [21, 40]},
+   {"name": "Caja.vaciar", "signature": "def vaciar(self) -> None", "doc": "Leaves the box with no elements.", "lines": [33, 36]}]}],
+ "error": null}

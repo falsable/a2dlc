@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/slice-contract.schema.json",
+  "title": "Contract of a slice (protocol §6.1 in JSON): contract.json (S*) and the candidates contract_alpha.json / contract_beta.json of .a2dlc/run/<slice>/",
+  "description": "Stage 1 produces it. In greenfield and brownfield_facade, Specifier α and β each write a candidate (source specifier_alpha / specifier_beta) and the Inquisitor merges them into S* (source consensus). In refactor the core derives it without LLM from the public signatures, with strict π_S: the legacy is the oracle. A subset of §6.1: functions with pre/post, errors and invariants in text, boundary probes, assumptions and π_S. Optional: io_contract, invariants (with the §6.2 DSL) and lemmas. Capabilities are declared in intent.capabilities. A probe is the concrete input and what S* says happens; probes.json blocks them with the hash of S*.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "source": { "enum": ["specifier_alpha", "specifier_beta", "consensus"] },
+    "functions": { "type": "array", "items": { "$ref": "#/$defs/function" } },
+    "probes": { "type": "array", "items": { "$ref": "#/$defs/probe" } },
+    "assumptions": { "type": "array", "items": { "$ref": "#/$defs/assumption" } },
+    "pi_s": { "$ref": "#/$defs/pi_s" },
+    "io_contract": {
+      "type": "object",
+      "properties": {
+        "input_schema_ref": { "type": "string", "minLength": 1, "description": "Reference to the input schema of the slice (a path in the repo or a URI)." },
+        "output_schema_ref": { "type": "string", "minLength": 1, "description": "Reference to the output schema of the slice." },
+        "error_taxonomy": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 }, "description": "Error codes the slice may raise. functions[].errors[].raises names, when present, must be among them." }
+      },
+      "required": ["input_schema_ref", "output_schema_ref", "error_taxonomy"],
+      "additionalProperties": false
+    },
+    "invariants": {
+      "type": "array",
+      "description": "Slice-level invariants. text is the statement; dsl is the invariant in the core's concrete syntax (protocol §6.2 names only a subset of it) that the core translates to SMT; verification says how it is checked.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string", "minLength": 1 },
+          "dsl": { "type": "string", "minLength": 1 },
+          "verification": { "enum": ["smt", "smt+pbt", "runtime_and_pbt"] }
+        },
+        "required": ["text"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "slice_id", "source", "functions", "probes", "assumptions", "pi_s"],
+  "additionalProperties": false,
+  "$defs": {
+    "function": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "In refactor, the target <file>::<symbol> of the signature; in greenfield, the name the specifier proposes." },
+        "signature": { "description": "The header in the repo's language; null if the specifier does not fix it.", "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] },
+        "pre": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "post": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "invariants": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "errors": {
+          "description": "Error taxonomy (§6.1 error_taxonomy) per function: under which condition and what it throws.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "condition": { "type": "string", "minLength": 1 },
+              "raises": { "type": "string", "minLength": 1 }
+            },
+            "required": ["condition", "raises"],
+            "additionalProperties": false
+          }
+        },
+        "lemmas": {
+          "description": "Critical slices: pure internal functions with declared postconditions. The engine checks each one (crosshair per lemma; in refactor, diffbehavior against the base lemma of the same name).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "postcondition": { "type": "string", "minLength": 1 }
+            },
+            "required": ["name", "postcondition"],
+            "additionalProperties": false
+          }
+        },
+        "smt": {
+          "description": "Block 7, optional. The pre/post of the function in SMT-LIB 2 (declare-const, define-fun, assert), for the satisfiability check of Stage 1.5 (§5: Z3 runs over these clauses; the §6.2 DSL of invariants[].dsl is translated by the core into this form). The z3 engine concatenates the fragments and solves them: unsat is CB-02a; unknown leaves the function as runtime_and_pbt. Absent: the function does not go through Z3 and the stage says so. Never Python code: only SMT-LIB, which the engine parses without evaluating.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        }
+      },
+      "required": ["name", "signature", "pre", "post", "invariants", "errors"],
+      "additionalProperties": false
+    },
+    "probe": {
+      "description": "Boundary probe (§6.1 locked_boundary_probes): a concrete input and the result that S* fixes; with file and expr, also the assertion that Tier 0 runs. example: one case; property: a property over a family of inputs; negative: what must fail.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9]*-[0-9]+$" },
+        "description": { "type": "string", "minLength": 1 },
+        "input": { "type": "string", "minLength": 1, "description": "Expression or JSON, as a test would write it." },
+        "expected": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["example", "property", "negative"] },
+        "file": { "type": "string", "minLength": 1, "description": "Optional, with expr: file of the candidate, relative to the repo, whose module Tier 0 imports to evaluate expr." },
+        "assumption": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$", "description": "Optional: id of the S* assumption this probe checks (consensus probe, §5 Stage 1 step 4). Each catalogue assumption with status accepted requires at least one probe that cites it: agreement between families is not correctness. Validate requires the id to exist among the contract's assumptions." },
+        "expr": { "type": "string", "minLength": 1, "description": "Optional, with file: the compiled assertion (protocol §5 Stage 1 step 5), a boolean expression in the engine's language evaluated with the module's top-level names in view; the Python engine adds raises(Exc, f, *args, **kwargs). A probe without expr is not run by Tier 0: it stays as unchecked in the candidate." }
+      },
+      "required": ["id", "description", "input", "expected", "kind"],
+      "additionalProperties": false
+    },
+    "assumption": {
+      "description": "Domain assumption. source catalogue: comes from the catalogue (.a2dlc/catalogue.json) and its id is the entry's; specifier: an LLM proposed it and, until it enters the catalogue, it generates no probes (§5 Stage 1, opposite case). open waits for a person.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$" },
+        "statement": { "type": "string", "minLength": 1 },
+        "source": { "enum": ["catalogue", "specifier"] },
+        "status": { "enum": ["open", "accepted", "rejected"] },
+        "criticality": {
+          "description": "Block 7, optional. How costly it is to be wrong about the assumption. The Stage 1.5 lint gives an error for an open assumption of criticality high or critical: someone has to answer it before building. Absent: unknown, and an open assumption without criticality does not block.",
+          "enum": ["low", "medium", "high", "critical"]
+        }
+      },
+      "required": ["id", "statement", "source", "status"],
+      "additionalProperties": false
+    },
+    "pi_s": {
+      "description": "Equivalence relation π_S (§5 Stage 1.5 step 3): strict by default; each relaxation is explicit (ignored field, set semantics, tolerance, compare error_code) and is validated by a human probe.",
+      "type": "object",
+      "properties": {
+        "equivalence": { "enum": ["strict", "relaxed"] },
+        "relaxations": { "type": "array", "items": { "type": "string", "pattern": "^(ignore_order|set_semantics|errors_by_type|float_tolerance:[0-9.eE+-]+|ignore_fields:[A-Za-z0-9_.]+)$" }, "uniqueItems": true }
+      },
+      "required": ["equivalence", "relaxations"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "equivalence": { "const": "strict" } } },
+          "then": { "properties": { "relaxations": { "maxItems": 0 } } },
+          "else": { "properties": { "relaxations": { "minItems": 1 } } }
+        }
+      ]
+    }
+  }
+}

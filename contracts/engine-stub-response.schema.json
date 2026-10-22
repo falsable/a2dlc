@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-stub-response.schema.json",
+  "title": "Engine response to operation: stub (/io/response.json)",
+  "description": "For the NOP gate (protocol §5, Stage 4): the base receives stubs of the new symbols so that a new test fails for the test and not for an import. The base's bodies and values are not touched: they could be the fix itself. With a non-null error, the core runs NOP without stubs.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "stubbed": {
+      "description": "Files written to /io/stubs/<file>, each with the symbols that received a stub.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "symbols": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+        },
+        "required": ["file", "symbols"],
+        "additionalProperties": false
+      }
+    },
+    "unstubbed": {
+      "description": "New symbols that the engine could not stub (e.g. a method of a nested class). A failure on the base that names them is invalid for NOP: INCONCLUSIVE.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "modified_tests": {
+      "description": "Test ids (file::Class.method or file::func) whose body changed between base and candidate. The NOP gate judges them as new tests, because a changed test that fails on the base is a test that did not exist before. Empty when no test body changed.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "error": { "type": ["string", "null"] }
+  },
+  "required": ["schema_version", "stubbed", "unstubbed", "error"],
+  "additionalProperties": false
+}

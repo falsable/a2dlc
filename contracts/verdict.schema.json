@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/verdict.schema.json",
+  "title": "Verdict of a2dlc check (.a2dlc/verdict.json, not committed)",
+  "description": "aggregate verdict: FAIL if any target or test FAILs without a waiver; otherwise INCONCLUSIVE if any is, a gate could not run, or some changed line in scope was left unexamined (coverage.files[].uncovered not empty: never an empty PASS); otherwise PASS. A FAIL with a waiver, approved or pending, does not count, but the pending one goes to pending_waivers and verify blocks it.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "a2dlc_version": { "type": "string", "minLength": 1 },
+    "verdict": { "$ref": "defs.schema.json#/$defs/verdict" },
+    "base_ref": { "$ref": "defs.schema.json#/$defs/git_sha" },
+    "tree_hash": {
+      "description": "git write-tree of a temporary index without the gate outputs and with .a2dlc/waivers.json",
+      "type": "string",
+      "pattern": "^git-tree:[0-9a-f]{40}([0-9a-f]{24})?$"
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "stage": {
+      "description": "v2, optional: the a2dlc run stage that emitted the verdict (run-state id, today \"4\"). Absent in a2dlc check.",
+      "$ref": "run-defs.schema.json#/$defs/stage"
+    },
+    "contract_hash": {
+      "description": "v2, optional: sha256 of .a2dlc/run/<slice>/contract.json (S*) when the run has a contract. It ties the verdict to the contract it was judged against: another S* asks for another verdict.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "allOf": [{ "$ref": "defs.schema.json#/$defs/target_result" }],
+        "properties": { "waived": { "type": "boolean" } },
+        "required": ["waived"],
+        "unevaluatedProperties": false
+      }
+    },
+    "out_of_scope": { "$ref": "defs.schema.json#/$defs/out_of_scope" },
+    "engine_errors": {
+      "description": "Engines that did not respond or responded badly: their files have no target and the aggregate verdict is INCONCLUSIVE.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "language": { "type": "string", "minLength": 1 },
+          "files": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+          "error": { "type": "string", "minLength": 1 }
+        },
+        "required": ["language", "files", "error"],
+        "additionalProperties": false
+      }
+    },
+    "pending_waivers": { "type": "array", "items": { "$ref": "defs.schema.json#/$defs/target_id" }, "uniqueItems": true },
+    "diff_budget": {
+      "description": "Per-diff time budget of the engines, in seconds. Functions not run because the budget ran out are listed in cut with a reason, never omitted: each one is a target this verdict did not judge.",
+      "type": "object",
+      "properties": {
+        "total_s": { "type": "number", "exclusiveMinimum": 0 },
+        "used_s": { "type": "number", "minimum": 0 },
+        "cut": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "target": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string", "minLength": 1 }
+            },
+            "required": ["target", "reason"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["total_s", "used_s", "cut"],
+      "additionalProperties": false
+    },
+    "test_gates": {
+      "description": "What happened with each test gate (config.tests). What does not run stays in view, never silently.",
+      "type": "object",
+      "properties": {
+        "nop_oracle": { "$ref": "#/$defs/gate" },
+        "baseline": { "$ref": "#/$defs/gate" },
+        "tests_diff": { "$ref": "#/$defs/gate", "description": "N trees: the same T over the base, the candidate and each --peer. not_applicable without --peer or --tests-overlay, or with an empty T." },
+        "equivalence_s": { "$ref": "#/$defs/gate", "description": "N=2 differential: candidate against candidate on the same inputs (Stage 4 with two builders). not_applicable with one candidate." }
+      },
+      "required": ["nop_oracle", "baseline"],
+      "additionalProperties": false
+    },
+    "coverage": {
+      "description": "Coverage precondition over the changed files in scope (engine paths and tests.source_paths). Per file, which changed lines a PASS/FAIL target examined (by_engine), which ones some test ran on the candidate (covered), and which nobody looked at (uncovered). Lines that coverage does not list as statements do not appear.",
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "ran: some run on the candidate produced coverage. unavailable: config.tests exists but no command left $A2DLC_COVERAGE. not_configured: no config.tests. In the last two only the engines examine.",
+          "enum": ["ran", "unavailable", "not_configured"]
+        },
+        "reason": { "type": "string", "minLength": 1, "description": "Why there was no coverage (unavailable), e.g. the report could not be read." },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file": { "type": "string", "minLength": 1 },
+              "by_engine": { "$ref": "#/$defs/lines" },
+              "covered": { "$ref": "#/$defs/lines" },
+              "uncovered": { "$ref": "#/$defs/lines" }
+            },
+            "required": ["file", "by_engine", "covered", "uncovered"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["status", "files"],
+      "additionalProperties": false
+    },
+    "tests": {
+      "description": "Testcases the gates judged. aggregate verdict: a FAIL or INCONCLUSIVE without a waiver of its class counts as a target's.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+          "gate": { "enum": ["nop_oracle", "baseline", "tests_diff", "equivalence_s"] },
+          "verdict": { "$ref": "defs.schema.json#/$defs/verdict" },
+          "reason": { "type": "string", "minLength": 1 },
+          "base": {
+            "description": "nop_oracle: state on the base with stubs and the candidate's tests. baseline and tests_diff: state on the base.",
+            "$ref": "defs.schema.json#/$defs/test_status"
+          },
+          "candidate": { "$ref": "defs.schema.json#/$defs/test_status" },
+          "trees": {
+            "description": "tests_diff: state of the test in each tree (base, candidate, peer:<short sha>).",
+            "type": "object",
+            "additionalProperties": { "$ref": "defs.schema.json#/$defs/test_status" }
+          },
+          "origin": { "type": "string", "minLength": 1, "description": "tests_diff: which tree the test file came from (candidate, peer:<short sha>, overlay). nop_oracle: \"overlay\" when the test was brought by --tests-overlay (the Saboteur) and not the candidate." },
+          "message": { "type": "string", "description": "Message of the failure it decided on, trimmed." },
+          "characterization": { "type": "boolean", "description": "Passes on the base and the change does not declare an intent to change behavior (no enforce_new_behavior stubs or waivers): it is recorded and does not block." },
+          "flaky": { "type": "boolean", "description": "Flaky on the base on re-runs: does not block; quarantine is proposed." },
+          "reruns": {
+            "type": "object",
+            "properties": {
+              "base": { "type": "array", "items": { "$ref": "defs.schema.json#/$defs/test_status" } },
+              "candidate": { "type": "array", "items": { "$ref": "defs.schema.json#/$defs/test_status" } }
+            },
+            "required": ["base", "candidate"],
+            "additionalProperties": false
+          },
+          "waived": { "type": "boolean" }
+        },
+        "required": ["target", "gate", "verdict", "base", "candidate", "waived"],
+        "allOf": [{ "if": { "properties": { "verdict": { "enum": ["FAIL", "INCONCLUSIVE"] } } }, "then": { "required": ["reason"] } }],
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "lines": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "uniqueItems": true },
+    "gate": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "ran: it ran. not_applicable: nothing to judge (no changed tests, or no changed sources or tests). not_configured: config.tests or baseline_command is missing. error: it could not run (counts as INCONCLUSIVE).",
+          "enum": ["ran", "not_applicable", "not_configured", "error"]
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "cached": { "type": "boolean", "description": "baseline: the base run came from the cache (same base, same selection)." },
+        "stubs": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "nop_oracle: symbols that received a stub on the base." },
+        "trees": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "tests_diff: trees on which T ran, in order." },
+        "tests": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "tests_diff: files of T." }
+      },
+      "required": ["status"],
+      "allOf": [{ "if": { "properties": { "status": { "const": "error" } } }, "then": { "required": ["reason"] } }],
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "a2dlc_version", "verdict", "base_ref", "tree_hash", "created_at", "targets", "out_of_scope", "pending_waivers"],
+  "additionalProperties": false
+}

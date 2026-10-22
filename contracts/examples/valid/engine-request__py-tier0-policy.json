@@ -1,0 +1,20 @@
+{
+ "schema_version": 1,
+ "language": "python",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "base_dir": "/base",
+ "candidate_dir": "/cand",
+ "changed_files": [
+  "src/calc.py"
+ ],
+ "generators_override": null,
+ "operation": "tier0",
+ "budget": {
+  "probes": [],
+  "policy": {
+   "forbidden_imports": ["pickle"],
+   "require_header": true,
+   "max_complexity": 15
+  }
+ }
+}

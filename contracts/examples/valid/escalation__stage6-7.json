@@ -1,0 +1,14 @@
+{"schema_version": 1, "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904", "created_at": "2026-10-17T12:00:00Z",
+ "items": [
+  {"id": "esc-7a0b1c2d3e4f", "kind": "consumer_broken", "target": "billing-web::pact/settle.spec.ts::receipt has tx_id",
+   "summary": "The consumer billing-web fails 1 of 12 tests against the candidate (affected by api/openapi.yaml).",
+   "evidence": {"candidate": "failed", "message": "expected receipt.tx_id to be defined"},
+   "resolve_with": []},
+  {"id": "esc-8b1c2d3e4f50", "kind": "destructive_migration", "target": "migrations/0042_receipt.sql::L7:drop_column",
+   "summary": "Destructive DDL (drop_column) in a changed migration: expand-and-contract forbids it in the same release.",
+   "evidence": {"lines": [7], "message": "ALTER TABLE receipts DROP COLUMN legacy_ref"},
+   "resolve_with": []},
+  {"id": "esc-9c2d3e4f5061", "kind": "missing_compensation", "target": "billing.ledger_settlement.v2::delivery",
+   "summary": "CB-06: the slice writes data and the intent declares no compensation strategy; the plan does not go past the 1 % ring.",
+   "evidence": {"message": "intent.delivery.writes = true, intent.delivery.compensation = null"},
+   "resolve_with": []}]}

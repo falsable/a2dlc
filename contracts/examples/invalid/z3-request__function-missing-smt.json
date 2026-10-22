@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "timeout_ms": 10000,
+ "functions": [
+  {
+   "function": "src/billing/ledger.py::transfer",
+   "smt": []
+  },
+  {
+   "function": "src/billing/ledger.py::refund",
+   "smt": [
+    "(declare-const x Int)",
+    "(assert (> x 0))",
+    "(assert (< x 0))"
+   ]
+  }
+ ]
+}

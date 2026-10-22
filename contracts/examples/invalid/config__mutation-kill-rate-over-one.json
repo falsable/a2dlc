@@ -1,0 +1,29 @@
+{
+ "schema_version": 1,
+ "engines": [
+  {
+   "language": "python",
+   "image": "a2dlc-engine-py:0.4",
+   "paths": [
+    "src/**"
+   ],
+   "budget": {
+    "per_condition_timeout_s": 10
+   }
+  }
+ ],
+ "tests": {
+  "image": "a2dlc-tests-py:0.1",
+  "paths": [
+   "tests/**"
+  ],
+  "source_paths": [
+   "src/**"
+  ],
+  "command": "python -m coverage run -m pytest -q -p no:cacheprovider -o junit_family=xunit1 --junitxml=\"$A2DLC_JUNIT\" $A2DLC_TESTS; python -m coverage xml -o \"$A2DLC_COVERAGE\""
+ },
+ "mutation": {
+  "min_kill_rate": 80,
+  "max_mutants": 30
+ }
+}

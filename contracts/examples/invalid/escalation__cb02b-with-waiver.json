@@ -1,0 +1,19 @@
+{
+ "schema_version": 1,
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-17T20:00:00Z",
+ "items": [
+  {
+   "id": "esc-778c305979ff",
+   "kind": "builder_exhaustion",
+   "target": "cb02b.v1::builder",
+   "summary": "builder exhausted: 3 Tier 0 rounds without ok; the higher tier (claude) spent one extra round and failed too. Splitting the slice is a person's decision; the core does not automate it.",
+   "evidence": {
+    "message": "compile builder_primary src/f.py: invalid syntax"
+   },
+   "resolve_with": [
+    "enforce_new_behavior"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "schema_version": 1,
+ "waivers": [
+  {
+   "target": "src/lib/routes.ts::tabToPath",
+   "decision": "ignore",
+   "reason": "Entropos-ugg.21: playground is merged into Connect and flow into Activity."
+  }
+ ]
+}

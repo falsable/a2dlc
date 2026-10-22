@@ -1,0 +1,7 @@
+{"schema_version": 1,
+ "candidates": [
+  {"builder": "builder_primary", "commit": "4b825dc642cb6eb9a060e54bf8d69288fbee4904", "verdict": "FAIL", "complexity": null},
+  {"builder": "builder_orthogonal", "commit": "9d45962efcf863c3befa0b39d5748ede2ae5870e", "verdict": "FAIL", "complexity": null}
+ ],
+ "selected": null,
+ "reason": "CB-01: divergence between builders: each one fails a test that the other passes (builder_primary: tests/test_o.t::c::to; builder_orthogonal: tests/test_p.t::c::tp)"}

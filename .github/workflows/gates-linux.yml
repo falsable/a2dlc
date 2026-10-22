@@ -1,0 +1,55 @@
+# Test gates (NOP/Oracle, baseline) on a Linux runner with real pytest and hypothesis, over the frozen fixtures gates-py and
+# gates-prop. They run behind a tag, not on every push (ADR 0004, CI strategy): push a gates-* tag, or start it by hand.
+# This is the Linux measurement that the README's Tier 1 row is waiting for.
+#
+# NOT VERIFIED YET: this job has never run on a GitHub runner (the only run was measure_gates.sh on the Windows host).
+# Known gaps before the first gates-* tag:
+#   - The container may leave root-owned files in the runner temp dir (README:875): the gate needs `--user uid:gid` on
+#     non-Windows hosts (engine.go, s4-linux-ci-test-gates) and gates.go must log the RemoveAll error. Both are in the
+#     GATES package, not here (needs).
+#   - The gates-py manifest is translated to the English keys by e2e/normalize_manifest.py before judge_gates.py reads it
+#     (tested in e2e/test_judge_gates.py; the step "judge and manifest normalizer" below runs those tests before measuring).
+# Do not push a gates-* tag until one run of this workflow is green.
+name: gates-linux
+on:
+  push:
+    tags: ['gates-*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gates-linux-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.25'
+          cache: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: judge and manifest normalizer (tests with tiny manifests)
+        run: python -m unittest discover -s e2e -p "test_*.py"
+      - name: a2dlc binary for linux, built from this commit
+        run: |
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o dist/a2dlc-linux-amd64 ./cmd/a2dlc
+      - name: images the gates run in
+        run: |
+          docker build -q -t a2dlc-engine-py:0.2 engines/py
+          docker build -q -t a2dlc-tests-pytest:0.2 -f e2e/gates/pytest.Dockerfile e2e/gates
+          docker build -q -t a2dlc-tests-hypothesis:0.1 -f e2e/testdata/gates-prop/tests.Dockerfile e2e/testdata/gates-prop
+      - name: test gates, gates-py (real pytest)
+        env:
+          A2BIN: ${{ github.workspace }}/dist/a2dlc-linux-amd64
+        run: bash e2e/measure_gates.sh "$RUNNER_TEMP/gates-py"
+      - name: test gates, gates-prop (committed Hypothesis properties)
+        env:
+          A2BIN: ${{ github.workspace }}/dist/a2dlc-linux-amd64
+          FIXTURE: gates-prop
+        run: bash e2e/measure_gates.sh "$RUNNER_TEMP/gates-prop"

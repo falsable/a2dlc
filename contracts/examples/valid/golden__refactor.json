@@ -1,0 +1,16 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.subtract.b11",
+ "base": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+ "image": "a2dlc-tests-py:0.2",
+ "command": "./golden.sh record",
+ "cases": [
+  {
+   "id": "case-1",
+   "input_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "output_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "exit_code": 0
+  }
+ ],
+ "recorded_at": "2026-10-18T10:00:00Z"
+}

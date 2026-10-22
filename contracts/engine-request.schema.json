@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-request.schema.json",
+  "title": "Core's request to an engine (/io/request.json)",
+  "description": "The core mounts the base at /base and the candidate at /cand, both read-only, and /io writable. The engine discovers the targets within changed_files and responds in /io/response.json.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "language": { "type": "string", "minLength": 1 },
+    "base_ref": { "$ref": "defs.schema.json#/$defs/git_sha" },
+    "base_dir": { "const": "/base" },
+    "candidate_dir": { "const": "/cand" },
+    "changed_files": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "budget": {
+      "description": "Opaque to the core in diff: it comes from .a2dlc/config.json and each engine reads its keys. With operation tier0 the core builds it and it only carries probes (the blocked probes of the run that fall to this engine). With operation: mutate, the core also builds it: changed_lines (file → changed lines in the candidate, the only ones that can be mutated) and max_mutants (mutant cap of the request; what does not fit goes to not_generated).",
+      "type": "object"
+    },
+    "generators_override": {
+      "description": "Path relative to the candidate of the repo's generators (.a2dlc/arbs.*), or null to derive them from the types.",
+      "type": ["string", "null"]
+    },
+    "operation": {
+      "description": "diff (default): compare and reply with engine-response. stub: write to /io/stubs/<path> the base version of each changed_files file with stubs of what the candidate added (a body that raises NotImplementedError or its equivalent) and reply with engine-stub-response. signatures: list the public signatures (name, signature, docstring, lines) of each changed_files file in the candidate, without bodies, and reply with engine-signatures-response: it is the only part of the code the Saboteur sees (§3). tier0: the Builder's Tier 0 (§5 Stage 3): compile, typecheck and lint the changed_files in the candidate and run the probes of budget.probes, and reply with engine-tier0-response. mutate (Stage 5, mutation bounded to the diff): generate mutants only of the lines in budget.changed_lines, write each one as the whole mutated file at /io/mutants/<id>/<file> and reply with engine-mutate-response. complexity: measure each changed_files file of the candidate against the base (added and removed lines, cyclomatic complexity and AST nodes of the changed functions) and reply with engine-complexity-response: it is the metric of the Occam selection between builders (N=2). fuzz (Stage 4, deterministic fuzzing of the changed public functions with a fixed seed and a time budget) replies with engine-fuzz-response. lemmas (Stage 2, Critical slices) checks the declared postconditions of the lemmas and replies with engine-lemmas-response. deps_graph lists the import edges of the files listed in changed_files and replies with engine-deps-response; the core lists every candidate source file of the engine for it, because the importers of a changed module are not changed files. golden_record (Stage -1, refactor and legacy) records the black-box I/O of the cases on the base; golden_replay (Stage 4) replays them on the candidate; both reply with engine-golden-response. capture_traces (Stage 1, refactor and legacy) runs the base tests under the trace harness and replies with engine-traces-response. An engine that does not perform an operation replies with an error.",
+      "enum": ["diff", "stub", "signatures", "tier0", "mutate", "complexity", "fuzz", "lemmas", "deps_graph", "golden_record", "golden_replay", "capture_traces"]
+    },
+    "equivalence_relaxations": {
+      "description": "Block 7, optional, diff only: the relaxations of π_S (pi_s.relaxations of contract.json) that a2dlc run passes in Stage 4. Strict if absent. The engine applies the ones it knows when judging a difference and returns the rest in equivalence_unsupported: one it does not know is compared strictly, the safe side. The ones the Python engine understands are in the README (Engines).",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "required": ["schema_version", "language", "base_ref", "base_dir", "candidate_dir", "changed_files", "budget", "generators_override"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "operation": { "const": "tier0" } }, "required": ["operation"] },
+      "then": {
+        "properties": {
+          "budget": {
+            "properties": {
+              "probes": { "type": "array", "items": { "allOf": [{ "$ref": "slice-contract.schema.json#/$defs/probe" }, { "required": ["file", "expr"] }] } },
+              "policy": { "$ref": "defs.schema.json#/$defs/tier0_policy", "description": "the repo's config.tier0, as is; the engine applies the defaults for whatever is missing." }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "mutate" } }, "required": ["operation"] },
+      "then": {
+        "properties": {
+          "budget": {
+            "type": "object",
+            "properties": {
+              "changed_lines": {
+                "description": "File of changed_files → changed lines of the candidate (from 1). A mutant on another line violates the contract.",
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "minItems": 1, "uniqueItems": true }
+              },
+              "max_mutants": { "type": "integer", "minimum": 1, "description": "config.mutation.max_mutants (30 by default)." }
+            },
+            "required": ["changed_lines", "max_mutants"],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "fuzz" } }, "required": ["operation"] },
+      "then": { "properties": { "budget": { "type": "object", "properties": { "seconds": { "type": "integer", "minimum": 1 }, "seed": { "type": "integer" } }, "required": ["seconds", "seed"], "additionalProperties": false } } }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "lemmas" } }, "required": ["operation"] },
+      "then": { "properties": { "budget": { "type": "object", "properties": { "functions": { "type": "array", "minItems": 1, "items": { "type": "object", "properties": { "name": { "type": "string", "minLength": 1 }, "postcondition": { "type": "string", "minLength": 1 } }, "required": ["name", "postcondition"], "additionalProperties": false } }, "mode": { "enum": ["check", "diffbehavior"] } }, "required": ["functions", "mode"], "additionalProperties": false } } }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "deps_graph" } }, "required": ["operation"] },
+      "then": { "properties": { "budget": { "type": "object", "maxProperties": 0 } } }
+    },
+    {
+      "if": { "properties": { "operation": { "enum": ["golden_record", "golden_replay"] } }, "required": ["operation"] },
+      "then": { "properties": { "budget": { "type": "object", "properties": { "cases": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }, "required": ["cases"], "additionalProperties": false } } }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "capture_traces" } }, "required": ["operation"] },
+      "then": { "properties": { "budget": { "type": "object", "properties": { "timeout_s": { "type": "number", "exclusiveMinimum": 0, "default": 300 } }, "additionalProperties": false } } }
+    }
+  ]
+}

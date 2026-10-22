@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/role-request.schema.json",
+  "title": "Request to a role (/in/request.json, written by a2dlc run)",
+  "description": "Common to all roles. inputs lists exactly the files mounted at /in: it is the role's only view of the repo and the artifacts, and the ledger stores its hash. The payload depends on the role and the stage, and role-payloads.schema.json fixes it for the seven roles (specifiers, inquisitor in Stages 1 and 1.5, back_translator, builders, saboteur). A role that needs something not in inputs asks for it in response.refused with the reason: it does not search for it.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "run_id": { "$ref": "run-defs.schema.json#/$defs/run_id" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "mode": { "$ref": "run-defs.schema.json#/$defs/mode" },
+    "role": { "$ref": "run-defs.schema.json#/$defs/role" },
+    "stage": { "$ref": "run-defs.schema.json#/$defs/stage" },
+    "attempt": { "type": "integer", "minimum": 1 },
+    "inputs": {
+      "type": "array",
+      "items": { "$ref": "run-defs.schema.json#/$defs/hashed_file" },
+      "description": "Everything the role can read, with its hash. Empty only for roles that work solely with the payload."
+    },
+    "workdir": {
+      "description": "Builders only: /work, writable copy of the tree they work on. The output that counts is the diff the core takes from /work, not what the role says.",
+      "oneOf": [{ "type": "null" }, { "const": "/work" }]
+    },
+    "payload": { "type": "object" }
+  },
+  "required": ["schema_version", "run_id", "slice_id", "mode", "role", "stage", "attempt", "inputs", "workdir", "payload"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "role": { "enum": ["builder_primary", "builder_orthogonal"] } } },
+      "then": { "properties": { "workdir": { "const": "/work" } } },
+      "else": { "properties": { "workdir": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "saboteur" } } },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/saboteur_request" } } }
+    },
+    {
+      "if": { "properties": { "role": { "enum": ["builder_primary", "builder_orthogonal"] } }, "required": ["role"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/builder_request" } } }
+    },
+    {
+      "if": { "properties": { "role": { "enum": ["specifier_alpha", "specifier_beta"] } } },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/specifier_request" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "inquisitor" }, "stage": { "const": "1" } }, "required": ["role", "stage"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/inquisitor_request" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "inquisitor" }, "stage": { "const": "1.5" } }, "required": ["role", "stage"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/inquisitor_bt_request" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "inquisitor" } }, "required": ["role"] },
+      "then": { "properties": { "stage": { "enum": ["1", "1.5"] } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "back_translator" } } },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/back_translator_request" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "propose_properties" } }, "required": ["role"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/propose_request" } } }
+    }
+  ]
+}

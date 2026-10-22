@@ -1,0 +1,21 @@
+{
+ "schema_version": 1,
+ "run_id": "run-5d1e7a0c9b42",
+ "role": "inquisitor",
+ "stage": "1.5",
+ "attempt": 1,
+ "status": "ok",
+ "cost": {
+  "usd": 0.0061
+ },
+ "payload": {
+  "matches": true,
+  "discrepancies": [
+   {
+    "clause": "NaN in the list",
+    "intent_says": "a NaN in xs is a caller error",
+    "contract_implies": "S* says nothing about NaN: media([nan]) may return nan"
+   }
+  ]
+ }
+}

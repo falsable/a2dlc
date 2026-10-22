@@ -1,0 +1,9 @@
+{
+ "schema_version": 1,
+ "findings": [],
+ "runs": 0,
+ "seconds": 0,
+ "unsupported": [
+  {"function": "parse", "reason": "the parameter has no type annotation: no generator can be derived"}
+ ]
+}

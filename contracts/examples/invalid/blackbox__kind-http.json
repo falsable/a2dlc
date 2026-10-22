@@ -1,0 +1,43 @@
+{
+ "schema_version": 1,
+ "build": [
+  "sh",
+  "-c",
+  "go build -o \"$A2DLC_OUT/a2dlc\" ./cmd/a2dlc"
+ ],
+ "harness": [
+  "sh",
+  "-c",
+  "go build -o \"$A2DLC_HARNESS/docker\" ./e2e/bb/fakedocker && go build -o \"$A2DLC_HARNESS/bb-setup\" ./e2e/bb/setup"
+ ],
+ "surfaces": [
+  {
+   "name": "check",
+   "kind": "http",
+   "input_schema": "e2e/bb/check.schema.json",
+   "setup": [
+    "bb-setup"
+   ],
+   "cwd": "repo",
+   "argv": [
+    "$A2DLC_OUT/a2dlc",
+    "check"
+   ],
+   "timeout_s": 60,
+   "compare": {
+    "exit_code": true,
+    "stdout": true,
+    "stderr": true,
+    "files": [
+     ".a2dlc/verdict.json"
+    ]
+   },
+   "normalize": [
+    {
+     "pattern": "\"created_at\": \"[^\"]*\"",
+     "replace": "\"created_at\": \"-\""
+    }
+   ]
+  }
+ ]
+}

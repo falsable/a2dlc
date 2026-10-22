@@ -1,0 +1,11 @@
+{
+ "schema_version": 1,
+ "slice_id": "core.relational.as_set.v1",
+ "mode": "lite",
+ "goal": "Fix as_set so that an empty relation returns the empty set.",
+ "invariants": [],
+ "non_goals": [],
+ "criticality": "low",
+ "critical_paths": [],
+ "acceptance": []
+}

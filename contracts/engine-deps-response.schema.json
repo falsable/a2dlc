@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-deps-response.schema.json",
+  "title": "Engine response to operation deps_graph (/io/response.json)",
+  "description": "Import edges between the files of the candidate, read by the engine's own parser (Python AST, TypeScript compiler API). unresolved lists the imports the engine could not map to a file in the repo: they are reported, never dropped. In edges, from is the importer and to the imported file (the direction of contracts/examples/valid/integration__discovered.json).",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 }
+        },
+        "required": ["from", "to"],
+        "additionalProperties": false
+      }
+    },
+    "unresolved": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "error": { "type": ["string", "null"], "description": "Set when the engine cannot build the import graph; the edges of an error response are not a complete graph." }
+  },
+  "required": ["schema_version", "edges", "unresolved"],
+  "additionalProperties": false
+}

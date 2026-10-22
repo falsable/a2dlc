@@ -1,0 +1,65 @@
+# a2dlc gating itself in CI: the template templates/ci/a2dlc.yml applied to this repo (ADR meta/0004,
+# CI strategy). It runs only if the push touches what .a2dlc/config.json covers; a push without covered code costs 0.
+#
+# The binary and the engine image come from the pinned release (A2DLC_VERSION and its digest), never from the reviewed
+# commit: if they came from there, the agent could change the engine in the same diff the engine judges.
+# Audit, not boundary: with a direct push to main, a FAIL here is reverted; what blocks is the hook and the pre-push.
+# workflow_dispatch serves to test the job against a given base on any branch.
+name: a2dlc
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cmd/**'       # ← the globs of engines[].paths in .a2dlc/config.json
+      - 'internal/**'
+      - 'go.mod'
+      - '.a2dlc/**'
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'sha of the base commit'
+        required: true
+concurrency:
+  group: a2dlc-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  packages: read
+jobs:
+  # Runs before check: a push does not get a verdict from a tree with a known high or critical dependency finding.
+  supply-chain:
+    uses: ./.github/workflows/supply-chain.yml
+  check:
+    needs: supply-chain
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      A2DLC_VERSION: v0.2.0
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: a2dlc binary (pinned and verified release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$A2DLC_VERSION" -R "$GITHUB_REPOSITORY" -p a2dlc-linux-amd64 -p SHA256SUMS -D "$RUNNER_TEMP/a2dlc"
+          cd "$RUNNER_TEMP/a2dlc" && sha256sum --ignore-missing -c SHA256SUMS && chmod +x a2dlc-linux-amd64
+      - name: black-box engine (ghcr, pinned by the release digest)
+        env:
+          GHCR_LOGIN: ${{ github.token }}
+          ENGINE: ghcr.io/falsable/a2dlc-engine-bb-go@sha256:ed80221d877542d851b1547782c2504ce8273e7c8fbacda2cab36c30db32b18e
+        # The digest comes from the release's IMAGENES.txt; it is retagged to the name .a2dlc/config.json asks for.
+        run: |
+          printf '%s' "$GHCR_LOGIN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker pull -q "$ENGINE"
+          docker tag "$ENGINE" a2dlc-engine-bb-go:0.1
+      - name: a2dlc check
+        env:
+          A2DLC_ALLOWED_SIGNERS_DATA: ${{ vars.A2DLC_ALLOWED_SIGNERS }}
+          BASE: ${{ inputs.base || github.event.before }}
+        # The first push of a branch brings BEFORE=0000…: check does not resolve the base and exits 2 (INCONCLUSIVE), never PASS.
+        run: '"$RUNNER_TEMP/a2dlc/a2dlc-linux-amd64" check --base "$BASE" --require-signatures'
+      - name: verdict
+        if: always()
+        run: head -c 20000 .a2dlc/verdict.json || true

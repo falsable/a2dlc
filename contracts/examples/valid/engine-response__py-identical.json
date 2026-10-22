@@ -1,0 +1,7 @@
+{"schema_version": 1,
+ "targets": [{"target": "src/calc.py::resta", "engine": "crosshair-diffbehavior", "engine_version": "0.0.111",
+   "verdict": "PASS", "reason": "No differences found. (attempted 12 iterations)",
+   "search_budget": {"iterations": 0, "per_condition_timeout_s": 10}, "generators": "typed_default", "typed": true,
+   "domain_guard": null, "equivalence": "strict", "lines": [20, 21], "counterexample": null}],
+ "out_of_scope": [], "error": null,
+ "identical": ["src/calc.py::suma", "src/calc.py::redondea", "src/calc.py::divide", "src/calc.py::Externo"]}

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/candidate.schema.json",
+  "title": "Builder candidate (.a2dlc/run/<slice>/candidate.json, Stage 3 artifact)",
+  "description": "The state of /work when Tier 0 gave ok, turned into a commit on the run's base (message \"a2dlc <builder> <run_id>\", also in refs/a2dlc/run/<slice>/<builder>). What counts is /work, not what the Builder said. Stage 4 judges this commit instead of the user's working tree. The top-level fields are those of the first candidate (builder_primary if it converged). With track N=2 (route.json and builder_orthogonal in roles.json) both builders run, each in its own /work; candidates lists those that converged and dropped those that did not, with their reason; with two candidates Stage 4 judges each one with the other as peer and chooses (selection.json).",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "builder": { "$ref": "#/$defs/builder" },
+    "commit": { "$ref": "defs.schema.json#/$defs/git_sha" },
+    "tree_hash": { "$ref": "#/$defs/candidate/properties/tree_hash" },
+    "iterations": { "$ref": "#/$defs/candidate/properties/iterations" },
+    "unchecked": { "$ref": "#/$defs/candidate/properties/unchecked" },
+    "tier0_reviewed": { "$ref": "#/$defs/candidate/properties/tier0_reviewed" },
+    "candidates": {
+      "description": "Only with N=2: the candidates that converged, in the order they ran (primary, orthogonal).",
+      "type": "array", "minItems": 1, "maxItems": 2, "items": { "$ref": "#/$defs/candidate" }
+    },
+    "dropped": {
+      "description": "Only with N=2: builders that left no candidate (Tier 0 does not converge, refused, changed nothing, touched .a2dlc/ (CB-04) or the tool failed). They are not omitted.",
+      "type": "array", "maxItems": 1,
+      "items": {
+        "type": "object",
+        "properties": { "builder": { "$ref": "#/$defs/builder" }, "reason": { "type": "string", "minLength": 1 } },
+        "required": ["builder", "reason"],
+        "additionalProperties": false
+      }
+    },
+    "headers_missing": {
+      "description": "Only the first candidate (as unchecked): changed source files without an @a2dlc:slice_id line (§6.3). The stage does not fail; the engine's Tier 0 lint decides whether the absence is an error. Absent or [] if all of them declare it.",
+      "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true
+    },
+    "lemmas": { "$ref": "#/$defs/candidate/properties/lemmas" },
+    "dependency_changes": { "$ref": "#/$defs/candidate/properties/dependency_changes" }
+  },
+  "required": ["schema_version", "builder", "commit", "tree_hash", "iterations", "unchecked"],
+  "additionalProperties": false,
+  "$defs": {
+    "builder": { "enum": ["builder_primary", "builder_orthogonal"] },
+    "candidate": {
+      "type": "object",
+      "properties": {
+        "builder": { "$ref": "#/$defs/builder" },
+        "commit": { "$ref": "defs.schema.json#/$defs/git_sha" },
+        "tree_hash": { "$ref": "defs.schema.json#/$defs/git_sha", "description": "Git tree of the commit, without the gate outputs (gitx.Excluded)." },
+        "iterations": { "type": "integer", "minimum": 1, "description": "Rounds builder → tier0 until ok (≤ max_inner_iterations)." },
+        "unchecked": {
+          "description": "What Tier 0 did not review: changed files without an engine or whose engine does not do tier0, and probes without an engine (probe:<probe_id>). Nothing is omitted: it stays here and in the stage's reason.",
+          "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true
+        },
+        "headers_missing": {
+          "description": "Changed source files without any @a2dlc:slice_id line (§6.3). The stage does not fail: the engine's Tier 0 lint decides whether the absence is an error (config.tier0.require_header). Absent or [] if all of them declare it.",
+          "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true
+        },
+        "tier0_reviewed": {
+          "description": "Whether Tier 0 ran anything on the candidate (an engine reviewed a file or a probe). a2dlc run does not leave a candidate with false: a Tier 0 that ran nothing escalates the stage (\"Tier 0 did not run anything: …\"). Absent in candidates prior to this field.",
+          "type": "boolean"
+        },
+        "lemmas": {
+          "description": "Lemma verdicts of this candidate (Critical slices). no_pair: the base has no lemma of the same name to compare with.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "status": { "enum": ["pass", "fail", "inconclusive", "no_pair"] }
+            },
+            "required": ["name", "status"],
+            "additionalProperties": false
+          }
+        },
+        "dependency_changes": {
+          "description": "Dependencies this candidate added or changed in its manifests, each checked against the allowlist file (config.supply_chain).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ecosystem": { "enum": ["go", "npm", "pypi", "cargo"] },
+              "name": { "type": "string", "minLength": 1 },
+              "allowed": { "type": "boolean" }
+            },
+            "required": ["ecosystem", "name", "allowed"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["builder", "commit", "tree_hash", "iterations", "unchecked"],
+      "additionalProperties": false
+    }
+  }
+}

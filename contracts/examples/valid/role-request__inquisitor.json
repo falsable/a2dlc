@@ -1,0 +1,157 @@
+{
+ "schema_version": 1,
+ "run_id": "run-5d1e7a0c9b42",
+ "slice_id": "calc.media.v1",
+ "mode": "greenfield",
+ "role": "inquisitor",
+ "stage": "1",
+ "attempt": 1,
+ "inputs": [
+  {
+   "path": "/in/request.json",
+   "sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+  },
+  {
+   "path": "/in/catalogue.json",
+   "sha256": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  {
+   "path": "/in/contract_alpha.json",
+   "sha256": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+  },
+  {
+   "path": "/in/contract_beta.json",
+   "sha256": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+  }
+ ],
+ "workdir": null,
+ "payload": {
+  "contract_alpha": {
+   "schema_version": 1,
+   "slice_id": "calc.media.v1",
+   "source": "specifier_alpha",
+   "functions": [
+    {
+     "name": "media",
+     "signature": "def media(xs: list[float]) -> float",
+     "pre": [
+      "xs is a list of finite floats"
+     ],
+     "post": [
+      "devuelve sum(xs) / len(xs)",
+      "does not modify xs"
+     ],
+     "invariants": [
+      "min(xs) <= media(xs) <= max(xs)"
+     ],
+     "errors": [
+      {
+       "condition": "xs empty",
+       "raises": "ValueError"
+      }
+     ]
+    }
+   ],
+   "probes": [
+    {
+     "id": "BP-01",
+     "description": "The mean of a single element is that element",
+     "input": "media([2.5])",
+     "expected": "2.5",
+     "kind": "example"
+    },
+    {
+     "id": "BP-02",
+     "description": "An empty list is rejected",
+     "input": "media([])",
+     "expected": "raises ValueError",
+     "kind": "negative"
+    }
+   ],
+   "assumptions": [
+    {
+     "id": "redondeo",
+     "statement": "No rounding: the result is the IEEE 754 float of the division.",
+     "source": "catalogue",
+     "status": "accepted"
+    }
+   ],
+   "pi_s": {
+    "equivalence": "strict",
+    "relaxations": []
+   }
+  },
+  "contract_beta": {
+   "schema_version": 1,
+   "slice_id": "calc.media.v1",
+   "source": "specifier_beta",
+   "functions": [
+    {
+     "name": "media",
+     "signature": "def media(xs: list[float]) -> float",
+     "pre": [
+      "xs is a list of finite floats"
+     ],
+     "post": [
+      "returns sum(xs) / len(xs) if xs is not empty and 0.0 if it is",
+      "does not modify xs"
+     ],
+     "invariants": [
+      "min(xs) <= media(xs) <= max(xs)"
+     ],
+     "errors": []
+    }
+   ],
+   "probes": [
+    {
+     "id": "BP-01",
+     "description": "The mean of a single element is that element",
+     "input": "media([2.5])",
+     "expected": "2.5",
+     "kind": "example"
+    },
+    {
+     "id": "BP-02",
+     "description": "An empty list gives 0.0",
+     "input": "media([])",
+     "expected": "0.0",
+     "kind": "example"
+    }
+   ],
+   "assumptions": [
+    {
+     "id": "redondeo",
+     "statement": "No rounding: the result is the IEEE 754 float of the division.",
+     "source": "catalogue",
+     "status": "accepted"
+    }
+   ],
+   "pi_s": {
+    "equivalence": "strict",
+    "relaxations": []
+   }
+  },
+  "catalogue": {
+   "schema_version": 1,
+   "domain": "numeric computation",
+   "entries": [
+    {
+     "id": "redondeo",
+     "category": "rounding mode",
+     "question": "Is the result rounded? With which mode and to how many decimals?"
+    },
+    {
+     "id": "listas-vacias",
+     "category": "semantics of empty lists",
+     "question": "What does the function return or raise with an empty collection?"
+    },
+    {
+     "id": "limites-numericos",
+     "category": "numeric limits",
+     "question": "What happens with infinities, NaN, overflow and the largest integer?"
+    }
+   ]
+  },
+  "round": 1
+ }
+}

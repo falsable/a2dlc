@@ -1,0 +1,3 @@
+{"schema_version": 1,
+ "stubbed": [{"file": "src/calc.py", "symbols": ["media", "Caja.vaciar"]}],
+ "unstubbed": ["Externo.Interno.nuevo"], "error": null}

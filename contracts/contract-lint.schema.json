@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/contract-lint.schema.json",
+  "title": "a2dlc lint of an S* contract (.a2dlc/run/<slice>/lint.json)",
+  "description": "Stage 1.5 step 1 (§5): the deterministic check of contract.json, without LLM. ok is false if there is at least one finding of error; with error the stage escalates before spending on Z3 or on the back-translation. contract_hash is the sha256 of contract.json as it was read: a lint.json with another hash is stale. trace_coverage is the clause coverage gate: each post and invariant of S* must have a probe that names it (rule in rule).",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "contract_hash": { "$ref": "run-defs.schema.json#/$defs/sha256" },
+    "ok": { "type": "boolean" },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "trace_coverage": {
+      "type": "object",
+      "properties": {
+        "rule": { "type": "string", "minLength": 1, "description": "The textual rule by which a probe covers a clause, written by the core." },
+        "severity": { "enum": ["error", "warning"], "description": "error if intent.json declares criticality high or critical; warning otherwise." },
+        "uncovered": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "function": { "type": "string", "minLength": 1 },
+              "kind": { "enum": ["post", "invariant"] },
+              "clause": { "type": "string", "minLength": 1 }
+            },
+            "required": ["function", "kind", "clause"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["rule", "severity", "uncovered"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "slice_id", "contract_hash", "ok", "findings", "trace_coverage"],
+  "additionalProperties": false,
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "properties": {
+        "severity": { "enum": ["error", "warning"] },
+        "check": {
+          "description": "contract: contract.json does not decode or does not validate. function_exists: a function of S* is not among the candidate's signatures. duplicate_function: two functions with the same name. empty_clause: a pre, post or invariant that is blank. no_postcondition: a function with no post or invariants (it says nothing). probe_function: a probe that names no function of S*. pi_s: incoherent π_S. open_assumption: an open assumption of criticality high or critical. trace_coverage: a post or invariant without a probe. smt: what Z3 said (unknown, skipped, or the engine down).",
+          "enum": ["contract", "function_exists", "duplicate_function", "empty_clause", "no_postcondition", "probe_function", "pi_s", "open_assumption", "trace_coverage", "smt"]
+        },
+        "where": { "type": "string", "minLength": 1, "description": "Function, probe, assumption or clause: what to look at." },
+        "message": { "type": "string", "minLength": 1 }
+      },
+      "required": ["severity", "check", "where", "message"],
+      "additionalProperties": false
+    }
+  }
+}

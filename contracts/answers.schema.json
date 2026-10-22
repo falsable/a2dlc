@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/answers.schema.json",
+  "title": "Probe answers of a run (.a2dlc/run/<slice>/answers.json, written by a2dlc answer)",
+  "description": "A person's choices for the probes of a run (multiple-choice, spec_divergence and pi_S relaxations). Written only by the CLI command a2dlc answer, never by a role: the file lives under .a2dlc/run/, which the builders cannot edit. Bound to the run and to the contract it was asked about: contract_hash is the sha256 of S* when the probe was asked, or the sha256 of escalations.json for a Stage 1 divergence (there is no S* yet), and an answer whose hash does not match the current S* is not applied. The resume path reads it in Stage 1 and Stage 1.5 only.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "run_id": { "$ref": "run-defs.schema.json#/$defs/run_id" },
+    "contract_hash": { "$ref": "run-defs.schema.json#/$defs/sha256" },
+    "answers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "probe_id": { "type": "string", "minLength": 1 },
+          "choice": { "type": "string", "minLength": 1, "description": "The option chosen among the probe's options." },
+          "by": { "type": "string", "minLength": 1, "description": "Who answered: the name the operator gave. Recorded, not authenticated." },
+          "at": { "type": "string", "format": "date-time" },
+          "reason": { "type": "string", "minLength": 1 }
+        },
+        "required": ["probe_id", "choice", "by", "at", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "run_id", "contract_hash", "answers"],
+  "additionalProperties": false
+}

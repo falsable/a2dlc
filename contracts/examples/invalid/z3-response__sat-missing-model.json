@@ -1,0 +1,25 @@
+{
+ "schema_version": 1,
+ "z3_version": "4.13.0",
+ "results": [
+  {
+   "function": "src/billing/ledger.py::transfer",
+   "status": "sat",
+   "model": null,
+   "reason": null
+  },
+  {
+   "function": "src/billing/ledger.py::refund",
+   "status": "unsat",
+   "model": null,
+   "reason": "unsat core: #2 (> x 0); #3 (< x 0)"
+  },
+  {
+   "function": "src/billing/ledger.py::settle",
+   "status": "unknown",
+   "model": null,
+   "reason": "z3 did not decide in 10000 ms (timeout): the function stays runtime_and_pbt"
+  }
+ ],
+ "error": null
+}

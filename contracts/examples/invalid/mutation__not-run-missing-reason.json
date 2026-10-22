@@ -1,0 +1,43 @@
+{
+ "schema_version": 1,
+ "round": 0,
+ "threshold": 0.8,
+ "max_mutants": 1,
+ "tests": [
+  "tests/test_calc.py"
+ ],
+ "red_on_candidate": [],
+ "mutants": [
+  {
+   "id": "m001",
+   "file": "src/calc.py",
+   "line": 14,
+   "operator": "comparison",
+   "description": "comparison == changed to !=",
+   "status": "killed",
+   "killed_by": [
+    "tests/test_calc.py::tests.test_calc::test_media_vacia"
+   ]
+  },
+  {
+   "id": "m002",
+   "file": "src/calc.py",
+   "line": 15,
+   "operator": "constant",
+   "description": "numeric constant changed: +1",
+   "status": "not_run",
+   "killed_by": []
+  }
+ ],
+ "not_generated": [
+  {
+   "file": "src/calc.py",
+   "reason": "max_mutants=1: 2 mutants not generated (lines 17)"
+  }
+ ],
+ "pruned_equivalent": [],
+ "unsupported": [],
+ "kill_rate": 1.0,
+ "verdict": "INCONCLUSIVE",
+ "reason": "kill_rate 1.00 >= 0.80, but 1 mutant not run and 1 file with ungenerated mutants: what was not measured does not count"
+}

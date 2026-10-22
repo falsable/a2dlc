@@ -1,0 +1,5 @@
+{"schema_version": 1, "ok": false,
+ "findings": [
+  {"kind": "lemma", "file": "lemma_diff_nonneg", "line": null, "message": "lemma lemma_diff_nonneg: CrossHair found an input for which the lemma breaks its postcondition result >= 0 (args: a=0, b=1; returned: -1)"}
+ ],
+ "error": null}

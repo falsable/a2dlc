@@ -1,0 +1,3 @@
+{"schema_version": 1, "language": "typescript", "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e", "base_dir": "/base", "candidate_dir": "/cand",
+ "changed_files": ["src/lib/routes.ts", "src/App.tsx"], "budget": {"examples": 2000, "seed": 42},
+ "generators_override": ".a2dlc/arbs.ts"}

@@ -1,0 +1,38 @@
+{
+ "schema_version": 1,
+ "roles": {
+  "builder_primary": {
+   "family": "claude",
+   "image": "a2dlc-roles:0.1",
+   "argv": [
+    "python3",
+    "/a2dlc/adapter.py"
+   ],
+   "env": {
+    "A2DLC_LLM": "claude",
+    "A2DLC_MODEL": "sonnet"
+   },
+   "env_file": "C:/Users/Usuario/.config/a2dlc/claude.env",
+   "timeout_s": 1800,
+   "retries": 0,
+   "tier_up": {
+    "family": "claude",
+    "image": "a2dlc-roles:0.1",
+    "argv": [
+     "python3",
+     "/a2dlc/adapter.py"
+    ],
+    "env": {
+     "A2DLC_LLM": "claude",
+     "A2DLC_MODEL": "opus"
+    },
+    "env_file": "C:/Users/Usuario/.config/a2dlc/claude.env",
+    "timeout_s": 2400,
+    "retries": 0,
+    "mounts": [
+     "/repo:/work"
+    ]
+   }
+  }
+ }
+}

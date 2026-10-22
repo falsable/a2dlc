@@ -1,0 +1,40 @@
+{
+ "schema_version": 1,
+ "slice_id": "billing.ledger_settlement.v2",
+ "mode": "greenfield",
+ "goal": "Settle a transfer between two ledger accounts with an idempotent receipt per tx_id.",
+ "invariants": [
+  "INV-01 conservation: the sum of balances before and after settling is the same"
+ ],
+ "non_goals": [],
+ "criticality": "high",
+ "budget": {
+  "max_cost_usd": 1.5,
+  "max_inner_iterations": 5,
+  "max_tier1_adversarial_rounds": 3,
+  "max_mutants": null
+ },
+ "critical_paths": [
+  "src/billing/**"
+ ],
+ "acceptance": [
+  "a repeated tx_id with the same payload returns the cached receipt and adds no entries"
+ ],
+ "delivery": {
+  "writes": true,
+  "compensation": {
+   "strategy": "compensating_events",
+   "description": "One inverse entry for each entry of the slice, correlated by tx_id; triggered by the ring's rollback."
+  },
+  "rings": [
+   1,
+   10,
+   100
+  ],
+  "sentinel": {
+   "invariants": [
+    "x"
+   ]
+  }
+ }
+}

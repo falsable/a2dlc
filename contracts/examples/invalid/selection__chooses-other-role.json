@@ -1,0 +1,49 @@
+{
+ "schema_version": 1,
+ "candidates": [
+  {
+   "builder": "builder_primary",
+   "commit": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+   "verdict": "PASS",
+   "complexity": {
+    "loc_added": 9,
+    "loc_removed": 2,
+    "cyclomatic": 4,
+    "ast_nodes": 58,
+    "files": [
+     {
+      "file": "src/calc.py",
+      "loc_added": 9,
+      "loc_removed": 2,
+      "cyclomatic": 4,
+      "ast_nodes": 58
+     }
+    ],
+    "unmeasured": []
+   }
+  },
+  {
+   "builder": "builder_orthogonal",
+   "commit": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+   "verdict": "PASS",
+   "complexity": {
+    "loc_added": 5,
+    "loc_removed": 2,
+    "cyclomatic": 2,
+    "ast_nodes": 37,
+    "files": [
+     {
+      "file": "src/calc.py",
+      "loc_added": 5,
+      "loc_removed": 2,
+      "cyclomatic": 2,
+      "ast_nodes": 37
+     }
+    ],
+    "unmeasured": []
+   }
+  }
+ ],
+ "selected": "saboteur",
+ "reason": "both PASS; builder_orthogonal wins on lower complexity (cyclomatic 2 against 4)"
+}

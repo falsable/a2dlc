@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "slice_id": "core.relational.as_set.v1",
+ "mode": "refactor",
+ "candidate": null,
+ "feature_flag": "a2dlc.core.relational.as_set.v1",
+ "writes": true,
+ "compensation": null,
+ "rings": [
+  { "percent": 1, "requires": ["sentinel_green"] },
+  { "percent": 10, "requires": ["sentinel_green", "compensation_declared"] },
+  { "percent": 100, "requires": ["sentinel_green", "compensation_declared"] }
+ ],
+ "max_ring": 1,
+ "blocked_by": "CB-06",
+ "sentinel": { "error_rate_delta_max": 0.01, "latency_p99_ms_max": 200, "invariants": [], "reconciliation": "none" },
+ "parity": { "mode": "scientist_read_only", "write_paths": "canary_with_compensation" }
+}

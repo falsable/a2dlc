@@ -1,0 +1,44 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.subtract.b8",
+ "mode": "greenfield",
+ "candidate": "5263ea02939f89fb94deeba80497aeb6dbdcf841",
+ "feature_flag": "a2dlc.calc.subtract.b8",
+ "writes": true,
+ "compensation": null,
+ "rings": [
+  {
+   "percent": 1,
+   "requires": [
+    "sentinel_green"
+   ]
+  },
+  {
+   "percent": 10,
+   "requires": [
+    "sentinel_green",
+    "compensation_declared"
+   ]
+  },
+  {
+   "percent": 100,
+   "requires": [
+    "sentinel_green",
+    "compensation_declared",
+    "reconciliation_green"
+   ]
+  }
+ ],
+ "max_ring": 1,
+ "blocked_by": "CB-06",
+ "sentinel": {
+  "error_rate_delta_max": 0.01,
+  "latency_p99_ms_max": 200,
+  "invariants": [
+   "INV-01 subtract(a, b) + b == a for every pair of integers",
+   "INV-02 subtract(a, a) == 0"
+  ],
+  "reconciliation": "periodic"
+ },
+ "parity": null
+}

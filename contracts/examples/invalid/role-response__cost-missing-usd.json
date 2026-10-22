@@ -1,0 +1,23 @@
+{
+ "schema_version": 1,
+ "run_id": "run-3f9a1c2b7d4e",
+ "role": "saboteur",
+ "stage": "4",
+ "attempt": 1,
+ "status": "ok",
+ "cost": {
+  "input_tokens": 10
+ },
+ "model": "gemini-2.5-pro",
+ "payload": {
+  "test_files": [
+   {
+    "path": "sympy/core/tests/test_relational_saboteur.py",
+    "sha256": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+   }
+  ],
+  "targets": [
+   "sympy/core/relational.py::Relational.as_set"
+  ]
+ }
+}

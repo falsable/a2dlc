@@ -1,0 +1,13 @@
+{
+ "schema_version": 1,
+ "slice_id": "pagos.liquidar.v2",
+ "base": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "command": "go test ./... -json | go-junit-report > \"$A2DLC_JUNIT\"",
+ "image": "golang:1.23-bookworm",
+ "tests": 148,
+ "preexisting_red": [],
+ "cached": true,
+ "image_digest": "",
+ "reruns": 1,
+ "stable": true
+}

@@ -1,0 +1,15 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.subtract.b11",
+ "base": "b48922b1543f0c9a2e7d6b5f4a3c2d1e0f9a8b7c",
+ "command": "python -m coverage run --source=src -m pytest -q -p no:cacheprovider -o junit_family=xunit1 --junitxml=\"$A2DLC_JUNIT\" tests; python -m coverage xml -q -o \"$A2DLC_COVERAGE\"",
+ "image": "a2dlc-tests-pytest:0.2",
+ "tests": 3,
+ "preexisting_red": [
+  "tests/test_calc.py::test_redondea_negativo"
+ ],
+ "cached": false,
+ "image_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+ "reruns": 0,
+ "stable": true
+}

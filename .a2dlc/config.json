@@ -1,0 +1,7 @@
+{
+ "schema_version": 1,
+ "engines": [
+  {"language": "go", "image": "a2dlc-engine-bb-go:0.1", "paths": ["cmd/**", "internal/**", "go.mod"],
+   "budget": {"examples": 100, "seed": 1}, "memory": "2g"}
+ ]
+}

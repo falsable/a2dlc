@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/backtranslation-review.schema.json",
+  "title": "Review of the back-translation against the intent (.a2dlc/run/<slice>/backtranslation_review.json)",
+  "description": "Stage 1.5 step 5 (§5): the Inquisitor compares the back-translation with the intent and flags what the translation omitted, added or distorted. matches true has no discrepancies; false brings at least one. With false the stage escalates (backtranslation_mismatch): the contract or the translation may be wrong, and it is not corrected on its own.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "contract_hash": { "$ref": "run-defs.schema.json#/$defs/sha256" },
+    "matches": { "type": "boolean" },
+    "discrepancies": { "type": "array", "items": { "$ref": "#/$defs/discrepancy" } }
+  },
+  "required": ["schema_version", "slice_id", "contract_hash", "matches", "discrepancies"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "matches": { "const": true } } },
+      "then": { "properties": { "discrepancies": { "maxItems": 0 } } },
+      "else": { "properties": { "discrepancies": { "minItems": 1 } } }
+    }
+  ],
+  "$defs": {
+    "discrepancy": {
+      "type": "object",
+      "properties": {
+        "clause": { "type": "string", "minLength": 1, "description": "The part of the intent or of the translation where they differ." },
+        "intent_says": { "type": "string", "minLength": 1 },
+        "contract_implies": { "type": "string", "minLength": 1 }
+      },
+      "required": ["clause", "intent_says", "contract_implies"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+ "schema_version": 1,
+ "language": "python",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "base_dir": "/base",
+ "candidate_dir": "/cand",
+ "changed_files": [
+  "src/calc.py"
+ ],
+ "budget": {},
+ "generators_override": null,
+ "equivalence_relaxations": [
+  "ignore_order",
+  "ignore_order"
+ ]
+}

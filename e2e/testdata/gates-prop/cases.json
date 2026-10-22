@@ -1,0 +1,59 @@
+{
+ "image": {
+  "tests.Dockerfile": "100f1518fe1d49a4ae80f3290efb42a5ec5f10faf49a72ea8dfb5712fa19e358"
+ },
+ "base": {
+  "src/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "src/calc.py": "809584b7cb358ad450ee5708fd1cc0a0ffaf5df4e9e25b17a5f8d8e3c60b4ba4",
+  "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "tests/test_props.py": "f20f0e0c6e9157aff989be9d400144a32f7ae066c0218dbb2a1530271888b6c1"
+ },
+ "cases": [
+  {
+   "id": "P1-new-property-green",
+   "expected": "PASS",
+   "why": "new function with a committed Hypothesis property: the base has no mean function, so the import fails (ImportError, listed in invalid_base_failures) and the property fails validly on the base and passes on the candidate",
+   "tests": [
+    {
+     "name": "test_mean_between_min_and_max",
+     "gate": "nop_oracle",
+     "verdict": "PASS"
+    }
+   ],
+   "files": {
+    "src/calc.py": "58db9e8612f6866314dbc21be13450d0167aa5b3047f8a9a64eae68cbf0407c2",
+    "tests/test_mean_prop.py": "4d63c94060fe15254919ab2e68d78d6e075519e4453175ff71bbf4edb2f45716"
+   }
+  },
+  {
+   "id": "P2-base-property-broken",
+   "expected": "FAIL",
+   "why": "regression of a committed property: add becomes a - b, the base-green commutativity property fails on the candidate (Hypothesis finds the counterexample)",
+   "tests": [
+    {
+     "name": "test_add_commutative",
+     "gate": "baseline",
+     "verdict": "FAIL"
+    }
+   ],
+   "files": {
+    "src/calc.py": "ff8035c08832f46b5b95a280084b018b127b4f58319122afd64c4c7aeb366020"
+   }
+  },
+  {
+   "id": "P3-new-property-broken",
+   "expected": "FAIL",
+   "why": "new property that is wrong on the candidate: it fails on the base too, so the NOP/Oracle gate rejects it",
+   "tests": [
+    {
+     "name": "test_add_is_double",
+     "gate": "nop_oracle",
+     "verdict": "FAIL"
+    }
+   ],
+   "files": {
+    "tests/test_prop_bad.py": "2567a38c72246a6e0a6d2981a25830127c14e38a360d1582a9064ca737bb52ee"
+   }
+  }
+ ]
+}

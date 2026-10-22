@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-traces-response.schema.json",
+  "title": "Engine response to operation capture_traces (/io/response.json)",
+  "description": "Stage 1, refactor and legacy: the base tests run under the trace harness (engines/py traces.py for Python). traces record each call of a changed function: its input, its output and the decisions (branch_ids) it went through. runner is the test runner that ran, or null when none ran; test_exit is the runner's exit code, or null when it did not run. branch_coverage is the fraction of the decisions in the changed functions that the traces reached; it is absent when those functions have no decision. skipped names the files the engine did not trace and why. error is set when the harness could not run at all, and then traces is empty.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "runner": { "enum": ["pytest", "unittest", null] },
+    "test_exit": { "type": ["integer", "null"] },
+    "traces": {
+      "type": "array",
+      "items": { "$ref": "capture.schema.json#/properties/traces/items" }
+    },
+    "branch_coverage": { "type": "number", "minimum": 0, "maximum": 1, "description": "Absent when the changed functions contain no decision (if, for or while)." },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 }
+        },
+        "required": ["file", "reason"],
+        "additionalProperties": false
+      }
+    },
+    "error": { "type": ["string", "null"] }
+  },
+  "required": ["schema_version", "runner", "test_exit", "traces", "skipped", "error"],
+  "additionalProperties": false
+}

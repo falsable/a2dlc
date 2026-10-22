@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/probes.schema.json",
+  "title": "Blocked probes of a slice (.a2dlc/run/<slice>/probes.json)",
+  "description": "The S* probes tied to the contract that fixed them: contract_hash is the sha256 of contract.json as it is on disk. The core writes it when Stage 1 closes; the Builders see it (§3: S* + blocked probes) and a probes.json whose contract_hash does not match contract.json is stale.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "contract_hash": { "$ref": "run-defs.schema.json#/$defs/sha256" },
+    "probes": { "type": "array", "items": { "$ref": "slice-contract.schema.json#/$defs/probe" } }
+  },
+  "required": ["schema_version", "slice_id", "contract_hash", "probes"],
+  "additionalProperties": false
+}

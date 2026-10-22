@@ -1,0 +1,7 @@
+{"schema_version": 1, "ok": false,
+ "findings": [
+  {"kind": "compile", "file": "src/calc.py", "line": 14, "message": "invalid syntax"},
+  {"kind": "lint", "file": "src/util.py", "line": 3, "message": "undefined name 'Decimal'"},
+  {"kind": "probe", "file": "src/calc.py", "line": null, "message": "BP-02: raises(ValueError, media, []) dio falso"}
+ ],
+ "error": null}

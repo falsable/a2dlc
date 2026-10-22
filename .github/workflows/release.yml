@@ -1,0 +1,78 @@
+# a2dlc release: runs ONLY when a v* tag is pushed. A normal push does not spend minutes (CI strategy, ADR meta/0004).
+# What consumers use is the binary and the contract: that is why both are tested before publishing.
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+  packages: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  # A release does not ship past a high or critical finding in the dependencies it builds with. Every tag runs the scan.
+  # On pushes it also runs, but only when they touch covered code (a2dlc.yml); ADR 0004 prices those pushes.
+  supply-chain:
+    uses: ./.github/workflows/supply-chain.yml
+  release:
+    needs: supply-chain
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.25'
+          cache: false
+      - name: vet and tests
+        run: go vet ./... && go test -count=1 ./...
+      - name: contract test
+        run: |
+          python3 -m venv /tmp/v
+          /tmp/v/bin/pip install --quiet jsonschema==4.23.0 referencing==0.35.1 rfc3339-validator==0.1.4
+          /tmp/v/bin/python contracts/tests/validate.py contracts
+      # SBOM of the source tree the binaries come from, in SPDX JSON. Pinned image tag (Docker Hub anchore/syft). It goes
+      # to the release next to SHA256SUMS and is covered by it.
+      - name: SBOM (syft)
+        run: |
+          mkdir -p dist
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" anchore/syft:v1.52.0 dir:/src -o spdx-json=/src/dist/a2dlc-sbom.spdx.json
+      # The images come from the same commit as the binaries. IMAGENES.txt goes to the release as name@digest: the repos
+      # that adopt a2dlc pin the digest, not the tag. They are pushed before the binaries are built, because
+      # `a2dlc install` writes those digests into a new config.
+      - name: engine images on ghcr
+        env:
+          GHCR_LOGIN: ${{ github.token }}
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          r="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          printf '%s' "$GHCR_LOGIN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          fuente="org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY"
+          docker build -q --label "$fuente" -t a2dlc-engine-bb:0.1 -t "$r/a2dlc-engine-bb:$v" -f engines/blackbox/Dockerfile .
+          docker build -q --label "$fuente" -t "$r/a2dlc-engine-bb-go:$v" -f engines/blackbox/go.Dockerfile engines/blackbox
+          docker build -q --label "$fuente" -t "$r/a2dlc-engine-ts:$v" engines/ts
+          docker build -q --label "$fuente" -t "$r/a2dlc-engine-py:$v" engines/py
+          : > dist/IMAGENES.txt
+          for m in bb bb-go ts py; do
+            docker push -q "$r/a2dlc-engine-$m:$v"
+            docker inspect --format '{{index .RepoDigests 0}}' "$r/a2dlc-engine-$m:$v" >> dist/IMAGENES.txt
+          done
+          cat dist/IMAGENES.txt
+      - name: binaries
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          py=$(grep '/a2dlc-engine-py@sha256:' dist/IMAGENES.txt); ts=$(grep '/a2dlc-engine-ts@sha256:' dist/IMAGENES.txt)
+          [ -n "$py" ] && [ -n "$ts" ] || { echo "IMAGENES.txt has no py/ts digest" >&2; exit 1; }
+          app=github.com/falsable/a2dlc/internal/app
+          for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            os="${t%/*}"; arch="${t#*/}"; ext=""; [ "$os" = windows ] && ext=.exe
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
+              -ldflags "-s -w -X main.version=$v -X $app.enginePyImage=$py -X $app.engineTSImage=$ts" \
+              -o "dist/a2dlc-$os-$arch$ext" ./cmd/a2dlc
+          done
+          (cd dist && sha256sum a2dlc-* a2dlc-sbom.spdx.json > SHA256SUMS)
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes

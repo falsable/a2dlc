@@ -1,0 +1,23 @@
+{
+ "schema_version": 1,
+ "run_id": "run-8c1d0e5a9b2f",
+ "slice_id": "billing.ledger_settlement.v1",
+ "mode": "greenfield",
+ "base_sha": "7af5229e839f6fd50f2337c9733a4463c5fbdf64",
+ "created_at": "2026-10-17T18:02:11Z",
+ "updated_at": "2026-10-17T18:12:40Z",
+ "budget": { "max_cost_usd": 1.5, "spent_usd": 1.62, "unreported_roles": 1, "by_role": { "builder_primary": 1.2, "saboteur": 0.42 } },
+ "stages": [
+  { "id": "-1", "status": "skipped", "reason": "no golden master or codemods configured", "artifact": null, "iterations": 0, "started_at": null, "finished_at": null },
+  { "id": "0", "status": "done", "artifact": { "path": "intent.json", "sha256": "sha256:3a7bd3e2360a3d29eea436fcfb7e44c735d117c42d1c1835420b6b9942dd4f1b" }, "iterations": 0, "started_at": "2026-10-17T18:02:11Z", "finished_at": "2026-10-17T18:02:11Z" },
+  { "id": "1", "status": "skipped", "reason": "Stage 1 not implemented", "artifact": null, "iterations": 0, "started_at": "2026-10-17T18:02:11Z", "finished_at": "2026-10-17T18:02:11Z" },
+  { "id": "1.5", "status": "skipped", "reason": "no contract.json: nothing to validate", "artifact": null, "iterations": 0, "started_at": "2026-10-17T18:02:11Z", "finished_at": "2026-10-17T18:02:11Z" },
+  { "id": "2", "status": "done", "artifact": { "path": "route.json", "sha256": "sha256:5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9" }, "iterations": 0, "started_at": "2026-10-17T18:02:12Z", "finished_at": "2026-10-17T18:02:12Z" },
+  { "id": "3", "status": "done", "artifact": { "path": "tier0_feedback.json", "sha256": "sha256:b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9" }, "iterations": 3, "started_at": "2026-10-17T18:02:12Z", "finished_at": "2026-10-17T18:08:00Z" },
+  { "id": "4", "status": "escalated", "reason": "CB-03: coste 1.6200 USD supera max_cost_usd 1.50", "artifact": { "path": "verdict.json", "sha256": "sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae" }, "iterations": 1, "started_at": "2026-10-17T18:08:01Z", "finished_at": "2026-10-17T18:12:40Z" },
+  { "id": "5", "status": "pending", "artifact": null, "iterations": 0, "started_at": null, "finished_at": null },
+  { "id": "6", "status": "pending", "artifact": null, "iterations": 0, "started_at": null, "finished_at": null },
+  { "id": "7", "status": "pending", "artifact": null, "iterations": 0, "started_at": null, "finished_at": null }
+ ],
+ "outcome": "escalated"
+}

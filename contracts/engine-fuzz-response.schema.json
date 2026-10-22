@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-fuzz-response.schema.json",
+  "title": "Engine response to operation fuzz (/io/response.json)",
+  "description": "Stage 4, deterministic fuzzing of the changed public functions with a fixed seed. Each finding is an input that raised an error the engine did not expect, with the seed that reproduces it. runs and seconds say what the budget bought.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "function": { "type": "string", "minLength": 1 },
+          "input": { "type": "string", "minLength": 1, "description": "The input as the engine reproduces it." },
+          "error": { "type": "string", "minLength": 1 },
+          "seed": { "type": "integer" }
+        },
+        "required": ["function", "input", "error", "seed"],
+        "additionalProperties": false
+      }
+    },
+    "runs": { "type": "integer", "minimum": 0 },
+    "seconds": { "type": "number", "minimum": 0 },
+    "unsupported": {
+      "description": "Changed public functions the engine could not fuzz (untyped or unsupported signatures), each with the reason. Optional: absent when every function was fuzzed. It lives here, not in a side file, so response.json is the only output the core reads.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "function": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 }
+        },
+        "required": ["function", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "findings", "runs", "seconds"],
+  "additionalProperties": false
+}

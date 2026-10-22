@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/route.schema.json",
+  "title": "Router decision (Stage 2): .a2dlc/run/<slice>/route.json",
+  "description": "The Router is deterministic and is core, not a role. Rules, in order: the criticality declared in the intent (low without an intent); it goes up one level if a changed or deleted file matches intent.critical_paths; high or critical gives N=2; dual-spec is mandatory in greenfield with effective criticality medium or higher (in refactor and brownfield_facade Stage 1 is behavior capture and the second builder is the legacy); lite mode always gives N=1 without dual-spec; with S*, the metrics rule_count and state_mutation_depth give N=2 when they cross a threshold (without an extra dual-spec). Each rule applied stays in reasons.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "track": { "enum": ["N=1", "N=2"], "description": "N=1 standard; N=2 cross-model critical (primary and orthogonal builder)." },
+    "dual_spec_required": { "type": "boolean", "description": "Whether Stage 1 must run dual-spec (specifiers α and β + inquisitor)." },
+    "criticality_effective": { "$ref": "intent.schema.json#/$defs/criticality" },
+    "reasons": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "The rules that applied, in order." },
+    "touched_critical": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Changed or deleted files (base → working tree when routing) that match critical_paths."
+    },
+    "rule_count": { "type": ["integer", "null"], "minimum": 0, "description": "Pre + post + invariants + errors clauses summed over all functions of S*; null without S* (no contract.json, or lite mode)." },
+    "state_mutation_depth": { "type": ["integer", "null"], "minimum": 0, "description": "Functions of S* with an invariant or whose post names by whole word another S* function, plus 1 if intent.delivery.writes; null without S*." },
+    "lemmas_required": { "type": "boolean", "description": "True in N=2 (critical) routes: Stage 3 asks the builder for lemmas and runs the lemmas operation (protocol section 5 Stage 2). False otherwise." },
+    "metrics_reason": { "type": ["string", "null"], "minLength": 1, "description": "What the metrics measured, or why they are null (e.g. \"without S*\")." }
+  },
+  "required": ["schema_version", "track", "dual_spec_required", "criticality_effective", "reasons", "touched_critical", "lemmas_required"],
+  "additionalProperties": false
+}

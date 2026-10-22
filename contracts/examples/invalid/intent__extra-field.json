@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "slice_id": "core.relational.as_set.v1",
+ "mode": "lite",
+ "goal": "Fix as_set so that an empty relation returns the empty set.",
+ "invariants": [],
+ "non_goals": [],
+ "criticality": "low",
+ "budget": {
+  "max_cost_usd": null,
+  "max_inner_iterations": 5,
+  "max_tier1_adversarial_rounds": 2,
+  "max_mutants": null
+ },
+ "critical_paths": [],
+ "acceptance": [],
+ "owner": "aldemar"
+}

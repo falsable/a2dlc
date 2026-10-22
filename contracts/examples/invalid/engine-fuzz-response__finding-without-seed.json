@@ -1,0 +1,12 @@
+{
+ "schema_version": 1,
+ "findings": [
+  {
+   "function": "calc.subtract",
+   "input": "(-1,)",
+   "error": "ZeroDivisionError"
+  }
+ ],
+ "runs": 1200,
+ "seconds": 10.0
+}

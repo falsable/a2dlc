@@ -1,0 +1,17 @@
+instances: {'medida': 10} | labels computed: {'passed': 62, 'rejected': 27}
+             FAIL  INCONCL   PASS  (empty)  ERROR    n
+rejected        0        7     11       11      0   18
+passed          0        6     14       14      0   20
+detection (FAIL/rejected): 0 % [0–18]
+inconclusive (INCONCLUSIVE/all): 34 % [21–50]
+FAIL in passed: 0 % [0–16]
+time per check: median 55 s, max 211 s, total 3390 s
+
+INCONCLUSIVE causes (targets):
+    69 out of scope: no_engine
+    30 out of scope: not_exported
+     9 no type annotations in the parameters
+     8 CrossHair did not conclude (rc=2)
+     4 could not import
+
+FAIL (counterexamples):

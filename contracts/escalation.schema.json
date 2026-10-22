@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/escalation.schema.json",
+  "title": "Escalations from a2dlc check (.a2dlc/escalations.json, not committed) and from a2dlc run (.a2dlc/run/<slice>/escalations.json, run artifact)",
+  "description": "schema_version 1. What the engines and the test gates emit (check) and the a2dlc run stages emit (1, 1.5, 4 with N=2, 5, 6 and 7); check never emits the run kinds. \"v2\" marks optional fields added (cluster_id and builder), not a change of schema_version. It is what a person has to decide, or what the tool could not decide, in a form that an orchestrator or a UI consumes without reading the verdict (ADR meta/0004, boundary with the LLM roles). The decision comes back as a waiver in .a2dlc/waivers.json and is approved with a signature; the decisions that can be taken go in resolve_with. It is outside the tree_hash.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "tree_hash": { "type": "string", "pattern": "^git-tree:[0-9a-f]{40}([0-9a-f]{24})?$", "description": "The tree judged. With N=2 (items with builder), the one from the verdict in verdict.json: the selected one, the worst if none passed, or the primary if it escalated by CB-01." },
+    "created_at": { "type": "string", "format": "date-time" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^esc-[0-9a-f]{12}$", "description": "sha256 of kind + target, stable across runs." },
+          "kind": {
+            "description": "behavior_divergence: an engine found a difference, or a test of T fails on the candidate and passes on another tree (protocol CB-01 / bug-or-feature probe), or a test from the Saboteur's overlay fails on the candidate without any other tree running it (new symbol: the spec the test reads and the candidate's differ; NOP/Oracle gives FAIL and tests_diff INCONCLUSIVE \"red only in the candidate\"). test_without_teeth: a new test (from the candidate or the overlay) passes on the base with stubs against a change that declares intent to change behavior, or fails on every tree that ran it (it discriminates nothing). flaky_test: flaky on the base, or flaky on the candidate in tests_diff. uncovered_change: changed lines that no engine examined and no test ran; the verdict cannot be PASS until someone brings a test (needs). tooling: INCONCLUSIVE, a tooling problem, not a behavior one. signature_pending: a waiver awaits a signature. mutant_survived (a2dlc run, Stage 5): a mutant of a changed line survived T and the kill gate did not reach the threshold; it asks the Saboteur for a test that kills it (needs), with evidence.mutant. spec_divergence (a2dlc run, Stage 1, CB-01 of §7 in its specification variant): S_α and S_β diverge on a point the Inquisitor did not resolve after --max-spec-rounds; target is <slice>::<topic>, evidence.message says what each specifier asserts, and a person answers it (multiple-choice probe), not a waiver. backtranslation_mismatch (a2dlc run, Stage 1.5, §5 step 5): the blind back-translation of S* does not say what the intent says; target is <slice>::<clause> and evidence.message says what the intent says and what S* implies. The contract or the translation may be wrong: a person decides. unsat_spec (a2dlc run, Stage 1.5, CB-02a of §7): Z3 says the smt clauses of a function have no input that satisfies them; target is <slice>::<function> and evidence.message carries the unsat core: the clauses are relaxed and it runs again. consumer_broken (a2dlc run, Stage 6, consumer-driven contract matrix): the suite of a consumer declared in config.integration fails against the candidate; target is <consumer>::<test> and evidence.message carries the failure. destructive_migration (a2dlc run, Stage 6, expand-and-contract): a changed migration file contains destructive DDL (DROP COLUMN/TABLE, RENAME, in-place type change, TRUNCATE); target is <file>::L<line> and evidence.message the statement; it is rewritten as expand → backfill → contract. missing_compensation (a2dlc run, Stage 7, CB-06): the slice declares writes (intent.delivery.writes) without a compensation strategy; target is <slice>::delivery; the plan stays at max_ring 1 until the intent declares it. protected_boundary (a2dlc run, Stage 3, CB-04 of §7 in its boundary variant): the builder touched intent.boundary; target is <file>::<glob> if the file matches forbidden_paths, or <file>::<symbol> if a changed line contains a do_not_refactor symbol (textual heuristic: it also flags a new call site). evidence.message carries the first differing line; escalating privileges is a decision for a person with a signed waiver, not for the builder. builder_exhaustion (a2dlc run, Stage 3, CB-02b of §7): a builder exhausted max_inner_iterations without a green Tier 0, and the tier_up of roles.json (if it declares one) too; target is <slice>::builder and evidence.message carries the last Tier 0 finding. Splitting the slice is a person's decision: it is not resolved with a waiver (resolve_with empty). prerequisite_failure (a2dlc run, Stage −1, CB-05 of §7): the baseline could not be established on the base with tests.baseline_command in the network-less sandbox (no JUnit, no testcases, red without an identifiable test, image or command down, timeout); target is <slice>::baseline and evidence.message the reason. Intervention in Stage −1 (fix the command, image or suite): no waiver resolves it (resolve_with empty). Pre-existing reds are not CB-05: they stay in the baseline and Stage 4 compares against them. protected_path (a2dlc check, config.protected_paths): a changed file matches a protected glob and has no valid signed approval; target is <file>::<glob>, evidence.message says which glob. dependency_not_allowed (config.supply_chain): a manifest adds or changes a dependency that the allowlist file does not list; target is <file>::<ecosystem>/<name>, evidence.message the manifest line. lemma_failed (a2dlc run, Stage 2, lemmas of a Critical slice): a declared postcondition of a pure internal function fails; target is <slice>::<lemma>, evidence.counterexample the failing input and evidence.message the failure; it goes back to the builder as Tier 0 feedback. trace_coverage_low (config.tests.trace_coverage): the branch coverage of the recorded traces is below min_branch or was not measured; target is <slice>::traces, evidence.message names the field.",
+            "enum": ["behavior_divergence", "test_without_teeth", "flaky_test", "uncovered_change", "tooling", "signature_pending", "mutant_survived", "spec_divergence", "backtranslation_mismatch", "unsat_spec", "consumer_broken", "destructive_migration", "missing_compensation", "protected_boundary", "builder_exhaustion", "prerequisite_failure", "protected_path", "dependency_not_allowed", "lemma_failed", "trace_coverage_low"]
+          },
+          "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+          "summary": { "type": "string", "minLength": 1 },
+          "evidence": {
+            "type": "object",
+            "description": "Minimal counterexample, test states (per tree in tests_diff) or uncovered lines, depending on kind.",
+            "properties": {
+              "counterexample": {
+                "type": "object",
+                "properties": { "args": { "type": "string" }, "old": { "type": "string" }, "new": { "type": "string" } },
+                "required": ["args", "old", "new"],
+                "additionalProperties": false
+              },
+              "base": { "$ref": "defs.schema.json#/$defs/test_status" },
+              "candidate": { "$ref": "defs.schema.json#/$defs/test_status" },
+              "reruns_base": { "type": "array", "items": { "$ref": "defs.schema.json#/$defs/test_status" } },
+              "trees": { "type": "object", "additionalProperties": { "$ref": "defs.schema.json#/$defs/test_status" } },
+              "lines": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "uniqueItems": true, "description": "uncovered_change: changed lines of the file (in the candidate) that nobody examined." },
+              "message": { "type": "string" },
+              "mutant": {
+                "description": "mutant_survived: the live mutant. Without the candidate's code: it is what the Saboteur sees.",
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$" },
+                  "file": { "type": "string", "minLength": 1 },
+                  "line": { "type": "integer", "minimum": 1 },
+                  "operator": { "$ref": "engine-mutate-response.schema.json#/$defs/operator" },
+                  "description": { "type": "string", "minLength": 1 }
+                },
+                "required": ["id", "file", "line", "operator", "description"],
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "resolve_with": {
+            "description": "Waiver decisions that resolve the escalation. Empty: a person cannot resolve it with a waiver (tooling, uncovered_change) or it is already declared (signature_pending: resolved with a2dlc approve).",
+            "type": "array",
+            "items": { "enum": ["enforce_new_behavior", "preserve_legacy", "characterization_test", "quarantine_flaky"] },
+            "uniqueItems": true
+          },
+          "needs": {
+            "description": "What an outside role (LLM or person) must bring to resolve it. uncovered_change asks the Saboteur (§3: writes tests against the public signatures and the contract, without seeing the code) for tests that run the lines; a2dlc run passes them with --tests-overlay. The Inquisitor is kept for what arises from the contract (probes), not from coverage.",
+            "type": "object",
+            "properties": {
+              "role": { "enum": ["inquisitor", "saboteur"] },
+              "artifact": { "enum": ["test_files"] }
+            },
+            "required": ["role", "artifact"],
+            "additionalProperties": false
+          },
+          "cluster_id": {
+            "description": "v2, optional: kind plus the normalized message (contract.ClusterID), an approximation of a root cause (§7, escalation hygiene). clu- plus the first 12 hex digits of the sha256 of kind, a NUL byte and the normalized message: evidence.message if there is one, otherwise summary, lowercased, each run of digits replaced by #, spaces collapsed. The target is not part of the key: the same kind and message across targets is one cluster. Escalations with the same cluster_id are decided together.",
+            "type": "string",
+            "pattern": "^clu-[0-9a-f]{12}$"
+          },
+          "builder": {
+            "description": "v2, optional: with N=2 (a2dlc run), which candidate the escalation comes from. The run's escalations.json combines those of both.",
+            "enum": ["builder_primary", "builder_orthogonal"]
+          },
+          "answer_id": { "type": "string", "minLength": 1, "description": "v2, optional: the probe id a person answered, when this escalation was resolved from answers.json (answers.schema.json)." }
+        },
+        "required": ["id", "kind", "target", "summary", "evidence", "resolve_with"],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": { "properties": { "kind": { "const": "mutant_survived" } }, "required": ["kind"] },
+            "then": { "required": ["needs"], "properties": { "evidence": { "required": ["mutant"] } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "protected_boundary" } }, "required": ["kind"] },
+            "then": { "properties": { "evidence": { "required": ["message"] } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "builder_exhaustion" } }, "required": ["kind"] },
+            "then": { "properties": { "resolve_with": { "maxItems": 0 } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "prerequisite_failure" } }, "required": ["kind"] },
+            "then": { "properties": { "resolve_with": { "maxItems": 0 }, "evidence": { "required": ["message"] } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "protected_path" } }, "required": ["kind"] },
+            "then": { "properties": { "evidence": { "required": ["message"] } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "dependency_not_allowed" } }, "required": ["kind"] },
+            "then": { "properties": { "evidence": { "required": ["message"] } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "lemma_failed" } }, "required": ["kind"] },
+            "then": { "properties": { "evidence": { "required": ["counterexample", "message"] } } }
+          },
+          {
+            "if": { "properties": { "kind": { "const": "trace_coverage_low" } }, "required": ["kind"] },
+            "then": { "properties": { "evidence": { "required": ["message"] } } }
+          }
+        ]
+      }
+    }
+  },
+  "required": ["schema_version", "tree_hash", "created_at", "items"],
+  "additionalProperties": false
+}

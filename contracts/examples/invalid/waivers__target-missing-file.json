@@ -1,0 +1,10 @@
+{
+ "schema_version": 1,
+ "waivers": [
+  {
+   "target": "tabToPath",
+   "decision": "enforce_new_behavior",
+   "reason": "Entropos-ugg.21: playground is merged into Connect and flow into Activity."
+  }
+ ]
+}

@@ -1,0 +1,53 @@
+{
+ "schema_version": 1,
+ "roles": {
+  "saboteur": {
+   "family": "gemini",
+   "image": "a2dlc-roles:0.1",
+   "argv": [
+    "python3",
+    "/a2dlc/adapter.py"
+   ],
+   "env": {
+    "A2DLC_LLM": "gemini"
+   },
+   "env_file": "C:/Users/Usuario/.config/a2dlc/gemini.env",
+   "network": "provider",
+   "timeout_s": 900,
+   "retries": 1,
+   "egress_allow": [
+    "generativelanguage.googleapis.com"
+   ]
+  },
+  "builder_primary": {
+   "family": "claude",
+   "image": "a2dlc-roles:0.1",
+   "argv": [
+    "python3",
+    "/a2dlc/adapter.py"
+   ],
+   "env": {
+    "A2DLC_LLM": "claude",
+    "A2DLC_MODEL": "sonnet"
+   },
+   "env_file": "C:/Users/Usuario/.config/a2dlc/claude.env",
+   "timeout_s": 1800,
+   "retries": 0,
+   "memory": "4g",
+   "cpus": 2,
+   "paradigm": "state_machine"
+  },
+  "back_translator": {
+   "family": "script",
+   "image": "a2dlc-role-openrouter:0.1",
+   "argv": [
+    "python",
+    "/a2dlc/backtranslate.py"
+   ],
+   "env_file": "C:/Users/Usuario/.config/a2dlc/openrouter.env"
+  }
+ },
+ "family_exception": {
+  "reason": ""
+ }
+}

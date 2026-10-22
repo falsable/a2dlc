@@ -1,0 +1,13 @@
+{
+ "schema_version": 1,
+ "run_id": "run-0123456789ab",
+ "contract_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+ "answers": [
+  {
+   "probe_id": "PROBE-1",
+   "choice": "reject",
+   "by": "operator",
+   "at": "2026-10-18T10:00:00Z"
+  }
+ ]
+}

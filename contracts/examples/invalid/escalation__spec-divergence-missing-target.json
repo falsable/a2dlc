@@ -1,0 +1,16 @@
+{
+ "schema_version": 1,
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-17T18:04:51Z",
+ "items": [
+  {
+   "id": "esc-7c0e1f2a3b4d",
+   "kind": "spec_divergence",
+   "summary": "Specifier α and β diverge and the Inquisitor did not resolve it after 2 rounds: answer the probe and run again.",
+   "evidence": {
+    "message": "α: lanza ValueError · β: devuelve 0.0"
+   },
+   "resolve_with": []
+  }
+ ]
+}

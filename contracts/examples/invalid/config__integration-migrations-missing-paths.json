@@ -1,0 +1,48 @@
+{
+ "schema_version": 1,
+ "engines": [
+  {
+   "language": "python",
+   "image": "a2dlc-engine-py:0.4",
+   "paths": [
+    "src/**"
+   ],
+   "budget": {}
+  }
+ ],
+ "tests": {
+  "image": "a2dlc-tests-py:0.1",
+  "paths": [
+   "tests/**"
+  ],
+  "source_paths": [
+   "src/**"
+  ],
+  "command": "python -m pytest -q -o junit_family=xunit1 --junitxml=\"$A2DLC_JUNIT\" $A2DLC_TESTS"
+ },
+ "integration": {
+  "consumers": [
+   {
+    "name": "billing-web",
+    "image": "billing-web-contracts:2026.10",
+    "contracts": [
+     "api/openapi.yaml",
+     "src/billing/public/**"
+    ],
+    "command": "pact-verifier --provider-base-dir /work --junit \"$A2DLC_JUNIT\"",
+    "timeout_s": 300
+   },
+   {
+    "name": "crm",
+    "auto": false,
+    "image": "crm-tier1:2026.10",
+    "command": "sh run_tier1_against_provider.sh /work \"$A2DLC_JUNIT\""
+   }
+  ],
+  "migrations": {
+   "forbidden": [
+    "\\bDISABLE\\s+TRIGGER\\b"
+   ]
+  }
+ }
+}

@@ -1,0 +1,3 @@
+{"schema_version": 1,
+ "engines": [{"language": "python", "image": "a2dlc-engine-py:0.4", "paths": ["src/**"], "budget": {"per_condition_timeout_s": 10}}],
+ "tier0": {"forbidden_imports": ["pickle", "subprocess"], "require_header": false, "max_complexity": 12}}

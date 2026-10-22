@@ -1,0 +1,15 @@
+{
+ "schema_version": 1,
+ "targets": [],
+ "out_of_scope": [],
+ "error": null,
+ "diff_budget": {
+  "total_s": 60,
+  "used_s": 61.5,
+  "cut": [
+   {
+    "reason": "the per-diff budget ran out before this function"
+   }
+  ]
+ }
+}

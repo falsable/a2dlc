@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "slice_id": "calc.subtract.v3",
+  "base_sha": "7af5229e839f6fd50f2337c9733a4463c5fbdf64",
+  "candidate": null,
+  "changed_files": [
+    "src/calc.py"
+  ],
+  "consumers": [
+    {
+      "name": "cli",
+      "image": "calc-cli-tier1:1",
+      "affected_by": [
+        "src/calc.py"
+      ],
+      "status": "passed",
+      "tests": {
+        "passed": 6,
+        "failed": 0
+      }
+    }
+  ],
+  "migrations": {
+    "files": [],
+    "destructive": []
+  },
+  "verdict": "PASS",
+  "discovered": [
+    {
+      "from": "services/billing/handler.py",
+      "to": "src/calc.py",
+      "via": "code_graph"
+    }
+  ],
+  "blast_radius": {
+    "total_impacted": 1,
+    "ranking": [
+      {
+        "file": "src/calc.py",
+        "blast_radius": 1,
+        "risk_score": 0.35,
+        "high_risk_functions": 0
+      }
+    ]
+  }
+}

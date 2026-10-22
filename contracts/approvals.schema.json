@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/approvals.schema.json",
+  "title": "Signed waiver approvals (.a2dlc/approvals.json, versioned, outside the tree_hash)",
+  "description": "Each approval is an SSH signature (ssh-keygen -Y sign, namespace a2dlc-approval) over the text \"a2dlc-approval/1\\n<target>\\n<waiver_sha256>\\n<file_blob>\\n\". file_blob is the git blob of the target file in the candidate: if the file changes, the approval stops being valid. The allowed keys live outside the repo (A2DLC_ALLOWED_SIGNERS or ~/.config/a2dlc/allowed_signers).",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+          "waiver_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "file_blob": { "type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$" },
+          "principal": { "type": "string", "minLength": 1 },
+          "signature": { "type": "string", "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[\\s\\S]+\\n-----END SSH SIGNATURE-----\\n?$" }
+        },
+        "required": ["target", "waiver_sha256", "file_blob", "principal", "signature"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "approvals"],
+  "additionalProperties": false
+}

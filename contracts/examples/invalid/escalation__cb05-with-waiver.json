@@ -1,0 +1,19 @@
+{
+ "schema_version": 1,
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-18T01:00:00Z",
+ "items": [
+  {
+   "id": "esc-3f1c9a7b2d40",
+   "kind": "prerequisite_failure",
+   "target": "calc.subtract.v1::baseline",
+   "summary": "CB-05: the baseline could not be established on base 9d45962efc with tests.baseline_command: the command left no JUnit XML in $A2DLC_JUNIT (exit 2): ERROR: file or directory not found: tests. Intervention in Stage −1: fix the command, the image or the suite; no role runs until then.",
+   "evidence": {
+    "message": "the command left no JUnit XML in $A2DLC_JUNIT (exit 2): ERROR: file or directory not found: tests"
+   },
+   "resolve_with": [
+    "enforce_new_behavior"
+   ]
+  }
+ ]
+}

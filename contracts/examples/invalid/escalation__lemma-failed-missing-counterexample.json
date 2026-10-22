@@ -1,0 +1,64 @@
+{
+ "schema_version": 1,
+ "tree_hash": "git-tree:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+ "created_at": "2026-10-18T10:00:00Z",
+ "items": [
+  {
+   "id": "esc-1a2b3c4d5e01",
+   "kind": "protected_path",
+   "target": "tests/human/test_calc.py::tests/human/**",
+   "summary": "A change to a file under tests/human/ has no signed approval.",
+   "evidence": {
+    "message": "tests/human/test_calc.py matches protected_paths glob tests/human/**"
+   },
+   "resolve_with": []
+  },
+  {
+   "id": "esc-1a2b3c4d5e02",
+   "kind": "dependency_not_allowed",
+   "target": "go.mod::go/github.com/example/yaml",
+   "summary": "A new dependency is not in the allowlist.",
+   "evidence": {
+    "message": "require github.com/example/yaml v1.4.0 is not listed in .a2dlc/deps.allow.json"
+   },
+   "resolve_with": []
+  },
+  {
+   "id": "esc-1a2b3c4d5e03",
+   "kind": "lemma_failed",
+   "target": "calc.subtract.b11::lemma_resta_nonneg",
+   "summary": "The postcondition of a lemma fails on a counterexample.",
+   "evidence": {
+    "message": "postcondition result >= 0 fails"
+   },
+   "resolve_with": []
+  },
+  {
+   "id": "esc-1a2b3c4d5e04",
+   "kind": "trace_coverage_low",
+   "target": "calc.subtract.b11::traces",
+   "summary": "The branch coverage of the traces is below the minimum.",
+   "evidence": {
+    "message": "branch coverage 0.50 is below config.tests.trace_coverage.min_branch 0.80"
+   },
+   "resolve_with": []
+  },
+  {
+   "id": "esc-1a2b3c4d5e05",
+   "kind": "behavior_divergence",
+   "target": "src/calc.py::subtract",
+   "summary": "The function returns another value for a negative operand.",
+   "evidence": {
+    "counterexample": {
+     "args": "[-1, 2]",
+     "old": "-3",
+     "new": "3"
+    }
+   },
+   "resolve_with": [
+    "enforce_new_behavior"
+   ],
+   "answer_id": "PROBE-1"
+  }
+ ]
+}

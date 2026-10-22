@@ -1,0 +1,32 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.media.v1",
+ "contract_hash": "sha256:5c2b1f6e0a9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b",
+ "probes": [
+  {
+   "id": "BP-01",
+   "description": "The mean of two values is their midpoint",
+   "input": "media([1.0, 3.0])",
+   "expected": "2.0",
+   "kind": "example",
+   "file": "src/calc.py",
+   "expr": "media([1.0, 3.0]) == 2.0"
+  },
+  {
+   "id": "BP-02",
+   "description": "An empty list is rejected",
+   "input": "media([])",
+   "expected": "raises ValueError",
+   "kind": "negative",
+   "file": "src/calc.py",
+   "expr": "raises(ValueError, media, [])"
+  },
+  {
+   "id": "BP-03",
+   "description": "The mean lies between the minimum and the maximum",
+   "input": "media(xs) for non-empty xs",
+   "expected": "min(xs) <= media(xs) <= max(xs)",
+   "kind": "property"
+  }
+ ]
+}

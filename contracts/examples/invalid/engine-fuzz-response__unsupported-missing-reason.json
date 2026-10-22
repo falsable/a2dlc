@@ -1,0 +1,11 @@
+{
+ "schema_version": 1,
+ "findings": [],
+ "runs": 0,
+ "seconds": 0,
+ "unsupported": [
+  {
+   "function": "parse"
+  }
+ ]
+}

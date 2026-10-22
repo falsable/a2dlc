@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "run_id": "run-5d1e7a0c9b42",
+ "role": "back_translator",
+ "stage": "1.5",
+ "attempt": 1,
+ "status": "ok",
+ "cost": {
+  "usd": 0.0042
+ },
+ "model": "gemini-2.5-pro",
+ "payload": {
+  "examples": [
+   "media([2.5]) devuelve 2.5",
+   "media([]) lanza ValueError"
+  ]
+ }
+}

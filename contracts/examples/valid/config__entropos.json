@@ -1,0 +1,4 @@
+{"schema_version": 1,
+ "engines": [{"language": "typescript", "image": "a2dlc-engine-ts:0.1", "paths": ["src/lib/**", "src/server/**"],
+              "budget": {"examples": 2000, "seed": 42}}],
+ "max_files": 30, "agent_hook": {"max_blocks": 4}}

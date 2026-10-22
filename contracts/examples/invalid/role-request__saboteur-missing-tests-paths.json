@@ -1,0 +1,42 @@
+{
+ "schema_version": 1,
+ "run_id": "run-3f9a1c2b7d4e",
+ "slice_id": "core.relational.as_set.v1",
+ "mode": "refactor",
+ "role": "saboteur",
+ "stage": "4",
+ "attempt": 1,
+ "inputs": [
+  {
+   "path": "/in/request.json",
+   "sha256": "sha256:9c1185a5c5e9fc54612808977ee8f548b2258d31f9e3b7a8a1b1c2d3e4f50617"
+  },
+  {
+   "path": "/in/signatures.json",
+   "sha256": "sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+  },
+  {
+   "path": "/in/escalations.json",
+   "sha256": "sha256:486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7"
+  }
+ ],
+ "workdir": null,
+ "payload": {
+  "round": 1,
+  "max_rounds": 3,
+  "uncovered": [
+   {
+    "file": "sympy/core/relational.py",
+    "lines": [
+     397,
+     399,
+     400,
+     401,
+     404
+    ]
+   }
+  ],
+  "command": "python -m pytest -p no:cacheprovider -o junit_family=xunit1 --junitxml=\"$A2DLC_JUNIT\" -q $A2DLC_TESTS",
+  "previous_tests": []
+ }
+}

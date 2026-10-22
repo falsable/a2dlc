@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-mutate-response.schema.json",
+  "title": "Engine response to operation: mutate (/io/response.json)",
+  "description": "Stage 5, Tier 2 (protocol §5): mutants of the candidate's changed lines, one per change. Each mutant is the whole mutated file at /io/mutants/<id>/<file>, and nothing else in that folder. The core runs the tests of set T on the candidate with that file on top: a mutant that no test kills is a gap in the suite, not in the code. The descriptions travel to the Saboteur, which does not see the builder's code (§3): they state the operator, never identifiers or literals of the candidate. With a non-null error, the requested files stay unmutated and the core says so.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "mutants": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/mutant" }
+    },
+    "not_generated": {
+      "description": "What the engine could not turn into mutants: file that does not parse, is not of its language, or lines that fell outside max_mutants. A line with nothing to mutate (comment, docstring) does not go here. The core does not give PASS in the kill gate if anything is listed: what was not generated was not measured.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 }
+        },
+        "required": ["file", "reason"],
+        "additionalProperties": false
+      }
+    },
+    "pruned": {
+      "description": "Equivalent mutants that the engine did not generate due to conservative AST pruning (protocol §5, Stage 5 step 2): a requested line where some mutant was discarded, with the reason. They do not count in the kill rate nor block PASS: they are not mutants, they were not measured. Empty if there were none.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/pruned" }
+    },
+    "error": { "type": ["string", "null"] }
+  },
+  "required": ["schema_version", "mutants", "not_generated", "pruned", "error"],
+  "additionalProperties": false,
+  "$defs": {
+    "mutant": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$", "description": "Stable for the same candidate and the same lines; it is the name of the folder in /io/mutants." },
+        "file": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1, "description": "Line of the candidate where the change is; one of budget.changed_lines[file]." },
+        "operator": { "$ref": "#/$defs/operator" },
+        "description": { "type": "string", "minLength": 1, "description": "What changed, by the operator's template (e.g. \"arithmetic operator + changed to -\"). No candidate code." }
+      },
+      "required": ["id", "file", "line", "operator", "description"],
+      "additionalProperties": false
+    },
+    "pruned": {
+      "type": "object",
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1, "description": "Line requested in budget.changed_lines[file] where the mutant was discarded." },
+        "reason": { "enum": ["equivalent: logging-only statement", "equivalent: assert", "equivalent: dead branch (constant condition)", "equivalent: type-guaranteed dead branch"] }
+      },
+      "required": ["file", "line", "reason"],
+      "additionalProperties": false
+    },
+    "operator": {
+      "description": "arithmetic: one binary or augmented operator replaced by another (+ and -, * and /, // and *, % and //, ** and *). comparison: < and <=, > and >=, == and !=, is and is not, in and not in. negate_condition: the condition of an if, while, conditional expression or assert, negated. constant: number ±1 (one mutant per sign), inverted boolean, non-empty string to empty (and empty to non-empty). return_none: return <value> replaced by return None. remove_call: a call used as a statement, removed (pass if the body is left empty).",
+      "enum": ["arithmetic", "comparison", "negate_condition", "constant", "return_none", "remove_call"]
+    }
+  }
+}

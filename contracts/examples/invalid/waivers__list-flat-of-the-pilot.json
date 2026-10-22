@@ -1,0 +1,7 @@
+[
+ {
+  "target": "src/lib/routes.ts::tabToPath",
+  "decision": "enforce_new_behavior",
+  "reason": "Entropos-ugg.21: playground is merged into Connect and flow into Activity."
+ }
+]

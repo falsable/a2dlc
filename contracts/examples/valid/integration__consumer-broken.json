@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "slice_id": "billing.ledger_settlement.v2",
+ "base_sha": "7af5229e839f6fd50f2337c9733a4463c5fbdf64",
+ "candidate": "d165efc1a2b3c4d5e6f708192a3b4c5d6e7f8091",
+ "changed_files": ["api/openapi.yaml", "src/billing/settle.py", "migrations/0042_receipt.sql", "tests/test_settle.py"],
+ "consumers": [
+  {"name": "billing-web", "image": "billing-web-contracts:2026.10", "affected_by": ["api/openapi.yaml"], "status": "failed",
+   "tests": {"passed": 11, "failed": 1}, "failed_tests": ["pact/settle.spec.ts::receipt has tx_id"]},
+  {"name": "crm", "image": "crm-tier1:2026.10", "affected_by": [], "status": "passed", "tests": {"passed": 40, "failed": 0}},
+  {"name": "reports", "image": "reports-tier1:2026.10", "affected_by": [], "status": "not_run"}
+ ],
+ "migrations": {
+  "files": ["migrations/0042_receipt.sql"],
+  "destructive": [{"file": "migrations/0042_receipt.sql", "line": 7, "rule": "drop_column", "statement": "ALTER TABLE receipts DROP COLUMN legacy_ref"}]
+ },
+ "verdict": "FAIL"
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/z3-request.schema.json",
+  "title": "Core's request to the z3 engine (/io/request.json of engines/z3)",
+  "description": "Stage 1.5 step 2 (§5): satisfiability of the pre/post of S* that carry smt. The engine does not see the repo: only this request, mounted at /io, without network. Each function is resolved separately with its concatenated SMT-LIB 2 fragments; timeout_ms is the cap per function.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "timeout_ms": { "type": "integer", "minimum": 1 },
+    "functions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "function": { "type": "string", "minLength": 1 },
+          "smt": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+        },
+        "required": ["function", "smt"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "timeout_ms", "functions"],
+  "additionalProperties": false
+}

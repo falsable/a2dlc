@@ -1,0 +1,27 @@
+{
+ "schema_version": 1,
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-17T19:12:03Z",
+ "items": [
+  {
+   "id": "esc-1b2c3d4e5f60",
+   "kind": "bt_mismatch",
+   "target": "calc.media.v1::NaN in the list",
+   "summary": "The blind back-translation of S* does not say what the intent says: the contract or the translation may be wrong. A person decides and it is run again.",
+   "evidence": {
+    "message": "intent: a NaN in xs is a caller error · S*: S* says nothing about NaN: media([nan]) may return nan"
+   },
+   "resolve_with": []
+  },
+  {
+   "id": "esc-a0b1c2d3e4f5",
+   "kind": "unsat_spec",
+   "target": "billing.ledger_settlement.v1::src/billing/ledger.py::refund",
+   "summary": "CB-02a: no input satisfies the smt clauses of the function. They are relaxed and run again.",
+   "evidence": {
+    "message": "unsat core: #2 (> x 0); #3 (< x 0)"
+   },
+   "resolve_with": []
+  }
+ ]
+}

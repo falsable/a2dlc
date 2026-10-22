@@ -1,0 +1,17 @@
+{
+  "files": {
+    "calc.py": "8023576e860bd593318bef21c4fa33bf63ea1a4cccb4ac09449f6b241d43c1ff",
+    "test_calc.py": "ccea3f05504ff506af0c6ec7ecbd8de367ec7d643164e9b8e56ee6b54fdaf3c8"
+  },
+  "classes": {
+    "log": "non-prunable equivalent: the logger name is not observable by any test (line 3, outside any function)",
+    "add": "killable: arithmetic + changed to -, the test checks add(2, 3)",
+    "scale": "survivor: not equivalent, but the test only checks scale(0) == 0, so the mutants of x * 3 live (lines 11)",
+    "identity": "killable constant (0 to 1) and non-prunable equivalent (x + 0 to x - 0)",
+    "clamp": "killable (the test checks clamp(20) and clamp(5)); comparison > to >= is equivalent (non-prunable); constants 10 to 9 or 11 are non-equivalent survivors, since the test never checks x = 10 or 11",
+    "trace": "prunable equivalent: the mutants are in a logging-only statement, nothing in the tests observes them",
+    "checked": "assert: pruning discards its mutants as equivalent, but negate_condition changes behaviour and test_checked kills it (the false-prune check); the other mutants of the assert are equivalent for the test's input",
+    "gated": "prunable equivalent: the branch is dead by a constant condition (if False)",
+    "bounded": "unpruned type-guaranteed dead branch: isinstance(n, str) is never true for an int; 99 is not pruned by the constant rules, so its mutants are equivalent survivors"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/run-state.schema.json",
+  "title": "State of an a2dlc run (.a2dlc/run/<slice>/state.json, not committed)",
+  "description": "The state machine is linear (protocol §5) with two bounded loops inside a stage. A stage ends in done with its artifact, in skipped with the reason (role not configured, the mode does not require it), or in failed/escalated with the escalation that stopped it. Resuming means running again: the core skips the done stages whose artifact is still on disk with the recorded hash and continues from the first one missing. It is outside the tree_hash.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "run_id": { "$ref": "run-defs.schema.json#/$defs/run_id" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "mode": { "$ref": "run-defs.schema.json#/$defs/mode" },
+    "base_sha": { "$ref": "defs.schema.json#/$defs/git_sha" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "max_cost_usd": { "oneOf": [{ "type": "null" }, { "type": "number", "exclusiveMinimum": 0 }] },
+        "spent_tokens": { "type": "integer", "minimum": 0, "description": "Sum of the tokens the CLIs reported. Roles without a report do not add." },
+        "spent_usd": { "type": "number", "minimum": 0, "description": "Sum of what the CLIs reported. Roles without a report do not add: unreported_roles lists them." },
+        "unreported_roles": { "type": "integer", "minimum": 0 },
+        "by_role": {
+          "type": "object",
+          "propertyNames": { "$ref": "run-defs.schema.json#/$defs/role" },
+          "additionalProperties": { "type": "number", "minimum": 0 },
+          "description": "Breakdown of spent_usd by role (reported only). Optional: earlier runs do not have it."
+        }
+      },
+      "required": ["max_cost_usd", "spent_usd", "unreported_roles"],
+      "additionalProperties": false
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "$ref": "run-defs.schema.json#/$defs/stage" },
+          "status": { "enum": ["pending", "running", "done", "skipped", "failed", "escalated"] },
+          "reason": { "type": "string", "minLength": 1, "description": "Required with skipped, failed and escalated." },
+          "artifact": {
+            "description": "Artifact the stage leaves, relative to .a2dlc/run/<slice>/, with its hash: it is what resume checks.",
+            "oneOf": [{ "type": "null" }, { "$ref": "run-defs.schema.json#/$defs/hashed_file" }]
+          },
+          "iterations": { "type": "integer", "minimum": 0, "description": "Rounds of the stage loop (Tier 0 ≤ max_inner_iterations; Tier 1 ≤ max_tier1_adversarial_rounds)." },
+          "started_at": { "oneOf": [{ "type": "null" }, { "type": "string", "format": "date-time" }] },
+          "finished_at": { "oneOf": [{ "type": "null" }, { "type": "string", "format": "date-time" }] }
+        },
+        "required": ["id", "status", "artifact", "iterations", "started_at", "finished_at"],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": { "properties": { "status": { "enum": ["skipped", "failed", "escalated"] } } },
+            "then": { "required": ["reason"] }
+          },
+          {
+            "if": { "properties": { "status": { "const": "done" } } },
+            "then": { "properties": { "artifact": { "type": "object" } } }
+          }
+        ]
+      }
+    },
+    "outcome": {
+      "description": "null while it runs. PASS/FAIL/INCONCLUSIVE is the oracle's verdict at the end; escalated, when a circuit breaker stopped the run and is waiting for a person.",
+      "oneOf": [{ "type": "null" }, { "$ref": "defs.schema.json#/$defs/verdict" }, { "const": "escalated" }]
+    }
+  },
+  "required": ["schema_version", "run_id", "slice_id", "mode", "base_sha", "created_at", "updated_at", "budget", "stages", "outcome"],
+  "additionalProperties": false
+}

@@ -1,0 +1,6 @@
+{"schema_version": 1,
+ "approvals": [{"target": "src/lib/routes.ts::tabToPath",
+   "waiver_sha256": "3b7e2f1c0d9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c",
+   "file_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+   "principal": "aldemar",
+   "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg\n-----END SSH SIGNATURE-----\n"}]}

@@ -1,0 +1,59 @@
+# Template for a repo that adopts a2dlc: copy to .github/workflows/a2dlc.yml (ADR meta/0004, CI strategy).
+#
+# It is an audit, not a boundary: with a direct push to main, CI does not block; if it fails, the commit must be reverted.
+# What blocks is the agent's hook plus the pre-push. CI is the authority because the allowed keys live here, outside the
+# agent's reach.
+#
+# The cost grows with the risk, not with the pushes:
+#   - `paths` = the globs of engines[].paths in .a2dlc/config.json, plus .a2dlc/**. A push without covered code costs 0.
+#   - check only analyzes the pure functions that changed (it is not a suite).
+#   - max_files in the config caps each run; above it, it gives INCONCLUSIVE with the list of what was not run.
+#   - cancel-in-progress: a burst of pushes pays for one run.
+#
+# Repo requirements:
+#   - Variable A2DLC_ALLOWED_SIGNERS: the contents of allowed_signers ("<principal> <public key>" per line).
+#   - Secret A2DLC_DOWNLOAD: fine-grained read-only token over falsable/a2dlc, to download the binary from the release,
+#     which is private. The automatic token of another repo cannot read it.
+#   - Engine images: ghcr.io/falsable/a2dlc-engine-{ts,py,bb,bb-go}, private. Their digests are in IMAGENES.txt of each
+#     release. In config.json use name@digest, or a step that does docker pull of the digest and retags it to the name
+#     the config uses (as .github/workflows/a2dlc.yml of a2dlc does). This repo needs read access on each package:
+#     GitHub → package → Package settings → Manage Actions access → add the repo (Read).
+name: a2dlc
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/**'   # ← the globs of engines[].paths
+      - '.a2dlc/**'
+concurrency:
+  group: a2dlc-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  packages: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      A2DLC_VERSION: v0.2.0
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: a2dlc binary (pinned and verified release)
+        env:
+          GH_TOKEN: ${{ secrets['A2DLC_DOWNLOAD'] }}
+        run: |
+          gh release download "$A2DLC_VERSION" -R falsable/a2dlc -p a2dlc-linux-amd64 -p SHA256SUMS -D "$RUNNER_TEMP/a2dlc"
+          cd "$RUNNER_TEMP/a2dlc" && sha256sum --ignore-missing -c SHA256SUMS && chmod +x a2dlc-linux-amd64
+      - name: login to ghcr (engine images)
+        env:
+          GHCR_LOGIN: ${{ github.token }}
+        run: printf '%s' "$GHCR_LOGIN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: a2dlc check
+        env:
+          A2DLC_ALLOWED_SIGNERS_DATA: ${{ vars.A2DLC_ALLOWED_SIGNERS }}
+          BEFORE: ${{ github.event.before }}
+        # The first push of a branch brings BEFORE=0000…: check does not resolve the base and exits 2 (INCONCLUSIVE), never PASS.
+        run: '"$RUNNER_TEMP/a2dlc/a2dlc-linux-amd64" check --base "$BEFORE" --require-signatures'

@@ -1,0 +1,38 @@
+{
+ "schema_version": 1,
+ "run_id": "run-5d1e7a0c9b42",
+ "slice_id": "calc.media.v1",
+ "mode": "greenfield",
+ "role": "specifier_beta",
+ "stage": "1",
+ "attempt": 1,
+ "inputs": [
+  {
+   "path": "/in/request.json",
+   "sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  {
+   "path": "/in/intent.json",
+   "sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  }
+ ],
+ "workdir": "/work",
+ "payload": {
+  "intent": {
+   "goal": "Arithmetic mean of a list of floats for the box report.",
+   "invariants": [
+    "there is no average of nothing"
+   ]
+  },
+  "capture": null,
+  "round": 2,
+  "discrepancies": [
+   {
+    "topic": "media: empty list",
+    "alpha": "lanza ValueError",
+    "beta": "devuelve 0.0",
+    "resolution": null
+   }
+  ]
+ }
+}

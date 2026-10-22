@@ -1,0 +1,6 @@
+{"schema_version": 1,
+ "files": [
+  {"file": "src/calc.py", "loc_added": 6, "loc_removed": 2, "cyclomatic": 3, "ast_nodes": 41},
+  {"file": "src/roto.py", "loc_added": 1, "loc_removed": 0, "cyclomatic": null, "ast_nodes": null}
+ ],
+ "error": null}

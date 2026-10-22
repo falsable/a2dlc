@@ -1,0 +1,39 @@
+{
+ "schema_version": 1,
+ "a2dlc_version": "0.1.0",
+ "verdict": "PASS",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "tree_hash": "sha256:a1ba0bf601f193c0",
+ "created_at": "2026-10-16T12:00:00Z",
+ "targets": [
+  {
+   "target": "src/lib/routes.ts::tabToPath",
+   "engine": "fast-check",
+   "engine_version": "3.23.2",
+   "verdict": "FAIL",
+   "search_budget": {
+    "examples": 2000,
+    "seed": 42
+   },
+   "generators": "repo_override",
+   "typed": true,
+   "domain_guard": null,
+   "equivalence": "strict",
+   "counterexample": {
+    "args": "[\"playground\",\"developer\"]",
+    "old": "{\"ok\":\"/app/playground?plan=developer\"}",
+    "new": "{\"ok\":\"/app/connect?plan=developer\"}"
+   },
+   "waived": true
+  }
+ ],
+ "out_of_scope": [
+  {
+   "file": "src/App.tsx",
+   "reason": "not_pure"
+  }
+ ],
+ "pending_waivers": [
+  "src/lib/routes.ts::tabToPath"
+ ]
+}

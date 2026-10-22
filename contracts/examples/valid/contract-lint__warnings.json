@@ -1,0 +1,15 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.media.v1",
+ "contract_hash": "sha256:3a7bd3e2360a3d29eea436fcfb7e44c735d117c42d1c1835420b6b9942dd4f1b",
+ "ok": true,
+ "findings": [
+  { "severity": "warning", "check": "function_exists", "where": "media", "message": "no engine signatures for the changed sources: it was not checked that the functions of S* exist" },
+  { "severity": "warning", "check": "trace_coverage", "where": "media: post \"does not modify xs\"", "message": "no probe names media together with a keyword of the clause" }
+ ],
+ "trace_coverage": {
+  "rule": "a probe covers a clause if its description, input or expected names the function (its short name, as a whole word, case-insensitive) and shares with the clause a word of 4 or more letters that is neither empty nor the function's name",
+  "severity": "warning",
+  "uncovered": [{ "function": "media", "kind": "post", "clause": "does not modify xs" }]
+ }
+}

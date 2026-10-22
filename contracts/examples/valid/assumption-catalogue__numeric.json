@@ -1,0 +1,9 @@
+{
+ "schema_version": 1,
+ "domain": "numeric computation",
+ "entries": [
+  { "id": "redondeo", "category": "rounding mode", "question": "Is the result rounded? With which mode and to how many decimals?" },
+  { "id": "listas-vacias", "category": "semantics of empty lists", "question": "What does the function return or raise with an empty collection?" },
+  { "id": "limites-numericos", "category": "numeric limits", "question": "What happens with infinities, NaN, overflow and the largest integer?" }
+ ]
+}

@@ -1,0 +1,22 @@
+{
+ "schema_version": 1,
+ "language": "python",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "base_dir": "/base",
+ "candidate_dir": "/cand",
+ "changed_files": [
+  "src/calc.py",
+  "README.md"
+ ],
+ "budget": {
+  "functions": [
+   {
+    "name": "lemma_media_nonneg",
+    "postcondition": "result >= 0"
+   }
+  ],
+  "mode": "check"
+ },
+ "generators_override": null,
+ "operation": "lemmas"
+}

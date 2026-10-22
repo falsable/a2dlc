@@ -1,0 +1,30 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.media.v1",
+ "base_sha": "7af5229e839f6fd50f2337c9733a4463c5fbdf64",
+ "changed_files": [
+  "src/calc.py"
+ ],
+ "selection": "files of the base under tests.paths whose text names, as a whole word, the name (without extension) of a changed source",
+ "tests": [
+  "tests/test_calc.py"
+ ],
+ "signatures": [
+  {
+   "file": "src/calc.py",
+   "symbols": [
+    {
+     "name": "media",
+     "signature": "def media(xs: list[float]) -> float",
+     "doc": "Arithmetic mean; raises ValueError with an empty list.",
+     "lines": [
+      12,
+      18
+     ],
+     "body": "return sum(xs) / len(xs)"
+    }
+   ]
+  }
+ ],
+ "engine_errors": []
+}

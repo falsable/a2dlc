@@ -1,0 +1,8 @@
+{
+  "name": "a2dlc",
+  "version": "0.3.0",
+  "description": "Deterministic verification gate, differential execution oracle, and autonomous state machine (A2-DLC v3.4) for AI coding agents.",
+  "skills": [
+    "../../skills/a2dlc"
+  ]
+}

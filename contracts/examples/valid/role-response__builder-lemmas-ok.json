@@ -1,0 +1,19 @@
+{
+ "schema_version": 1,
+ "run_id": "run-5d1e7a0c9b42",
+ "role": "builder_primary",
+ "stage": "3",
+ "attempt": 1,
+ "status": "ok",
+ "cost": { "usd": 0.02 },
+ "payload": {
+  "summary": "Added media with its ValueError guard and declared the lemma of the mean.",
+  "files_changed": ["src/calc.py"],
+  "lemmas": [
+   {
+    "name": "media",
+    "postcondition": "result * len(xs) is approximately sum(xs) for a non-empty xs"
+   }
+  ]
+ }
+}

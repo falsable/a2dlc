@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/run-defs.schema.json",
+  "title": "Common definitions for a2dlc run (protocol state machine, Stages -1 to 7)",
+  "$defs": {
+    "role": {
+      "description": "Roles of §3 of the protocol that run as a command. The Deterministic Oracle, the Router and the Indexer are the core, not roles.",
+      "enum": ["specifier_alpha", "specifier_beta", "inquisitor", "back_translator", "builder_primary", "builder_orthogonal", "saboteur", "propose_properties"]
+    },
+    "family": {
+      "description": "Declared model family (claude, gemini, openai, …) or script for a deterministic role. The core records it; it cannot prove which model answered.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{1,31}$"
+    },
+    "stage": {
+      "description": "Protocol stages that a2dlc run runs (§5). 6 (integration: consumer matrix and migration linter, config.integration) and 7 (progressive delivery: the plan as an artifact, intent.delivery) run the part that fits in the binary; the platform executes the plan.",
+      "enum": ["-1", "0", "1", "1.5", "2", "3", "4", "5", "6", "7", "propose"]
+    },
+    "mode": { "enum": ["greenfield", "refactor", "brownfield_facade", "lite"] },
+    "slice_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,99}$" },
+    "run_id": { "type": "string", "pattern": "^run-[0-9a-f]{12}$" },
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "hashed_file": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "description": "Path as the role saw it inside the container (/in/… or /out/…)." },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      },
+      "required": ["path", "sha256"],
+      "additionalProperties": false
+    },
+    "cost": {
+      "description": "What the role's CLI reported (e.g. total_cost_usd of claude -p --output-format json). Without a report, null; CB-03 only sums what was reported and says so.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "usd": { "type": "number", "minimum": 0 },
+            "input_tokens": { "type": "integer", "minimum": 0 },
+            "output_tokens": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["usd"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

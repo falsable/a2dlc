@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/intent.schema.json",
+  "title": "Intent of a slice (Stage 0 of the protocol): goal, invariants, criticality and budget",
+  "description": "Provided by a person with a2dlc run --intent <file>; the core validates it, copies it as-is to .a2dlc/run/<slice>/intent.json and the run is tied to that file (another intent on resume is an error). It is mounted at /in for the specifiers, the builders and the saboteur whenever it exists (§3; the builders and the saboteur are a deviation declared in the README); the Back-translator does not see it and the Inquisitor receives it only in the Stage 1.5 payload. The Stage 2 Router reads criticality, criticality_tags and critical_paths; CB-03 and the loop caps fall back to budget when the command line does not give them.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id", "description": "Must match --slice." },
+    "mode": { "$ref": "run-defs.schema.json#/$defs/mode", "description": "Must match --mode; without --mode, a new run takes this one." },
+    "goal": { "type": "string", "minLength": 1, "description": "Goal in natural language." },
+    "invariants": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Known business invariants, as free text. The §6.2 DSL form is declared per invariant in the slice contract (invariants[].dsl). Stage 1.5 runs Z3 over the optional smt clauses of S*."
+    },
+    "non_goals": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "criticality": { "$ref": "#/$defs/criticality" },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "max_cost_usd": {
+          "oneOf": [{ "type": "null" }, { "type": "number", "exclusiveMinimum": 0 }],
+          "description": "CB-03: cap on the cost reported by the roles. null = no cap. --max-cost-usd takes precedence over this."
+        },
+        "max_inner_iterations": { "type": "integer", "minimum": 1, "description": "Cap on the Tier 0 loop (Stage 3). --max-inner takes precedence over this." },
+        "max_tier1_adversarial_rounds": { "type": "integer", "minimum": 1, "description": "Saboteur rounds in Stages 4 and 5. --max-rounds takes precedence over this." },
+        "max_mutants": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }], "description": "Cap on mutants of Stage 5; takes precedence over config.mutation.max_mutants. null = config.mutation.max_mutants, or 30 if that is not set either." },
+        "max_tokens": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }], "description": "Cap on the tokens the roles of the run may spend. null: no cap." }
+      },
+      "required": ["max_cost_usd", "max_inner_iterations", "max_tier1_adversarial_rounds", "max_mutants"],
+      "additionalProperties": false
+    },
+    "critical_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Globs (same syntax as config.paths). If a changed or deleted file from base to tree matches, the Router raises the criticality one level."
+    },
+    "acceptance": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Acceptance criteria in natural language." },
+    "slas": {
+      "type": "array",
+      "default": [],
+      "description": "Service-level objectives of the slice, each one a metric compared with a value in a unit (for example p99 latency < 200 ms). Absent or []: none.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "metric": { "type": "string", "minLength": 1 },
+          "op": { "enum": ["<", "<=", ">", ">="] },
+          "value": { "type": "number" },
+          "unit": { "type": "string", "minLength": 1 }
+        },
+        "required": ["metric", "op", "value", "unit"],
+        "additionalProperties": false
+      }
+    },
+    "change_kind": { "enum": ["feature", "bugfix", "refactor"], "description": "Kind of change, declared by the person. Absent: unknown." },
+    "criticality_tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["security", "billing", "auth", "concurrency"] },
+      "description": "Domain tags of the slice. Any tag raises the effective criticality one level (once, however many tags there are), the same rule as critical_paths."
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "forbidden_imports": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Imports the changed files may not use. They add to the repo's own prohibitions: the slice can only restrict further." }
+      },
+      "additionalProperties": false
+    },
+    "rejected_alternatives": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Discarded alternatives (§6.3): the core passes them to the Builder in the @a2dlc header as rejected_alternatives. Absent: []." },
+    "boundary": {
+      "$ref": "#/$defs/boundary",
+      "description": "Protected boundary of the slice (§7, CB-04): what the builder cannot touch. If Stage 3 crosses it, it escalates with protected_boundary; escalating privileges is a person's decision, who widens this boundary and re-runs (no waiver resolves it). Absent: there is no boundary."
+    },
+    "delivery": {
+      "description": "Stage 7 (Progressive Delivery, §5): what the slice declares so the binary builds the delivery plan (delivery.json) that the platform executes. Without this section Stage 7 is left skipped with its reason. writes: the slice writes data; then compensation is mandatory to go past the 1 % ring (CB-06): without it (null or absent) the plan stays at max_ring 1 and the run escalates missing_compensation.",
+      "type": "object",
+      "properties": {
+        "writes": { "type": "boolean" },
+        "compensation": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "strategy": { "enum": ["compensating_events", "data_repair_script", "versioned_records"], "description": "§5 Stage 7 step 3: compensating events, a data repair script, or records marked with the slice version to isolate them." },
+                "description": { "type": "string", "minLength": 1 }
+              },
+              "required": ["strategy", "description"],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "rings": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 100 }, "minItems": 1, "description": "Percentages of the canary rings, strictly increasing and ending at 100. Absent: 1, 10, 100." },
+        "read_only_paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Globs of the paths the slice reads and must not write. Parity of the legacy and the new code runs on them in refactor (delivery.parity.paths)." },
+        "sentinel": {
+          "type": "object",
+          "properties": {
+            "error_rate_delta_max": { "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0 }], "description": "Rollback Sentinel: maximum error-rate delta against the previous ring. null: the platform sets it." },
+            "latency_p99_ms_max": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }] },
+            "invariants": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Runtime invariant assertions. Absent: the intent's invariants." }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["writes"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "writes": { "const": true } }, "required": ["writes"] },
+          "then": {
+            "properties": {
+              "sentinel": {
+                "properties": {
+                  "error_rate_delta_max": { "type": "number" },
+                  "latency_p99_ms_max": { "type": "integer" }
+                },
+                "required": ["error_rate_delta_max", "latency_p99_ms_max"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": ["schema_version", "slice_id", "mode", "goal", "invariants", "non_goals", "criticality", "budget", "critical_paths", "acceptance"],
+  "additionalProperties": false,
+  "$defs": {
+    "criticality": {
+      "description": "Criticality of the slice. Order: low < medium < high < critical. The tags of criticality_tags raise the effective level one step, the same rule as critical_paths.",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "boundary": {
+      "description": "What the builder cannot change (§7, CB-04). With forbidden_paths, a file in /work that matches a glob escalates. With do_not_refactor, a changed file whose added or removed lines contain the symbol as a whole word escalates: it is a textual heuristic, so it also flags a new call site.",
+      "type": "object",
+      "properties": {
+        "forbidden_paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Globs (same syntax as config.paths): no file that matches may change in /work." },
+        "do_not_refactor": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Identifiers whose lines cannot change (see the boundary description)." },
+        "forbidden_side_effects": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["network.http.outbound", "fs.write", "db.raw_sql_unparameterized", "time.system_clock_direct"] }, "description": "Side effects the changed code may not produce, by protocol name. Declared here; checking them is engine work." }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    }
+  }
+}

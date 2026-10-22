@@ -1,0 +1,15 @@
+{
+ "schema_version": 1,
+ "track": "N=1",
+ "dual_spec_required": false,
+ "criticality_effective": "high",
+ "reasons": [
+  "criticality declared in the intent: high",
+  "lite mode: N=1 always and no dual-spec (there is no S*)"
+ ],
+ "touched_critical": [],
+ "rule_count": null,
+ "state_mutation_depth": null,
+ "lemmas_required": false,
+ "metrics_reason": "lite mode: without S*"
+}

@@ -1,0 +1,92 @@
+{
+ "schema_version": 1,
+ "files": [
+  {
+   "file": "src/calc.ts",
+   "symbols": [
+    {
+     "name": "media",
+     "signature": "export function media(xs: number[], escala?: number): number",
+     "doc": "Arithmetic mean; raises if the list is empty.",
+     "lines": [
+      8,
+      11
+     ]
+    },
+    {
+     "name": "interna",
+     "signature": "export function interna(x: number): number",
+     "doc": null,
+     "lines": [
+      13,
+      13
+     ]
+    },
+    {
+     "name": "doble",
+     "signature": "export const doble = (n: number, ...resto: string[]) => number",
+     "doc": "Duplica.",
+     "lines": [
+      16,
+      16
+     ]
+    },
+    {
+     "name": "asincrona",
+     "signature": "export const asincrona = async <T>(x: T) => Promise<T>",
+     "doc": null,
+     "lines": [
+      18,
+      18
+     ]
+    },
+    {
+     "name": "Caja",
+     "signature": "export class Caja<T> extends Array<T> implements Iterable<T>",
+     "doc": null,
+     "lines": [
+      22,
+      31
+     ]
+    },
+    {
+     "name": "Caja.constructor",
+     "signature": "constructor(nombre: string)",
+     "doc": "Creates the box.",
+     "lines": [
+      24,
+      24
+     ]
+    },
+    {
+     "name": "Caja.vaciar",
+     "signature": "vaciar(): void",
+     "doc": "Leaves the box with no elements.",
+     "lines": [
+      26,
+      26
+     ]
+    },
+    {
+     "name": "Caja.crear",
+     "signature": "static crear(n: string): Caja<number>",
+     "doc": null,
+     "lines": [
+      29,
+      29
+     ]
+    },
+    {
+     "name": "Caja.cargar",
+     "signature": "async cargar(id?: number): Promise<string>",
+     "doc": null,
+     "lines": [
+      30,
+      30
+     ]
+    }
+   ]
+  }
+ ],
+ "error": null
+}

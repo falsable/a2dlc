@@ -1,0 +1,6 @@
+{"schema_version": 1, "builder": "builder_orthogonal", "commit": "1f264c8a0b1c2d3e4f5061728394a5b6c7d8e9f0",
+ "tree_hash": "351f8a6a0b1c2d3e4f5061728394a5b6c7d8e9f0", "iterations": 3, "unchecked": ["web/app.ts"],
+ "candidates": [
+  {"builder": "builder_orthogonal", "commit": "1f264c8a0b1c2d3e4f5061728394a5b6c7d8e9f0", "tree_hash": "351f8a6a0b1c2d3e4f5061728394a5b6c7d8e9f0", "iterations": 3, "unchecked": ["web/app.ts"]}
+ ],
+ "dropped": [{"builder": "builder_primary", "reason": "Tier 0 does not converge: 5 builder rounds without ok (max_inner_iterations)"}]}

@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/config.schema.json",
+  "title": "Repo configuration (.a2dlc/config.json, versioned)",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "engines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "language": { "type": "string", "minLength": 1 },
+          "image": { "type": "string", "minLength": 1, "description": "Engine image; with the repo's dependencies, an image derived from the repo's one (open risk in the ADR)." },
+          "paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Globs of the files this engine watches." },
+          "budget": { "type": "object", "description": "Free-form: each engine reads its own keys. Documented keys: workers (parallel workers of the engine), critical (seconds for critical-criticality slices), total_s (seconds for the whole engine run; reported in verdict.diff_budget)." },
+          "memory": { "type": "string", "default": "1g" },
+          "cpus": { "type": "number", "default": 2 }
+        },
+        "required": ["language", "image", "paths", "budget"],
+        "additionalProperties": false
+      }
+    },
+    "tier0": { "description": "Tier 0 AST policy of a2dlc run (§5, Stage 3, step 2): prohibited items, header and complexity per changed function. Without this section the defaults of defs.schema.json#/$defs/tier0_policy apply.", "$ref": "defs.schema.json#/$defs/tier0_policy" },
+    "max_files": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cap on files covered per run. Above it, check does not run engines and gives INCONCLUSIVE with the list of what was not run: it is never silently omitted. Bounds the CI cost."
+    },
+    "protected_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "description": "Globs of paths an agent cannot change without a signed approval: tests written by a person and other human-owned paths. A changed file that matches with no valid approval escalates protected_path."
+    },
+    "supply_chain": {
+      "type": "object",
+      "properties": {
+        "allowlist_file": { "type": "string", "minLength": 1, "default": ".a2dlc/deps.allow.json", "description": "Versioned file (deps-allow.schema.json) listing the dependencies an agent may add." }
+      },
+      "additionalProperties": false
+    },
+    "agent_hook": {
+      "type": "object",
+      "properties": { "max_blocks": { "type": "integer", "minimum": 1, "default": 4 } },
+      "additionalProperties": false
+    },
+    "tests": {
+      "description": "Test gates (protocol §5, Stage 4): NOP/Oracle over the new or modified tests; if there is a baseline_command, \"does not get worse\" against the base with flaky quarantine; with --peer or --tests-overlay, tests_diff: the same T over the base, the candidate and the other builders' trees. Without this section they do not run, and every changed line that no engine examined is left uncovered (INCONCLUSIVE). Never the full suite: what runs is chosen by the repo's commands.",
+      "type": "object",
+      "properties": {
+        "image": { "type": "string", "minLength": 1, "description": "Image of the repo's toolchain with its dependencies: runs without network." },
+        "paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Globs of the test files. A changed file that matches is a test; the rest is source." },
+        "source_paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Globs of the code whose changed lines must be examined by an engine target or run by a test (coverage precondition). It adds to the engines' paths; it is used to gate by tests a language with no engine." },
+        "command": { "type": "string", "minLength": 1, "description": "Runs with sh -c in a writable copy of the tree (/work). It must run only the files of $A2DLC_TESTS and write JUnit XML to $A2DLC_JUNIT. If it also writes coverage (Cobertura XML or LCOV) to $A2DLC_COVERAGE, the core uses it for the coverage precondition; without it, every changed line that no engine examined is left uncovered." },
+        "baseline_command": { "type": "string", "minLength": 1, "description": "Optional. Runs the tests affected by $A2DLC_CHANGED (changed sources), e.g. vitest related or go test on the touched packages, and writes JUnit XML to $A2DLC_JUNIT. Without it, the baseline does not run and the verdict says so." },
+        "invalid_base_failures": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Regular expressions (RE2) over the message of a failure on the base that make it invalid for NOP: import, collection, missing symbol. Absent: the binary applies per-language defaults (python: ImportError, ModuleNotFoundError, AttributeError, NameError, ^collection; typescript: is not a function, Cannot find module, ReferenceError, does not provide an export named). An explicit list, even empty, replaces them." },
+        "reruns": { "type": "integer", "minimum": 1, "maximum": 10, "default": 3, "description": "protocol k: number of re-runs of a new red on base and candidate before blocking; in tests_diff, number of re-runs of a candidate red before calling it stable." },
+        "timeout_s": { "type": "integer", "minimum": 1, "default": 600 },
+        "memory": { "type": "string", "default": "2g" },
+        "cpus": { "type": "number", "default": 2 },
+        "trace_coverage": {
+          "type": "object",
+          "properties": {
+            "min_branch": { "type": "number", "minimum": 0, "maximum": 1, "description": "Minimum fraction of branches, per function, that the recorded traces must cover. Never invented: without it the trace coverage verdict is INCONCLUSIVE and its reason names this field." }
+          },
+          "required": ["min_branch"],
+          "additionalProperties": false
+        },
+        "golden_master": {
+          "type": "object",
+          "description": "Refactor and legacy only: the black-box engine's I/O is recorded on the base before any role runs (golden.json) and replayed as the oracle of Stage 4.",
+          "properties": {
+            "command": { "type": "string", "minLength": 1 },
+            "image": { "type": "string", "minLength": 1 },
+            "cases": { "type": "string", "minLength": 1, "description": "Glob of the committed case files the golden master is recorded over." }
+          },
+          "required": ["command", "image", "cases"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["image", "paths", "command"],
+      "additionalProperties": false
+    },
+    "mutation": {
+      "description": "Stage 5 of a2dlc run (protocol §5, Tier 2): mutation bounded to the changed lines and kill gate over the suite T. Without this section the default values apply. It runs only with the tests section and an engine that does operation: mutate (today, Python). The cost is mutants × one run of T, per round.",
+      "type": "object",
+      "properties": {
+        "min_kill_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.8, "description": "Threshold of the kill gate: the suite must kill at least this fraction of the mutants judged (§5: 80 %)." },
+        "max_mutants": { "type": "integer", "minimum": 1, "default": 30, "description": "Cap on mutants per run. What does not fit is listed (not_generated or not_run) and the gate does not give PASS: what is not measured does not count." }
+      },
+      "additionalProperties": false
+    },
+    "integration": {
+      "description": "Stage 6 of a2dlc run (protocol §5, Integration): what fits in the provider repo's binary. consumers: the consumer-driven contract matrix; each one is an image with the consumer's Tier 1 suite or Pact contracts, which runs without network against the candidate mounted at /work and leaves JUnit in $A2DLC_JUNIT; it runs when a changed file matches its contracts (without contracts, on every slice). If one breaks, the stage escalates with its red tests (consumer_broken). migrations: destructive DDL linter (expand-and-contract) over the changed files that match paths; a finding escalates (destructive_migration). Without this section Stage 6 is left skipped with its reason. Outside the binary: the service graph (SCIP, OpenAPI, protobuf) and the durable workflow the contract triggers.",
+      "type": "object",
+      "properties": {
+        "consumers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,63}$" },
+              "image": { "type": "string", "minLength": 1, "description": "Image built from the consumer's repo, with its suite and its dependencies: runs without network." },
+              "command": { "type": "string", "minLength": 1, "description": "Runs with sh -c over a writable copy of the candidate (/work) with $A2DLC_CONSUMER=name; it must write JUnit XML to $A2DLC_JUNIT. A run without JUnit, or red without an identifiable test, is INCONCLUSIVE, never green." },
+              "contracts": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Globs (same syntax as paths) of the provider files this consumer consumes: OpenAPI, protobuf, event schemas, the public module. If one changed, the consumer runs. Empty or absent: it runs on every slice." },
+              "timeout_s": { "type": "integer", "minimum": 1, "default": 600 },
+              "memory": { "type": "string", "default": "2g" },
+              "cpus": { "type": "number", "default": 2 },
+              "auto": { "type": "boolean", "default": false, "description": "A discovered consumer (inside the repo, found by the import graph) runs its tests only when this is true." }
+            },
+            "required": ["name", "image", "command"],
+            "additionalProperties": false
+          }
+        },
+        "migrations": {
+          "type": "object",
+          "properties": {
+            "paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Globs of the migration files (SQL or DSL in text)." },
+            "forbidden": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Regular expressions (RE2, case-insensitive) added to the core's: DROP COLUMN/TABLE, RENAME, in-place type change (ALTER/MODIFY COLUMN … TYPE), TRUNCATE." }
+          },
+          "required": ["paths"],
+          "additionalProperties": false
+        },
+        "generated_clients": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Globs of generated client code (OpenAPI or protobuf output). The discovered edges that point at them are generated ones." },
+        "indexer": {
+          "type": "object",
+          "description": "Code Graph Indexer (ChronosGraph, Tree-sitter + SCIP) to calculate transitive blast radius and AST risk score (Stage 6).",
+          "properties": {
+            "command": { "type": "string", "minLength": 1, "description": "Command to run the indexer (e.g. chronosgraph diff-impact or a bridge script)." },
+            "max_depth": { "type": "integer", "minimum": 1, "default": 3, "description": "Maximum traversal depth in the dependency graph." }
+          },
+          "required": ["command"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "engines"],
+  "additionalProperties": false
+}

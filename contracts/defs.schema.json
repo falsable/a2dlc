@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/defs.schema.json",
+  "title": "Common definitions of the A2-DLC Lite contract",
+  "$defs": {
+    "schema_version": { "const": 1 },
+    "verdict": { "enum": ["PASS", "FAIL", "INCONCLUSIVE"] },
+    "target_id": {
+      "description": "<path relative to the repo>::<symbol>, with / as separator",
+      "type": "string",
+      "pattern": "^[^\\\\]+::.+$"
+    },
+    "git_sha": { "type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$" },
+    "tier0_policy": {
+      "description": "Tier 0 AST policy (§5, Stage 3, step 2): config.tier0 and budget.policy of the tier0 request have this same shape. All optional: the engine uses forbidden_imports [], require_header false and max_complexity 15.",
+      "type": "object",
+      "properties": {
+        "forbidden_imports": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Modules that the changed code cannot import (the name and its submodules: \"os\" also forbids \"os.path\")." },
+        "require_header": { "type": "boolean", "description": "If true, each changed file must have a line with \"@a2dlc:slice_id\". False by default: the Builder's prompt may not write it yet." },
+        "max_complexity": { "type": "integer", "minimum": 1, "description": "Maximum cyclomatic complexity per changed function (McCabe). 15 by default." },
+        "forbidden_side_effects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["network.http.outbound", "fs.write", "db.raw_sql_unparameterized", "time.system_clock_direct"] },
+          "description": "Side effects the changed code cannot have: the core copies intent.boundary.forbidden_side_effects here. The same four names as intent.schema.json."
+        }
+      },
+      "additionalProperties": false
+    },
+    "budget_examples": {
+      "type": "object",
+      "properties": {
+        "examples": { "type": "integer", "minimum": 1 },
+        "seed": { "type": "integer" }
+      },
+      "required": ["examples", "seed"],
+      "additionalProperties": false
+    },
+    "budget_crosshair": {
+      "type": "object",
+      "properties": {
+        "iterations": { "type": "integer", "minimum": 0 },
+        "per_condition_timeout_s": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "required": ["iterations", "per_condition_timeout_s"],
+      "additionalProperties": false
+    },
+    "target_result": {
+      "description": "Result of an engine for a function. search_budget depends on the engine: a field from another engine is a schema error (protocol §6.4).",
+      "type": "object",
+      "properties": {
+        "target": { "$ref": "#/$defs/target_id" },
+        "engine": { "enum": ["fast-check", "crosshair-diffbehavior", "hypothesis", "rapid", "blackbox"] },
+        "engine_version": { "type": "string", "minLength": 1 },
+        "verdict": { "$ref": "#/$defs/verdict" },
+        "reason": { "type": "string", "minLength": 1 },
+        "search_budget": { "type": "object" },
+        "generators": { "enum": ["typed_default", "repo_override"] },
+        "typed": { "type": "boolean" },
+        "domain_guard": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "expr": { "type": "string", "minLength": 1 },
+                "source": { "enum": ["contract", "ast_overapprox"] }
+              },
+              "required": ["expr", "source"],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "equivalence": { "enum": ["strict"] },
+        "lines": {
+          "description": "Optional: [first, last] line of the symbol in the candidate. With them the core knows which changed lines this target examined; without them, a PASS/FAIL target counts for the whole file.",
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "counterexample": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "args": { "type": "string" },
+                "old": { "type": "string" },
+                "new": { "type": "string" }
+              },
+              "required": ["args", "old", "new"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["target", "engine", "engine_version", "verdict", "search_budget", "generators", "typed", "domain_guard", "equivalence", "counterexample"],
+      "allOf": [
+        {
+          "if": { "properties": { "engine": { "const": "crosshair-diffbehavior" } } },
+          "then": { "properties": { "search_budget": { "$ref": "#/$defs/budget_crosshair" } } },
+          "else": { "properties": { "search_budget": { "$ref": "#/$defs/budget_examples" } } }
+        },
+        {
+          "if": { "properties": { "verdict": { "const": "FAIL" } } },
+          "then": { "properties": { "counterexample": { "type": "object" } } }
+        },
+        {
+          "if": { "properties": { "verdict": { "const": "INCONCLUSIVE" } } },
+          "then": { "required": ["reason"] }
+        }
+      ]
+    },
+    "test_status": {
+      "description": "State of a test case in a run (JUnit): error is a failure outside the call (collection, setup); missing, did not appear in the run.",
+      "enum": ["passed", "failed", "error", "skipped", "missing"]
+    },
+    "out_of_scope": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "reason": {
+            "description": "added: the file does not exist on the base (there is no oracle). not_exported: no comparable function changed in the file.",
+            "enum": ["no_engine", "not_pure", "no_types", "not_exported", "excluded_by_config", "deleted", "added"]
+          }
+        },
+        "required": ["file", "reason"],
+        "additionalProperties": false
+      }
+    }
+  }
+}

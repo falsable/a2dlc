@@ -1,0 +1,9 @@
+{
+ "schema_version": 1,
+ "stubbed": [
+  {"file": "src/calc.py", "symbols": ["median"]}
+ ],
+ "unstubbed": [],
+ "modified_tests": ["tests/test_calc.py::test_media_empty"],
+ "error": null
+}

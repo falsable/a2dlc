@@ -1,0 +1,46 @@
+{
+ "schema_version": 1,
+ "slice_id": "billing.ledger_settlement.v2",
+ "mode": "greenfield",
+ "candidate": "d165efc1a2b3c4d5e6f708192a3b4c5d6e7f8091",
+ "feature_flag": "settlement",
+ "writes": true,
+ "compensation": {
+  "strategy": "compensating_events",
+  "description": "One inverse entry for each entry of the slice, correlated by tx_id; triggered by the ring's rollback."
+ },
+ "rings": [
+  {
+   "percent": 1,
+   "requires": [
+    "sentinel_green"
+   ]
+  },
+  {
+   "percent": 10,
+   "requires": [
+    "sentinel_green",
+    "compensation_declared"
+   ]
+  },
+  {
+   "percent": 100,
+   "requires": [
+    "sentinel_green",
+    "compensation_declared",
+    "reconciliation_green"
+   ]
+  }
+ ],
+ "max_ring": 100,
+ "blocked_by": null,
+ "sentinel": {
+  "error_rate_delta_max": 0.005,
+  "latency_p99_ms_max": 250,
+  "invariants": [
+   "INV-01 conservation (reconciliation every 5 min)"
+  ],
+  "reconciliation": "periodic"
+ },
+ "parity": null
+}

@@ -1,0 +1,12 @@
+{
+ "schema_version": 1,
+ "cases": [
+  {
+   "id": "case-1",
+   "input_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "output_hash": "sha256:abc",
+   "exit_code": 0
+  }
+ ],
+ "diffs": []
+}

@@ -1,0 +1,19 @@
+{
+ "schema_version": 1,
+ "track": "N=2",
+ "dual_spec_required": true,
+ "criticality_effective": "high",
+ "reasons": [
+  "criticality declared in the intent: medium",
+  "toca critical_paths (src/billing/ledger.py): sube a high",
+  "criticality high: N=2 (primary and orthogonal builder)",
+  "greenfield with criticality high: dual-spec mandatory"
+ ],
+ "touched_critical": [
+  "src/billing/ledger.py"
+ ],
+ "rule_count": 5,
+ "state_mutation_depth": -2,
+ "lemmas_required": true,
+ "metrics_reason": "S* with 2 functions and 5 clauses: no threshold (rule_count < 12, state_mutation_depth < 2)"
+}

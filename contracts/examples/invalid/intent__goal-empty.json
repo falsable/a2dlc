@@ -1,0 +1,31 @@
+{
+ "schema_version": 1,
+ "slice_id": "billing.ledger_settlement.v1",
+ "mode": "greenfield",
+ "goal": "",
+ "invariants": [
+  "INV-01 conservation: the sum of balances before and after settling is the same",
+  "INV-02 no balance is left negative"
+ ],
+ "non_goals": [
+  "currency conversion"
+ ],
+ "criticality": "high",
+ "budget": {
+  "max_cost_usd": 1.5,
+  "max_inner_iterations": 5,
+  "max_tier1_adversarial_rounds": 3,
+  "max_mutants": 200
+ },
+ "critical_paths": [
+  "src/billing/**",
+  "migrations/**"
+ ],
+ "acceptance": [
+  "a repeated tx_id with the same payload returns the cached receipt and adds no entries"
+ ],
+ "rejected_alternatives": [
+  "float64 (breaks the exact conservation of INV-01)",
+  "pessimistic lock on the balance table (violates p99)"
+ ]
+}

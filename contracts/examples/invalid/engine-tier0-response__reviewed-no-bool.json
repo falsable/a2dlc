@@ -1,0 +1,44 @@
+{
+ "schema_version": 1,
+ "ok": false,
+ "findings": [
+  {
+   "kind": "policy",
+   "file": "src/calc.py",
+   "line": 3,
+   "message": "import prohibido: pickle"
+  },
+  {
+   "kind": "policy",
+   "file": "src/calc.py",
+   "line": 9,
+   "message": "unbounded loop: while True without break"
+  },
+  {
+   "kind": "policy",
+   "file": "src/calc.py",
+   "line": 14,
+   "message": "reflection: eval"
+  },
+  {
+   "kind": "policy",
+   "file": "src/calc.py",
+   "line": 20,
+   "message": "cyclomatic complexity 16 > 15 in media"
+  },
+  {
+   "kind": "header",
+   "file": "src/calc.py",
+   "line": null,
+   "message": "the @a2dlc:slice_id header is missing"
+  },
+  {
+   "kind": "typecheck",
+   "file": "src/calc.py",
+   "line": 24,
+   "message": "Argument 1 to \"media\" has incompatible type \"str\"; expected \"list[int]\"  [arg-type]"
+  }
+ ],
+ "error": null,
+ "reviewed": "yes"
+}

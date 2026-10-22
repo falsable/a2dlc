@@ -1,0 +1,155 @@
+{
+ "base": {
+  "src/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "src/calc.py": "95f8a82c13894dbfc6d58f7b26c11b82b2e5383a7b2b8de9ba823ba9665b9b1c",
+  "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "tests/test_calc.py": "f6a0a69ad150cbdc147a586a0e77edf58c91f1feecc514d9b686ae56b537b9e7",
+  "tests/test_roto.py": "8bb2ed06b90070e62a404941f6c9abb0a9e2e7279aec076562485ae54969325f"
+ },
+ "casos": [
+  {
+   "id": "C1-feature-con-test",
+   "esperado": "PASS",
+   "que": "función nueva con su test: en la base el stub lanza NotImplementedError, fallo válido",
+   "tests": [
+    {
+     "name": "test_media",
+     "gate": "nop_oracle",
+     "verdict": "PASS"
+    }
+   ],
+   "archivos": {
+    "src/calc.py": "2047eeb25f422026437a0425430b7a7f5de6c04aebd24dea4e49fde19eff3b84",
+    "tests/test_media.py": "f58cbd599b44da8326c480757d55b625503a55018d84d329e3ef40d56c952655"
+   }
+  },
+  {
+   "id": "C2-test-sin-dientes",
+   "esperado": "FAIL",
+   "que": "pytest.raises(Exception) también atrapa el NotImplementedError del stub: el test no prueba el cambio",
+   "tests": [
+    {
+     "name": "test_media_vacia",
+     "gate": "nop_oracle",
+     "verdict": "FAIL"
+    }
+   ],
+   "archivos": {
+    "src/calc.py": "2047eeb25f422026437a0425430b7a7f5de6c04aebd24dea4e49fde19eff3b84",
+    "tests/test_media.py": "5fb82db25b4427e8a627befc5fd5a7a5357a18d922999bddb550d3afe24666e6"
+   }
+  },
+  {
+   "id": "C3-bugfix-con-waiver",
+   "esperado": "PASS",
+   "que": "bug fix declarado con waiver (pendiente de firma): el test nuevo falla en la base por el crash que arregla",
+   "tests": [
+    {
+     "name": "test_divide_por_cero",
+     "gate": "nop_oracle",
+     "verdict": "PASS"
+    }
+   ],
+   "waivers_pendientes": [
+    "src/calc.py::divide"
+   ],
+   "archivos": {
+    "src/calc.py": "7280f71ca6aaa7509576c008b58b6b18dbb214fc0eea9f257b72376c808b4af2",
+    "tests/test_divide.py": "ebcdca9262f7d5cb1cd1b764be7164bc1ed822bcd6ab3af4fb37d1bda1a93690",
+    ".a2dlc/waivers.json": "7b888f9671e7bbc95bbd82a7f6839ef69f7d8f411456d8cc6e69c94107d5747e"
+   }
+  },
+  {
+   "id": "C4-refactor-caracterizacion",
+   "esperado": "PASS",
+   "que": "refactor equivalente con un test de caracterización que pasa en la base: sin stubs ni waivers, no bloquea",
+   "tests": [
+    {
+     "name": "test_redondea_medio",
+     "gate": "nop_oracle",
+     "verdict": "PASS",
+     "characterization": true
+    }
+   ],
+   "archivos": {
+    "src/calc.py": "16d8c92faae15d4d286dc8f027f64831d001dbce3c98be3a643bd767289ff8bc",
+    "tests/test_refactor.py": "5e83f35680e1d61117e01f437f6c11b697435ce3608ebb711fe64dea3df556fe"
+   }
+  },
+  {
+   "id": "C5-test-nuevo-rojo",
+   "esperado": "FAIL",
+   "que": "test nuevo que falla también en el candidato",
+   "tests": [
+    {
+     "name": "test_suma_mal",
+     "gate": "nop_oracle",
+     "verdict": "FAIL"
+    }
+   ],
+   "archivos": {
+    "tests/test_mal.py": "664546ea7e775c8b308b2153ca3becbb16dd63c8b8fec3987e28c9219d0050ab"
+   }
+  },
+  {
+   "id": "C6-regresion",
+   "esperado": "FAIL",
+   "que": "regresión de un test existente: verde en la base, rojo en el candidato (el motor también la ve)",
+   "tests": [
+    {
+     "name": "test_suma",
+     "gate": "baseline",
+     "verdict": "FAIL"
+    }
+   ],
+   "archivos": {
+    "src/calc.py": "6efbf5b34edfa7edabe9cac0a71e37e6192d847c589058e3c04867a6f9230fda"
+   }
+  },
+  {
+   "id": "C7-metodo-anidado-sin-stub",
+   "esperado": "INCONCLUSIVE",
+   "que": "método nuevo en una clase anidada: el motor no lo stubea y la base cae por AttributeError sobre él",
+   "tests": [
+    {
+     "name": "test_nuevo",
+     "gate": "nop_oracle",
+     "verdict": "INCONCLUSIVE"
+    }
+   ],
+   "archivos": {
+    "src/calc.py": "e4b5edb609b3c0d5be3b1461b2dd6f00e3334d12dcb3d85b464ee510e22bcd47",
+    "tests/test_anidado.py": "668ccc0a9587fccebacf7a3f1ff11a87b5169bdddb7481d07bb626cb95d88158"
+   }
+  },
+  {
+   "id": "C8-corrida-sin-tests",
+   "esperado": "INCONCLUSIVE",
+   "que": "un conftest que mata el proceso: corrida roja sin tests identificables",
+   "tests": [],
+   "archivos": {
+    "tests/conftest.py": "92565d42151138b45671fe81062f79f99415a047202d2081bb6cdb43bd5bbbd9"
+   }
+  },
+  {
+   "id": "C9-test-modificado",
+   "esperado": "PASS",
+   "que": "archivo de tests modificado: los tests viejos no cuentan como nuevos; el nuevo pasa en la base (caracterización)",
+   "tests": [
+    {
+     "name": "test_suma_negativos",
+     "gate": "nop_oracle",
+     "verdict": "PASS",
+     "characterization": true
+    }
+   ],
+   "no_juzgados": [
+    "test_suma",
+    "test_redondea"
+   ],
+   "archivos": {
+    "tests/test_calc.py": "c902a959e33c27705701eab73d95845b2bf770030e7d53e1b50158a71958f619"
+   }
+  }
+ ]
+}

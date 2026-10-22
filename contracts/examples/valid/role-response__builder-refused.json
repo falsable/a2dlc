@@ -1,0 +1,11 @@
+{
+ "schema_version": 1,
+ "run_id": "run-3f9a1c2b7d4e",
+ "role": "builder_primary",
+ "stage": "3",
+ "attempt": 2,
+ "status": "refused",
+ "reason": "The S* contract references schemas/SettlementRequest.json and it is not in /in.",
+ "cost": null,
+ "payload": {}
+}

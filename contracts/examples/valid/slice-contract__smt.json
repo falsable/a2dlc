@@ -1,0 +1,33 @@
+{
+ "schema_version": 1,
+ "slice_id": "billing.ledger_settlement.v1",
+ "source": "consensus",
+ "functions": [
+  {
+   "name": "src/billing/ledger.py::transfer",
+   "signature": "def transfer(amount_cents: int, balance_cents: int) -> int",
+   "pre": ["amount_cents > 0", "balance_cents >= amount_cents"],
+   "post": ["returns the new balance: balance_cents - amount_cents", "the new balance is never negative"],
+   "invariants": [],
+   "errors": [{ "condition": "amount_cents <= 0", "raises": "InvalidAmountError" }],
+   "smt": [
+    "(declare-const amount_cents Int)",
+    "(declare-const balance_cents Int)",
+    "(declare-const result Int)",
+    "(assert (> amount_cents 0))",
+    "(assert (>= balance_cents amount_cents))",
+    "(assert (= result (- balance_cents amount_cents)))",
+    "(assert (>= result 0))"
+   ]
+  }
+ ],
+ "probes": [
+  { "id": "BP-01", "description": "transfer of amount 0 is rejected", "input": "transfer(0, 100)", "expected": "raises InvalidAmountError", "kind": "negative" },
+  { "id": "BP-02", "description": "transfer leaves the new balance and it is never negative", "input": "transfer(50, 50)", "expected": "0", "kind": "example" }
+ ],
+ "assumptions": [
+  { "id": "redondeo", "statement": "Integer cents: there is no rounding.", "source": "catalogue", "status": "accepted", "criticality": "high" },
+  { "id": "descubierto", "statement": "Is a negative balance allowed with a credit line?", "source": "specifier", "status": "open", "criticality": "medium" }
+ ],
+ "pi_s": { "equivalence": "relaxed", "relaxations": ["errors_by_type"] }
+}

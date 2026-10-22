@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-response.schema.json",
+  "title": "Engine response to the core (/io/response.json)",
+  "description": "Without response.json, or with a non-null error, the core marks all the changed_files of the request INCONCLUSIVE.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "targets": {
+      "type": "array",
+      "items": { "allOf": [{ "$ref": "defs.schema.json#/$defs/target_result" }], "unevaluatedProperties": false }
+    },
+    "out_of_scope": { "$ref": "defs.schema.json#/$defs/out_of_scope" },
+    "error": { "type": ["string", "null"] },
+    "diff_budget": { "$ref": "verdict.schema.json#/properties/diff_budget", "description": "Optional. The engine's per-diff budget: total_s, used_s and the cut targets, which the core copies into the verdict. An engine that writes it must write the same shape as verdict.diff_budget." },
+    "identical": {
+      "description": "Optional: the public symbols of the changed files (file::name, as the signatures operation names them) that the engine did not judge because no input can tell them apart: the same definition in base and candidate, and every module-level name they read bound the same way in both. The core counts them as compared with no divergence instead of as unjudged; a symbol the engine neither judged nor lists here stays INCONCLUSIVE.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^.+::.+$" },
+      "uniqueItems": true
+    },
+    "equivalence_unsupported": {
+      "description": "Block 7, optional: the equivalence_relaxations that the engine does not know how to apply (they were compared strictly).",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "required": ["schema_version", "targets", "out_of_scope", "error"],
+  "additionalProperties": false
+}

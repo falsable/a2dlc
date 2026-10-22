@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/golden.schema.json",
+  "title": "Golden master of Stage -1 (.a2dlc/run/<slice>/golden.json, not committed)",
+  "description": "Refactor and legacy only. Before any role runs, the black-box engine records its I/O over the cases of tests.golden_master on the base, and this file keeps the hashes. Stage 4 replays the same cases on the candidate and compares them with these hashes: the oracle that the legacy behavior is preserved. A golden master with no cases is not one; if it cannot be recorded, Stage -1 escalates prerequisite_failure.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "base": { "$ref": "defs.schema.json#/$defs/git_sha" },
+    "image": { "type": "string", "minLength": 1 },
+    "command": { "type": "string", "minLength": 1, "description": "tests.golden_master.command as it was in config.json." },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "input_hash": { "$ref": "run-defs.schema.json#/$defs/sha256" },
+          "output_hash": { "$ref": "run-defs.schema.json#/$defs/sha256" },
+          "exit_code": { "type": "integer" }
+        },
+        "required": ["id", "input_hash", "output_hash", "exit_code"],
+        "additionalProperties": false
+      }
+    },
+    "recorded_at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["schema_version", "slice_id", "base", "image", "command", "cases", "recorded_at"],
+  "additionalProperties": false
+}

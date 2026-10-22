@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/run-ledger.schema.json",
+  "title": "Isolation ledger of a2dlc run (.a2dlc/run/<slice>/ledger.json, not committed)",
+  "description": "One entry per launch of a role, append-only and chained: hash = sha256(prev_hash + canonical JSON of the entry without hash). It attests what each role saw (inputs mounted with their hash), what it left (outputs), with which image and command, with which network and which variable names. The negative attestation (the Saboteur did not see the Builder's code) holds because the only one that launches containers is the core. a2dlc verify-run recomputes the chain. Limit: it records the declared family and what the CLI reported, not which model answered.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "run_id": { "$ref": "run-defs.schema.json#/$defs/run_id" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "seq": { "type": "integer", "minimum": 1 },
+          "prev_hash": { "oneOf": [{ "type": "null" }, { "$ref": "run-defs.schema.json#/$defs/sha256" }], "description": "null only in the first entry." },
+          "hash": { "$ref": "run-defs.schema.json#/$defs/sha256" },
+          "at": { "type": "string", "format": "date-time" },
+          "stage": { "$ref": "run-defs.schema.json#/$defs/stage" },
+          "role": { "$ref": "run-defs.schema.json#/$defs/role" },
+          "attempt": { "type": "integer", "minimum": 1 },
+          "family": { "$ref": "run-defs.schema.json#/$defs/family" },
+          "image": { "type": "string", "minLength": 1 },
+          "image_digest": { "oneOf": [{ "type": "null" }, { "$ref": "run-defs.schema.json#/$defs/sha256" }], "description": "docker image inspect; null if the image is local without a digest." },
+          "argv_sha256": { "$ref": "run-defs.schema.json#/$defs/sha256", "description": "The full argv of docker run, mounts included: this way the record also proves what was NOT mounted." },
+          "inputs": { "type": "array", "items": { "$ref": "run-defs.schema.json#/$defs/hashed_file" } },
+          "outputs": { "type": "array", "items": { "$ref": "run-defs.schema.json#/$defs/hashed_file" } },
+          "network": { "enum": ["provider", "none", "bridge-unrestricted", "proxy-allowlist"], "description": "Network the role launch had, as the launcher reports it: none (roles.json network none or absent) or proxy-allowlist (roles.json network provider: egress goes through the allowlist proxy). provider and bridge-unrestricted stay in the enum for ledgers written before the egress proxy; the launcher no longer produces them." },
+          "env_keys": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$" }, "uniqueItems": true, "description": "Names of the variables in the env_file. Never values." },
+          "exit": { "type": "integer" },
+          "status": { "enum": ["ok", "refused", "error", "timeout", "invalid_response"] },
+          "cost": { "$ref": "run-defs.schema.json#/$defs/cost" }
+        },
+        "required": ["seq", "prev_hash", "hash", "at", "stage", "role", "attempt", "family", "image", "image_digest", "argv_sha256", "inputs", "outputs", "network", "env_keys", "exit", "status", "cost"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "run_id", "entries"],
+  "additionalProperties": false
+}

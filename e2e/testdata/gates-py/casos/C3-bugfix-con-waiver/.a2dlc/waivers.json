@@ -1,0 +1,1 @@
+{"schema_version": 1, "waivers": [{"target": "src/calc.py::divide", "decision": "enforce_new_behavior", "reason": "dividir por cero devuelve 0.0 en vez de romper"}]}

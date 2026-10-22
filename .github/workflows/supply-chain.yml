@@ -1,0 +1,118 @@
+# Supply-chain scan of what a2dlc ships with: Go (govulncheck), the Python lock files of the engines (pip-audit), the
+# npm lock files of the TS engine and of the roles CLIs (npm audit), and osv-scanner over all four lock files. Reusable:
+# a2dlc.yml runs it before check (on pushes that touch covered code) and release.yml before publishing (on every tag),
+# so a release does not ship past a finding.
+#
+# What is audited is the lock file the image installs, not versions resolved at scan time:
+#   - engines/py/requirements.lock and engines/z3/requirements.lock: hash-pinned, installed with --require-hashes.
+#   - engines/ts/package-lock.json: installed by `npm ci` in engines/ts/Dockerfile.
+#   - roles/cli/package-lock.json: installed by `npm ci` in roles/Dockerfile (the Claude Code and Gemini CLIs).
+# The "lock coherence" step fails when a Dockerfile stops installing from those files, so the audit cannot drift from
+# the image.
+#
+# Scope and limits (not closed by this job):
+#   - The images are not scanned. The Go engine image (a2dlc-engine-bb-go, golang:1.23-bookworm) is covered by no step.
+#     An image scan of the released images is open.
+#   - Test images (e2e/gates, e2e/testdata/gates-prop, contracts/tests) are not shipped and are not scanned.
+#   - Go: govulncheck reports only vulnerabilities in code the module reaches (go.mod is not a lock file: the Go
+#     toolchain is set by setup-go).
+#
+# Severity policy: npm audit (--audit-level=high) and the osv-scanner step (CVSS 7.0 or higher, or unrated) follow the
+# plan's "high or critical". pip-audit and govulncheck do not expose a severity in their output, so they fail on any
+# finding: stricter than the plan on purpose, a deviation to record in the README (open).
+#
+# Toolchain: setup-go resolves the newest Go 1.25.x patch at run time, which carries the stdlib fixes that govulncheck
+# reported on Go 1.23.12 (GO-2026-4869, GO-2026-4602, GO-2025-4014). go.mod still says `go 1.23` (needs change).
+#
+# Action pins: each action is pinned to the commit of its tag (the tag is in the comment).
+name: supply-chain
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.25'
+          cache: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: lock coherence (the audited files are the ones the images install)
+        run: |
+          set -euo pipefail
+          for f in engines/py/requirements.lock engines/z3/requirements.lock engines/ts/package-lock.json roles/cli/package-lock.json; do
+            test -s "$f" || { echo "missing lock file $f"; exit 1; }
+          done
+          # Every requirement line of a pip lock is an exact name==version pin; a range or a bare name would be
+          # installed unpinned and not audited.
+          bad=$(grep -v -E '^(#|[[:space:]]|$)' engines/py/requirements.lock engines/z3/requirements.lock \
+            | grep -v -E '^[^:]+:[A-Za-z0-9_.-]+==[^ ]+[ \\]*$' || true)
+          test -z "$bad" || { echo "lock lines without an exact pin: $bad"; exit 1; }
+          # The Dockerfiles install exactly these files.
+          grep -q -- '--require-hashes -r /tmp/requirements.lock' engines/py/Dockerfile
+          grep -q -- '--require-hashes -r /tmp/requirements.lock' engines/z3/Dockerfile
+          grep -q 'COPY requirements.lock /tmp/requirements.lock' engines/py/Dockerfile
+          grep -q 'COPY requirements.lock /tmp/requirements.lock' engines/z3/Dockerfile
+          grep -q 'COPY package.json package-lock.json' engines/ts/Dockerfile
+          grep -q 'npm ci --omit=dev' engines/ts/Dockerfile
+          grep -q 'COPY cli/package.json cli/package-lock.json' roles/Dockerfile
+          grep -q 'npm ci --omit=dev' roles/Dockerfile
+      - name: govulncheck (Go)
+        # Reports only vulnerabilities in code the module reaches; exits 3 when there are any. It has no severity.
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
+          "$(go env GOPATH)/bin/govulncheck" ./...
+      - name: pip-audit (Python lock files)
+        # Exits 1 on any known vulnerability in the pinned set. It has no severity filter (see the header).
+        # --no-deps: the locks already list every transitive dependency, hashed and pinned.
+        run: |
+          python -m pip install --quiet pip-audit==2.10.1
+          pip-audit --no-deps -r engines/py/requirements.lock
+          pip-audit --no-deps -r engines/z3/requirements.lock
+      - name: npm audit (TS engine and roles CLIs, production trees, high and critical)
+        # Reads the lock file only: no install, no lifecycle scripts run.
+        run: |
+          (cd engines/ts && npm audit --omit=dev --audit-level=high)
+          (cd roles/cli && npm audit --omit=dev --audit-level=high)
+      - name: osv-scanner (the four lock files; fails on CVSS 7.0 or higher, or unrated)
+        # osv-scanner exits 1 on any finding. Its JSON carries each group's CVSS base score (max_severity), so the
+        # step reads that and fails only on 7.0 and up (high and critical); a finding without a score fails too.
+        # The release binary, checked against the release's SHA256SUMS: `go install` needs a newer Go than setup-go's 1.25.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/osv"
+          gh release download v2.5.0 -R google/osv-scanner -p osv-scanner_linux_amd64 -p osv-scanner_SHA256SUMS -D "$RUNNER_TEMP/osv"
+          (cd "$RUNNER_TEMP/osv" && sha256sum -c --ignore-missing osv-scanner_SHA256SUMS && chmod +x osv-scanner_linux_amd64)
+          rc=0
+          # The .lock names have no parser: the parser is given per file (requirements.txt format, hashes included).
+          "$RUNNER_TEMP/osv/osv-scanner_linux_amd64" scan -L requirements.txt:engines/py/requirements.lock \
+            -L requirements.txt:engines/z3/requirements.lock \
+            -L engines/ts/package-lock.json -L roles/cli/package-lock.json --format json > "$RUNNER_TEMP/osv.json" || rc=$?
+          test "$rc" -le 1
+          python - "$RUNNER_TEMP/osv.json" <<'PY'
+          import json, sys
+          report = json.load(open(sys.argv[1], encoding="utf-8"))
+          blocking = []
+          for result in report.get("results", []):
+              for pkg in result.get("packages", []):
+                  for group in pkg.get("groups", []):
+                      try:
+                          score = float(group.get("max_severity", ""))
+                      except ValueError:
+                          score = None
+                      if score is None or score >= 7.0:
+                          blocking.append(f"{pkg['package']['name']} {pkg['package']['version']} {group.get('ids')} ({group.get('max_severity') or 'unrated'})")
+          for line in blocking:
+              print("blocking:", line)
+          sys.exit(1 if blocking else 0)
+          PY

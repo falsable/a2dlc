@@ -1,0 +1,14 @@
+{
+ "schema_version": 1,
+ "files": [
+  {
+   "file": "sympy/core/relational.py",
+   "symbols": [
+    {"name": "media", "signature": "def media(xs: list[float]) -> float", "doc": "Arithmetic mean; raises ValueError on an empty list.", "lines": [12, 18]},
+    {"name": "Box", "signature": "class Box", "doc": null, "lines": [21, 40]},
+    {"name": "Box.clear", "signature": "def clear(self) -> None", "doc": "Leaves the box without items.", "lines": [33, 36]}
+   ]
+  }
+ ],
+ "engine_errors": []
+}

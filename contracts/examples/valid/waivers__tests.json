@@ -1,0 +1,5 @@
+{"schema_version": 1,
+ "waivers": [{"target": "tests/test_refactor.py::tests.test_refactor::test_caracteriza_redondeo", "decision": "characterization_test",
+   "reason": "Fixes the current rounding before the refactor: it must pass on the base."},
+  {"target": "tests/test_red.py::tests.test_red::test_lento", "decision": "quarantine_flaky",
+   "reason": "Flaky on the base since 2026-10-01 (simulated network timeout); owner: aldemar."}]}

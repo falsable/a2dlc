@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/baseline.schema.json",
+  "title": "Stage −1 baseline, Make It Testable (.a2dlc/run/<slice>/baseline.json, not committed)",
+  "description": "Protocol §5 Stage -1 and §7 CB-05. What Stage -1 established before launching any role: tests.baseline_command run on the base in the network-less sandbox and its JUnit read. tests is how many testcases it reported, and preexisting_red the ids that were already red on the base: they do not block (Stage 4 compares against them, \"does not get worse\"), but they are written so that nobody reads an old red as a new red. cached says whether the run came from the cache by base and command (the same as the baseline gate). If the baseline could not be established, this file does not exist: the stage escalates prerequisite_failure (escalations.json) and the run stops.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "base": { "$ref": "defs.schema.json#/$defs/git_sha", "description": "The base commit of the run on which the suite ran." },
+    "command": { "type": "string", "minLength": 1, "description": "tests.baseline_command as it was in config.json." },
+    "image": { "type": "string", "minLength": 1, "description": "tests.image: the hermetic image where it ran." },
+    "tests": { "type": "integer", "minimum": 1, "description": "Testcases the JUnit reported. Zero is not a baseline: it would be prerequisite_failure." },
+    "preexisting_red": {
+      "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true,
+      "description": "Ids of the red tests on the base, sorted. Empty if the base was green."
+    },
+    "cached": { "type": "boolean" },
+    "image_digest": { "type": "string", "pattern": "^(sha256:[0-9a-f]{64})?$", "description": "Digest of tests.image (sha256:...), or the empty string when the image has no digest." },
+    "reruns": { "type": "integer", "minimum": 1, "description": "How many times baseline_command ran on the base to establish this file. 1 when the run came from the cache." },
+    "stable": { "type": "boolean", "description": "true when every rerun gave the same sorted (id, status) set. A baseline that is not stable is CB-05 and this file is not written." }
+  },
+  "required": ["schema_version", "slice_id", "base", "command", "image", "tests", "preexisting_red", "cached", "image_digest", "reruns", "stable"],
+  "additionalProperties": false
+}

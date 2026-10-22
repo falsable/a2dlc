@@ -1,0 +1,47 @@
+{
+ "base_sha256": "78d6b6c1b3cee965d09109795240aa05c16f825cc1ad8310b70a9372e06419bd",
+ "mutantes": [
+  {
+   "id": "B1-waiver-cualquiera",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "el waiver cubre cualquier veredicto, no solo FAIL",
+   "sha256": "4818b5881adefeacadff8f092248368027e37ec569de777f4004946fd2de83c6"
+  },
+  {
+   "id": "B2-motores-caidos",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "un solo motor caído ya no vuelve INCONCLUSIVE",
+   "sha256": "beb6aa4a5db0ce4949c5d0cd0a8c9d0330643dfe31239209dd82289520236294"
+  },
+  {
+   "id": "B3-exit-inconcluso",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "INCONCLUSIVE sale con 1 en vez de 2",
+   "sha256": "cd163de74e78712163b2232a5699b77b5ba101b2776d25c50512aad4f58f39cd"
+  },
+  {
+   "id": "B4-estrella-cruza",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "* cruza carpetas",
+   "sha256": "247f92bab5964b9945556950d57a451e27d9e86ecde6e4ce176b8f9af413e687"
+  },
+  {
+   "id": "B5-asigna-a-todos",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "un archivo va a todos los motores cuyo glob calza, no solo al primero",
+   "sha256": "0a34e644d0e6c47dbd461ac5e2e235f641c0f8ea3b8ce313ba27700adbe3720f"
+  },
+  {
+   "id": "E1-exitcode-ifs",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "PASS",
+   "que": "refactor equivalente de ExitCode",
+   "sha256": "804a4e4db776421164f8f82ac6d6ba8253d2aeebf0f99e1f541e7dedd1124134"
+  }
+ ]
+}

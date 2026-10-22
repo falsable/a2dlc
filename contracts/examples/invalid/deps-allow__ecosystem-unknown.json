@@ -1,0 +1,14 @@
+{
+ "schema_version": 1,
+ "allow": [
+  {
+   "ecosystem": "maven",
+   "name": "github.com/example/yaml",
+   "versions": ">=1.4.0"
+  },
+  {
+   "ecosystem": "npm",
+   "name": "left-pad"
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "schema_version": 1,
+ "run_id": "run-5d1e7a0c9b42",
+ "slice_id": "calc.media.v1",
+ "mode": "greenfield",
+ "role": "propose_properties",
+ "stage": "propose",
+ "attempt": 1,
+ "inputs": [
+  {
+   "path": "/in/request.json",
+   "sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  }
+ ],
+ "workdir": null,
+ "payload": {
+  "engine_language": "rust",
+  "signatures": [
+   {
+    "file": "src/calc.py",
+    "name": "media",
+    "signature": "def media(xs: list[float]) -> float"
+   }
+  ],
+  "diff": "--- a/src/calc.py\n+++ b/src/calc.py\n@@ -12,3 +12,6 @@\n def media(xs):\n+    if not xs:\n+        raise ValueError(\"empty list\")\n     return sum(xs) / len(xs)\n"
+ }
+}

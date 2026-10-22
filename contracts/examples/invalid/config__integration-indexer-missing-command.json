@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "engines": [
+    { "language": "python", "image": "a2dlc-engine-py:0.4", "paths": ["src/**"], "budget": {} }
+  ],
+  "integration": {
+    "consumers": [
+      {
+        "name": "billing-web",
+        "image": "billing-web-contracts:2026.10",
+        "contracts": ["api/openapi.yaml"],
+        "command": "pact-verifier"
+      }
+    ],
+    "indexer": {
+      "max_depth": 3
+    }
+  }
+}

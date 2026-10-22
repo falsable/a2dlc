@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/waivers.schema.json",
+  "title": "Repo waivers (.a2dlc/waivers.json, versioned)",
+  "description": "The agent declares a deliberate behavior change here. Declaring is not approving: the approval is a signature in .a2dlc/approvals.json (ADR meta/0004). A waiver without a valid signature lets check pass and blocks verify.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "waivers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+          "decision": {
+            "description": "On an engine target: enforce_new_behavior | preserve_legacy. On a test (<test file>::<id>): characterization_test (the test passes on the base on purpose) | quarantine_flaky (quarantine: does not count for PASS or FAIL). A decision of the other class does not cover the target.",
+            "enum": ["enforce_new_behavior", "preserve_legacy", "characterization_test", "quarantine_flaky"]
+          },
+          "reason": { "type": "string", "minLength": 1 }
+        },
+        "required": ["target", "decision", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "waivers"],
+  "additionalProperties": false
+}

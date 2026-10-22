@@ -1,0 +1,6 @@
+{"schema_version": 1,
+ "targets": [{"target": "src/calc.py::ordenar", "engine": "crosshair-diffbehavior", "engine_version": "0.0.111",
+   "verdict": "INCONCLUSIVE", "reason": "the difference CrossHair found disappears under π_S (ignore_order); CrossHair stops at the first difference, so no other was searched for",
+   "search_budget": {"iterations": 0, "per_condition_timeout_s": 10}, "generators": "typed_default", "typed": true,
+   "domain_guard": null, "equivalence": "strict", "lines": [3, 9], "counterexample": null}],
+ "out_of_scope": [], "error": null, "equivalence_unsupported": ["compare receipts without trace_id"]}

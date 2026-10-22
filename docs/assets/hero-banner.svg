@@ -1,0 +1,503 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 780" width="100%" height="100%">
+  <defs>
+    <!-- Deep Navy Blueprint Background -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#030712"/>
+      <stop offset="50%" stop-color="#061024"/>
+      <stop offset="100%" stop-color="#030917"/>
+    </linearGradient>
+
+    <!-- Ambient Spotlights -->
+    <radialGradient id="spotCyan" cx="42%" cy="42%" r="48%">
+      <stop offset="0%" stop-color="#0EA5E9" stop-opacity="0.16"/>
+      <stop offset="60%" stop-color="#1E3A8A" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spotPurple" cx="38%" cy="65%" r="35%">
+      <stop offset="0%" stop-color="#9333EA" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spotGreen" cx="90%" cy="48%" r="30%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Blueprint Grid -->
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M 36 0 L 0 0 0 36" fill="none" stroke="#0F2347" stroke-width="0.9"/>
+    </pattern>
+
+    <!-- Red Hazard Stripes for Firewall -->
+    <pattern id="hazardStripes" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+      <rect width="8" height="16" fill="#EF4444" fill-opacity="0.75"/>
+      <rect x="8" width="8" height="16" fill="none"/>
+    </pattern>
+
+    <!-- Card Fills -->
+    <linearGradient id="cardPurple" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#140D2B" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#090718" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="cardCyan" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#071B34" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#050F20" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="cardGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#052122" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#041216" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="shieldCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background Layers -->
+  <rect width="1400" height="780" rx="18" fill="url(#bg)"/>
+  <rect width="1400" height="780" rx="18" fill="url(#spotCyan)"/>
+  <rect width="1400" height="780" rx="18" fill="url(#spotPurple)"/>
+  <rect width="1400" height="780" rx="18" fill="url(#spotGreen)"/>
+  <rect width="1400" height="780" rx="18" fill="url(#grid)"/>
+  <rect x="2" y="2" width="1396" height="776" rx="16" fill="none" stroke="#1E3A5F" stroke-width="2"/>
+
+  <!-- ======================================================================= -->
+  <!-- TOP HEADER: SHIELD EMBLEM + UPPERCASE TITLE + TAGLINE                   -->
+  <!-- ======================================================================= -->
+  <g transform="translate(46, 34)">
+    <!-- Two-Tone Shield Emblem -->
+    <g transform="translate(0, 4)">
+      <path d="M36 0 L70 12 L70 42 C70 66 54 84 36 92 C18 84 2 66 2 42 L2 12 Z" fill="#06152D" stroke="#38BDF8" stroke-width="3.5" filter="url(#glow)"/>
+      <path d="M36 10 L36 82 C22 75 11 60 11 41 L11 18 Z" fill="#14B8A6"/>
+      <path d="M36 10 L61 18 L61 41 C61 60 50 75 36 82 Z" fill="#1D4ED8"/>
+    </g>
+
+    <!-- Main Title -->
+    <text x="92" y="48" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="46" font-weight="900" fill="#F8FAFC" letter-spacing="0.5">
+      A2-DLC <tspan fill="#64748B" font-weight="600">/</tspan> <tspan fill="#38BDF8">PROTOCOL v3.4</tspan>
+    </text>
+    <text x="94" y="80" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="500" fill="#93C5FD">
+      Deterministic Verification Pipeline for AI-Generated Code
+    </text>
+
+    <!-- Top-Right Tagline -->
+    <line x1="980" y1="12" x2="980" y2="84" stroke="#1E3A5F" stroke-width="2"/>
+    <text x="1004" y="42" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#E2E8F0">
+      From intent to trusted release.
+    </text>
+    <text x="1004" y="70" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#64748B" letter-spacing="0.8">
+      Structured  <tspan fill="#38BDF8">•</tspan>  Verified  <tspan fill="#38BDF8">•</tspan>  Reproducible
+    </text>
+  </g>
+
+  <!-- ======================================================================= -->
+  <!-- MAIN PIPELINE ROW (6 COLUMNS CONNECTED LEFT TO RIGHT)                   -->
+  <!-- ======================================================================= -->
+
+  <!-- 1. INTENT & SPEC (Purple Card) -->
+  <g transform="translate(30, 175)">
+    <rect x="0" y="0" width="172" height="360" rx="12" fill="url(#cardPurple)" stroke="#7C3AED" stroke-width="2"/>
+
+    <!-- Document Icon -->
+    <g transform="translate(64, 28)" fill="none" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 0 H30 L42 12 V50 C42 53 40 55 37 55 H6 C3 55 1 53 1 50 V5 C1 2 3 0 6 0 Z" fill="#1E1040"/>
+      <path d="M29 0 V13 H42"/>
+      <line x1="10" y1="22" x2="32" y2="22"/>
+      <line x1="10" y1="32" x2="32" y2="32"/>
+      <line x1="10" y1="42" x2="24" y2="42"/>
+    </g>
+
+    <text x="86" y="118" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800" fill="#F8FAFC" text-anchor="middle" letter-spacing="0.6">INTENT &amp; SPEC</text>
+
+    <!-- Bullet Points -->
+    <g transform="translate(18, 152)" font-family="system-ui, -apple-system, sans-serif" font-size="13.5" fill="#CBD5E1">
+      <circle cx="4" cy="-4" r="2.5" fill="#A78BFA"/>
+      <text x="14" y="0">Business goal</text>
+
+      <circle cx="4" cy="28" r="2.5" fill="#A78BFA"/>
+      <text x="14" y="32">Dual-Spec (α ≢ β)</text>
+
+      <circle cx="4" cy="60" r="2.5" fill="#A78BFA"/>
+      <text x="14" y="64">Z3 SMT invariants</text>
+
+      <circle cx="4" cy="92" r="2.5" fill="#A78BFA"/>
+      <text x="14" y="96">Boundary probes</text>
+    </g>
+
+    <!-- Bottom Pill: INPUT -->
+    <rect x="20" y="310" width="132" height="28" rx="14" fill="#170E30" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="86" y="328" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11.5" font-weight="700" fill="#C4B5FD" text-anchor="middle" letter-spacing="1.5">INPUT</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <g transform="translate(202, 345)">
+    <line x1="0" y1="10" x2="18" y2="10" stroke="#38BDF8" stroke-width="3"/>
+    <polygon points="16,3 26,10 16,17" fill="#38BDF8"/>
+  </g>
+
+  <!-- 2. AI CODING AGENTS (Cyan Card) -->
+  <g transform="translate(228, 175)">
+    <rect x="0" y="0" width="168" height="360" rx="12" fill="url(#cardCyan)" stroke="#0284C7" stroke-width="2"/>
+
+    <!-- AI Microchip Icon -->
+    <g transform="translate(56, 24)" stroke="#38BDF8" stroke-width="2.3" fill="none" stroke-linecap="round">
+      <rect x="10" y="10" width="36" height="36" rx="6" fill="#082444"/>
+      <text x="28" y="34" font-family="ui-monospace, SFMono-Regular, monospace" font-size="16" font-weight="800" fill="#38BDF8" stroke="none" text-anchor="middle">AI</text>
+      <!-- Pins Top/Bottom/Left/Right -->
+      <line x1="18" y1="2" x2="18" y2="10"/><line x1="28" y1="2" x2="28" y2="10"/><line x1="38" y1="2" x2="38" y2="10"/>
+      <line x1="18" y1="46" x2="18" y2="54"/><line x1="28" y1="46" x2="28" y2="54"/><line x1="38" y1="46" x2="38" y2="54"/>
+      <line x1="2" y1="18" x2="10" y2="18"/><line x1="2" y1="28" x2="10" y2="28"/><line x1="2" y1="38" x2="10" y2="38"/>
+      <line x1="46" y1="18" x2="54" y2="18"/><line x1="46" y1="28" x2="54" y2="28"/><line x1="46" y1="38" x2="54" y2="38"/>
+    </g>
+
+    <text x="84" y="114" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800" fill="#F8FAFC" text-anchor="middle" letter-spacing="0.6">AI CODING</text>
+    <text x="84" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800" fill="#F8FAFC" text-anchor="middle" letter-spacing="0.6">AGENTS</text>
+
+    <g transform="translate(84, 174)" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#94A3B8" text-anchor="middle">
+      <text x="0" y="0">Claude Code, Gemini,</text>
+      <text x="0" y="20">Codex or Cursor</text>
+      <text x="0" y="40">generate code, tests</text>
+      <text x="0" y="60">and lemmas from</text>
+      <text x="0" y="80">the contract S*.</text>
+    </g>
+
+    <!-- Bottom Pill: GENERATE -->
+    <rect x="18" y="310" width="132" height="28" rx="14" fill="#071F3A" stroke="#0284C7" stroke-width="1.5"/>
+    <text x="84" y="328" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11.5" font-weight="700" fill="#7DD3FC" text-anchor="middle" letter-spacing="1.5">GENERATE</text>
+  </g>
+
+  <!-- Split Bracket Arrow 2 -> Clean-Room Top & Bottom -->
+  <g transform="translate(396, 175)" fill="none" stroke="#38BDF8" stroke-width="2.5">
+    <line x1="0" y1="180" x2="14" y2="180"/>
+    <path d="M 14 82 L 14 278"/>
+    <line x1="14" y1="82" x2="26" y2="82"/>
+    <polygon points="24,76 33,82 24,88" fill="#38BDF8" stroke="none"/>
+    <line x1="14" y1="278" x2="26" y2="278"/>
+    <polygon points="24,272 33,278 24,284" fill="#38BDF8" stroke="none"/>
+  </g>
+
+  <!-- 3. CLEAN-ROOM DUAL CONTAINER (ISOLATED BUILDER // FIREWALL // BLIND ADVERSARIAL TESTER) -->
+  <g transform="translate(430, 150)">
+    <!-- Outer Clean-Room Frame -->
+    <rect x="0" y="0" width="388" height="410" rx="14" fill="#050C1B" stroke="#0284C7" stroke-width="2"/>
+
+    <!-- TOP BOX: ISOLATED BUILDER -->
+    <g transform="translate(14, 14)">
+      <rect x="0" y="0" width="360" height="162" rx="10" fill="#071B30" stroke="#06B6D4" stroke-width="1.8"/>
+
+      <!-- 3D Cube Icon -->
+      <g transform="translate(16, 16)" fill="none" stroke="#22D3EE" stroke-width="2" stroke-linejoin="round">
+        <polygon points="18,0 34,9 34,27 18,36 2,27 2,9" fill="#082F49"/>
+        <polyline points="2,9 18,18 34,9"/>
+        <line x1="18" y1="18" x2="18" y2="36"/>
+      </g>
+
+      <text x="62" y="31" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800" fill="#F8FAFC" letter-spacing="0.5">ISOLATED BUILDER</text>
+      <text x="62" y="51" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#67E8F9">Compile  •  Typecheck  •  Formal Lemmas</text>
+
+      <!-- Right Lock Badge -->
+      <line x1="274" y1="14" x2="274" y2="62" stroke="#0E7490" stroke-width="1"/>
+      <g transform="translate(306, 14)" fill="none" stroke="#22D3EE" stroke-width="2">
+        <rect x="2" y="10" width="18" height="14" rx="3" fill="#083344"/>
+        <path d="M6 10 V6 C6 3 8 1 11 1 C14 1 16 3 16 6 V10"/>
+      </g>
+      <text x="317" y="50" font-family="ui-monospace, SFMono-Regular, monospace" font-size="8.5" font-weight="700" fill="#67E8F9" text-anchor="middle">ISOLATED</text>
+      <text x="317" y="60" font-family="ui-monospace, SFMono-Regular, monospace" font-size="8.5" font-weight="700" fill="#67E8F9" text-anchor="middle">ENVIRONMENT</text>
+
+      <!-- Sub-Box with 4 Builder Steps -->
+      <rect x="14" y="72" width="332" height="76" rx="8" fill="#041122" stroke="#155E75" stroke-width="1.2"/>
+      <line x1="97" y1="80" x2="97" y2="140" stroke="#0F2942"/>
+      <line x1="180" y1="80" x2="180" y2="140" stroke="#0F2942"/>
+      <line x1="263" y1="80" x2="263" y2="140" stroke="#0F2942"/>
+
+      <!-- Mini Icon 1: Build </> -->
+      <text x="55" y="108" font-family="ui-monospace, SFMono-Regular, monospace" font-size="18" font-weight="800" fill="#38BDF8" text-anchor="middle">&lt;/&gt;</text>
+      <text x="55" y="132" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1" text-anchor="middle">Build</text>
+
+      <!-- Mini Icon 2: Test Gear -->
+      <circle cx="138" cy="101" r="9" fill="none" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4,2"/>
+      <circle cx="138" cy="101" r="3.5" fill="#38BDF8"/>
+      <text x="138" y="132" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1" text-anchor="middle">Tier 0</text>
+
+      <!-- Mini Icon 3: Lemmas Cube -->
+      <rect x="211" y="91" width="20" height="20" rx="3" fill="none" stroke="#38BDF8" stroke-width="2"/>
+      <text x="221" y="106" font-family="ui-monospace, monospace" font-size="12" font-weight="800" fill="#38BDF8" text-anchor="middle">⊢</text>
+      <text x="221" y="132" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1" text-anchor="middle">Lemmas</text>
+
+      <!-- Mini Icon 4: Artifacts -->
+      <rect x="295" y="90" width="18" height="22" rx="2" fill="none" stroke="#38BDF8" stroke-width="2"/>
+      <line x1="299" y1="97" x2="309" y2="97" stroke="#38BDF8" stroke-width="1.8"/>
+      <line x1="299" y1="104" x2="309" y2="104" stroke="#38BDF8" stroke-width="1.8"/>
+      <text x="304" y="132" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1" text-anchor="middle">Artifacts</text>
+    </g>
+
+    <!-- =================================================================== -->
+    <!-- CENTER FIREWALL BAR: HAZARD STRIPES + BRICK/FLAME ICON + "FIREWALL" -->
+    <!-- =================================================================== -->
+    <g transform="translate(14, 186)">
+      <!-- Left Hazard Stripes -->
+      <rect x="4" y="8" width="96" height="16" rx="3" fill="url(#hazardStripes)"/>
+      <!-- Right Hazard Stripes -->
+      <rect x="260" y="8" width="96" height="16" rx="3" fill="url(#hazardStripes)"/>
+
+      <!-- Brick Wall + Flame Icon -->
+      <g transform="translate(115, 0)">
+        <rect x="0" y="2" width="28" height="26" rx="3" fill="#2A0A12" stroke="#F43F5E" stroke-width="2"/>
+        <line x1="0" y1="11" x2="28" y2="11" stroke="#F43F5E" stroke-width="1.8"/>
+        <line x1="0" y1="20" x2="28" y2="20" stroke="#F43F5E" stroke-width="1.8"/>
+        <line x1="14" y1="2" x2="14" y2="11" stroke="#F43F5E" stroke-width="1.8"/>
+        <line x1="8" y1="11" x2="8" y2="20" stroke="#F43F5E" stroke-width="1.8"/>
+        <line x1="20" y1="11" x2="20" y2="20" stroke="#F43F5E" stroke-width="1.8"/>
+        <!-- Flame -->
+        <path d="M33 28 C39 28 43 23 43 17 C43 11 37 6 35 2 C33 8 29 10 29 17 C29 23 30 28 33 28 Z" fill="#FB7185"/>
+      </g>
+
+      <text x="168" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="900" fill="#FB7185" letter-spacing="1.5">FIREWALL</text>
+    </g>
+
+    <!-- BOTTOM BOX: BLIND ADVERSARIAL TESTER (SABOTEUR) -->
+    <g transform="translate(14, 226)">
+      <rect x="0" y="0" width="360" height="168" rx="10" fill="#130B29" stroke="#9333EA" stroke-width="1.8"/>
+
+      <!-- Cracked Shield Icon -->
+      <g transform="translate(16, 16)" fill="none" stroke="#C084FC" stroke-width="2.2" stroke-linejoin="round">
+        <path d="M16 0 L30 6 V18 C30 28 24 35 16 38 C8 35 2 28 2 18 V6 Z" fill="#231042"/>
+        <polyline points="17,6 12,17 19,21 13,32" stroke="#E879F9" stroke-width="2"/>
+      </g>
+
+      <text x="58" y="31" font-family="system-ui, -apple-system, sans-serif" font-size="15.5" font-weight="800" fill="#F8FAFC" letter-spacing="0.4">BLIND ADVERSARIAL TESTER</text>
+      <text x="58" y="51" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#D8B4FE">Fuzz  •  Break  •  Find Weaknesses (Saboteur)</text>
+
+      <!-- Right Lock Badge -->
+      <line x1="274" y1="14" x2="274" y2="62" stroke="#581C87" stroke-width="1"/>
+      <g transform="translate(306, 14)" fill="none" stroke="#C084FC" stroke-width="2">
+        <rect x="2" y="10" width="18" height="14" rx="3" fill="#2E1065"/>
+        <path d="M6 10 V6 C6 3 8 1 11 1 C14 1 16 3 16 6 V10"/>
+      </g>
+      <text x="317" y="50" font-family="ui-monospace, SFMono-Regular, monospace" font-size="8.5" font-weight="700" fill="#D8B4FE" text-anchor="middle">ISOLATED</text>
+      <text x="317" y="60" font-family="ui-monospace, SFMono-Regular, monospace" font-size="8.5" font-weight="700" fill="#D8B4FE" text-anchor="middle">ENVIRONMENT</text>
+
+      <!-- Sub-Box with 4 Saboteur Steps -->
+      <rect x="14" y="74" width="332" height="78" rx="8" fill="#0B061A" stroke="#6B21A8" stroke-width="1.2"/>
+      <line x1="97" y1="82" x2="97" y2="144" stroke="#2E1065"/>
+      <line x1="180" y1="82" x2="180" y2="144" stroke="#2E1065"/>
+      <line x1="263" y1="82" x2="263" y2="144" stroke="#2E1065"/>
+
+      <!-- Mini Icon 1: Exploit Bug -->
+      <ellipse cx="55" cy="104" rx="7" ry="9" fill="none" stroke="#C084FC" stroke-width="2"/>
+      <line x1="44" y1="99" x2="66" y2="99" stroke="#C084FC" stroke-width="1.8"/>
+      <line x1="44" y1="106" x2="66" y2="106" stroke="#C084FC" stroke-width="1.8"/>
+      <text x="55" y="135" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1" text-anchor="middle">Exploit</text>
+
+      <!-- Mini Icon 2: Probe Nodes -->
+      <circle cx="138" cy="95" r="4" fill="none" stroke="#C084FC" stroke-width="2"/>
+      <circle cx="129" cy="110" r="4" fill="none" stroke="#C084FC" stroke-width="2"/>
+      <circle cx="147" cy="110" r="4" fill="none" stroke="#C084FC" stroke-width="2"/>
+      <line x1="136" y1="99" x2="131" y2="106" stroke="#C084FC" stroke-width="1.8"/>
+      <line x1="140" y1="99" x2="145" y2="106" stroke="#C084FC" stroke-width="1.8"/>
+      <text x="138" y="135" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1" text-anchor="middle">Probe</text>
+
+      <!-- Mini Icon 3: Analyze -->
+      <rect x="211" y="92" width="20" height="22" rx="2" fill="none" stroke="#C084FC" stroke-width="2"/>
+      <line x1="215" y1="99" x2="227" y2="99" stroke="#C084FC" stroke-width="1.8"/>
+      <line x1="215" y1="106" x2="227" y2="106" stroke="#C084FC" stroke-width="1.8"/>
+      <text x="221" y="135" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1" text-anchor="middle">Analyze</text>
+
+      <!-- Mini Icon 4: Report Alert -->
+      <polygon points="304,90 316,112 292,112" fill="none" stroke="#C084FC" stroke-width="2" stroke-linejoin="round"/>
+      <line x1="304" y1="98" x2="304" y2="105" stroke="#C084FC" stroke-width="2"/>
+      <circle cx="304" cy="109" r="1" fill="#C084FC"/>
+      <text x="304" y="135" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1" text-anchor="middle">Report</text>
+    </g>
+  </g>
+
+  <!-- Merge Bracket Arrow Clean-Room -> 4. DETERMINISTIC ORACLE -->
+  <g transform="translate(818, 175)" fill="none" stroke="#38BDF8" stroke-width="2.5">
+    <line x1="0" y1="82" x2="12" y2="82"/>
+    <line x1="0" y1="278" x2="12" y2="278"/>
+    <path d="M 12 82 L 12 278"/>
+    <line x1="12" y1="180" x2="24" y2="180"/>
+    <polygon points="22,174 32,180 22,186" fill="#38BDF8" stroke="none"/>
+  </g>
+
+  <!-- 4. DETERMINISTIC ORACLE (Cyan Card) -->
+  <g transform="translate(852, 175)">
+    <rect x="0" y="0" width="166" height="360" rx="12" fill="url(#cardCyan)" stroke="#0284C7" stroke-width="2"/>
+
+    <!-- Check-Shield Icon -->
+    <g transform="translate(61, 24)" fill="none" stroke="#38BDF8" stroke-width="2.5" stroke-linejoin="round">
+      <path d="M22 0 L42 8 V24 C42 38 33 48 22 52 C11 48 2 38 2 24 V8 Z" fill="#082444"/>
+      <polyline points="14,26 20,32 31,19" stroke-width="3" stroke-linecap="round"/>
+    </g>
+
+    <text x="83" y="106" font-family="system-ui, -apple-system, sans-serif" font-size="15.5" font-weight="800" fill="#F8FAFC" text-anchor="middle">DETERMINISTIC</text>
+    <text x="83" y="126" font-family="system-ui, -apple-system, sans-serif" font-size="15.5" font-weight="800" fill="#F8FAFC" text-anchor="middle">ORACLE</text>
+
+    <text x="83" y="152" font-family="system-ui, sans-serif" font-size="12" fill="#94A3B8" text-anchor="middle">Compare, validate,</text>
+    <text x="83" y="168" font-family="system-ui, sans-serif" font-size="12" fill="#94A3B8" text-anchor="middle">make a decision.</text>
+
+    <!-- Checkmarks -->
+    <g transform="translate(16, 198)" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#CBD5E1">
+      <text x="0" y="0" fill="#38BDF8" font-weight="800">✓</text><text x="16" y="0">old(x) ≡ new(x)</text>
+      <text x="0" y="26" fill="#38BDF8" font-weight="800">✓</text><text x="16" y="26">AST &amp; type policy</text>
+      <text x="0" y="52" fill="#38BDF8" font-weight="800">✓</text><text x="16" y="52">Diff coverage 100%</text>
+      <text x="0" y="78" fill="#38BDF8" font-weight="800">✓</text><text x="16" y="78">NOP test oracle</text>
+    </g>
+
+    <!-- Bottom Pill: VERDICT -->
+    <rect x="18" y="310" width="130" height="28" rx="14" fill="#071F3A" stroke="#0284C7" stroke-width="1.5"/>
+    <text x="83" y="328" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11.5" font-weight="700" fill="#7DD3FC" text-anchor="middle" letter-spacing="1.5">VERDICT</text>
+  </g>
+
+  <!-- Arrow 4 -> 5 -->
+  <g transform="translate(1018, 345)">
+    <line x1="0" y1="10" x2="14" y2="10" stroke="#38BDF8" stroke-width="3"/>
+    <polygon points="12,3 22,10 12,17" fill="#38BDF8"/>
+  </g>
+
+  <!-- 5. MUTATION & DEPENDENCY GATES (Blue/Cyan Card) -->
+  <g transform="translate(1040, 175)">
+    <rect x="0" y="0" width="166" height="360" rx="12" fill="url(#cardCyan)" stroke="#2563EB" stroke-width="2"/>
+
+    <!-- Graph Hub Icon -->
+    <g transform="translate(57, 22)" fill="none" stroke="#38BDF8" stroke-width="2.2">
+      <circle cx="26" cy="28" r="6" fill="#082444"/>
+      <circle cx="26" cy="8" r="4" fill="#082444"/><line x1="26" y1="12" x2="26" y2="22"/>
+      <circle cx="8" cy="18" r="4" fill="#082444"/><line x1="12" y1="20" x2="20" y2="25"/>
+      <circle cx="44" cy="18" r="4" fill="#082444"/><line x1="40" y1="20" x2="32" y2="25"/>
+      <circle cx="14" cy="44" r="4" fill="#082444"/><line x1="17" y1="40" x2="22" y2="33"/>
+      <circle cx="38" cy="44" r="4" fill="#082444"/><line x1="35" y1="40" x2="30" y2="33"/>
+    </g>
+
+    <text x="83" y="106" font-family="system-ui, -apple-system, sans-serif" font-size="15.5" font-weight="800" fill="#F8FAFC" text-anchor="middle">MUTATION &amp;</text>
+    <text x="83" y="126" font-family="system-ui, -apple-system, sans-serif" font-size="15.5" font-weight="800" fill="#F8FAFC" text-anchor="middle">BLAST RADIUS</text>
+
+    <text x="83" y="152" font-family="system-ui, sans-serif" font-size="12" fill="#94A3B8" text-anchor="middle">Check for regressions,</text>
+    <text x="83" y="168" font-family="system-ui, sans-serif" font-size="12" fill="#94A3B8" text-anchor="middle">callers and DDL drift.</text>
+
+    <!-- Checkmarks -->
+    <g transform="translate(16, 198)" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#CBD5E1">
+      <text x="0" y="0" fill="#38BDF8" font-weight="800">✓</text><text x="16" y="0">Mutation kill ≥80%</text>
+      <text x="0" y="26" fill="#38BDF8" font-weight="800">✓</text><text x="16" y="26">Consumer &amp; AST graph</text>
+      <text x="0" y="52" fill="#38BDF8" font-weight="800">✓</text><text x="16" y="52">SQL DDL safety</text>
+      <text x="0" y="78" fill="#38BDF8" font-weight="800">✓</text><text x="16" y="78">Deps allowlist</text>
+    </g>
+
+    <!-- Bottom Pill: PASSED -->
+    <rect x="18" y="310" width="130" height="28" rx="14" fill="#0A1E40" stroke="#3B82F6" stroke-width="1.5"/>
+    <text x="83" y="328" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11.5" font-weight="700" fill="#93C5FD" text-anchor="middle" letter-spacing="1.5">PASSED</text>
+  </g>
+
+  <!-- Arrow 5 -> 6 -->
+  <g transform="translate(1206, 345)">
+    <line x1="0" y1="10" x2="14" y2="10" stroke="#34D399" stroke-width="3"/>
+    <polygon points="12,3 22,10 12,17" fill="#34D399"/>
+  </g>
+
+  <!-- 6. CANARY RELEASE (Emerald Card) -->
+  <g transform="translate(1228, 175)">
+    <rect x="0" y="0" width="142" height="360" rx="12" fill="url(#cardGreen)" stroke="#10B981" stroke-width="2"/>
+
+    <!-- Rocket Icon -->
+    <g transform="translate(49, 24)" fill="none" stroke="#34D399" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M22 2 C32 10 34 24 34 34 L22 42 L10 34 C10 24 12 10 22 2 Z" fill="#06342E"/>
+      <circle cx="22" cy="20" r="4" fill="#34D399"/>
+      <path d="M10 28 L3 34 L10 36"/>
+      <path d="M34 28 L41 34 L34 36"/>
+      <path d="M18 42 L22 50 L26 42"/>
+    </g>
+
+    <text x="71" y="106" font-family="system-ui, -apple-system, sans-serif" font-size="15.5" font-weight="800" fill="#F8FAFC" text-anchor="middle">CANARY</text>
+    <text x="71" y="126" font-family="system-ui, -apple-system, sans-serif" font-size="15.5" font-weight="800" fill="#F8FAFC" text-anchor="middle">RELEASE</text>
+
+    <text x="71" y="152" font-family="system-ui, sans-serif" font-size="11.5" fill="#94A3B8" text-anchor="middle">Deploy with confidence</text>
+    <text x="71" y="168" font-family="system-ui, sans-serif" font-size="11.5" fill="#94A3B8" text-anchor="middle">and monitor.</text>
+
+    <!-- Checkmarks -->
+    <g transform="translate(12, 198)" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#D1FAE5">
+      <text x="0" y="0" fill="#34D399" font-weight="800">✓</text><text x="15" y="0">Canary rings</text>
+      <text x="0" y="26" fill="#34D399" font-weight="800">✓</text><text x="15" y="26">Live Sentinel</text>
+      <text x="0" y="52" fill="#34D399" font-weight="800">✓</text><text x="15" y="52">Auto rollback</text>
+      <text x="0" y="78" fill="#34D399" font-weight="800">✓</text><text x="15" y="78">CB-06 guard</text>
+    </g>
+
+    <!-- Bottom Pill: PRODUCTION -->
+    <rect x="14" y="310" width="114" height="28" rx="14" fill="#052E24" stroke="#10B981" stroke-width="1.5"/>
+    <text x="71" y="328" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#6EE7B7" text-anchor="middle" letter-spacing="1.2">PRODUCTION</text>
+  </g>
+
+  <!-- ======================================================================= -->
+  <!-- BOTTOM BAR: VERIFICATION ARTIFACTS (4 ICON-BADGED PROTOCOL FILES)       -->
+  <!-- ======================================================================= -->
+  <g transform="translate(30, 580)">
+    <rect x="0" y="0" width="1340" height="166" rx="14" fill="#050C1B" stroke="#1E3A5F" stroke-width="1.8"/>
+
+    <!-- Section Header -->
+    <g transform="translate(28, 20)">
+      <rect x="0" y="0" width="18" height="22" rx="2" fill="none" stroke="#38BDF8" stroke-width="2"/>
+      <line x1="4" y1="7" x2="14" y2="7" stroke="#38BDF8" stroke-width="1.6"/>
+      <line x1="4" y1="12" x2="14" y2="12" stroke="#38BDF8" stroke-width="1.6"/>
+      <text x="28" y="16" font-family="ui-monospace, SFMono-Regular, monospace" font-size="14" font-weight="800" fill="#CBD5E1" letter-spacing="2.5">VERIFICATION ARTIFACTS</text>
+      <line x1="278" y1="11" x2="1284" y2="11" stroke="#1E3A5F" stroke-width="1.5"/>
+    </g>
+
+    <!-- Connecting Horizontal Line Behind Cards -->
+    <line x1="180" y1="104" x2="1180" y2="104" stroke="#0284C7" stroke-width="2"/>
+
+    <!-- Artifact 1: contract.json -->
+    <g transform="translate(26, 56)">
+      <rect x="0" y="0" width="300" height="90" rx="10" fill="#07162C" stroke="#0284C7" stroke-width="1.8"/>
+      <g transform="translate(18, 22)" fill="none" stroke="#38BDF8" stroke-width="2.2">
+        <rect x="0" y="0" width="36" height="44" rx="5" fill="#082444"/>
+        <line x1="8" y1="13" x2="28" y2="13"/>
+        <line x1="8" y1="22" x2="28" y2="22"/>
+        <line x1="8" y1="31" x2="20" y2="31"/>
+      </g>
+      <text x="70" y="30" font-family="ui-monospace, SFMono-Regular, monospace" font-size="18" font-weight="800" fill="#38BDF8">contract.json</text>
+      <text x="70" y="52" font-family="system-ui, sans-serif" font-size="12.5" fill="#94A3B8">Expected behavior, interfaces,</text>
+      <text x="70" y="70" font-family="system-ui, sans-serif" font-size="12.5" fill="#94A3B8">Z3 policies and constraints (S*).</text>
+    </g>
+
+    <!-- Artifact 2: verdict.json -->
+    <g transform="translate(355, 56)">
+      <rect x="0" y="0" width="300" height="90" rx="10" fill="#120B29" stroke="#8B5CF6" stroke-width="1.8"/>
+      <g transform="translate(18, 22)" fill="none" stroke="#A855F7" stroke-width="2.4">
+        <path d="M18 0 L34 6 V20 C34 32 27 40 18 44 C9 40 2 32 2 20 V6 Z" fill="#211042"/>
+        <polyline points="11,22 16,27 25,16" stroke-width="2.6" stroke-linecap="round"/>
+      </g>
+      <text x="70" y="30" font-family="ui-monospace, SFMono-Regular, monospace" font-size="18" font-weight="800" fill="#C084FC">verdict.json</text>
+      <text x="70" y="52" font-family="system-ui, sans-serif" font-size="12.5" fill="#94A3B8">Pass / fail status, tree_hash</text>
+      <text x="70" y="70" font-family="system-ui, sans-serif" font-size="12.5" fill="#94A3B8">binding and counterexamples.</text>
+    </g>
+
+    <!-- Artifact 3: waivers.json -->
+    <g transform="translate(684, 56)">
+      <rect x="0" y="0" width="300" height="90" rx="10" fill="#061D24" stroke="#14B8A6" stroke-width="1.8"/>
+      <g transform="translate(18, 22)">
+        <path d="M18 0 L34 6 V20 C34 32 27 40 18 44 C9 40 2 32 2 20 V6 Z" fill="#062D34" stroke="#14B8A6" stroke-width="2.4"/>
+        <path d="M18 5 L18 39 C11 35 6 29 6 20 V9 Z" fill="#14B8A6"/>
+      </g>
+      <text x="70" y="30" font-family="ui-monospace, SFMono-Regular, monospace" font-size="18" font-weight="800" fill="#2DD4BF">waivers.json</text>
+      <text x="70" y="52" font-family="system-ui, sans-serif" font-size="12.5" fill="#94A3B8">Approved exceptions signed</text>
+      <text x="70" y="70" font-family="system-ui, sans-serif" font-size="12.5" fill="#94A3B8">cryptographically via SSH.</text>
+    </g>
+
+    <!-- Artifact 4: ledger.json -->
+    <g transform="translate(1013, 56)">
+      <rect x="0" y="0" width="300" height="90" rx="10" fill="#07162C" stroke="#2563EB" stroke-width="1.8"/>
+      <g transform="translate(18, 22)" fill="#082444" stroke="#38BDF8" stroke-width="2.2">
+        <ellipse cx="18" cy="8" rx="15" ry="6"/>
+        <path d="M3 8 V22 C3 25.5 9.7 28 18 28 C26.3 28 33 25.5 33 22 V8"/>
+        <path d="M3 22 V36 C3 39.5 9.7 42 18 42 C26.3 42 33 39.5 33 36 V22"/>
+      </g>
+      <text x="70" y="30" font-family="ui-monospace, SFMono-Regular, monospace" font-size="18" font-weight="800" fill="#60A5FA">ledger.json</text>
+      <text x="70" y="52" font-family="system-ui, sans-serif" font-size="12.5" fill="#94A3B8">Immutable SHA-256 hash-chained</text>
+      <text x="70" y="70" font-family="system-ui, sans-serif" font-size="12.5" fill="#94A3B8">record of container runs.</text>
+    </g>
+  </g>
+</svg>

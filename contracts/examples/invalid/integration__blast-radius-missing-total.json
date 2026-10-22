@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "slice_id": "calc.subtract.v3",
+  "base_sha": "7af5229e839f6fd50f2337c9733a4463c5fbdf64",
+  "candidate": null,
+  "changed_files": [
+    "src/calc.py"
+  ],
+  "consumers": [],
+  "migrations": {
+    "files": [],
+    "destructive": []
+  },
+  "verdict": "PASS",
+  "blast_radius": {
+    "ranking": []
+  }
+}

@@ -1,0 +1,20 @@
+{
+ "schema_version": 1,
+ "lemmas": [
+  {
+   "name": "lemma_media_nonneg",
+   "status": "pass",
+   "message": "no counterexample in the search"
+  },
+  {
+   "name": "lemma_sign",
+   "status": "fail",
+   "message": "postcondition result >= 0 fails"
+  },
+  {
+   "name": "lemma_new",
+   "status": "no_pair",
+   "message": "the base has no lemma of this name"
+  }
+ ]
+}

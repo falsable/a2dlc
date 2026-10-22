@@ -1,0 +1,28 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.subtract.b7",
+ "base_sha": "1e99d60788be12caa175e29ce6bc77e5b3c2fd0c",
+ "candidate": "57f6ae0a944b79463f82f69a274e5d744bf17934",
+ "changed_files": [
+  "src/calc.py"
+ ],
+ "consumers": [
+  {
+   "name": "cli",
+   "image": "a2dlc-tests-pytest:0.2",
+   "affected_by": [
+    "src/calc.py"
+   ],
+   "status": "passed",
+   "tests": {
+    "passed": 1,
+    "failed": 0
+   }
+  }
+ ],
+ "migrations": {
+  "files": [],
+  "destructive": []
+ },
+ "verdict": "PASS"
+}

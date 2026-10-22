@@ -1,0 +1,10 @@
+{
+ "schema_version": 1,
+ "slice_id": "calc.media.v1",
+ "prose": "media takes a list of finite floats and returns its arithmetic mean without modifying it. With an empty list it raises ValueError. Two results that differ by less than 1e-9 relative count as equal.",
+ "examples": [
+  "media([2.5]) devuelve 2.5",
+  "media([]) lanza ValueError",
+  "media([1.0, 2.0]) and media([2.0, 1.0]) count as the same result"
+ ]
+}

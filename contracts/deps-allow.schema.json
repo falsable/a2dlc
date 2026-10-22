@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/deps-allow.schema.json",
+  "title": "Dependency allowlist (.a2dlc/deps.allow.json, versioned in the repo)",
+  "description": "The dependencies an agent may add or change in the repo's manifests, per ecosystem (config.supply_chain.allowlist_file). A dependency not listed here is a dependency_not_allowed escalation. The file is versioned and reviewed like any source: a change to it is a human-owned path (config.protected_paths).",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "allow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ecosystem": { "enum": ["go", "npm", "pypi", "cargo"] },
+          "name": { "type": "string", "minLength": 1 },
+          "versions": { "type": "string", "minLength": 1, "description": "Optional version range in the ecosystem's syntax. Absent: any version." }
+        },
+        "required": ["ecosystem", "name"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "allow"],
+  "additionalProperties": false
+}

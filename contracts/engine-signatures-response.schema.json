@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-signatures-response.schema.json",
+  "title": "Engine response to operation: signatures (/io/response.json)",
+  "description": "The public signatures of the candidate in each file of changed_files: name, signature as written in the language, first part of the docstring and lines. No bodies: the Saboteur (§3) writes tests against the interface and the contract, never against the implementation; if it saw the code, its tests would confirm what the builder did instead of refuting it. With a non-null error, the core proceeds without signatures and says so in the artifact.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "symbols": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string", "minLength": 1, "description": "Qualified name within the file (f, Class, Class.method)." },
+                "signature": { "type": "string", "minLength": 1, "description": "The header as the language would write it: def f(x: int) -> str, export function g(a: A): B." },
+                "doc": { "type": ["string", "null"], "description": "Docstring or documentation comment, trimmed; null if there is none." },
+                "lines": {
+                  "description": "[first, last] of the symbol in the candidate, to cross with the uncovered lines.",
+                  "type": "array", "items": { "type": "integer", "minimum": 1 }, "minItems": 2, "maxItems": 2
+                }
+              },
+              "required": ["name", "signature", "doc", "lines"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["file", "symbols"],
+        "additionalProperties": false
+      }
+    },
+    "error": { "type": ["string", "null"] }
+  },
+  "required": ["schema_version", "files", "error"],
+  "additionalProperties": false
+}

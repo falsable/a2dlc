@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/role-response.schema.json",
+  "title": "Role response (/out/response.json, written by the role's command)",
+  "description": "Common section. status ok brings the role's payload (its shape is fixed by role-payloads.schema.json per role and stage, for the seven roles); refused says what it lacked or why it cannot (it is not a tool error: the core escalates it); error is a command failure and is retried up to roles.<role>.retries. A response that does not validate counts as an error. The core reads nothing else from /out than what the payload names.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "run_id": { "$ref": "run-defs.schema.json#/$defs/run_id" },
+    "role": { "$ref": "run-defs.schema.json#/$defs/role" },
+    "stage": { "$ref": "run-defs.schema.json#/$defs/stage" },
+    "attempt": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["ok", "refused", "error"] },
+    "reason": { "type": "string", "minLength": 1, "description": "Required with refused and error." },
+    "cost": { "$ref": "run-defs.schema.json#/$defs/cost" },
+    "model": { "type": "string", "description": "What the CLI said it used, if it said so. It is a declaration, not proof." },
+    "payload": { "type": "object" }
+  },
+  "required": ["schema_version", "run_id", "role", "stage", "attempt", "status", "cost", "payload"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "enum": ["refused", "error"] } } },
+      "then": { "required": ["reason"] }
+    },
+    {
+      "if": { "properties": { "role": { "const": "saboteur" }, "status": { "const": "ok" } }, "required": ["role", "status"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/saboteur_response" } } }
+    },
+    {
+      "if": { "properties": { "role": { "enum": ["builder_primary", "builder_orthogonal"] }, "status": { "const": "ok" } }, "required": ["role", "status"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/builder_response" } } }
+    },
+    {
+      "if": { "properties": { "role": { "enum": ["specifier_alpha", "specifier_beta"] }, "status": { "const": "ok" } }, "required": ["role", "status"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/specifier_response" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "inquisitor" }, "stage": { "const": "1" }, "status": { "const": "ok" } }, "required": ["role", "stage", "status"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/inquisitor_response" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "inquisitor" }, "stage": { "const": "1.5" }, "status": { "const": "ok" } }, "required": ["role", "stage", "status"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/inquisitor_bt_response" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "inquisitor" } }, "required": ["role"] },
+      "then": { "properties": { "stage": { "enum": ["1", "1.5"] } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "back_translator" }, "status": { "const": "ok" } }, "required": ["role", "status"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/back_translator_response" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "propose_properties" }, "status": { "const": "ok" } }, "required": ["role", "status"] },
+      "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/propose_response" } } }
+    }
+  ]
+}

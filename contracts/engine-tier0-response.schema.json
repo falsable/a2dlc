@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-tier0-response.schema.json",
+  "title": "Engine response to operation: tier0 (/io/response.json)",
+  "description": "Tier 0 of the protocol (§5, Stage 3): compile, typecheck and lint of the changed_files in the candidate, plus the blocked probes of budget.probes. Only new findings relative to the same file's base: what was already wrong is not the Builder's and cannot jam the loop. ok is true if and only if there are no findings. It is also the shape of tier0_feedback.json, what the Builder receives in the next round.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "ok": { "type": "boolean" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": { "enum": ["compile", "typecheck", "lint", "probe", "policy", "header", "tooling", "lemma"], "description": "lemma: a declared lemma whose postcondition the lemmas operation refuted (the core writes it into tier0_feedback from engine-lemmas-response; an engine does not emit it; file is the lemma name). typecheck: mypy --strict error. policy: forbidden import, unbounded loop, reflection, or complexity over the maximum. header: the @a2dlc:slice_id is missing (only with require_header). tooling: a tool of the engine did not run (mypy missing or down): the finding is there so that it does not pass silently." },
+          "file": { "type": "string", "minLength": 1, "description": "Candidate file; for a probe, the probe's file." },
+          "line": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }] },
+          "message": { "type": "string", "minLength": 1 }
+        },
+        "required": ["kind", "file", "line", "message"],
+        "additionalProperties": false
+      }
+    },
+    "error": { "type": ["string", "null"] },
+    "reviewed": { "type": "boolean", "description": "Set by the core, not the engine: true if at least one engine ran tier0 on some file or probe. False (or absent) with ok true means nothing was reviewed." }
+  },
+  "required": ["schema_version", "ok", "findings", "error"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "description": "With error (the engine could not do tier0) ok and findings say nothing; without error, ok if and only if there are no findings.",
+      "if": { "properties": { "error": { "type": "null" } }, "required": ["error"] },
+      "then": {
+        "if": { "properties": { "ok": { "const": true } }, "required": ["ok"] },
+        "then": { "properties": { "findings": { "maxItems": 0 } } },
+        "else": { "properties": { "findings": { "minItems": 1 } } }
+      }
+    }
+  ]
+}

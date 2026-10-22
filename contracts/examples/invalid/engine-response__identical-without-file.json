@@ -1,0 +1,30 @@
+{
+ "schema_version": 1,
+ "targets": [
+  {
+   "target": "src/calc.py::resta",
+   "engine": "crosshair-diffbehavior",
+   "engine_version": "0.0.111",
+   "verdict": "PASS",
+   "reason": null,
+   "search_budget": {
+    "iterations": 0,
+    "per_condition_timeout_s": 10
+   },
+   "generators": "typed_default",
+   "typed": true,
+   "domain_guard": null,
+   "equivalence": "strict",
+   "lines": [
+    20,
+    21
+   ],
+   "counterexample": null
+  }
+ ],
+ "out_of_scope": [],
+ "error": null,
+ "identical": [
+  "suma"
+ ]
+}

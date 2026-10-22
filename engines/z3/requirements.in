@@ -1,0 +1,3 @@
+# Direct pins of the z3 engine image. requirements.lock is generated from this file, inside a container
+# (see the commands in engines/z3/Dockerfile).
+z3-solver==4.13.0.0

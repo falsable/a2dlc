@@ -1,0 +1,31 @@
+{
+ "schema_version": 1,
+ "builder": "builder_primary",
+ "commit": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "tree_hash": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "iterations": 2,
+ "unchecked": [],
+ "candidates": [
+  {
+   "builder": "builder_primary",
+   "commit": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+   "tree_hash": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+   "iterations": 2,
+   "unchecked": []
+  },
+  {
+   "builder": "builder_orthogonal",
+   "commit": "1f264c8a0b1c2d3e4f5061728394a5b6c7d8e9f0",
+   "tree_hash": "351f8a6a0b1c2d3e4f5061728394a5b6c7d8e9f0",
+   "iterations": 1,
+   "unchecked": []
+  },
+  {
+   "builder": "builder_primary",
+   "commit": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+   "tree_hash": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+   "iterations": 2,
+   "unchecked": []
+  }
+ ]
+}

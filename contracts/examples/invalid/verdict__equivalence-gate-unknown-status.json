@@ -1,0 +1,130 @@
+{
+ "schema_version": 1,
+ "a2dlc_version": "0.2.0",
+ "verdict": "FAIL",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-16T12:00:00Z",
+ "targets": [],
+ "out_of_scope": [
+  {
+   "file": "src/calc.py",
+   "reason": "not_exported"
+  }
+ ],
+ "pending_waivers": [
+  "tests/test_red.py::tests.test_red::test_lento"
+ ],
+ "test_gates": {
+  "nop_oracle": {
+   "status": "ran",
+   "stubs": [
+    "src/calc.py::media"
+   ]
+  },
+  "baseline": {
+   "status": "ran",
+   "cached": true
+  },
+  "tests_diff": {
+   "status": "ran",
+   "trees": [
+    "base",
+    "candidate",
+    "peer:a1b2c3d4"
+   ],
+   "tests": [
+    "tests/test_abs.py"
+   ]
+  },
+  "equivalence_s": {
+   "status": "skipped",
+   "reason": "one candidate only"
+  }
+ },
+ "coverage": {
+  "status": "ran",
+  "files": [
+   {
+    "file": "src/calc.py",
+    "by_engine": [],
+    "covered": [
+     12,
+     13,
+     14
+    ],
+    "uncovered": [
+     20,
+     21
+    ]
+   }
+  ]
+ },
+ "tests": [
+  {
+   "target": "tests/test_calc.py::tests.test_calc::test_media",
+   "gate": "nop_oracle",
+   "verdict": "PASS",
+   "base": "failed",
+   "candidate": "passed",
+   "message": "NotImplementedError",
+   "waived": false
+  },
+  {
+   "target": "tests/test_calc.py::tests.test_calc::test_media_vacia",
+   "gate": "nop_oracle",
+   "verdict": "FAIL",
+   "reason": "passes on the base with stubs: it does not prove the change",
+   "base": "passed",
+   "candidate": "passed",
+   "waived": false
+  },
+  {
+   "target": "tests/test_red.py::tests.test_red::test_lento",
+   "gate": "baseline",
+   "verdict": "PASS",
+   "base": "passed",
+   "candidate": "failed",
+   "flaky": true,
+   "reruns": {
+    "base": [
+     "failed",
+     "passed",
+     "passed"
+    ],
+    "candidate": [
+     "failed",
+     "failed",
+     "passed"
+    ]
+   },
+   "waived": true
+  },
+  {
+   "target": "tests/test_abs.py::tests.test_abs::test_media_negativos",
+   "gate": "tests_diff",
+   "verdict": "FAIL",
+   "reason": "red in the candidate, green in peer:a1b2c3d4",
+   "base": "failed",
+   "candidate": "failed",
+   "trees": {
+    "base": "failed",
+    "candidate": "failed",
+    "peer:a1b2c3d4": "passed"
+   },
+   "origin": "overlay",
+   "message": "AssertionError: media([-1, -3]) == -2",
+   "waived": false
+  }
+ ],
+ "diff_budget": {
+  "total_s": 60,
+  "used_s": 60.0,
+  "cut": [
+   {
+    "target": "src/calc.py::subtract",
+    "reason": "per-diff budget ran out before this function"
+   }
+  ]
+ }
+}

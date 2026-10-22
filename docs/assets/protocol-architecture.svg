@@ -1,0 +1,292 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 860" width="100%" height="100%">
+  <defs>
+    <!-- Deep Canvas Background -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050811"/>
+      <stop offset="50%" stop-color="#091020"/>
+      <stop offset="100%" stop-color="#06131A"/>
+    </linearGradient>
+
+    <!-- Section Header Gradient -->
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="50%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+
+    <!-- Firewall Warning Gradient -->
+    <linearGradient id="firewallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7F1D1D" stop-opacity="0.45"/>
+      <stop offset="50%" stop-color="#DC2626" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#7F1D1D" stop-opacity="0.45"/>
+    </linearGradient>
+
+    <!-- Card Background Gradients -->
+    <linearGradient id="cardDark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#090D18" stop-opacity="0.98"/>
+    </linearGradient>
+
+    <linearGradient id="gateGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0F1D3A"/>
+      <stop offset="50%" stop-color="#0B2938"/>
+      <stop offset="100%" stop-color="#072A24"/>
+    </linearGradient>
+
+    <!-- Grid Pattern -->
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#1E293B" stroke-width="0.6" stroke-opacity="0.45"/>
+    </pattern>
+
+    <!-- Arrow Markers -->
+    <marker id="arrowCyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38BDF8"/>
+    </marker>
+    <marker id="arrowIndigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#818CF8"/>
+    </marker>
+    <marker id="arrowEmerald" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#34D399"/>
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#FBBF24"/>
+    </marker>
+  </defs>
+
+  <!-- Outer Canvas -->
+  <rect width="1280" height="860" rx="18" fill="url(#bg)"/>
+  <rect width="1280" height="860" rx="18" fill="url(#grid)"/>
+  <rect x="2" y="2" width="1276" height="856" rx="16" fill="none" stroke="url(#accent)" stroke-opacity="0.4" stroke-width="2"/>
+
+  <!-- ======================================================================= -->
+  <!-- PART 1: PROTOCOL POSITIONING IN THE AGENTIC ECOSYSTEM (A2A / MCP / SPEC)-->
+  <!-- ======================================================================= -->
+  <g transform="translate(36, 26)">
+    <!-- Section Title Bar -->
+    <rect x="0" y="0" width="440" height="26" rx="6" fill="#131C38" stroke="#6366F1" stroke-width="1"/>
+    <text x="14" y="17" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="700" fill="#A5B4FC" letter-spacing="1">PART 1 // WHERE A2-DLC FITS IN THE AGENTIC PROTOCOL STACK</text>
+    <text x="456" y="17" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#94A3B8">
+      MCP connects agents to tools · Google A2A connects agents to agents · <tspan fill="#34D399" font-weight="700">A2-DLC mathematically verifies their code</tspan>
+    </text>
+
+    <!-- 3 Upstream Boxes Feeding into A2-DLC Verification Funnel -->
+    <g transform="translate(0, 38)">
+      <!-- Box 1: Spec & Policy Frameworks -->
+      <rect x="0" y="0" width="380" height="78" rx="10" fill="url(#cardDark)" stroke="#4F46E5" stroke-width="1.3"/>
+      <text x="16" y="22" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#818CF8">1. INTENT &amp; SPEC FRAMEWORKS (UPSTREAM)</text>
+      <text x="16" y="43" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#F8FAFC">Spec Kit · BMAD · OpenSpec · compiled-policies</text>
+      <text x="16" y="62" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" fill="#94A3B8">Defines prose plans or exports formal Z3 contracts (S*)</text>
+
+      <!-- Box 2: Coding Agent Harnesses -->
+      <rect x="414" y="0" width="380" height="78" rx="10" fill="url(#cardDark)" stroke="#0284C7" stroke-width="1.3"/>
+      <text x="430" y="22" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#38BDF8">2. AI CODING AGENT HARNESSES</text>
+      <text x="430" y="43" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#F8FAFC">Claude Code · Gemini CLI · Codex · Cursor</text>
+      <text x="430" y="62" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" fill="#94A3B8">Generates candidate diffs + receives A2-DLC counterexamples</text>
+
+      <!-- Box 3: Communication & Routing Protocols -->
+      <rect x="828" y="0" width="380" height="78" rx="10" fill="url(#cardDark)" stroke="#D97706" stroke-width="1.3"/>
+      <text x="844" y="22" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#FBBF24">3. CONNECTIVITY, MEMORY &amp; ROUTING PROTOCOLS</text>
+      <text x="844" y="43" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#F8FAFC">Anthropic MCP · Google A2A · Entropos · ChronosGraph</text>
+      <text x="844" y="62" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" fill="#94A3B8">Tool access, multi-agent task handoff, AST memory &amp; LLM routing</text>
+
+      <!-- Downward Arrows into A2-DLC Layer -->
+      <line x1="190" y1="78" x2="190" y2="104" stroke="#818CF8" stroke-width="2" marker-end="url(#arrowIndigo)"/>
+      <line x1="604" y1="78" x2="604" y2="104" stroke="#38BDF8" stroke-width="2" marker-end="url(#arrowCyan)"/>
+      <line x1="1018" y1="78" x2="1018" y2="104" stroke="#FBBF24" stroke-width="2" marker-end="url(#arrowAmber)"/>
+
+      <!-- Layer 4: A2-DLC Verification Protocol Banner -->
+      <rect x="0" y="108" width="1208" height="64" rx="10" fill="url(#gateGrad)" stroke="#10B981" stroke-width="2"/>
+      <rect x="16" y="122" width="166" height="36" rx="6" fill="#064E3B" stroke="#10B981" stroke-width="1.2"/>
+      <text x="99" y="144" font-family="ui-monospace, SFMono-Regular, monospace" font-size="13" font-weight="800" fill="#6EE7B7" text-anchor="middle">A2-DLC PROTOCOL</text>
+
+      <text x="200" y="135" font-family="system-ui, -apple-system, sans-serif" font-size="14.5" font-weight="700" fill="#F8FAFC">
+        4. DETERMINISTIC VERIFICATION &amp; CLEAN-ROOM EXECUTION LAYER (RFC-0001 v3.4)
+      </text>
+      <text x="200" y="156" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11.5" fill="#A7F3D0">
+        PreToolUse Guard (blocks --no-verify &amp; protected_paths)  •  Lite Mode: a2dlc check (old(x) ≡ new(x))  •  Full Mode: a2dlc run (Stages −1..7)
+      </text>
+
+      <!-- Right Output Badge inside Banner -->
+      <rect x="1032" y="120" width="160" height="40" rx="6" fill="#052E16" stroke="#34D399" stroke-width="1.2"/>
+      <text x="1112" y="137" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#6EE7B7" text-anchor="middle">✓ verdict.json</text>
+      <text x="1112" y="152" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" fill="#A7F3D0" text-anchor="middle">Git Push / ISO 42001</text>
+    </g>
+  </g>
+
+  <!-- Horizontal Divider -->
+  <line x1="36" y1="254" x2="1244" y2="254" stroke="#1E293B" stroke-width="1.5"/>
+
+  <!-- ======================================================================= -->
+  <!-- PART 2: CLEAN-ROOM STATE MACHINE (STAGES −1 TO 7) & FIREWALL            -->
+  <!-- ======================================================================= -->
+  <g transform="translate(36, 272)">
+    <!-- Section Title Bar -->
+    <rect x="0" y="0" width="490" height="26" rx="6" fill="#0C2436" stroke="#38BDF8" stroke-width="1"/>
+    <text x="14" y="17" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="700" fill="#7DD3FC" letter-spacing="1">PART 2 // CLEAN-ROOM STATE MACHINE (STAGES −1 TO 7) &amp; CONTEXT FIREWALL</text>
+    <text x="506" y="17" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#94A3B8">
+      How <tspan fill="#F8FAFC" font-weight="700">A2-DLC</tspan> eliminates the "Circular Trap" by isolating specification, implementation, and adversarial testing
+    </text>
+
+    <!-- ===================================================================== -->
+    <!-- COLUMN 1: STAGES −1 TO 2 (SPECIFICATION, Z3 SMT & TRACK ROUTER)        -->
+    <!-- ===================================================================== -->
+    <g transform="translate(0, 42)">
+      <rect x="0" y="0" width="320" height="392" rx="12" fill="url(#cardDark)" stroke="#4F46E5" stroke-width="1.5"/>
+      <rect x="0" y="0" width="320" height="34" rx="12" fill="#17153B"/>
+      <text x="160" y="22" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="800" fill="#A5B4FC" text-anchor="middle">PHASE I // FORMAL SPECIFICATION</text>
+
+      <!-- Stage -1 & 0 -->
+      <rect x="16" y="48" width="288" height="64" rx="8" fill="#0B1120" stroke="#334155"/>
+      <text x="28" y="68" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#818CF8">STAGE −1 &amp; 0 │ Baseline &amp; Intent Budget</text>
+      <text x="28" y="86" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">Hermetic characterization baseline + token,</text>
+      <text x="28" y="102" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">cost ($), and wall-clock slice budget.</text>
+
+      <line x1="160" y1="112" x2="160" y2="128" stroke="#818CF8" stroke-width="1.8" marker-end="url(#arrowIndigo)"/>
+
+      <!-- Stage 1: Dual Spec -->
+      <rect x="16" y="130" width="288" height="82" rx="8" fill="#0B1120" stroke="#4F46E5"/>
+      <text x="28" y="150" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#A5B4FC">STAGE 1 │ Dual-Spec (α ≢ β) + Inquisitor</text>
+      <text x="28" y="169" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">Two independent model families synthesize</text>
+      <text x="28" y="185" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">specs; Inquisitor probes boundary divergences</text>
+      <text x="28" y="201" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" fill="#38BDF8">→ Emits canonical contract.json (S*)</text>
+
+      <line x1="160" y1="212" x2="160" y2="228" stroke="#818CF8" stroke-width="1.8" marker-end="url(#arrowIndigo)"/>
+
+      <!-- Stage 1.5: Static Contract Validation -->
+      <rect x="16" y="230" width="288" height="74" rx="8" fill="#0B1120" stroke="#6366F1"/>
+      <text x="28" y="250" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#A5B4FC">STAGE 1.5 │ Z3 SMT Non-Vacuity &amp; π_S</text>
+      <text x="28" y="269" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">Proves preconditions are satisfiable (SAT),</text>
+      <text x="28" y="285" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">postconditions non-contradictory + blind review.</text>
+
+      <line x1="160" y1="304" x2="160" y2="320" stroke="#818CF8" stroke-width="1.8" marker-end="url(#arrowIndigo)"/>
+
+      <!-- Stage 2: Track Router -->
+      <rect x="16" y="322" width="288" height="54" rx="8" fill="#131B38" stroke="#818CF8"/>
+      <text x="28" y="342" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#C7D2FE">STAGE 2 │ Deterministic Track Router</text>
+      <text x="28" y="361" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" fill="#94A3B8">Selects N=1 (Standard) or N=2 (Critical)</text>
+    </g>
+
+    <!-- Connector Arrows from Phase I (S*) into Phase II Split -->
+    <path d="M 320 238 L 352 238 L 352 135 L 382 135" fill="none" stroke="#38BDF8" stroke-width="2.2" marker-end="url(#arrowCyan)"/>
+    <path d="M 320 238 L 352 238 L 352 345 L 382 345" fill="none" stroke="#FBBF24" stroke-width="2.2" marker-end="url(#arrowAmber)"/>
+    <rect x="330" y="226" width="38" height="22" rx="4" fill="#0F172A" stroke="#38BDF8" stroke-width="1"/>
+    <text x="349" y="241" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="800" fill="#7DD3FC" text-anchor="middle">S*</text>
+
+    <!-- ===================================================================== -->
+    <!-- COLUMN 2: STAGES 3 TO 4 (CLEAN-ROOM SPLIT & ADVERSARIAL ORACLE)        -->
+    <!-- ===================================================================== -->
+    <g transform="translate(386, 42)">
+      <rect x="0" y="0" width="492" height="392" rx="12" fill="url(#cardDark)" stroke="#0284C7" stroke-width="1.5"/>
+      <rect x="0" y="0" width="492" height="34" rx="12" fill="#0C2A44"/>
+      <text x="246" y="22" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="800" fill="#7DD3FC" text-anchor="middle">PHASE II // CLEAN-ROOM ADVERSARIAL EXECUTION (STAGES 3–4)</text>
+
+      <!-- TOP ROOM: BUILDER CONTAINER -->
+      <rect x="18" y="48" width="290" height="122" rx="8" fill="#0B1528" stroke="#38BDF8" stroke-width="1.4"/>
+      <rect x="28" y="58" width="144" height="20" rx="4" fill="#0C4A6E"/>
+      <text x="100" y="72" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="700" fill="#7DD3FC" text-anchor="middle">CLEAN ROOM A: BUILDER</text>
+      <text x="28" y="94" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11.5" font-weight="700" fill="#F8FAFC">STAGE 3 │ Tier 0 Inner Loop</text>
+      <text x="28" y="113" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">• Sees contract S* + allowed source files</text>
+      <text x="28" y="130" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">• Must pass compile, mypy --strict &amp; AST lint</text>
+      <text x="28" y="147" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" fill="#38BDF8">• N=2: CrossHair Formal Lemma Gate (5s/fn)</text>
+
+      <!-- PHYSICAL CONTEXT FIREWALL BAR -->
+      <rect x="18" y="182" width="290" height="34" rx="6" fill="url(#firewallGrad)" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="163" y="197" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" font-weight="800" fill="#FECACA" text-anchor="middle">⛔ CLEAN-ROOM CONTEXT FIREWALL (policy.go)</text>
+      <text x="163" y="210" font-family="ui-monospace, SFMono-Regular, monospace" font-size="9.5" fill="#FCA5A5" text-anchor="middle">Saboteur is physically blocked from reading Builder code</text>
+
+      <!-- BOTTOM ROOM: BLIND SABOTEUR CONTAINER -->
+      <rect x="18" y="228" width="290" height="146" rx="8" fill="#1A140B" stroke="#F59E0B" stroke-width="1.4"/>
+      <rect x="28" y="238" width="172" height="20" rx="4" fill="#78350F"/>
+      <text x="114" y="252" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="700" fill="#FDE68A" text-anchor="middle">CLEAN ROOM B: BLIND SABOTEUR</text>
+      <text x="28" y="274" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11.5" font-weight="700" fill="#F8FAFC">STAGE 3–4 │ Adversarial Attack Suite</text>
+      <text x="28" y="293" font-family="system-ui, sans-serif" font-size="11.5" fill="#FDE68A">• Sees ONLY contract S* &amp; public signatures</text>
+      <text x="28" y="310" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">• Generates Hypothesis / fast-check PBT</text>
+      <text x="28" y="327" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">• Synthesizes Atheris coverage fuzz harnesses</text>
+      <text x="28" y="346" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" fill="#FBBF24">• Caught 18/18 rejected SWE-ABS patches (0 FP)</text>
+
+      <!-- Convergence Arrows into Stage 4 Oracle -->
+      <path d="M 308 109 L 334 109 L 334 190 L 348 190" fill="none" stroke="#38BDF8" stroke-width="2" marker-end="url(#arrowCyan)"/>
+      <path d="M 308 301 L 334 301 L 334 230 L 348 230" fill="none" stroke="#FBBF24" stroke-width="2" marker-end="url(#arrowAmber)"/>
+
+      <!-- Stage 4: Tier 1 Oracle Box -->
+      <rect x="350" y="96" width="126" height="228" rx="8" fill="#071F29" stroke="#10B981" stroke-width="1.6"/>
+      <text x="413" y="122" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11.5" font-weight="800" fill="#34D399" text-anchor="middle">STAGE 4</text>
+      <text x="413" y="140" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#F8FAFC" text-anchor="middle">TIER 1 ORACLE</text>
+      <line x1="364" y1="152" x2="462" y2="152" stroke="#065F46" stroke-width="1"/>
+      <text x="413" y="174" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" fill="#A7F3D0" text-anchor="middle">old(x) ≡ new(x)</text>
+      <text x="413" y="196" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" fill="#A7F3D0" text-anchor="middle">B₁(x) ≡ B₂(x)</text>
+      <text x="413" y="218" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" fill="#A7F3D0" text-anchor="middle">Saboteur PBT</text>
+      <text x="413" y="240" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" fill="#A7F3D0" text-anchor="middle">Atheris Fuzz</text>
+      <text x="413" y="262" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" fill="#A7F3D0" text-anchor="middle">NOP / Coverage</text>
+      <rect x="362" y="282" width="102" height="26" rx="4" fill="#052E16" stroke="#10B981"/>
+      <text x="413" y="299" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10" font-weight="700" fill="#6EE7B7" text-anchor="middle">--network none</text>
+    </g>
+
+    <!-- Arrow from Stage 4 Oracle to Phase III -->
+    <line x1="878" y1="238" x2="908" y2="238" stroke="#34D399" stroke-width="2.2" marker-end="url(#arrowEmerald)"/>
+
+    <!-- ===================================================================== -->
+    <!-- COLUMN 3: STAGES 5 TO 7 (MUTATION, BLAST RADIUS & CANARY DELIVERY)     -->
+    <!-- ===================================================================== -->
+    <g transform="translate(912, 42)">
+      <rect x="0" y="0" width="296" height="392" rx="12" fill="url(#cardDark)" stroke="#10B981" stroke-width="1.5"/>
+      <rect x="0" y="0" width="296" height="34" rx="12" fill="#063229"/>
+      <text x="148" y="22" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="800" fill="#6EE7B7" text-anchor="middle">PHASE III // HARDENING &amp; RELEASE</text>
+
+      <!-- Stage 5: Mutation -->
+      <rect x="16" y="48" width="264" height="92" rx="8" fill="#0B1120" stroke="#059669"/>
+      <text x="28" y="68" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#34D399">STAGE 5 │ Diff-Scoped Mutation</text>
+      <text x="28" y="87" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">Mutates ONLY touched AST lines.</text>
+      <text x="28" y="104" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">Prunes AST-equivalent mutants (+16.7pp).</text>
+      <text x="28" y="123" font-family="ui-monospace, SFMono-Regular, monospace" font-size="10.5" fill="#6EE7B7">Gate: Mutation Kill Score ≥ 80%</text>
+
+      <line x1="148" y1="140" x2="148" y2="158" stroke="#34D399" stroke-width="1.8" marker-end="url(#arrowEmerald)"/>
+
+      <!-- Stage 6: Integration & Blast Radius -->
+      <rect x="16" y="160" width="264" height="96" rx="8" fill="#0B1120" stroke="#059669"/>
+      <text x="28" y="180" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#34D399">STAGE 6 │ Blast Radius &amp; DDL Gate</text>
+      <text x="28" y="199" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">Built-in import, OpenAPI/Protobuf &amp;</text>
+      <text x="28" y="216" font-family="system-ui, sans-serif" font-size="11.5" fill="#CBD5E1">SQL DDL linter (+ optional AST graph</text>
+      <text x="28" y="233" font-family="system-ui, sans-serif" font-size="11.5" fill="#94A3B8">plugin via indexer_cmd / ChronosGraph).</text>
+
+      <line x1="148" y1="256" x2="148" y2="274" stroke="#34D399" stroke-width="1.8" marker-end="url(#arrowEmerald)"/>
+
+      <!-- Stage 7: Progressive Delivery -->
+      <rect x="16" y="276" width="264" height="98" rx="8" fill="#052E16" stroke="#10B981" stroke-width="1.4"/>
+      <text x="28" y="296" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#6EE7B7">STAGE 7 │ Progressive Delivery</text>
+      <text x="28" y="315" font-family="system-ui, sans-serif" font-size="11.5" fill="#D1FAE5">Canary rollout rings (1% → 5% → 25% → 100%)</text>
+      <text x="28" y="332" font-family="system-ui, sans-serif" font-size="11.5" fill="#D1FAE5">+ Rollback Sentinel &amp; Circuit Breaker CB-06</text>
+      <text x="28" y="354" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11" font-weight="700" fill="#34D399">✓ Slice Complete &amp; Audited</text>
+    </g>
+
+    <!-- ===================================================================== -->
+    <!-- BOTTOM BAR: THE 4 CANONICAL A2-DLC PROTOCOL ARTIFACTS                  -->
+    <!-- ===================================================================== -->
+    <g transform="translate(0, 452)">
+      <rect x="0" y="0" width="1208" height="98" rx="12" fill="#090F1E" stroke="#334155" stroke-width="1.5"/>
+      <text x="20" y="24" font-family="ui-monospace, SFMono-Regular, monospace" font-size="11.5" font-weight="800" fill="#94A3B8" letter-spacing="1">
+        CANONICAL PROTOCOL ARTIFACTS (VALIDATED BY JSON SCHEMA DRAFT 2020-12 IN contracts/*.schema.json)
+      </text>
+
+      <!-- Artifact 1: contract.json -->
+      <rect x="20" y="36" width="280" height="48" rx="6" fill="#0F172A" stroke="#6366F1"/>
+      <text x="34" y="55" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#A5B4FC">1. contract.json (S*)</text>
+      <text x="34" y="73" font-family="system-ui, sans-serif" font-size="11" fill="#94A3B8">Typed pre/postconditions, Z3 rules &amp; allowlist</text>
+
+      <!-- Artifact 2: verdict.json -->
+      <rect x="316" y="36" width="280" height="48" rx="6" fill="#0F172A" stroke="#10B981"/>
+      <text x="330" y="55" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#6EE7B7">2. .a2dlc/verdict.json</text>
+      <text x="330" y="73" font-family="system-ui, sans-serif" font-size="11" fill="#94A3B8">Tri-state (PASS/FAIL/INCONCLUSIVE) + tree_hash</text>
+
+      <!-- Artifact 3: waivers.json -->
+      <rect x="612" y="36" width="280" height="48" rx="6" fill="#0F172A" stroke="#38BDF8"/>
+      <text x="626" y="55" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#7DD3FC">3. .a2dlc/waivers.json</text>
+      <text x="626" y="73" font-family="system-ui, sans-serif" font-size="11" fill="#94A3B8">Intentional change waivers signed via ssh-keygen -Y</text>
+
+      <!-- Artifact 4: ledger.json -->
+      <rect x="908" y="36" width="280" height="48" rx="6" fill="#0F172A" stroke="#F59E0B"/>
+      <text x="922" y="55" font-family="ui-monospace, SFMono-Regular, monospace" font-size="12" font-weight="700" fill="#FDE68A">4. ledger.json &amp; stage7_plan.json</text>
+      <text x="922" y="73" font-family="system-ui, sans-serif" font-size="11" fill="#94A3B8">SHA-256 hash-chained container isolation receipt</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,42 @@
+{
+ "schema_version": 1,
+ "mutants": [
+  {
+   "id": "m001",
+   "file": "src/calc.py",
+   "line": 14,
+   "operator": "swap_args",
+   "description": "comparison == changed to !="
+  },
+  {
+   "id": "m002",
+   "file": "src/calc.py",
+   "line": 15,
+   "operator": "constant",
+   "description": "numeric constant changed: +1"
+  },
+  {
+   "id": "m003",
+   "file": "src/calc.py",
+   "line": 17,
+   "operator": "arithmetic",
+   "description": "arithmetic operator / changed to *"
+  },
+  {
+   "id": "m004",
+   "file": "src/calc.py",
+   "line": 17,
+   "operator": "return_none",
+   "description": "return <value> changed to return None"
+  }
+ ],
+ "not_generated": [],
+ "pruned": [
+  {
+   "file": "src/calc.py",
+   "line": 16,
+   "reason": "equivalent: logging-only statement"
+  }
+ ],
+ "error": null
+}

@@ -1,0 +1,12 @@
+{
+ "schema_version": 1,
+ "edges": [
+  {
+   "from": "src/app.py",
+   "to": "src/calc.py"
+  }
+ ],
+ "unresolved": [
+  "requests"
+ ]
+}

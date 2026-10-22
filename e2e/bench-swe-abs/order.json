@@ -1,0 +1,697 @@
+[
+ {
+  "instance_id": "pytest-dev__pytest-5631",
+  "repo": "pytest-dev/pytest",
+  "version": "5.0",
+  "python": "3.9",
+  "base_commit": "cb828ebe70b4fa35cd5f9a7ee024272237eab351",
+  "gold_files": [
+   "src/_pytest/compat.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "django__django-16100",
+  "repo": "django/django",
+  "version": "4.2",
+  "python": "3.9",
+  "base_commit": "c6350d594c359151ee17b0c4f354bb44f28ff69e",
+  "gold_files": [
+   "django/contrib/admin/options.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "<15 min fix",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "sympy__sympy-18211",
+  "repo": "sympy/sympy",
+  "version": "1.6",
+  "python": "3.9",
+  "base_commit": "b4f1aa3540fe68d078d76e78ba59d022dd6df39f",
+  "gold_files": [
+   "sympy/core/relational.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "sphinx-doc__sphinx-9230",
+  "repo": "sphinx-doc/sphinx",
+  "version": "4.1",
+  "python": "3.9",
+  "base_commit": "567ff22716ac258b9edd2c1711d766b440ac0b11",
+  "gold_files": [
+   "sphinx/util/docfields.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "<15 min fix",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "django__django-15315",
+  "repo": "django/django",
+  "version": "4.1",
+  "python": "3.9",
+  "base_commit": "652c68ffeebd510a6f59e1b56b3e007d07683ad8",
+  "gold_files": [
+   "django/db/models/fields/__init__.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "<15 min fix",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "astropy__astropy-13453",
+  "repo": "astropy/astropy",
+  "version": "5.0",
+  "python": "3.9",
+  "base_commit": "19cc80471739bcb67b7e8099246b391c355023ee",
+  "gold_files": [
+   "astropy/io/ascii/html.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "django__django-15731",
+  "repo": "django/django",
+  "version": "4.2",
+  "python": "3.9",
+  "base_commit": "93cedc82f29076c824d476354527af1150888e4f",
+  "gold_files": [
+   "django/db/models/manager.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "django__django-16454",
+  "repo": "django/django",
+  "version": "5.0",
+  "python": "3.11",
+  "base_commit": "1250483ebf73f7a82ff820b94092c63ce4238264",
+  "gold_files": [
+   "django/core/management/base.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250915_JoyCode",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "django__django-14787",
+  "repo": "django/django",
+  "version": "4.1",
+  "python": "3.9",
+  "base_commit": "004b4620f6f4ad87261e149898940f2dcd5757ef",
+  "gold_files": [
+   "django/utils/decorators.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "<15 min fix",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "sphinx-doc__sphinx-9711",
+  "repo": "sphinx-doc/sphinx",
+  "version": "4.3",
+  "python": "3.9",
+  "base_commit": "81a4fd973d4cfcb25d01a7b0be62cdb28f82406d",
+  "gold_files": [
+   "sphinx/extension.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "<15 min fix",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands"
+  ]
+ },
+ {
+  "instance_id": "sympy__sympy-13031",
+  "repo": "sympy/sympy",
+  "version": "1.1",
+  "python": "3.9",
+  "base_commit": "2dfa7457f20ee187fbb09b5b6a1631da4458388c",
+  "gold_files": [
+   "sympy/matrices/sparse.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "django__django-15563",
+  "repo": "django/django",
+  "version": "4.1",
+  "python": "3.9",
+  "base_commit": "9ffd4eae2ce7a7100c98f681e2b6ab818df384a4",
+  "gold_files": [
+   "django/db/models/sql/compiler.py",
+   "django/db/models/sql/subqueries.py"
+  ],
+  "f2p_n": 2,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251120_livesweagent_gemini-3-pro-preview"
+  ]
+ },
+ {
+  "instance_id": "sympy__sympy-14711",
+  "repo": "sympy/sympy",
+  "version": "1.1",
+  "python": "3.9",
+  "base_commit": "c6753448b5c34f95e250105d76709fe4d349ca1f",
+  "gold_files": [
+   "sympy/physics/vector/vector.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "<15 min fix",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "matplotlib__matplotlib-24026",
+  "repo": "matplotlib/matplotlib",
+  "version": "3.6",
+  "python": "3.11",
+  "base_commit": "14c96b510ebeba40f573e512299b1976f35b620e",
+  "gold_files": [
+   "lib/matplotlib/stackplot.py"
+  ],
+  "f2p_n": 2,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "sympy__sympy-13877",
+  "repo": "sympy/sympy",
+  "version": "1.1",
+  "python": "3.9",
+  "base_commit": "1659712001810f5fc563a443949f8e3bb38af4bd",
+  "gold_files": [
+   "sympy/matrices/matrices.py",
+   "sympy/utilities/randtest.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250901_warp",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "sphinx-doc__sphinx-8056",
+  "repo": "sphinx-doc/sphinx",
+  "version": "3.2",
+  "python": "3.9",
+  "base_commit": "e188d56ed1248dead58f3f8018c0e9a3f99193f7",
+  "gold_files": [
+   "sphinx/ext/napoleon/docstring.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250819_ACoder",
+   "20250902_atlassian-rovo-dev",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "django__django-15957",
+  "repo": "django/django",
+  "version": "4.2",
+  "python": "3.9",
+  "base_commit": "f387d024fc75569d2a4a338bfda76cc2f328f627",
+  "gold_files": [
+   "django/db/models/fields/related_descriptors.py"
+  ],
+  "f2p_n": 4,
+  "difficulty": "1-4 hours",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250901_warp",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "pylint-dev__pylint-7080",
+  "repo": "pylint-dev/pylint",
+  "version": "2.15",
+  "python": "3.9",
+  "base_commit": "3c5eca2ded3dd2b59ebaf23eb289453b5d2930f0",
+  "gold_files": [
+   "pylint/lint/expand_modules.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5"
+  ]
+ },
+ {
+  "instance_id": "sphinx-doc__sphinx-8595",
+  "repo": "sphinx-doc/sphinx",
+  "version": "3.5",
+  "python": "3.9",
+  "base_commit": "b19bce971e82f2497d67fdacdeca8db08ae0ba56",
+  "gold_files": [
+   "sphinx/ext/autodoc/__init__.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "<15 min fix",
+  "resolved_by": [
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands"
+  ]
+ },
+ {
+  "instance_id": "matplotlib__matplotlib-24570",
+  "repo": "matplotlib/matplotlib",
+  "version": "3.6",
+  "python": "3.11",
+  "base_commit": "8f0003ae902952372824c9917975fb372c026a42",
+  "gold_files": [
+   "lib/matplotlib/offsetbox.py"
+  ],
+  "f2p_n": 2,
+  "difficulty": "<15 min fix",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "sympy__sympy-15875",
+  "repo": "sympy/sympy",
+  "version": "1.4",
+  "python": "3.9",
+  "base_commit": "b506169ad727ee39cb3d60c8b3ff5e315d443d8e",
+  "gold_files": [
+   "sympy/core/add.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "<15 min fix",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250915_JoyCode",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands"
+  ]
+ },
+ {
+  "instance_id": "sphinx-doc__sphinx-9673",
+  "repo": "sphinx-doc/sphinx",
+  "version": "4.3",
+  "python": "3.9",
+  "base_commit": "5fb51fb1467dc5eea7505402c3c5d9b378d3b441",
+  "gold_files": [
+   "sphinx/ext/autodoc/typehints.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "sympy__sympy-16792",
+  "repo": "sympy/sympy",
+  "version": "1.5",
+  "python": "3.9",
+  "base_commit": "09786a173e7a0a488f46dd6000177c23e5d24eed",
+  "gold_files": [
+   "sympy/utilities/codegen.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250603_Refact_Agent_claude-4-sonnet",
+   "20250612_trae",
+   "20250720_Lingxi-v1.5_claude-4-sonnet-20250514",
+   "20250731_harness_ai",
+   "20250804_epam-ai-run-claude-4-sonnet",
+   "20250807_openhands_gpt5",
+   "20250819_ACoder",
+   "20250901_warp",
+   "20250902_atlassian-rovo-dev",
+   "20250915_JoyCode",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251103_SalesforceAIResearch_SAGE_OpenHands",
+   "20251103_sonar-foundation-agent_claude-sonnet-4-5",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ },
+ {
+  "instance_id": "django__django-15280",
+  "repo": "django/django",
+  "version": "4.1",
+  "python": "3.9",
+  "base_commit": "973fa566521037ac140dcece73fceae50ee522f1",
+  "gold_files": [
+   "django/db/models/fields/related_descriptors.py"
+  ],
+  "f2p_n": 1,
+  "difficulty": "15 min - 1 hour",
+  "resolved_by": [
+   "20250522_tools_claude-4-opus",
+   "20250522_tools_claude-4-sonnet",
+   "20250612_trae",
+   "20250901_warp",
+   "20250928_trae_doubao_seed_code",
+   "20251015_Prometheus_v1.2.1_gpt5",
+   "20251021_SalesforceAIResearch_SAGE_bash_only",
+   "20251120_livesweagent_gemini-3-pro-preview",
+   "20251205_sonar-foundation-agent_claude-opus-4-5",
+   "20251215_livesweagent_claude-opus-4-5"
+  ]
+ }
+]

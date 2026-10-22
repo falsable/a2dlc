@@ -1,0 +1,29 @@
+{
+ "schema_version": 1,
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-17T18:30:00Z",
+ "items": [
+  {
+   "id": "esc-3f1cd833ebcd",
+   "kind": "protected_boundary",
+   "target": "docs/notas.md::docs/**",
+   "summary": "The builder changed docs/notes.md, which the intent declares out of scope (boundary.forbidden_paths). Revert the change, or a person signs a waiver: escalating privileges is their decision, not the builder's.",
+   "evidence": {
+    "message": "+ The media() notes no longer say anything about the empty list."
+   },
+   "resolve_with": [],
+   "builder": "builder_primary"
+  },
+  {
+   "id": "esc-bd1903797600",
+   "kind": "protected_boundary",
+   "target": "src/calc.py::media",
+   "summary": "The builder changed a line of src/calc.py that contains media, declared do_not_refactor in the intent. Revert the change, or a person signs a waiver: escalating privileges is their decision, not the builder's.",
+   "evidence": {
+    "message": "+ def media(xs, por_defecto=None):"
+   },
+   "resolve_with": [],
+   "builder": "builder_primary"
+  }
+ ]
+}

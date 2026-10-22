@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "edges": [
+    {
+      "from": "services/billing/handler.py",
+      "to": "src/calc.py"
+    },
+    {
+      "from": "clients/web/app.py",
+      "to": "services/billing/handler.py"
+    }
+  ],
+  "blast_radius": {
+    "total_impacted": 2,
+    "ranking": [
+      {
+        "file": "src/calc.py",
+        "blast_radius": 2,
+        "risk_score": 0.45,
+        "high_risk_functions": 1
+      }
+    ]
+  },
+  "error": null
+}

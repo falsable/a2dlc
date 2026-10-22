@@ -1,0 +1,27 @@
+{
+ "schema_version": 1,
+ "targets": [
+  {
+   "target": "src/lib/routes.ts::tabToPath",
+   "engine": "fast-check",
+   "engine_version": "3.23.2",
+   "verdict": "FAIL",
+   "search_budget": {
+    "examples": 2000,
+    "seed": 42
+   },
+   "generators": "repo_override",
+   "typed": true,
+   "domain_guard": null,
+   "equivalence": "strict",
+   "counterexample": null
+  }
+ ],
+ "out_of_scope": [
+  {
+   "file": "src/App.tsx",
+   "reason": "not_pure"
+  }
+ ],
+ "error": null
+}

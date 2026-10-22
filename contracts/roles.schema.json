@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/roles.schema.json",
+  "title": "Roles with LLM from the protocol (.a2dlc/roles.json, versioned)",
+  "description": "Which command runs each role of §3 of the protocol and which family it belongs to. a2dlc run launches each role in its own --rm container, without a persistent HOME, with /in (read-only: request.json and the artifacts the core's policy lets it see), /out (empty, writable: it leaves response.json there) and, only for the builders, /work (writable copy of the tree). The role → visible artifacts policy is fixed in the binary (ADR meta/0004, amendment 2026-10-17): this file chooses image, command and family, but cannot widen mounts. A role that is absent leaves its stage skipped; the verdict says so. The core knows nothing of providers: the credential arrives through env_file, which the core passes to docker without using its values (it only reads the variable names). tier_up (CB-02b) is the same kind of configuration: the higher tier that Stage 3 tries once when a builder exhausts its rounds without a green Tier 0.",
+  "type": "object",
+  "$defs": {
+    "config": {
+      "description": "The shape of a role. No additionalProperties: whoever uses it closes it with unevaluatedProperties, so tier_up has the same shape and cannot have its own tier_up.",
+      "type": "object",
+      "properties": {
+        "family": { "$ref": "run-defs.schema.json#/$defs/family" },
+        "image": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/:@-]*$", "description": "Image with the agent's CLI or the role's script. It is recorded with its digest in the ledger. It is an image reference and cannot start with \"-\": it goes as a positional argument of docker run, where a \"--volume=...\" would be read as a flag and would widen the mounts." },
+        "argv": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Command inside the container. Receives A2DLC_REQUEST=/in/request.json and A2DLC_RESPONSE=/out/response.json; its output is validated against role-response.schema.json."
+        },
+        "env_file": { "type": "string", "minLength": 1, "description": "Local path (outside the repo) with the provider's credential, passed with --env-file. Each line is NAME=value, with NAME as in the ledger (^[A-Z_][A-Z0-9_]*$); a line that is not is rejected before launching the role. The core records the variable names, never the values." },
+        "env": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Z_][A-Z0-9_]*$", "not": { "enum": ["HOME", "A2DLC_REQUEST", "A2DLC_RESPONSE", "A2DLC_ROLE", "A2DLC_STAGE", "A2DLC_TIMEOUT_S"] } },
+          "additionalProperties": { "type": "string" },
+          "description": "Non-secret variables that the core passes with -e (e.g. A2DLC_LLM=gemini, A2DLC_MODEL). They are versioned with the file, so a credential goes in env_file, never here. The ledger records the names together with those of env_file; the values stay in the hash of the docker argv. It cannot overwrite the variables the core sets."
+        },
+        "network": { "enum": ["provider", "none"], "default": "none", "description": "Egress of the role. none (default): no network, for deterministic script roles. provider: Docker network with egress only through the egress proxy, which enforces egress_allow (see README security model). An LLM role declares provider explicitly." },
+        "timeout_s": { "type": "integer", "minimum": 1, "default": 900 },
+        "retries": { "type": "integer", "minimum": 0, "maximum": 5, "default": 1, "description": "Retries when the response does not validate against the schema or the command fails; each attempt stays in the ledger." },
+        "paradigm": { "type": "string", "minLength": 1, "description": "Programming paradigm the role is asked to follow. Passed in the payload of the role; prompt-enforced, not verified." },
+        "egress_allow": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" }, "description": "Hostnames a provider role may reach through the egress proxy, which enforces this allowlist. Declare it for every backend other than openrouter or entropos; this schema does not check that rule." },
+        "memory": { "type": "string", "default": "2g" },
+        "cpus": { "type": "number", "default": 2 }
+      },
+      "required": ["family", "image", "argv"]
+    },
+    "tier_up": {
+      "description": "CB-02b: the role of a higher tier (same shape as a role, without its own tier_up). Stage 3 runs it once, with the round after the last one, when the builder exhausts max_inner_iterations without a green Tier 0.",
+      "allOf": [{ "$ref": "#/$defs/config" }],
+      "unevaluatedProperties": false
+    }
+  },
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "roles": {
+      "type": "object",
+      "propertyNames": { "$ref": "run-defs.schema.json#/$defs/role" },
+      "additionalProperties": {
+        "description": "A role: its configuration, and optionally a builder's higher tier (tier_up, CB-02b).",
+        "allOf": [{ "$ref": "#/$defs/config" }],
+        "properties": {
+          "tier_up": { "$ref": "#/$defs/tier_up" }
+        },
+        "unevaluatedProperties": false
+      }
+    },
+    "family_exception": {
+      "type": "object",
+      "description": "Written reason that allows two roles of the same family in this file. Absent: that is not allowed.",
+      "properties": { "reason": { "type": "string", "minLength": 1 } },
+      "required": ["reason"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "roles"],
+  "additionalProperties": false
+}

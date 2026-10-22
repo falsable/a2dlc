@@ -1,0 +1,21 @@
+{
+ "schema_version": 1,
+ "language": "python",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "base_dir": "/base",
+ "candidate_dir": "/cand",
+ "changed_files": [
+  "src/calc.py"
+ ],
+ "budget": {
+  "changed_lines": {
+   "src/calc.py": [
+    14,
+    15,
+    17
+   ]
+  }
+ },
+ "generators_override": null,
+ "operation": "mutate"
+}

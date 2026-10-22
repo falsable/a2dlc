@@ -1,0 +1,297 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/role-payloads.schema.json",
+  "title": "Payloads per role of a2dlc run (what goes inside role-request.payload and role-response.payload)",
+  "description": "Each block of the build order (ADR meta/0004, amendment 2026-10-17) adds its role's payload here. role-request and role-response require them per role with if/then. Block 2: the Saboteur. Block 3: the Builder (Tier 0). Block 5: the live mutants of Stage 5 in the Saboteur's request (survivors). Block 6: the specifiers and the Inquisitor of Stage 1. Block 7: the Back-translator and the Inquisitor comparator of Stage 1.5.",
+  "$defs": {
+    "saboteur_request": {
+      "description": "Stage 4, adversarial loop over uncovered_change, and Stage 5, over the live mutants (survivors): the core tells it which changed lines nobody examined and where the tests have to live. What it can read is in /in (contract S*, public signatures, escalations, intent); never the builder's code.",
+      "type": "object",
+      "properties": {
+        "round": { "type": "integer", "minimum": 1 },
+        "max_rounds": { "type": "integer", "minimum": 1 },
+        "uncovered": {
+          "description": "Stage 4: uncovered lines. In Stage 5 it is empty and the request brings survivors; one of the two cannot be empty.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file": { "type": "string", "minLength": 1 },
+              "lines": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "minItems": 1, "uniqueItems": true }
+            },
+            "required": ["file", "lines"],
+            "additionalProperties": false
+          }
+        },
+        "tests_paths": {
+          "description": "Globs of config.tests.paths: a test outside them is not accepted (it could not overwrite a source through the overlay).",
+          "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1
+        },
+        "command": { "type": "string", "minLength": 1, "description": "config.tests.command, so the role knows which runner and convention run the tests." },
+        "previous_tests": {
+          "description": "Tests that the Saboteur already delivered in earlier rounds and remain in the overlay: no need to repeat them.",
+          "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true
+        },
+        "survivors": {
+          "description": "Block 5, Stage 5: mutants that survived T with the kill gate under the threshold. The Saboteur writes tests that kill them, against the signatures and the contract: the description states the operator and the line, never the candidate's code (§5, \"no implementation comments\").",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/saboteur_survivor" }
+        }
+      },
+      "required": ["round", "max_rounds", "uncovered", "tests_paths", "command", "previous_tests"],
+      "additionalProperties": false,
+      "anyOf": [
+        { "properties": { "uncovered": { "minItems": 1 } } },
+        { "required": ["survivors"] }
+      ]
+    },
+    "saboteur_response": {
+      "description": "With status ok: the test files it wrote to /out/tests/<path>, with the path they will have in the repo and their hash. The core copies them to the run's overlay only if the hash matches and the path matches tests_paths; targets is what the role says it attacked (a declaration, not proof).",
+      "type": "object",
+      "properties": {
+        "test_files": { "type": "array", "items": { "$ref": "run-defs.schema.json#/$defs/hashed_file" } },
+        "targets": { "type": "array", "items": { "$ref": "defs.schema.json#/$defs/target_id" }, "uniqueItems": true }
+      },
+      "required": ["test_files", "targets"],
+      "additionalProperties": false
+    },
+    "builder_request": {
+      "description": "Block 3. Stage 3, Tier 0 loop: the Builder works in /work (a writable copy of the run's base, without .git) and the core takes the state of /work at the end of each round as the candidate. It sees the same as /in (S*, blocked probes, Tier 0 feedback, and the intent whenever it exists, with or without S*: a deviation from §3 declared in the deviations table of the README); never the Saboteur's suite nor another Builder's /work.",
+      "type": "object",
+      "properties": {
+        "intent": { "type": ["object", "null"], "description": "Content of the run's intent.json, or null if there is none." },
+        "contract": { "type": ["object", "null"], "description": "S* (contract.json), or null in lite mode." },
+        "probes": {
+          "oneOf": [{ "type": "null" }, { "type": "array", "items": { "$ref": "slice-contract.schema.json#/$defs/probe" } }],
+          "description": "Blocked probes of S* (probes.json): Tier 0 runs against /work those that carry file and expr; null if the run has none."
+        },
+        "round": { "type": "integer", "minimum": 1 },
+        "max_rounds": { "type": "integer", "minimum": 1, "description": "the run's max_inner_iterations." },
+        "tier0_feedback": {
+          "description": "What Tier 0 gave on /work in the previous round (engine-tier0-response, summed across engines); null in the first.",
+          "oneOf": [{ "type": "null" }, { "$ref": "engine-tier0-response.schema.json" }]
+        },
+        "header": { "$ref": "#/$defs/builder_header", "description": "@a2dlc header values (§6.3) that each created or modified source file must declare. The core builds them; the Builder copies them." },
+        "boundary": { "$ref": "intent.schema.json#/$defs/boundary", "description": "CB-04: what the intent declares untouchable (forbidden_paths, do_not_refactor). Absent if the intent declares no boundary; the builder does not change it and, if it does, the stage escalates." },
+        "engine_language": { "enum": ["python", "typescript"], "description": "Engine language of the repo. Absent means python." },
+        "paradigm": { "type": "string", "minLength": 1, "description": "Programming paradigm the builder follows (roles.<role>.paradigm). Prompt-enforced, not verified." },
+        "critical": { "type": "boolean", "description": "True when the effective track of the router is critical (N=2): the builder prompt then asks for lemmas." }
+      },
+      "required": ["intent", "contract", "probes", "round", "max_rounds", "tier0_feedback"],
+      "additionalProperties": false
+    },
+    "builder_header": {
+      "description": "@a2dlc header (§6.3) of the run for the Builder. slice_id, mode and contract_hash are what Stage 3 compares with each changed source file; a file that declares others fails the stage. contract_hash is null without S* (lite mode). protected_invariants comes from intent.invariants; rejected_alternatives from intent.rejected_alternatives; do_not_refactor stays empty until the intent has boundary.do_not_refactor.",
+      "type": "object",
+      "properties": {
+        "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+        "mode": { "$ref": "run-defs.schema.json#/$defs/mode" },
+        "contract_hash": { "oneOf": [{ "type": "null" }, { "$ref": "run-defs.schema.json#/$defs/sha256" }] },
+        "protected_invariants": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "rejected_alternatives": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "do_not_refactor": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      },
+      "required": ["slice_id", "mode", "contract_hash", "protected_invariants", "rejected_alternatives", "do_not_refactor"],
+      "additionalProperties": false
+    },
+    "builder_response": {
+      "description": "With status ok: a summary and the files it says it touched. It is a declaration, not proof: the candidate is the /work tree, and the core reads nothing else from /out.",
+      "type": "object",
+      "properties": {
+        "summary": { "type": "string", "minLength": 1 },
+        "files_changed": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "lemmas": {
+          "description": "Optional, Critical slices (N=2): the pure internal functions the builder declares with their postconditions. Names are unique within the array (the core checks it).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "postcondition": { "type": "string", "minLength": 1 }
+            },
+            "required": ["name", "postcondition"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["summary", "files_changed"],
+      "additionalProperties": false
+    },
+    "saboteur_survivor": {
+      "description": "Block 5: a live mutant as the Saboteur sees it (no id or code: file, line, operator and the template description).",
+      "type": "object",
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "operator": { "$ref": "engine-mutate-response.schema.json#/$defs/operator" },
+        "description": { "type": "string", "minLength": 1 }
+      },
+      "required": ["file", "line", "operator", "description"],
+      "additionalProperties": false
+    },
+    "spec_discrepancy": {
+      "description": "Block 6. A point where S_α and S_β do not say the same thing, with what each one says. resolution null: the Inquisitor could not decide it with the intent and the catalogue; after --max-spec-rounds it escalates (spec_divergence).",
+      "type": "object",
+      "properties": {
+        "topic": { "type": "string", "minLength": 1, "description": "Function, error or assumption on which they diverge (e.g. media: empty list)." },
+        "alpha": { "type": "string", "minLength": 1 },
+        "beta": { "type": "string", "minLength": 1 },
+        "resolution": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] }
+      },
+      "required": ["topic", "alpha", "beta", "resolution"],
+      "additionalProperties": false
+    },
+    "specifier_request": {
+      "description": "Block 6, Stage 1 (greenfield, brownfield_facade): Specifier α or β translates the intent into a candidate contract. It sees the intent and, if it exists, the capture (§3); never the other one's contract nor code from other slices. From round 2 onward it brings the discrepancies the Inquisitor did not resolve.",
+      "type": "object",
+      "properties": {
+        "intent": { "type": "object", "description": "the run's intent.json as is (Stage 0)." },
+        "capture": { "oneOf": [{ "type": "null" }, { "$ref": "capture.schema.json" }] },
+        "round": { "type": "integer", "minimum": 1 },
+        "discrepancies": { "type": "array", "items": { "$ref": "#/$defs/spec_discrepancy" } },
+        "engine_language": { "enum": ["python", "typescript"], "description": "Engine language of the repo. Absent means python." },
+        "rejection": { "type": "string", "minLength": 1, "description": "Only on the retry of the same round: why the core rejected the previous answer (a payload out of contract, a contract that does not validate, a wrong source or slice_id). Absent on the first attempt." }
+      },
+      "required": ["intent", "capture", "round", "discrepancies"],
+      "additionalProperties": false
+    },
+    "specifier_response": {
+      "description": "With status ok: the candidate contract. source must be the responding role and slice_id the run's; the core saves it as contract_alpha.json or contract_beta.json.",
+      "type": "object",
+      "properties": {
+        "contract": { "$ref": "slice-contract.schema.json" }
+      },
+      "required": ["contract"],
+      "additionalProperties": false
+    },
+    "inquisitor_request": {
+      "description": "Block 6, Stage 1: the two candidates and the base's assumption catalogue (null if the repo has none). Neither builder code nor the Saboteur's tests.",
+      "type": "object",
+      "properties": {
+        "contract_alpha": { "$ref": "slice-contract.schema.json" },
+        "contract_beta": { "$ref": "slice-contract.schema.json" },
+        "catalogue": { "oneOf": [{ "type": "null" }, { "$ref": "assumption-catalogue.schema.json" }] },
+        "round": { "type": "integer", "minimum": 1 },
+        "engine_language": { "enum": ["python", "typescript"], "description": "Engine language of the repo. Absent means python." },
+        "rejection": { "type": "string", "minLength": 1, "description": "Only on the retry of the same round: why the core rejected the previous answer (an invented catalogue id, a missing consensus probe, a contract that does not validate). Absent on the first attempt." }
+      },
+      "required": ["contract_alpha", "contract_beta", "catalogue", "round"],
+      "additionalProperties": false
+    },
+    "inquisitor_response": {
+      "description": "With status ok: consensus S*, the discrepancies it found (with their resolution or null) and the assumptions left open for a person. Each assumption with source catalogue must cite a catalogue entry.",
+      "type": "object",
+      "properties": {
+        "contract": {
+          "allOf": [
+            { "$ref": "slice-contract.schema.json" },
+            { "properties": { "source": { "const": "consensus" } } }
+          ]
+        },
+        "discrepancies": { "type": "array", "items": { "$ref": "#/$defs/spec_discrepancy" } },
+        "open_assumptions": { "type": "array", "items": { "$ref": "slice-contract.schema.json#/$defs/assumption" } }
+      },
+      "required": ["contract", "discrepancies", "open_assumptions"],
+      "additionalProperties": false
+    },
+    "back_translator_request": {
+      "description": "Block 7, Stage 1.5: the Back-translator reads S* in /in/contract.json and nothing else (§3: neither the intent nor the specifiers' reasoning). contract_hash is the sha256 of that file, to tie the translation to the translated contract.",
+      "type": "object",
+      "properties": {
+        "contract_hash": { "$ref": "run-defs.schema.json#/$defs/sha256" }
+      },
+      "required": ["contract_hash"],
+      "additionalProperties": false
+    },
+    "back_translator_response": {
+      "description": "With status ok: what the slice does according to S*, in prose, and concrete assertions (an input and what happens, or what S* forbids). The core saves it as backtranslation.json.",
+      "type": "object",
+      "properties": {
+        "prose": { "type": "string", "minLength": 1 },
+        "examples": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      },
+      "required": ["prose", "examples"],
+      "additionalProperties": false
+    },
+    "inquisitor_bt_request": {
+      "description": "Block 7, Stage 1.5: the Inquisitor as comparator of the back-translation (§5 step 5). It receives the intent and the translation in the payload, not via /in: the §3 policy is per role, and mounting intent.json for the Inquisitor would also show it in Stage 1. The prompt is chosen by request.stage (section \"Stage 1.5\" of roles/prompts/inquisitor.md).",
+      "type": "object",
+      "properties": {
+        "intent": { "type": "object", "description": "the run's intent.json as is." },
+        "backtranslation": {
+          "type": "object",
+          "properties": {
+            "prose": { "type": "string", "minLength": 1 },
+            "examples": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          },
+          "required": ["prose", "examples"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["intent", "backtranslation"],
+      "additionalProperties": false
+    },
+    "inquisitor_bt_response": {
+      "description": "With status ok: whether the translation says the same as the intent and, if not, each difference (what the intent says, what S* implies). matches true goes without discrepancies.",
+      "type": "object",
+      "properties": {
+        "matches": { "type": "boolean" },
+        "discrepancies": { "type": "array", "items": { "$ref": "backtranslation-review.schema.json#/$defs/discrepancy" } }
+      },
+      "required": ["matches", "discrepancies"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "matches": { "const": true } } },
+          "then": { "properties": { "discrepancies": { "maxItems": 0 } } },
+          "else": { "properties": { "discrepancies": { "minItems": 1 } } }
+        }
+      ]
+    },
+    "propose_request": {
+      "description": "Stage propose (a2dlc propose): the Propose role reads the public signatures of the changed functions and the diff, and proposes properties for them.",
+      "type": "object",
+      "properties": {
+        "engine_language": { "enum": ["python", "typescript"], "description": "Engine language of the repo that produced the signatures." },
+        "signatures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file": { "type": "string", "minLength": 1 },
+              "name": { "type": "string", "minLength": 1 },
+              "signature": { "type": "string", "minLength": 1 }
+            },
+            "required": ["file", "name", "signature"],
+            "additionalProperties": false
+          }
+        },
+        "diff": { "type": "string", "description": "Unified diff of the changed files." }
+      },
+      "required": ["engine_language", "signatures", "diff"],
+      "additionalProperties": false
+    },
+    "propose_response": {
+      "description": "With status ok: the properties proposed for the changed functions. Each one names its target, the property in prose and the file where it belongs.",
+      "type": "object",
+      "properties": {
+        "properties": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+              "property": { "type": "string", "minLength": 1 },
+              "file": { "type": "string", "minLength": 1 }
+            },
+            "required": ["target", "property", "file"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["properties"],
+      "additionalProperties": false
+    }
+  }
+}

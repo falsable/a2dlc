@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/delivery.schema.json",
+  "title": "Delivery plan of Stage 7, Progressive Delivery (.a2dlc/run/<slice>/delivery.json, not committed)",
+  "description": "Protocol §5, Stage 7. The binary does not deploy: from intent.delivery and the verdict, it builds the plan that the platform executes, and the run is tied to it (verify-run checks it by hash). Feature flag + canary rings (1 % → 10 % → 100 % by default), Rollback Sentinel over telemetry (error_rate_delta, latency_p99 and the slice's invariants, the expensive ones by periodic reconciliation), and CB-06: a slice with writes and no compensation strategy does not go past the 1 % ring (max_ring 1, blocked_by CB-06). In refactor, legacy/new parity only on read-only paths; on write paths, canary with compensation.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "mode": { "$ref": "run-defs.schema.json#/$defs/mode" },
+    "candidate": {
+      "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9a-f]{40}$" }],
+      "description": "The commit to deploy: that of Stage 3 (the one selected with N=2), or null if the run judged the working tree."
+    },
+    "feature_flag": { "type": "string", "pattern": "^a2dlc\\.[a-z][a-z0-9_.-]{0,99}$", "description": "Name of the flag that enables the slice per ring: a2dlc.<slice_id>." },
+    "writes": { "type": "boolean" },
+    "compensation": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "strategy": { "enum": ["compensating_events", "data_repair_script", "versioned_records"] },
+            "description": { "type": "string", "minLength": 1 }
+          },
+          "required": ["strategy", "description"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "rings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "percent": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "requires": {
+            "type": "array", "uniqueItems": true,
+            "items": { "enum": ["sentinel_green", "compensation_declared", "reconciliation_green"] },
+            "description": "What must be green in the previous ring to open this one: sentinel_green always; compensation_declared in every ring above 1 % when the slice writes; reconciliation_green at 100 % when there are invariants."
+          }
+        },
+        "required": ["percent", "requires"],
+        "additionalProperties": false
+      }
+    },
+    "max_ring": { "type": "integer", "minimum": 1, "maximum": 100, "description": "How far up the rings the slice can go with what is declared. 100 if nothing stops it; 1 with writes without compensation (CB-06)." },
+    "blocked_by": { "oneOf": [{ "type": "null" }, { "enum": ["CB-06"] }] },
+    "sentinel": {
+      "type": "object",
+      "properties": {
+        "error_rate_delta_max": { "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0 }], "description": "null: the platform sets it." },
+        "latency_p99_ms_max": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }] },
+        "invariants": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "reconciliation": { "enum": ["periodic", "none"], "description": "The invariants are asserted at runtime per request where possible; periodic when there are invariants: the expensive ones (global conservation) are also verified by the platform through periodic reconciliation, not per request. none without invariants." }
+      },
+      "required": ["error_rate_delta_max", "latency_p99_ms_max", "invariants", "reconciliation"],
+      "additionalProperties": false
+    },
+    "parity": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "mode": { "enum": ["scientist_read_only"] },
+            "write_paths": { "enum": ["canary_with_compensation"] },
+            "paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Globs of the read-only paths the parity runs on (intent.delivery.read_only_paths)." }
+          },
+          "required": ["mode", "write_paths"],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Only in refactor: dual legacy/new execution in the Scientist style on read-only paths; null in the other modes."
+    },
+    "canary": {
+      "type": "object",
+      "description": "Globs of the paths that get a canary with compensation: the write paths of the slice.",
+      "properties": {
+        "paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+      },
+      "required": ["paths"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "slice_id", "mode", "candidate", "feature_flag", "writes", "compensation", "rings", "max_ring", "blocked_by", "sentinel", "parity"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "writes": { "const": true } }, "required": ["writes"] },
+      "then": {
+        "properties": {
+          "sentinel": {
+            "properties": {
+              "error_rate_delta_max": { "type": "number" },
+              "latency_p99_ms_max": { "type": "integer" }
+            },
+            "required": ["error_rate_delta_max", "latency_p99_ms_max"]
+          }
+        }
+      }
+    }
+  ]
+}
