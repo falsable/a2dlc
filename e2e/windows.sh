@@ -10,7 +10,7 @@ failures=0
 expect() { # name expected actual
 	if [ "$2" = "$3" ]; then echo "ok   $1 (exit $3)"; else echo "BAD  $1: expected $2, got $3"; failures=$((failures + 1)); fi
 }
-save() { cp .a2dlc/verdict.json "$T/outputs/veredicto__$1.json"; }
+save() { cp .a2dlc/verdict.json "$T/outputs/verdict__$1.json"; }
 
 docker build -q -t a2dlc-engine-fake:0.1 "$R/engines/fake" >/dev/null || exit 1
 mkdir -p "$T/repo" "$T/remote" "$T/outputs" "$T/keys"
@@ -104,6 +104,6 @@ git checkout -q -- src/lib/f.ts
 MSYS_NO_PATHCONV=1 docker run --rm --network none -v "$(cygpath -w "$R/contracts"):/c:ro" -v "$(cygpath -w "$T/outputs"):/s:ro" \
 	a2dlc-contract-test python /c/tests/validate.py /c /s >"$T/conformance.txt"
 expect "the verdicts the binary writes match the schema" 0 $?
-grep -c "^ok  salida" "$T/conformance.txt" | sed 's/^/     verdicts validated: /'
+grep -c "^ok  output" "$T/conformance.txt" | sed 's/^/     verdicts validated: /'
 echo "failures: $failures"
 exit $((failures > 0))
