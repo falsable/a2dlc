@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      A2DLC_VERSION: v0.2.0
+      A2DLC_VERSION: v0.4.0
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -48,7 +48,7 @@ jobs:
       - name: black-box engine (ghcr, pinned by the release digest)
         env:
           GHCR_LOGIN: ${{ github.token }}
-          ENGINE: ghcr.io/falsable/a2dlc-engine-bb-go@sha256:ed80221d877542d851b1547782c2504ce8273e7c8fbacda2cab36c30db32b18e
+          ENGINE: ghcr.io/falsable/a2dlc-engine-bb-go@sha256:9157fabd587ed2cc02dd0cc79f576f97f818b59b362131b03706a4e0b69043b1
         # The digest comes from the release's IMAGENES.txt; it is retagged to the name .a2dlc/config.json asks for.
         run: |
           printf '%s' "$GHCR_LOGIN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin

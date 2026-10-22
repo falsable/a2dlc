@@ -5,7 +5,7 @@
 <br>
 
 [![Protocol: A2-DLC v3.4](https://img.shields.io/badge/protocol-A2--DLC%20v3.4-6366f1.svg?style=flat-square)](A2-DLC_v3.4_protocol.md)
-[![Release: v0.3.0](https://img.shields.io/badge/release-v0.3.0-10b981.svg?style=flat-square)](https://github.com/falsable/a2dlc/releases)
+[![Release: v0.4.0](https://img.shields.io/badge/release-v0.4.0-10b981.svg?style=flat-square)](https://github.com/falsable/a2dlc/releases)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-3b82f6.svg?style=flat-square)](../LICENSE)
 [![Go: 1.23+](https://img.shields.io/badge/go-1.23%2B-00ADD8.svg?style=flat-square&logo=go)](../go.mod)
 [![Agent Skill: SKILL.md](https://img.shields.io/badge/agent_skill-SKILL.md-8b5cf6.svg?style=flat-square)](../skills/a2dlc/SKILL.md)
@@ -41,7 +41,7 @@ When you use **Claude Code**, **Gemini CLI**, **Codex**, or **Cursor**, reviewin
 
 ```text
 Install and configure a2dlc in this repository:
-1. Download the latest a2dlc v0.3.0 binary for this OS from https://github.com/falsable/a2dlc/releases/latest (verify against SHA256SUMS) and place it on PATH.
+1. Download the latest a2dlc v0.4.0 binary for this OS from https://github.com/falsable/a2dlc/releases/latest (verify against SHA256SUMS) and place it on PATH.
 2. Copy the official agent skill from https://raw.githubusercontent.com/falsable/a2dlc/main/skills/a2dlc/SKILL.md into `.agents/skills/a2dlc/SKILL.md` and `.claude/skills/a2dlc/SKILL.md`, and read it.
 3. Run `a2dlc install --agent claude --agent gemini` to initialize `.a2dlc/config.json`, git hooks (`pre-commit` and `pre-push`), and agent lifecycle hooks (`PreToolUse` and `Stop`/`AfterAgent`).
 4. Run `a2dlc check` and resolve any `FAIL` or `INCONCLUSIVE` targets in `.a2dlc/verdict.json` following the skill instructions.
@@ -256,7 +256,7 @@ CI ──► a2dlc check again (the authority: a local receipt can be forged)
 Binaries for linux, darwin (amd64 and arm64) and windows (amd64) are attached to each release with `SHA256SUMS`.
 
 ```sh
-gh release download v0.3.0 -R falsable/a2dlc -p 'a2dlc-linux-amd64' -p SHA256SUMS
+gh release download v0.4.0 -R falsable/a2dlc -p 'a2dlc-linux-amd64' -p SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS && chmod +x a2dlc-linux-amd64
 ```
 
@@ -846,7 +846,7 @@ benchmarks.
 | TypeScript, `typed_default` (v1) | Same set, seed 1 | 5/8 detected. Generator v2 was tuned after seeing the escapes, so its figure is in-sample and is not reported as evidence. |
 | Python | Known-bad and equivalent pairs from the CrossHair smoke test | Bugs give `FAIL`, the equivalent refactor gives `PASS`, and an untyped base gives `INCONCLUSIVE`. About 45 s per check with two targets. |
 | Black box (self-gate) | 5 mutants of `internal/verdict` plus 1 equivalent, frozen by sha256 and committed before the engine existed; seeds 1, 2, 3 | 5/5 `FAIL`; the equivalent gives `PASS`. `FAIL` takes 8–12 s and `PASS` 24–27 s. |
-| CI self-gate | Pinned release (v0.1.2 at the time; now v0.2.0), engine pulled by digest | `PASS` with 10 targets in 37 s. A mutant branch gives `FAIL` (exit 1) with the mutant's counterexample in 67 s. |
+| CI self-gate | Pinned release (v0.1.2 at the time; now v0.4.0), engine pulled by digest | `PASS` with 10 targets in 37 s. A mutant branch gives `FAIL` (exit 1) with the mutant's counterexample in 67 s. |
 
 | Test gates (pytest 8.3.3) | 9 cases frozen by sha256 and committed before the gates existed: feature with a good test, test without teeth, bug fix with waiver, refactor with characterization test, new red test, regression, new method the engine cannot stub, killed run, modified test file | 9/9 as expected, 7–27 s per case. The 18 verdicts and escalation files written by the binary validate against the schemas. Flaky detection and intermittent candidate reds are covered by unit tests with a fake runner, since pytest cannot make them deterministic. |
 

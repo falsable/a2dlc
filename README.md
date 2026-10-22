@@ -5,7 +5,7 @@
 # A2-DLC — Autonomous Agent-Driven Development Lifecycle Protocol
 
 [![Protocol: A2-DLC v3.4 (RFC-0001)](https://img.shields.io/badge/protocol-A2--DLC%20v3.4%20(RFC--0001)-6366f1.svg?style=flat-square)](docs/A2-DLC_v3.4_protocol.md)
-[![Release: v0.3.0](https://img.shields.io/badge/release-v0.3.0-10b981.svg?style=flat-square)](https://github.com/falsable/a2dlc/releases)
+[![Release: v0.4.0](https://img.shields.io/badge/release-v0.4.0-10b981.svg?style=flat-square)](https://github.com/falsable/a2dlc/releases)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-3b82f6.svg?style=flat-square)](LICENSE)
 [![Go: 1.23+](https://img.shields.io/badge/go-1.23%2B-00ADD8.svg?style=flat-square&logo=go)](go.mod)
 [![Agent Skill: SKILL.md](https://img.shields.io/badge/agent_skill-SKILL.md-8b5cf6.svg?style=flat-square)](skills/a2dlc/SKILL.md)
