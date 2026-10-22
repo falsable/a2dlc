@@ -123,6 +123,8 @@ Install and configure A2-DLC in this repository:
 | **Refactor Equivalence Check (`old(x) ≡ new(x)`, bounded search)** | ❌ No | ❌ No | ❌ No | ❌ No | ❌ No | ✅ **Native (`a2dlc check`):** Rewrites base imports and compares base vs. candidate per function |
 | **Hash-Bound Receipt & Anti-Bypass** | ❌ None | ❌ None | ❌ None | ❌ None | Local event log | ✅ **`tree_hash` bound `.a2dlc/verdict.json` + `PreToolUse` guard + SSH-signed waivers (`ssh-keygen -Y`)** |
 
+Against the classic SDLC and the "Agentic Development Lifecycle" (ADLC) drawn in the "From SDLC to ADLC" infographic, stage by stage and artifact by artifact, with the test behind each row: [`docs/VS_SDLC_AND_ADLC.md`](docs/VS_SDLC_AND_ADLC.md).
+
 ---
 
 ## Protocol Architecture & Clean-Room State Machine (`Stages −1 to 7`)
@@ -145,7 +147,7 @@ Just as **Anthropic MCP** standardizes how agents connect to tools and **Google 
 | `a2dlc approve <file>::<symbol> --key <key>` | Cryptographically signs an intentional behavioral change in `.a2dlc/waivers.json` using `ssh-keygen -Y` (`a2dlc-approval` namespace). |
 | `a2dlc run --slice <id> --intent <file>` | **Full Protocol Mode (Stages −1 to 7):** Orchestrates clean-room containerized roles (`Specifier α/β`, `Inquisitor`, `Builder`, `Saboteur`) via `claude`, `gemini`, `openrouter`, or [`Entropos`](https://github.com/falsable/Entropos) (`A2DLC_LLM=entropos`). |
 | `a2dlc verify-run --slice <id>` | Verifies the SHA-256 hash-chained container isolation receipt (`ledger.json`), budget enforcement, and Stage −1..7 artifacts. |
-| `a2dlc mcp` | Starts the built-in **Model Context Protocol (MCP)** JSON-RPC 2.0 `stdio` server (`a2dlc_status`, `a2dlc_check`, `a2dlc_verify`, `a2dlc_verify_run`, `a2dlc_intent_from_ticket`, `a2dlc_format_report`). |
+| `a2dlc mcp` | Starts the built-in **Model Context Protocol (MCP)** JSON-RPC 2.0 `stdio` server (`a2dlc_status`, `a2dlc_check`, `a2dlc_verify`, `a2dlc_verify_run`, `a2dlc_intent_from_ticket`, `a2dlc_intent_from_signal`, `a2dlc_format_report`). |
 
 ---
 
@@ -167,6 +169,9 @@ While `A2-DLC`'s verification engines run inside strict `--network none` sandbox
        │
        ▼
   GitHub Actions / GitLab CI (`a2dlc verify --commit HEAD`)  ──►  ISO 42001 / EU AI Act Audit Package (Agora Core)
+       │
+       ▼
+  Rollback Sentinel alert (Stage 7 ring)  ──►  a2dlc_intent_from_signal  ──►  new bugfix intent, same invariants, boundary and budget cap
 ```
 
 | Enterprise System | How It Connects to `A2-DLC` | What It Automates |
@@ -206,6 +211,7 @@ All measurements use frozen mutants (`e2e/testdata/` pinned by SHA-256 before en
 | **Stage 5 AST Equivalent-Mutant Pruning** (`e2e/measure_mutate.sh`) | `mutmut` on `billing.py` before vs. after `prune_equivalent.py` (docstring, `__all__`, type-annotation & logging filters) | Raw kill rate **`48.9%` (`22/45`) $\rightarrow$ `65.6%` (`21/32`)** (**`+16.7 pp`**, 13 equivalent mutants pruned) |
 | **TypeScript Engine (`engines/ts`)** | 8 frozen mutants + 1 equivalent refactor (`fast-check` with domain generators, seeds 1–3) | **`8/8` mutants caught (`FAIL`)** on every seed; equivalent refactor `PASS` |
 | **Black-Box Self-Gate (`engines/blackbox`)** | 5 frozen mutants of `internal/verdict` + 1 equivalent refactor | **`5/5` mutants caught (`FAIL` in 8–12s)**; equivalent refactor `PASS` |
+| **Self-verification vs. the gate** ([`docs/VS_SDLC_AND_ADLC.md`](docs/VS_SDLC_AND_ADLC.md)) | The ADLC rule "every session verifies its own work" (`e2e/measure_self_verification.sh`, two readings: the test files the session changed, or the whole suite with the base's red tests discounted) against `a2dlc check`, same 9 frozen `gates-py` trees, real pytest | Self-verification lets **3 of the 5** blocking cases through on the changed-files reading and **2 of 5** on the suite reading (toothless test, unexamined method); `a2dlc check` blocks **5/5** and passes **4/4**, no false block |
 | **Test & Property Gates (`gates-py`, `gates-prop`)** | 12 frozen cases (NOP/Oracle toothless tests, regressions, Hypothesis properties, waivers) | **`12/12` judged as expected**; all emitted receipts validate against JSON Schemas |
 | **5-Repo Ecosystem Golden Thread E2E** *(internal)* | `compiled-policies` (`S*`) $\rightarrow$ `Entropos` + `a2dlc run` (Stages −1 to 7) + `ChronosGraph` Stage 6 AST $\rightarrow$ `verify-run` $\rightarrow$ ISO 42001 audit | **End-to-end `PASS` in ~11.2s** (`e2e/test_golden_thread_ecosystem.py`). Not reproducible from this repository alone: it needs sibling checkouts of the four other repos, one of them (`agencia-ia`) not public. |
 
