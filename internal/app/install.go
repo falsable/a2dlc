@@ -71,8 +71,12 @@ func (a App) initialConfig() contract.Config {
 			Paths: []string{"src/**/*.ts"}, Budget: json.RawMessage(`{"examples":2000,"seed":42}`)})
 	}
 	if exists("pyproject.toml") || exists("setup.py") {
+		paths := "**/*.py"
+		if exists("src") { // src layout: leave tests/ out of the engine; declare config.tests to gate them
+			paths = "src/**/*.py"
+		}
 		c.Engines = append(c.Engines, contract.EngineConfig{Language: "python", Image: enginePyImage,
-			Paths: []string{"**/*.py"}, Budget: json.RawMessage(`{"per_condition_timeout_s":10}`)})
+			Paths: []string{paths}, Budget: json.RawMessage(`{"per_condition_timeout_s":10}`)})
 	}
 	return c
 }

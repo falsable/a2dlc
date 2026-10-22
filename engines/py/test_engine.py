@@ -791,5 +791,56 @@ class Identical(Directory):
         self.assertNotIn("identical", r)
 
 
+class LocalRoots(unittest.TestCase):
+    """roots_local / rewrite_imports: which top-level names are the repo's own and how its imports are rewritten."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.tree = Path(self.tmp.name)
+
+    def write(self, rel: str, text: str = "") -> None:
+        p = self.tree / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text, encoding="utf-8")
+
+    def test_a_folder_without_init_named_like_an_installed_package_is_not_a_local_root(self):
+        # ChronosGraph's alembic/ holds migrations (env.py, versions/): it is not a package, and `import json` must stay stdlib
+        self.write("json/env.py", "X = 1\n")
+        self.write("json/versions/0001.py", "Y = 2\n")
+        self.assertNotIn("json", engine.roots_local(self.tree))
+
+    def test_a_real_package_keeps_being_a_local_root_even_if_the_name_is_installed(self):
+        self.write("json/__init__.py", "")
+        self.assertEqual(engine.roots_local(self.tree)["json"], "")
+
+    def test_a_folder_without_init_that_is_not_installed_stays_a_local_root(self):
+        self.write("scripts_not_installed/run.py", "X = 1\n")
+        self.assertIn("scripts_not_installed", engine.roots_local(self.tree))
+
+    def test_the_import_of_the_shadowed_package_is_left_alone(self):
+        self.write("json/env.py", "X = 1\n")
+        self.write("src/pkg/__init__.py", "")
+        self.write("src/pkg/m.py", "from json import loads\n")
+        engine.rewrite_imports(self.tree, "a2dlc_cand")
+        self.assertEqual((self.tree / "src/pkg/m.py").read_text(encoding="utf-8"), "from json import loads\n")
+
+    def test_a_dotted_import_is_rewritten_and_still_binds_the_root_name(self):
+        self.write("src/pkg/__init__.py", "")
+        self.write("src/pkg/sub.py", "X = 1\n")
+        self.write("src/pkg/m.py", "def f():\n    import pkg.sub\n    return pkg.sub.X\n")
+        engine.rewrite_imports(self.tree, "a2dlc_cand")
+        self.assertEqual((self.tree / "src/pkg/m.py").read_text(encoding="utf-8"),
+                         "def f():\n    import a2dlc_cand.src.pkg.sub as _a2dlc_pkg_sub, a2dlc_cand.src.pkg as pkg\n"
+                         "    return pkg.sub.X\n")
+
+    def test_a_dotted_import_with_alias_keeps_its_alias(self):
+        self.write("src/pkg/__init__.py", "")
+        self.write("src/pkg/sub.py", "X = 1\n")
+        self.write("src/pkg/m.py", "import pkg.sub as s\n")
+        engine.rewrite_imports(self.tree, "a2dlc_cand")
+        self.assertEqual((self.tree / "src/pkg/m.py").read_text(encoding="utf-8"), "import a2dlc_cand.src.pkg.sub as s\n")
+
+
 if __name__ == "__main__":
     unittest.main()

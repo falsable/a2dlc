@@ -305,7 +305,7 @@ git push                          # pre-push runs `a2dlc verify`
  "agent_hook": {"max_blocks": 4}}
 ```
 
-- **Scope** is the union of the engines' `paths` and `tests.source_paths`. Files outside it are reported in `out_of_scope` with reason `no_engine`; they are visible and do not block: the repository declared them out of the gate's business.
+- **Scope** is the union of the engines' `paths` and `tests.source_paths`. Files outside it are reported in `out_of_scope` with reason `no_engine`; they are visible and do not block: the repository declared them out of the gate's business. A test file that matches an engine path and not `tests.paths` is judged by the engine like any source (pytest functions with fixtures come back `INCONCLUSIVE`), so list the engine paths without the tests and declare `tests` (below) to send them to NOP/Oracle.
 - **Inside the scope nothing passes unseen.** A changed line that no `PASS`/`FAIL` target examined (engines report the `lines` of each target) and no test executed on the candidate leaves the verdict `INCONCLUSIVE` and an `uncovered_change` escalation with the lines. The verdict's `coverage` section lists, per file, what the engines examined, what tests executed and what nobody saw. `PASS` means "every changed line was examined and nothing diverged".
 - **An engine that crashes** or answers outside the contract makes the verdict `INCONCLUSIVE`.
 - **`max_files`** caps a run. Above it the verdict is `INCONCLUSIVE`, and the files that were not run are listed.

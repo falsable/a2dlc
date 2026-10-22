@@ -13,6 +13,7 @@ import ast
 import bisect
 import dataclasses
 import difflib
+import importlib.util
 import inspect
 import io
 import json
@@ -64,8 +65,20 @@ def copy_py(origin: Path, destination: Path) -> None:
         shutil.copyfile(p, d)
 
 
+def installed(name: str) -> bool:
+    """Whether `name` resolves to a module of this image (stdlib or site-packages). The engine's own folder is not one."""
+    try:
+        spec = importlib.util.find_spec(name)
+    except (ImportError, ValueError):
+        return False
+    origin = spec and (spec.origin or next(iter(spec.submodule_search_locations or []), None))
+    return bool(origin) and Path(__file__).resolve().parent not in Path(origin).resolve().parents
+
+
 def roots_local(tree: Path) -> dict[str, str]:
-    """Importable top-level name → prefix inside the tree ('' at the root, 'src.' in a src layout)."""
+    """Importable top-level name → prefix inside the tree ('' at the root, 'src.' in a src layout). A folder without
+    __init__.py that shares its name with an installed package (migrations in alembic/) is not the repo's own root:
+    claiming it would make every `from alembic import command` import the repo's folder instead."""
     roots: dict[str, str] = {}
     for base, prefix in ((tree / "src", "src."), (tree, "")):
         if not base.is_dir():
@@ -75,7 +88,7 @@ def roots_local(tree: Path) -> dict[str, str]:
                 continue
             if p.suffix == ".py":
                 roots.setdefault(p.stem, prefix)
-            elif p.is_dir() and any(p.rglob("*.py")):
+            elif p.is_dir() and any(p.rglob("*.py")) and ((p / "__init__.py").exists() or not installed(p.name)):
                 roots.setdefault(p.name, prefix)
     roots.pop("src", None)
     return roots
@@ -99,9 +112,16 @@ def rewrite_imports(tree: Path, package: str) -> None:
             elif isinstance(node, ast.Import):
                 for a in node.names:
                     head = a.name.split(".")[0]
-                    if head in roots and "." not in a.name:
-                        alias = a.asname or a.name
-                        changes.append((node.lineno, f"import {a.name}", f"import {package}.{roots[head]}{a.name} as {alias}"))
+                    if head not in roots:
+                        continue
+                    where = f"{package}.{roots[head]}"
+                    if "." not in a.name:
+                        changes.append((node.lineno, f"import {a.name}", f"import {where}{a.name} as {a.asname or a.name}"))
+                    elif a.asname:
+                        changes.append((node.lineno, f"import {a.name} as {a.asname}", f"import {where}{a.name} as {a.asname}"))
+                    else:  # `import pkg.sub` binds `pkg`: import the submodule, then bind the root under its own name
+                        changes.append((node.lineno, f"import {a.name}",
+                                        f"import {where}{a.name} as _a2dlc_{a.name.replace('.', '_')}, {where}{head} as {head}"))
         for lineno, old, new in changes:
             lines[lineno - 1] = lines[lineno - 1].replace(old, new, 1)
         if changes:

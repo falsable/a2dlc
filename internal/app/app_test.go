@@ -354,6 +354,34 @@ func TestInstallWritesTheEngineImagesOfTheBuild(t *testing.T) {
 	}
 }
 
+// A src layout keeps the tests out of the engine's paths: the CrossHair engine cannot judge pytest functions (fixtures
+// are untyped, so INCONCLUSIVE; a changed fixed test is a FAIL by design), and they belong to config.tests.
+func TestInstallPythonEnginePathsFollowTheLayout(t *testing.T) {
+	for layout, want := range map[string]string{"src": "src/**/*.py", "": "**/*.py"} {
+		a, _, dir := newRepo(t)
+		if err := os.Remove(filepath.Join(dir, ".a2dlc/config.json")); err != nil {
+			t.Fatal(err)
+		}
+		write(t, dir, "pyproject.toml", "[project]\nname = \"x\"\n")
+		if layout == "" { // newRepo seeds src/lib for its TypeScript fixture
+			if err := os.RemoveAll(filepath.Join(dir, "src")); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := a.Install("/opt/a2dlc", nil); err != nil {
+			t.Fatal(err)
+		}
+		b, _ := os.ReadFile(filepath.Join(dir, ".a2dlc/config.json"))
+		var c contract.Config
+		if err := json.Unmarshal(b, &c); err != nil {
+			t.Fatal(err)
+		}
+		if len(c.Engines) != 1 || len(c.Engines[0].Paths) != 1 || c.Engines[0].Paths[0] != want {
+			t.Fatalf("layout %q: engines %+v, want paths [%s]", layout, c.Engines, want)
+		}
+	}
+}
+
 func TestInstallCoexistsWithBeadsHook(t *testing.T) {
 	a, _, dir := newRepo(t)
 	git(t, dir, "config", "core.hooksPath", ".beads/hooks")
