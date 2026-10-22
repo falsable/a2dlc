@@ -173,7 +173,7 @@ func toolsCatalog() []toolDef {
 				"properties": map[string]any{
 					"base": map[string]any{
 						"type":        "string",
-						"description": "Optional git base ref to compare against (default: upstream or HEAD).",
+						"description": "Optional git base ref to compare against (default: upstream, else the fork point from origin's default branch, else HEAD).",
 					},
 				},
 			},

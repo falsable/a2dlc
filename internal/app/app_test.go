@@ -444,6 +444,18 @@ func TestHookPreToolUseBlocksBypassCommand(t *testing.T) {
 	if code = a.Hook(context.Background(), "claude", strings.NewReader(in), &out, &errb); code != 0 {
 		t.Fatalf("a commit must not be blocked, got code %d: %s", code, errb.String())
 	}
+	for cmd, want := range map[string]int{
+		`git commit -m 'fix push gate' --no-verify`:  0,
+		`git -C repo -c a=b push --no-verify origin`: 2,
+		`git commit -qm x --no-verify && git push`:   0,
+		`git add -A; git push -q --no-verify`:        2,
+	} {
+		errb.Reset()
+		in, _ := json.Marshal(map[string]any{"session_id": "s1", "tool_name": "Bash", "tool_input": map[string]string{"command": cmd}})
+		if code = a.Hook(context.Background(), "claude", bytes.NewReader(in), &out, &errb); code != want {
+			t.Fatalf("%q: expected code %d, got %d: %s", cmd, want, code, errb.String())
+		}
+	}
 }
 
 // The config that check applies is the base's: a diff that drops the glob from the working tree's config cannot make

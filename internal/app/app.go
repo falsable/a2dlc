@@ -863,7 +863,7 @@ func (a App) preTool(agent, tool string, in map[string]any, stdout, stderr io.Wr
 		cmd, _ := input["command"].(string)
 		cmdLower := strings.ToLower(cmd)
 		// The gate is the pre-push; a commit with --no-verify skips no a2dlc gate and stays allowed.
-		if strings.Contains(cmdLower, "--no-verify") && strings.Contains(cmdLower, "push") {
+		if strings.Contains(cmdLower, "--no-verify") && pushesWithoutVerify(cmdLower) {
 			msg := "a2dlc PreToolUse: cannot execute git push with --no-verify: a2dlc verification gates cannot be bypassed by an autonomous agent"
 			if agent == "gemini" {
 				json.NewEncoder(stdout).Encode(map[string]string{"decision": "block", "reason": msg})
@@ -875,6 +875,31 @@ func (a App) preTool(agent, tool string, in map[string]any, stdout, stderr io.Wr
 	}
 
 	return allow(agent, stdout)
+}
+
+// pushesWithoutVerify says whether a shell line runs git push with --no-verify. It looks at the git subcommand of each
+// segment (split on ;, & and |), so a commit whose message says "push" is not taken for a push.
+func pushesWithoutVerify(cmd string) bool {
+	for _, seg := range strings.FieldsFunc(cmd, func(r rune) bool { return r == ';' || r == '&' || r == '|' || r == '\n' }) {
+		words := strings.Fields(seg)
+		for i := 0; i < len(words); i++ {
+			if words[i] != "git" && !strings.HasSuffix(words[i], "/git") && !strings.HasSuffix(words[i], "git.exe") {
+				continue
+			}
+			j := i + 1
+			for j < len(words) && strings.HasPrefix(words[j], "-") {
+				if words[j] == "-c" || words[j] == "-C" {
+					j++
+				}
+				j++
+			}
+			if j < len(words) && words[j] == "push" && strings.Contains(seg, "--no-verify") {
+				return true
+			}
+			break
+		}
+	}
+	return false
 }
 
 func sanitize(s string) string {
