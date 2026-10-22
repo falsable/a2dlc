@@ -22,3 +22,10 @@ CLAUDE.local.md
 AGENTS.md
 .agents/
 .beads/hooks/
+
+# Security & Secrets rules
+.env
+.env.*
+*.key
+*.pem
+node_modules/

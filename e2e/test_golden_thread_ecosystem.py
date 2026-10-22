@@ -165,9 +165,9 @@ class GoldenThreadEcosystemTest(unittest.TestCase):
     """End-to-end verification across compiled-policies, Entropos, ChronosGraph, a2dlc, and agencia-ia."""
 
     def test_five_repo_golden_thread(self) -> None:
-        # Verify all 5 repositories exist in the workspace
-        for repo_dir in (A2DLC_ROOT, COMPILED_POLICIES_ROOT, CHRONOSGRAPH_SRC, ENTROPOS_ROOT, AGENCIA_IA_ROOT):
-            self.assertTrue(repo_dir.exists(), f"Missing ecosystem repository path: {repo_dir}")
+        # Verify public open-source ecosystem repositories exist in the workspace
+        for repo_dir in (A2DLC_ROOT, COMPILED_POLICIES_ROOT, CHRONOSGRAPH_SRC, ENTROPOS_ROOT):
+            self.assertTrue(repo_dir.exists(), f"Missing open-source ecosystem repository path: {repo_dir}")
 
         # -------------------------------------------------------------------------
         # STEP 1: compiled-policies -> Export formal S* SliceContract & validate schema
@@ -419,6 +419,10 @@ class GoldenThreadEcosystemTest(unittest.TestCase):
                 # -------------------------------------------------------------------------
                 # STEP 5: Ingest `.a2dlc/verdict.json` into `agencia-ia` Agora Core (ISO 42001)
                 # -------------------------------------------------------------------------
+                if not AGENCIA_IA_ROOT.exists():
+                    # Standalone open-source mode: step 5 skipped when commercial governance repo is not present
+                    return
+
                 from app.domain.code_verification import audit_a2dlc_receipt
 
                 verdict_path = repo / ".a2dlc" / "verdict.json"
