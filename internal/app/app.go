@@ -209,16 +209,26 @@ func generators(candidate string) *string {
 	return &s
 }
 
-// defaultBase is the upstream if there is one (so the verdict covers everything not yet pushed, not only what is
+// defaultBase is the pushed base if there is one (so the verdict covers everything not yet pushed, not only what is
 // uncommitted), and otherwise HEAD.
-// DefaultBase is the base when none was given: the upstream, or HEAD if there is none (a2dlc run also uses it).
+// DefaultBase is the base when none was given: the upstream, else the fork point from origin's default branch, else
+// HEAD (a2dlc run also uses it).
 func (a App) DefaultBase() string { return a.defaultBase() }
 
 func (a App) defaultBase() string {
-	if u := a.Repo.Upstream(); u != "" {
+	if u := a.pushedBase(); u != "" {
 		return u
 	}
 	return "HEAD"
+}
+
+// pushedBase is the upstream or, on a branch never pushed (an agent's worktree), where it forks from origin's default
+// branch. Against HEAD, a commit made in the worktree would leave the diff and pass unjudged.
+func (a App) pushedBase() string {
+	if u := a.Repo.Upstream(); u != "" {
+		return u
+	}
+	return a.Repo.RemoteDefaultBase()
 }
 
 // CheckOptions are the extra trees check looks at: Peers, commits of other builders on the same change (their tests
@@ -255,7 +265,7 @@ func (a App) candidateTree(candidate string) (string, error) {
 }
 
 // Check runs the engines overlaid on what changed from base to the working tree, and writes the verdict. An empty
-// base is the upstream, or HEAD if there is none.
+// base is the upstream, else the fork point from origin's default branch, else HEAD.
 func (a App) Check(ctx context.Context, base string) (contract.Verdict, error) {
 	return a.CheckWith(ctx, base, CheckOptions{})
 }
@@ -629,8 +639,8 @@ func (a App) Verify(commit string) ([]string, error) {
 		probs = append(probs, "the verdict is "+v.Verdict)
 	}
 	// A check against HEAD after committing does not see what is already committed: the base must be in what was pushed.
-	if u := a.Repo.Upstream(); u != "" && !a.Repo.IsAncestor(v.BaseRef, u) {
-		probs = append(probs, "the verdict's base ("+short(v.BaseRef)+") is not in the upstream: it does not cover unpushed commits; run a2dlc check")
+	if u := a.pushedBase(); u != "" && !a.Repo.IsAncestor(v.BaseRef, u) {
+		probs = append(probs, "the verdict's base ("+short(v.BaseRef)+") is not in what was pushed: it does not cover unpushed commits; run a2dlc check")
 	}
 	waivers, err := a.waivers(sha)
 	if err != nil {
@@ -852,8 +862,9 @@ func (a App) preTool(agent, tool string, in map[string]any, stdout, stderr io.Wr
 	if strings.EqualFold(tool, "Bash") {
 		cmd, _ := input["command"].(string)
 		cmdLower := strings.ToLower(cmd)
-		if strings.Contains(cmdLower, "--no-verify") && strings.Contains(cmdLower, "commit") {
-			msg := "a2dlc PreToolUse: cannot execute git commit with --no-verify: a2dlc verification gates cannot be bypassed by an autonomous agent"
+		// The gate is the pre-push; a commit with --no-verify skips no a2dlc gate and stays allowed.
+		if strings.Contains(cmdLower, "--no-verify") && strings.Contains(cmdLower, "push") {
+			msg := "a2dlc PreToolUse: cannot execute git push with --no-verify: a2dlc verification gates cannot be bypassed by an autonomous agent"
 			if agent == "gemini" {
 				json.NewEncoder(stdout).Encode(map[string]string{"decision": "block", "reason": msg})
 				return 0

@@ -24,8 +24,8 @@ var version = "0.1.0-dev"
 
 const usage = `usage: a2dlc <command>
   check   [--base <ref>] [--peer <ref>]... [--tests-overlay <dir>] [--require-signatures]
-          runs the engines and the test gates over what changed (base: the upstream, or HEAD if there is none) and writes
-          .a2dlc/verdict.json (0 PASS, 1 FAIL, 2 INCONCLUSIVE). --peer: tree of another builder of the same change;
+          runs the engines and the test gates over what changed (base: the upstream, else the fork point from
+          origin's default branch, else HEAD) and writes .a2dlc/verdict.json (0 PASS, 1 FAIL, 2 INCONCLUSIVE). --peer: tree of another builder of the same change;
           --tests-overlay: tests from outside that run over base, candidate and peers without being committed
   propose [--base <ref>] --out <empty dir outside the repo>
           asks the propose_properties role (roles.json) for the properties of the change from base to the working tree;
@@ -76,7 +76,7 @@ func run(args []string) int {
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {
 	case "check":
-		base := fs.String("base", "", "commit base (default: the upstream, or HEAD if there is none)")
+		base := fs.String("base", "", "commit base (default: the upstream, else the fork point from origin's default branch, else HEAD)")
 		signatures := fs.Bool("require-signatures", false, "fails if a waiver used has no valid signature (for CI)")
 		var peers list
 		fs.Var(&peers, "peer", "commit of another builder of the same change (repeatable)")
@@ -109,7 +109,7 @@ func run(args []string) int {
 	case "run":
 		slice := fs.String("slice", "", "slice id (lowercase letters, digits, dot, hyphen, underscore)")
 		mode := fs.String("mode", "", "greenfield, refactor, brownfield_facade or lite (empty: the intent's in a new run, the saved one on resume, or lite)")
-		base := fs.String("base", "", "commit base (default: the upstream, or HEAD if there is none)")
+		base := fs.String("base", "", "commit base (default: the upstream, else the fork point from origin's default branch, else HEAD)")
 		intent := fs.String("intent", "", "intent.json of the slice (Stage 0)")
 		cost := fs.Float64("max-cost-usd", 0, "CB-03: cost cap reported by the roles (0 = the intent's, or no cap)")
 		rounds := fs.Int("max-rounds", 0, fmt.Sprintf("Saboteur rounds: over uncovered_change in Stage 4 and over live mutants in Stage 5 (0 = the intent's, or %d)", a2run.MaxRoundsDefault))
@@ -201,7 +201,7 @@ func run(args []string) int {
 		fmt.Println("a2dlc approve: signed", args[1])
 		return 0
 	case "propose":
-		base := fs.String("base", "", "commit base (default: the upstream, or HEAD if there is none)")
+		base := fs.String("base", "", "commit base (default: the upstream, else the fork point from origin's default branch, else HEAD)")
 		out := fs.String("out", "", "empty folder outside the repository where the role's answer goes (required)")
 		if fs.Parse(args[1:]) != nil {
 			return 64

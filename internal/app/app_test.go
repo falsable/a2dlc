@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -224,8 +225,43 @@ func TestCheckAgainstHEADDoesNotWashCommittedChanges(t *testing.T) {
 		t.Fatalf("against HEAD it should see nothing: %+v %v", v, err)
 	}
 	probs, err := a.Verify("HEAD")
-	if err != nil || len(probs) != 1 || !strings.Contains(probs[0], "is not in the upstream") {
+	if err != nil || len(probs) != 1 || !strings.Contains(probs[0], "is not in what was pushed") {
 		t.Fatalf("verify washed the committed changes: %v %v", probs, err)
+	}
+}
+
+// An agent's worktree branch has no upstream: the default base is where it forks from origin's default branch, so what
+// the worker committed is still judged, and verify rejects a verdict against HEAD.
+func TestWorktreeBranchWithoutUpstreamIsJudgedAgainstTheRemoteDefault(t *testing.T) {
+	_, _, dir := newRepo(t)
+	remote := t.TempDir()
+	git(t, remote, "init", "-q", "--bare")
+	git(t, dir, "remote", "add", "origin", remote)
+	git(t, dir, "push", "-q", "origin", "HEAD:refs/heads/main")
+	git(t, dir, "fetch", "-q", "origin")
+	git(t, dir, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+	wt := filepath.Join(t.TempDir(), "worker")
+	git(t, dir, "worktree", "add", "-q", "-b", "worker", wt)
+	write(t, wt, "src/lib/f.ts", "export const f = 2\n")
+	write(t, wt, ".a2dlc/waivers.json", `{"schema_version":1,"waivers":[{"target":"src/lib/f.ts::f","decision":"enforce_new_behavior","reason":"x"}]}`)
+	git(t, wt, "add", "-A")
+	git(t, wt, "commit", "-qm", "worker change")
+	repo, err := gitx.Open(wt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := App{Repo: repo, Runner: &fakeEngine{}, Version: "test", Now: func() time.Time { return time.Unix(0, 0) }}
+
+	v, err := a.Check(context.Background(), "")
+	if err != nil || len(v.PendingWaivers) != 1 {
+		t.Fatalf("the default base is not the fork point from origin/HEAD: %+v %v", v, err)
+	}
+	if _, err = a.Check(context.Background(), "HEAD"); err != nil {
+		t.Fatal(err)
+	}
+	probs, err := a.Verify("HEAD")
+	if err != nil || len(probs) != 1 || !strings.Contains(probs[0], "is not in what was pushed") {
+		t.Fatalf("verify washed the worker's commit: %v %v", probs, err)
 	}
 }
 
@@ -333,10 +369,8 @@ func TestInstallCoexistsWithBeadsHook(t *testing.T) {
 	if strings.Count(s, blockStart) != 1 || !strings.HasPrefix(s, "#!/usr/bin/env sh\n"+blockStart) || !strings.Contains(s, "BEGIN BEADS") {
 		t.Fatalf("pre-push:\n%s", s)
 	}
-	preCommitFile, _ := os.ReadFile(filepath.Join(dir, ".beads/hooks/pre-commit"))
-	sCommit := string(preCommitFile)
-	if strings.Count(sCommit, blockStart) != 1 || !strings.Contains(sCommit, "check || exit 1") {
-		t.Fatalf("pre-commit:\n%s", sCommit)
+	if _, err := os.Stat(filepath.Join(dir, ".beads/hooks/pre-commit")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("install must not write a pre-commit: %v", err)
 	}
 	st, _ := os.ReadFile(filepath.Join(dir, ".claude/settings.json"))
 	if strings.Count(string(st), "hook claude") != 2 || !strings.Contains(string(st), "bd prime") || !strings.Contains(string(st), "PreToolUse") {
@@ -374,13 +408,41 @@ func TestHookPreToolUseAllowsNormalPath(t *testing.T) {
 	}
 }
 
+// An install from before the gate moved to the push left a blocking a2dlc block in pre-commit: reinstalling removes it
+// and keeps the foreign part of the hook.
+func TestInstallRemovesTheBlockingPreCommit(t *testing.T) {
+	a, _, dir := newRepo(t)
+	git(t, dir, "config", "core.hooksPath", ".beads/hooks")
+	write(t, dir, ".beads/hooks/pre-commit", "#!/usr/bin/env sh\n"+blockStart+"\n# old\n\"/opt/a2dlc\" check || exit 1\n"+blockEnd+"\n# --- BEGIN BEADS INTEGRATION v1.3.0 ---\nbd hooks run pre-commit \"$@\"\n# --- END BEADS INTEGRATION v1.3.0 ---\n")
+	write(t, dir, ".beads/hooks/only-a2dlc", "#!/bin/sh\n"+blockStart+"\n\"/opt/a2dlc\" check || exit 1\n"+blockEnd+"\n")
+	if _, err := a.Install("/opt/a2dlc", nil); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, ".beads/hooks/pre-commit"))
+	if s := string(b); strings.Contains(s, blockStart) || !strings.HasPrefix(s, "#!/usr/bin/env sh\n# --- BEGIN BEADS") {
+		t.Fatalf("pre-commit:\n%s", s)
+	}
+	if _, removed, err := a.removeHook("only-a2dlc"); err != nil || !removed {
+		t.Fatalf("removed=%v err=%v", removed, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".beads/hooks/only-a2dlc")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("a hook left with only its shebang must be deleted: %v", err)
+	}
+}
+
 func TestHookPreToolUseBlocksBypassCommand(t *testing.T) {
 	a, _, _ := newRepo(t)
 	var out, errb bytes.Buffer
-	in := `{"session_id":"s1","tool_name":"Bash","tool_input":{"command":"git commit -m 'skip' --no-verify"}}`
+	in := `{"session_id":"s1","tool_name":"Bash","tool_input":{"command":"git push origin HEAD --no-verify"}}`
 	code := a.Hook(context.Background(), "claude", strings.NewReader(in), &out, &errb)
-	if code != 2 || !strings.Contains(errb.String(), "cannot execute git commit with --no-verify") {
+	if code != 2 || !strings.Contains(errb.String(), "cannot execute git push with --no-verify") {
 		t.Fatalf("expected code 2 and bypass message, got code %d: %s", code, errb.String())
+	}
+	// The commit is not a gate: blocking it would stop the agents' commits and the merges of their worktrees.
+	errb.Reset()
+	in = `{"session_id":"s1","tool_name":"Bash","tool_input":{"command":"git commit -m 'merge worker' --no-verify"}}`
+	if code = a.Hook(context.Background(), "claude", strings.NewReader(in), &out, &errb); code != 0 {
+		t.Fatalf("a commit must not be blocked, got code %d: %s", code, errb.String())
 	}
 }
 

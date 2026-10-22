@@ -22,7 +22,7 @@ const (
 	timeRFC   = "2006-01-02T15:04:05Z"
 )
 
-// Options for a run. An empty Base uses the same rule as check (upstream, or HEAD if there is none). Intent is the path
+// Options for a run. An empty Base uses the same rule as check (upstream, else the fork point from origin's default branch, else HEAD). Intent is the path
 // of the slice's intent.json (Stage 0); an empty Mode takes the intent's for a new run, or lite. MaxCostUSD (CB-03),
 // MaxRounds (the Saboteur's rounds in Stages 4 and 5) and MaxInner (Tier 0 loop) at 0 fall back to the intent's budget,
 // and without an intent to the default.

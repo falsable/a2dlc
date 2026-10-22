@@ -32,7 +32,7 @@
 First-generation agentic frameworks (`Spec Kit`, `BMAD`, `OpenSpec`, `Superpowers`) structure *prompts and Markdown plans*, but still trust the LLM at the end of the turn—falling into the **Circular Trap** where the same agent writes a bug in the code and the same bug in the test. **The `A2-DLC` protocol replaces LLM self-grading with executable checks and context isolation, and narrows human review to the behavior changes the gate cannot decide on its own**:
 
 1. **Lite Mode — Differential Execution Gate (`a2dlc check`):** Extracts every changed function from `git diff` and searches for an input where `old(x) ≠ new(x)` (`CrossHair` symbolic execution for Python, `fast-check` property testing for TypeScript, black-box I/O oracle for Go/CLI) inside hermetic (`--network none`) Docker containers, writing a receipt (`.a2dlc/verdict.json`) bound by hash to the Git `tree_hash`. A `PASS` means no difference was found within the recorded search budget: a bounded search, not a proof of equivalence ([spec §6.4 and §10](docs/A2-DLC_v3.4_protocol.md#64-verdict-and-waives-common-to-lite-and-full)).
-2. **Proactive & End-of-Turn Agent Lifecycle Hooks:** The `PreToolUse` hook intercepts attempts to edit `protected_paths` or run `git commit --no-verify` *before* execution, and the end-of-turn hook (`Stop` / `AfterAgent`) runs `a2dlc check` automatically, returning concrete counterexamples (`args`, `old`, `new`) to your agent until the gate passes.
+2. **Proactive & End-of-Turn Agent Lifecycle Hooks:** The `PreToolUse` hook intercepts attempts to edit `protected_paths` or run `git push --no-verify` *before* execution, and the end-of-turn hook (`Stop` / `AfterAgent`) runs `a2dlc check` automatically, returning concrete counterexamples (`args`, `old`, `new`) to your agent until the gate passes.
 3. **Full Protocol Mode — Clean-Room Autonomous State Machine (`a2dlc run`, Stages −1 to 7):** Orchestrates isolated container roles—dual Specifiers ($\alpha \not\equiv \beta$), an Inquisitor, Z3 SMT invariant checks, clean-room Builders with lemma gates, a blind **Saboteur** that attacks the code from public signatures without seeing its implementation, diff-scoped mutation testing, built-in import/OpenAPI/Protobuf/SQL-DDL blast-radius checks (with optional AST graph plugin support via `indexer_cmd`), and canary rollback plans.
 
 > **100% Standalone & Zero Lock-In:** `A2-DLC` requires **only** the `a2dlc` single binary, Git, and Docker. It works out of the box with your existing `Claude`, `Gemini`, or `OpenRouter` keys and includes its own built-in import/OpenAPI/Protobuf discovery and SQL DDL linter. Companion tools in the [`falsable`](https://github.com/falsable) ecosystem ([`ChronosGraph`](https://github.com/falsable/chronosgraph) for deep cross-repo AST graphs, [`Entropos`](https://github.com/falsable/Entropos) for Shannon-entropy LLM routing, and [`compiled-policies`](https://github.com/falsable/compiled-policies) for Z3 business policy compilation) are **strictly optional plugins** connected via open JSON contracts.
@@ -93,9 +93,9 @@ agy plugin install https://github.com/falsable/a2dlc
 
 | Agent Harness | Configure in Your Repo | What Gets Wired Automatically |
 | :--- | :--- | :--- |
-| **Claude Code** | `a2dlc install --agent claude` | `.a2dlc/config.json`, `pre-commit`/`pre-push` hooks, `.claude/settings.json` (`PreToolUse` + `Stop` hooks) |
-| **Gemini CLI / Antigravity** | `a2dlc install --agent gemini` | `.a2dlc/config.json`, `pre-commit`/`pre-push` hooks, `.gemini/settings.json` (`PreToolUse` + `AfterAgent` hooks) |
-| **Codex CLI / Cursor / Copilot** | `a2dlc install` + [`skills/a2dlc/SKILL.md`](skills/a2dlc/SKILL.md) | `.a2dlc/config.json`, `pre-commit` (`a2dlc check`), `pre-push` (`a2dlc verify`), and `.agents/skills/a2dlc/SKILL.md` |
+| **Claude Code** | `a2dlc install --agent claude` | `.a2dlc/config.json`, `pre-push` hook, `.claude/settings.json` (`PreToolUse` + `Stop` hooks) |
+| **Gemini CLI / Antigravity** | `a2dlc install --agent gemini` | `.a2dlc/config.json`, `pre-push` hook, `.gemini/settings.json` (`PreToolUse` + `AfterAgent` hooks) |
+| **Codex CLI / Cursor / Copilot** | `a2dlc install` + [`skills/a2dlc/SKILL.md`](skills/a2dlc/SKILL.md) | `.a2dlc/config.json`, `pre-push` (`a2dlc verify`; the agent runs `a2dlc check` per the skill), and `.agents/skills/a2dlc/SKILL.md` |
 | **MCP Clients (Cursor, Windsurf, Claude Desktop)** | `"mcpServers": { "a2dlc": { "command": "a2dlc", "args": ["mcp"] } }` | Exposes JSON-RPC 2.0 `stdio` tools: `a2dlc_status`, `a2dlc_check`, `a2dlc_verify`, `a2dlc_verify_run` |
 
 ### 3. Or Copy-Paste This Directly to Your Agent
@@ -139,7 +139,7 @@ Just as **Anthropic MCP** standardizes how agents connect to tools and **Google 
 
 | Command / Artifact | Role in the `A2-DLC` Protocol |
 | :--- | :--- |
-| `a2dlc install [--agent claude] [--agent gemini]` | Initializes `.a2dlc/config.json`, `pre-commit`/`pre-push` git hooks, and proactive/reactive agent lifecycle hooks (`PreToolUse`, `Stop`, `AfterAgent`). |
+| `a2dlc install [--agent claude] [--agent gemini]` | Initializes `.a2dlc/config.json`, the `pre-push` git hook (commits are never blocked, so agents' worktrees merge freely; the push is the gate), and proactive/reactive agent lifecycle hooks (`PreToolUse`, `Stop`, `AfterAgent`). |
 | `a2dlc check [--base <ref>] [--peer <ref>]` | **Lite Mode Gate (§4.4):** Runs differential engines (`engines/{py,ts,blackbox}`) and test gates (NOP/Oracle, baseline, coverage precondition); emits `.a2dlc/verdict.json` bound to `tree_hash`. |
 | `a2dlc verify [--commit HEAD]` | Verifies in `<50 ms` that `.a2dlc/verdict.json` is `PASS`, matches the current git `tree_hash`, and carries valid SSH signatures for any waiver. |
 | `a2dlc approve <file>::<symbol> --key <key>` | Cryptographically signs an intentional behavioral change in `.a2dlc/waivers.json` using `ssh-keygen -Y` (`a2dlc-approval` namespace). |

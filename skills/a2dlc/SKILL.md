@@ -15,7 +15,7 @@ You are operating in a repository guarded by **a2dlc** (Autonomous Agentic Devel
 
 ## 1. Golden Rules for Agents (Strictly Enforced by Hooks)
 
-1. **Never bypass the gate:** Never run `git commit --no-verify` or `git push --no-verify`. The `PreToolUse` hook intercepts and blocks bypass attempts.
+1. **Never bypass the gate:** Never run `git push --no-verify`. The `PreToolUse` hook intercepts and blocks bypass attempts.
 2. **Never edit `.a2dlc/verdict.json` or `.a2dlc/approvals.json` by hand:** `a2dlc verify` recomputes the git `tree_hash` and validates cryptographic SSH signatures. Forged receipts fail immediately.
 3. **Never modify `protected_paths`:** Files matching globs in `.a2dlc/config.json -> protected_paths` (such as human benchmark or compliance suites) are off-limits to agents.
 4. **Every changed line in scope must be exercised:** `PASS` requires 0 uncovered changed lines (`uncovered_change`) and 0 engine errors. Functions must have explicit type annotations (`typed: false` yields `INCONCLUSIVE`).
@@ -38,7 +38,7 @@ a2dlc install --agent gemini
 a2dlc install --agent claude --agent gemini
 ```
 
-This creates `.a2dlc/config.json` (auto-detecting Python or TypeScript), adds `.a2dlc/verdict.json` to `.gitignore`, installs the `pre-commit` (`a2dlc check`) and `pre-push` (`a2dlc verify`) hooks, and wires the agent lifecycle hooks (`PreToolUse` + `Stop`/`AfterAgent`).
+This creates `.a2dlc/config.json` (auto-detecting Python or TypeScript), adds `.a2dlc/verdict.json` to `.gitignore`, installs the `pre-push` (`a2dlc verify`) hook (commits are not blocked; run `a2dlc check` before pushing), and wires the agent lifecycle hooks (`PreToolUse` + `Stop`/`AfterAgent`).
 
 ### B. Running the Differential & Test Gate (`a2dlc check`)
 Before committing or finishing a coding task, always run:

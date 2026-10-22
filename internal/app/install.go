@@ -45,11 +45,13 @@ func (a App) Install(exe string, agents []string) ([]string, error) {
 		return done, err
 	}
 	done = append(done, "a2dlc block in "+p)
-	pc, err := a.preCommit(exe)
-	if err != nil {
+	// The gate is the push, not the commit: a blocking pre-commit stops the agents' commits and the merges of their
+	// worktrees, which no human steers. Earlier installs wrote one; it is removed.
+	if pc, removed, err := a.removeHook("pre-commit"); err != nil {
 		return done, err
+	} else if removed {
+		done = append(done, "removed the a2dlc block from "+pc)
 	}
-	done = append(done, "a2dlc block in "+pc)
 	for _, agent := range agents {
 		p, err := a.hookAgent(agent, exe)
 		if err != nil {
@@ -135,11 +137,33 @@ func (a App) prePush(exe string) (string, error) {
 		fmt.Sprintf("%q verify --commit HEAD || exit 1", exe))
 }
 
-// preCommit writes the a2dlc block into the real pre-commit (respects core.hooksPath).
-func (a App) preCommit(exe string) (string, error) {
-	return a.writeHook("pre-commit",
-		"# Runs differential verification over the working tree and generates .a2dlc/verdict.json.",
-		fmt.Sprintf("%q check || exit 1", exe))
+// removeHook takes the a2dlc block out of a git hook (respects core.hooksPath) and leaves the rest of it as it was. A
+// hook left with only its shebang is deleted.
+func (a App) removeHook(hookName string) (string, bool, error) {
+	dir, err := a.Repo.HooksDir()
+	if err != nil {
+		return "", false, err
+	}
+	path := filepath.Join(dir, hookName)
+	b, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return path, false, nil
+	} else if err != nil {
+		return path, false, err
+	}
+	actual := strings.ReplaceAll(string(b), "\r\n", "\n")
+	i, j := strings.Index(actual, blockStart), strings.Index(actual, blockEnd)
+	if i < 0 {
+		return path, false, nil
+	}
+	if j < i {
+		return path, false, fmt.Errorf("%s has a broken a2dlc block", path)
+	}
+	actual = actual[:i] + strings.TrimPrefix(actual[j+len(blockEnd):], "\n")
+	if rest := strings.TrimSpace(actual); rest == "" || strings.HasPrefix(rest, "#!") && !strings.Contains(rest, "\n") {
+		return path, true, os.Remove(path)
+	}
+	return path, true, os.WriteFile(path, []byte(actual), 0o755)
 }
 
 func (a App) hookAgent(agent, exe string) (string, error) {

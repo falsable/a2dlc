@@ -30,7 +30,7 @@
 When you use **Claude Code**, **Gemini CLI**, **Codex**, or **Cursor**, reviewing thousands of lines of AI-generated diffs by eye does not scale—and letting the same agent write both the code and the unit tests creates a circular trap. **`a2dlc` replaces line-by-line diff review with a deterministic verification gate, and leaves the human the behavior changes it cannot decide**:
 
 1. **Differential Execution (`a2dlc check`):** Extracts every changed function from `git diff` and searches for an input where `old(x) ≠ new(x)` across thousands of generated inputs (a bounded search, not a proof) (`CrossHair` symbolic execution for Python, `fast-check` property testing for TypeScript, black-box I/O oracle for Go/CLI) inside network-less (`--network none`) Docker containers.
-2. **Proactive Agent Hooks (`PreToolUse` + End-of-Turn):** Blocks your agent *before* it can touch protected test suites (`protected_paths`) or run `git commit --no-verify`, and automatically runs `a2dlc check` at the end of every agent turn, feeding concrete counterexamples (`args`, `old`, `new`) back to the agent until the gate passes.
+2. **Proactive Agent Hooks (`PreToolUse` + End-of-Turn):** Blocks your agent *before* it can touch protected test suites (`protected_paths`) or run `git push --no-verify`, and automatically runs `a2dlc check` at the end of every agent turn, feeding concrete counterexamples (`args`, `old`, `new`) back to the agent until the gate passes.
 3. **Full Autonomous Lifecycle (`a2dlc run`, Stages −1 to 7):** Orchestrates isolated container roles—dual Specifiers ($\alpha \not\equiv \beta$), an Inquisitor, Z3 SMT invariant checks, clean-room Builders with lemma gates, a blind Saboteur that attacks the code without seeing its implementation, diff-scoped mutation testing, AST blast-radius checks (`ChronosGraph`), and canary rollback plans.
 
 ---
@@ -43,7 +43,7 @@ When you use **Claude Code**, **Gemini CLI**, **Codex**, or **Cursor**, reviewin
 Install and configure a2dlc in this repository:
 1. Download the latest a2dlc v0.4.0 binary for this OS from https://github.com/falsable/a2dlc/releases/latest (verify against SHA256SUMS) and place it on PATH.
 2. Copy the official agent skill from https://raw.githubusercontent.com/falsable/a2dlc/main/skills/a2dlc/SKILL.md into `.agents/skills/a2dlc/SKILL.md` and `.claude/skills/a2dlc/SKILL.md`, and read it.
-3. Run `a2dlc install --agent claude --agent gemini` to initialize `.a2dlc/config.json`, git hooks (`pre-commit` and `pre-push`), and agent lifecycle hooks (`PreToolUse` and `Stop`/`AfterAgent`).
+3. Run `a2dlc install --agent claude --agent gemini` to initialize `.a2dlc/config.json`, the `pre-push` git hook, and agent lifecycle hooks (`PreToolUse` and `Stop`/`AfterAgent`).
 4. Run `a2dlc check` and resolve any `FAIL` or `INCONCLUSIVE` targets in `.a2dlc/verdict.json` following the skill instructions.
 ```
 
@@ -143,7 +143,7 @@ Legend: ✅ implemented · 🟡 partial · ⬜ not yet.
 | Requirement | Status | In a2dlc |
 |---|---|---|
 | Extract changed functions from the git diff and compare `old(x) ≡ new(x)` on generated inputs | ✅ | `a2dlc check`. Each engine discovers its own targets: fast-check for TypeScript, CrossHair `diffbehavior` for Python. |
-| The gate is run by the harness, never declared by the agent | ✅ | `a2dlc hook claude\|gemini` (`PreToolUse` proactive guard + end-of-turn `Stop`/`AfterAgent` hooks), `pre-commit`/`pre-push` hooks, and CI as the authority. |
+| The gate is run by the harness, never declared by the agent | ✅ | `a2dlc hook claude\|gemini` (`PreToolUse` proactive guard + end-of-turn `Stop`/`AfterAgent` hooks), the `pre-push` hook, and CI as the authority. |
 | Verdict JSON with three values, engine and search budget recorded | ✅ | `.a2dlc/verdict.json`, validated against `contracts/verdict.schema.json`. |
 | Verdict bound to the tree (`tree_hash`), stale before merge, no bypass flag | ✅ | `a2dlc verify` recomputes the tree and names the files that made the verdict stale. |
 | Intended behaviour changes recorded as versioned waivers | ✅ | `.a2dlc/waivers.json`, plus SSH-signed approvals, which go beyond the spec. |
@@ -289,7 +289,7 @@ git push                          # pre-push runs `a2dlc verify`
 | `a2dlc hook claude\|gemini` | Agent lifecycle adapter (`PreToolUse` proactive guard + `Stop` / `AfterAgent` end-of-turn gate). |
 
 **Agent adapters.**
-- **Proactive guard (`PreToolUse`):** Intercepts tool calls before execution, blocking edits to `.a2dlc/` or `config.protected_paths` and shell bypasses (`git commit --no-verify`, `git push --no-verify`).
+- **Proactive guard (`PreToolUse`):** Intercepts tool calls before execution, blocking edits to `.a2dlc/` or `config.protected_paths` and the shell bypass `git push --no-verify` (commits are not a gate).
 - **Claude Code (`Stop`):** Runs `check` at end of turn. A block is exit 2, with the counterexample on stderr.
 - **Gemini CLI (`AfterAgent`):** Runs `check` at end of turn. A block is `{"decision":"block","reason":…}`.
 - After `max_blocks` blocks (4 by default) the adapter lets the agent finish; the push stays blocked.

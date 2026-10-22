@@ -127,6 +127,16 @@ func (r Repo) Upstream() string {
 	return sha
 }
 
+// RemoteDefaultBase is where HEAD forks from origin's default branch (refs/remotes/origin/HEAD), or "" if there is no
+// such branch. It is the base of a branch that was never pushed, such as an agent's worktree branch.
+func (r Repo) RemoteDefaultBase() string {
+	out, err := r.git(nil, "merge-base", "HEAD", "refs/remotes/origin/HEAD")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(out)
+}
+
 // IsAncestor says whether a is an ancestor of b or equal to it.
 func (r Repo) IsAncestor(a, b string) bool {
 	_, err := r.git(nil, "merge-base", "--is-ancestor", a, b)
