@@ -57,6 +57,22 @@ twice; C1 plus `aidlc-docs/intent.md` gives `upstream-coverage` one finding (FAI
 `claim-sources` and `required-sections` ran clean. 22 outputs validate against the schema. Details and the config in
 `templates/checks/aidlc-sensor/README.md`.
 
+## On a real diff of a private repo of the ecosystem (`templates/checks/cmd/`, 2026-10-23)
+
+68 changed files (25 `.py`) between two real commits, the same binary, seven checks through the command adapter, all
+`advisory` for the measurement: `ruff` (F and B rules, over the changed files only) 0 findings; two of the repo's own
+`tests/check_*.py` gates ran clean; one gate reported pre-existing debt at two lines of a file the diff did not touch,
+which the adapter cannot bind to the change, so it is an `error` (kept `advisory` until that debt is cleared or the
+script accepts a file list); two gates shell out to `git` and one imports the app, none of which exists in the
+exported tree, so they stay in CI. With a `print(` and an undefined name appended to a changed file, `ruff` and the
+print gate each produced one finding on the right line (`app/…/crm_dlq.py::L376`, `::L375`). The repo now declares
+`ruff`, the print gate and the destructive-migration gate as `blocking`.
+
+On the TypeScript repo of the ecosystem (`templates/checks/tsc/`, image built from its lockfile): `tsc --noEmit` ran
+clean over the one changed `.ts` file of its last diff; with a type error appended to that file the check produced
+one finding on the right line (`server.ts::L1725`, TS2322) and the verdict was FAIL. The repo now declares it
+`blocking`.
+
 ## Limits
 
 - The findings are grep's: the rule (`raises(Exception)` or `import os`) was chosen because the frozen cases contain
