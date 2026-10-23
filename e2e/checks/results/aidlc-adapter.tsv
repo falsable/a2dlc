@@ -1,0 +1,66 @@
+C1-feature-con-test	0	PASS	aidlc-claim-sources	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**
+C1-feature-con-test	0	PASS	aidlc-linter	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.js
+C1-feature-con-test	0	PASS	aidlc-required-sections	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C1-feature-con-test	0	PASS	aidlc-traceability	blocking	not_applicable	0	0	0 of 2 changed files match **/traceability.json
+C1-feature-con-test	0	PASS	aidlc-type-check	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.tsx
+C1-feature-con-test	0	PASS	aidlc-upstream-coverage	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C2-test-sin-dientes	0	PASS	aidlc-claim-sources	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**
+C2-test-sin-dientes	0	PASS	aidlc-linter	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.js
+C2-test-sin-dientes	0	PASS	aidlc-required-sections	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C2-test-sin-dientes	0	PASS	aidlc-traceability	blocking	not_applicable	0	0	0 of 2 changed files match **/traceability.json
+C2-test-sin-dientes	0	PASS	aidlc-type-check	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.tsx
+C2-test-sin-dientes	0	PASS	aidlc-upstream-coverage	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C3-bugfix-con-waiver	0	PASS	aidlc-claim-sources	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**
+C3-bugfix-con-waiver	0	PASS	aidlc-linter	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.js
+C3-bugfix-con-waiver	0	PASS	aidlc-required-sections	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C3-bugfix-con-waiver	0	PASS	aidlc-traceability	blocking	not_applicable	0	0	0 of 2 changed files match **/traceability.json
+C3-bugfix-con-waiver	0	PASS	aidlc-type-check	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.tsx
+C3-bugfix-con-waiver	0	PASS	aidlc-upstream-coverage	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C4-refactor-caracterizacion	0	PASS	aidlc-claim-sources	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**
+C4-refactor-caracterizacion	0	PASS	aidlc-linter	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.js
+C4-refactor-caracterizacion	0	PASS	aidlc-required-sections	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C4-refactor-caracterizacion	0	PASS	aidlc-traceability	blocking	not_applicable	0	0	0 of 2 changed files match **/traceability.json
+C4-refactor-caracterizacion	0	PASS	aidlc-type-check	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.tsx
+C4-refactor-caracterizacion	0	PASS	aidlc-upstream-coverage	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C5-test-nuevo-rojo	0	PASS	aidlc-claim-sources	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**
+C5-test-nuevo-rojo	0	PASS	aidlc-linter	blocking	not_applicable	0	0	0 of 1 changed files match **/*.ts, **/*.js
+C5-test-nuevo-rojo	0	PASS	aidlc-required-sections	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C5-test-nuevo-rojo	0	PASS	aidlc-traceability	blocking	not_applicable	0	0	0 of 1 changed files match **/traceability.json
+C5-test-nuevo-rojo	0	PASS	aidlc-type-check	blocking	not_applicable	0	0	0 of 1 changed files match **/*.ts, **/*.tsx
+C5-test-nuevo-rojo	0	PASS	aidlc-upstream-coverage	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C6-regresion	0	PASS	aidlc-claim-sources	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**
+C6-regresion	0	PASS	aidlc-linter	blocking	not_applicable	0	0	0 of 1 changed files match **/*.ts, **/*.js
+C6-regresion	0	PASS	aidlc-required-sections	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C6-regresion	0	PASS	aidlc-traceability	blocking	not_applicable	0	0	0 of 1 changed files match **/traceability.json
+C6-regresion	0	PASS	aidlc-type-check	blocking	not_applicable	0	0	0 of 1 changed files match **/*.ts, **/*.tsx
+C6-regresion	0	PASS	aidlc-upstream-coverage	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C7-metodo-anidado-sin-stub	0	PASS	aidlc-claim-sources	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**
+C7-metodo-anidado-sin-stub	0	PASS	aidlc-linter	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.js
+C7-metodo-anidado-sin-stub	0	PASS	aidlc-required-sections	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C7-metodo-anidado-sin-stub	0	PASS	aidlc-traceability	blocking	not_applicable	0	0	0 of 2 changed files match **/traceability.json
+C7-metodo-anidado-sin-stub	0	PASS	aidlc-type-check	blocking	not_applicable	0	0	0 of 2 changed files match **/*.ts, **/*.tsx
+C7-metodo-anidado-sin-stub	0	PASS	aidlc-upstream-coverage	blocking	not_applicable	0	0	0 of 2 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C8-corrida-sin-tests	0	PASS	aidlc-claim-sources	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**
+C8-corrida-sin-tests	0	PASS	aidlc-linter	blocking	not_applicable	0	0	0 of 1 changed files match **/*.ts, **/*.js
+C8-corrida-sin-tests	0	PASS	aidlc-required-sections	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C8-corrida-sin-tests	0	PASS	aidlc-traceability	blocking	not_applicable	0	0	0 of 1 changed files match **/traceability.json
+C8-corrida-sin-tests	0	PASS	aidlc-type-check	blocking	not_applicable	0	0	0 of 1 changed files match **/*.ts, **/*.tsx
+C8-corrida-sin-tests	0	PASS	aidlc-upstream-coverage	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C9-test-modificado	0	PASS	aidlc-claim-sources	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**
+C9-test-modificado	0	PASS	aidlc-linter	blocking	not_applicable	0	0	0 of 1 changed files match **/*.ts, **/*.js
+C9-test-modificado	0	PASS	aidlc-required-sections	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C9-test-modificado	0	PASS	aidlc-traceability	blocking	not_applicable	0	0	0 of 1 changed files match **/traceability.json
+C9-test-modificado	0	PASS	aidlc-type-check	blocking	not_applicable	0	0	0 of 1 changed files match **/*.ts, **/*.tsx
+C9-test-modificado	0	PASS	aidlc-upstream-coverage	blocking	not_applicable	0	0	0 of 1 changed files match **/aidlc-docs/**, **/intents/**, **/codekb/**
+C1-probe-ts	2	INCONCLUSIVE	aidlc-claim-sources	blocking	not_applicable	0	0	the check reported not_applicable over 3 file(s)
+C1-probe-ts	2	INCONCLUSIVE	aidlc-linter	blocking	error	0	0	the check exited 3: sensor linter did not run on probe.ts: tool-unavailable
+C1-probe-ts	2	INCONCLUSIVE	aidlc-required-sections	blocking	not_applicable	0	0	the check reported not_applicable over 3 file(s)
+C1-probe-ts	2	INCONCLUSIVE	aidlc-traceability	blocking	not_applicable	0	0	the check reported not_applicable over 3 file(s)
+C1-probe-ts	2	INCONCLUSIVE	aidlc-type-check	blocking	error	0	0	the check exited 3: sensor type-check did not run on probe.ts: script-error: exit-1
+C1-probe-ts	2	INCONCLUSIVE	aidlc-upstream-coverage	blocking	not_applicable	0	0	the check reported not_applicable over 3 file(s)
+C1-probe-docs	1	FAIL	aidlc-claim-sources	blocking	ran	0	0	
+C1-probe-docs	1	FAIL	aidlc-linter	blocking	not_applicable	0	0	the check reported not_applicable over 3 file(s)
+C1-probe-docs	1	FAIL	aidlc-required-sections	blocking	ran	0	0	
+C1-probe-docs	1	FAIL	aidlc-traceability	blocking	not_applicable	0	0	the check reported not_applicable over 3 file(s)
+C1-probe-docs	1	FAIL	aidlc-type-check	blocking	not_applicable	0	0	the check reported not_applicable over 3 file(s)
+C1-probe-docs	1	FAIL	aidlc-upstream-coverage	blocking	ran	1	0	

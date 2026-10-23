@@ -46,6 +46,17 @@ Every `verdict.json` and `escalations.json` the binary wrote (22 files) validate
 - The only override is a signed `accept_finding` waiver bound to the file's blob: unsigned, the gate passes with the
   waiver pending and the push is refused by `verify`.
 
+## The six AI-DLC v2 sensors as checks (`measure_aidlc_adapter.sh`, `results/aidlc-adapter.tsv`)
+
+Same binary, same 9 trees, image `templates/checks/aidlc-sensor/` (AI-DLC's own dispatcher at `306bd83` behind
+`adapter.ts`), six blocking checks with the manifests' globs as `matches`: 54 of 54 entries `not_applicable` with the
+count, 9 of 9 PASS, which is what `e2e/aidlc-sensors/RESULTS.md` measured through AI-DLC's dispatcher (0 of 84 fires
+applied) now in the verdict. Two probes without `matches`: C1 plus `probe.ts` gives `linter` error (`tool-unavailable`)
+and `type-check` error (`script-error: exit-1`), verdict INCONCLUSIVE, where AI-DLC's advisory default said `PASSED`
+twice; C1 plus `aidlc-docs/intent.md` gives `upstream-coverage` one finding (FAIL, escalation `check_failed`),
+`claim-sources` and `required-sections` ran clean. 22 outputs validate against the schema. Details and the config in
+`templates/checks/aidlc-sensor/README.md`.
+
 ## Limits
 
 - The findings are grep's: the rule (`raises(Exception)` or `import os`) was chosen because the frozen cases contain

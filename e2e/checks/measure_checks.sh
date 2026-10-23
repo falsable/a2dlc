@@ -23,31 +23,10 @@ config() { # severity of missing-tool
 	printf '{"schema_version":1,"engines":[],"checks":[%s,%s,%s,%s,%s]}\n' "$GREP" "$ADVISORY" "$MD" "$(printf "$MISSING" "$1")" "$SLOW"
 }
 
-: >"$OUT/checks.tsv"
+TSV=$OUT/checks.tsv
+: >"$TSV"
 : >"$OUT/verify.tsv"
-# tree <case> <label> <config>: base committed with the config, candidate overlay uncommitted, as measure_gates.sh does.
-tree() {
-	local id=$1 label=$2 cfg=$3 W=$T/trees/$2
-	rm -rf "$W"
-	mkdir -p "$W/.a2dlc" && cp -r "$D/base/." "$W/" && cd "$W" || exit 1
-	git init -q && git config user.email m@a2dlc && git config user.name m && git config core.autocrlf false
-	printf '%s' "$cfg" >.a2dlc/config.json
-	printf '.a2dlc/verdict.json\n.a2dlc/escalations.json\n.a2dlc/reports/\n' >.gitignore
-	git add -A && git commit -qm base
-	cp -r "$D/casos/$id/." "$W/"
-	rm -rf "$W/.claude" "$W/.a2dlc/waivers.json"
-}
-# check <label>: runs the gate on the tree, saves its outputs and tabulates the checks.
-check() {
-	local label=$1 W=$T/trees/$1 exit
-	cd "$W" || exit 1
-	"$A2" check >"$T/outputs/$label.log" 2>&1
-	exit=$?
-	cp .a2dlc/verdict.json "$T/outputs/verdict__$label.json"
-	cp .a2dlc/escalations.json "$T/outputs/escalation__$label.json"
-	python3 -I "$R/e2e/checks/tabulate.py" "$label" "$exit" .a2dlc/verdict.json >>"$OUT/checks.tsv"
-	echo "$label: exit $exit"
-}
+. "$R/e2e/checks/lib.sh"
 
 for C in "$D"/casos/C*/; do
 	id=$(basename "$C")
@@ -63,7 +42,5 @@ cd "$T/trees/C2-accept-finding-unsigned" && git add -A && git commit -qm candida
 "$A2" verify --commit HEAD >"$T/outputs/verify.log" 2>&1
 printf 'C2-accept-finding-unsigned\t%s\t%s\n' "$?" "$(tr '\n' ' ' <"$T/outputs/verify.log" | cut -c1-160)" >>"$OUT/verify.tsv"
 
-MSYS_NO_PATHCONV=1 docker run --rm --network none -v "$(cygpath -w "$R/contracts"):/c:ro" -v "$(cygpath -w "$T/outputs"):/s:ro" \
-	a2dlc-contract-test python /c/tests/validate.py /c /s >"$T/conformance.txt"
-echo "schema conformance: exit $? ($(grep -c '^ok  output' "$T/conformance.txt") outputs validated, $(grep -c '^FAIL' "$T/conformance.txt") failed)"
-echo "results: $OUT/checks.tsv, $OUT/verify.tsv"
+validate
+echo "results: $TSV, $OUT/verify.tsv"
