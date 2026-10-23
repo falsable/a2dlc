@@ -785,6 +785,11 @@ func (a App) Approve(target, key, principal string) error {
 
 // Hook adapts check to an agent's lifecycle hooks (PreToolUse and end-of-turn Stop). It returns the process exit code.
 func (a App) Hook(ctx context.Context, agent string, stdin io.Reader, stdout, stderr io.Writer) int {
+	// Wired globally (a Claude Code plugin), the hook runs in repos that never installed a2dlc: there it allows and
+	// writes nothing. The config must be missing from HEAD too, so deleting it in the working tree does not disarm it.
+	if !a.Installed() {
+		return allow(agent, stdout)
+	}
 	var in map[string]any
 	_ = json.NewDecoder(stdin).Decode(&in)
 	tool, _ := in["tool_name"].(string)
@@ -830,6 +835,19 @@ func (a App) Hook(ctx context.Context, agent string, stdin io.Reader, stdout, st
 	fmt.Fprintln(stderr, msg)
 	return 2
 }
+
+// Installed reports whether this repo has an a2dlc config in the working tree or in HEAD.
+func (a App) Installed() bool {
+	var c contract.Config
+	if err := a.read("", pathConfig, &c); !errors.Is(err, os.ErrNotExist) {
+		return true
+	}
+	_, err := a.Repo.Show("HEAD", pathConfig)
+	return err == nil
+}
+
+// HookOutsideRepo is the hook's answer when the working directory is not a git repo: allow, like an uninstalled repo.
+func HookOutsideRepo(agent string, stdout io.Writer) int { return allow(agent, stdout) }
 
 func allow(agent string, stdout io.Writer) int {
 	if agent == "gemini" {
