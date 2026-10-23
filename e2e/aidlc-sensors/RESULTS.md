@@ -31,12 +31,16 @@ cargo-check) is deferred to v0.6.0+".
 
 Two more facts from the code, confirmed by the probe:
 
-- A sensor that cannot run **passes**. The dispatcher's truth table (`core/tools/aidlc-sensor.ts`, header) maps exit 127
-  to `PASSED tool-unavailable` and any other non-zero exit to `PASSED script-error: exit-<n>`; "Sensor failure ≠ CLI
-  failure". The probe shows both: no eslint in the sandbox → `passed`, no `tsconfig.json` → `passed`.
-- All six manifests ship `default_severity: advisory`: an advisory finding is recorded and the gate still opens
-  (`docs/harness-engineering/06-sensors.md`). The shipped stage graph binds them 79 times over 33 stages (`linter` in 5
-  stages, `type-check` in 6, `required-sections` 30, `upstream-coverage` 29, `traceability` 8, `claim-sources` 1).
+- A sensor that cannot run is recorded as **passed**. The dispatcher's truth table (`core/tools/aidlc-sensor.ts`,
+  header) maps exit 127 to `PASSED tool-unavailable` and any other non-zero exit to `PASSED script-error: exit-<n>`;
+  "Sensor failure ≠ CLI failure". The probe shows both: no eslint in the sandbox → `passed`, no `tsconfig.json` →
+  `passed`.
+- All six manifests ship `default_severity: advisory`: an advisory outcome, pass or not, is recorded and the gate still
+  opens. Under a `blocking` binding the rule inverts: "findings, unavailable tools, script/dispatcher errors, malformed
+  verdicts, and timeouts stop gate entry" (`docs/harness-engineering/06-sensors.md`), so a blocking sensor that cannot
+  run refuses the gate. None of the six is shipped as blocking. The shipped stage graph binds them 79 times over 33
+  stages (`linter` in 5 stages, `type-check` in 6, `required-sections` 30, `upstream-coverage` 29, `traceability` 8,
+  `claim-sources` 1).
 
 None of the six executes the old and the new code: the four document sensors check headings, ID cross-references and
 source tags in AI-DLC's own artifacts; the two code sensors wrap a linter and a type checker. That is the gap between
@@ -49,6 +53,32 @@ AI-DLC's stage 03 (build) and 04 (oracle) that the a2dlc gate fills, and the pla
 |---|---|---|---|
 | 9 frozen cases, 5 must block | lets 3 of 5 through (changed-files reading), 2 of 5 (whole suite) | lets 5 of 5 through (no sensor applies) | blocks 5 of 5, passes 4 of 4 |
 | 38 agent patches, 18 rejected | 0 of 18 (by construction) | 0 of 18 (no sensor applies) | 18 of 18 with a peer, 12 of 18 INCONCLUSIVE without one |
+
+## The `a2dlc` sensor, fired by the same dispatcher
+
+`templates/aidlc/` holds the plug-in: `aidlc-a2dlc.md` (manifest, `fire_on: gate`, `default_severity: blocking`, no
+`matches:` so it accepts every deliverable) and `aidlc-sensor-a2dlc.ts`, which runs `a2dlc verify` (the receipt check:
+no engines, no network, under a second) and prints `{"pass", "findings", "findings_count"}`. The dispatcher accepts only
+a `.ts` script in `.claude/tools/` (a `sh` command is refused with "manifest command lacks a .ts script"). Fired at
+`build-and-test` over the 9 trees that `measure_gates.sh` built and judged, with the candidate committed
+(`fire_a2dlc_sensor.sh`, rows in `results/a2dlc-sensor.tsv`):
+
+| case | expected | `a2dlc check` | sensor result | finding |
+|---|---|---|---|---|
+| C1 feature with test | PASS | PASS | `passed` | |
+| C2 toothless test | FAIL | FAIL | `failed` | the verdict is FAIL |
+| C3 bugfix with waiver | PASS (waiver pending) | PASS | `failed` | waiver for `src/calc.py::divide`: unsigned |
+| C4 characterization refactor | PASS | PASS | `passed` | |
+| C5 red new test | FAIL | FAIL | `failed` | the verdict is FAIL |
+| C6 regression | FAIL | FAIL | `failed` | the verdict is FAIL |
+| C7 nested method without stub | INCONCLUSIVE | INCONCLUSIVE | `failed` | the verdict is INCONCLUSIVE |
+| C8 run without tests | INCONCLUSIVE | INCONCLUSIVE | `failed` | the verdict is INCONCLUSIVE |
+| C9 modified test file | PASS | PASS | `passed` | |
+
+5 of 5 blocking cases refused, 3 of 4 good ones passed. C3 is refused on purpose: `verify` does not accept an unsigned
+waiver, so the gate stays closed until a person signs it with `a2dlc approve`, which is the "separate logged human
+decision" AI-DLC reserves for overriding a blocking sensor. Each `failed` fire wrote AI-DLC's detail file under
+`aidlc/spaces/default/intents/.aidlc-engine/sensors/build-and-test/`.
 
 ## Limits
 
@@ -73,4 +103,9 @@ AI-DLC's stage 03 (build) and 04 (oracle) that the a2dlc gate fills, and the pla
       -v "<folder>/results:/out" -v "$PWD/e2e/aidlc-sensors/fire_sensors.sh:/m.sh:ro" oven/bun:1 sh /m.sh
     python -I e2e/aidlc-sensors/tabulate.py <folder>/results
 
-`results/` holds the raw rows of this run (`trees.tsv`, `probe.tsv`, `swe.tsv.gz`, the file lists).
+For the sensor: `bash e2e/measure_gates.sh <folder>/gates` (needs `a2dlc-engine-py:0.2`, `a2dlc-tests-pytest:0.2`), a
+Linux build of the binary (`GOOS=linux GOARCH=amd64 go build -o dist/a2dlc-linux ./cmd/a2dlc` in the Go image), an
+image with bun and git (`FROM oven/bun:1` + `apt-get install git`), then `fire_a2dlc_sensor.sh` with `/g` = the gates
+folder, `/sensor` = `templates/aidlc`, `/a2dlc` = the binary.
+
+`results/` holds the raw rows of this run (`trees.tsv`, `probe.tsv`, `swe.tsv.gz`, `a2dlc-sensor.tsv`, the file lists).
