@@ -71,7 +71,7 @@ func run(args []string) int {
 		fmt.Fprintln(os.Stderr, "a2dlc:", err)
 		return 64
 	}
-	a := app.App{Repo: repo, Runner: engine.Docker{}, Tests: engine.DockerTests{}, Version: version, Now: time.Now}
+	a := app.App{Repo: repo, Runner: engine.Docker{}, Tests: engine.DockerTests{}, Checks: engine.DockerChecks{}, Version: version, Now: time.Now}
 	ctx := context.Background()
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {

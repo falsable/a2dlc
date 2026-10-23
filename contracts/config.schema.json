@@ -137,7 +137,7 @@
       "additionalProperties": false
     },
     "checks": {
-      "description": "Pluggable deterministic checks (protocol §5 Checks, ADR meta/0006): linters, type checkers, policy tools, or an adapter around another framework's sensors. Each one is an image a2dlc check runs without network, with the base at /base:ro, the candidate at /cand:ro, the matched changed files in $A2DLC_CHANGED (one path per line) and the response file to write in $A2DLC_OUT (check-response.schema.json). No host command: what runs is the image. A check lowers the verdict, never raises it: blocking with an unwaived finding is FAIL; blocking in error or past its timeout is INCONCLUSIVE; advisory is recorded in verdict.checks only. The only override is a signed waiver with decision accept_finding on the finding's target.",
+      "description": "Pluggable deterministic checks (protocol §5 Checks, ADR meta/0006): linters, type checkers, policy tools, or an adapter around another framework's sensors. Each one is an image a2dlc check runs without network, with the base at /base:ro, the candidate at /cand:ro (the cwd), the matched changed files in $A2DLC_CHANGED (space-separated; one per line in the file $A2DLC_CHANGED_FILE), its id in $A2DLC_CHECK and the response file to write in $A2DLC_OUT (check-response.schema.json). No host command: what runs is the image. A check lowers the verdict, never raises it: blocking with an unwaived finding is FAIL; blocking in error or past its timeout is INCONCLUSIVE; advisory is recorded in verdict.checks only. The only override is a signed waiver with decision accept_finding on the finding's target.",
       "type": "array",
       "items": {
         "type": "object",

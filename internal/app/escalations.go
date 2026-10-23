@@ -148,6 +148,7 @@ func escalations(v contract.Verdict) []contract.Escalation {
 			out = append(out, escalation("tooling", "equivalence_s", g.EquivalenceS.Reason, contract.Evidence{}))
 		}
 	}
+	out = append(out, checkEscalations(v, pending)...)
 	if c := v.Coverage; c != nil {
 		for _, f := range c.Files {
 			if len(f.Uncovered) == 0 {

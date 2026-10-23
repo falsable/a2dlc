@@ -34,7 +34,8 @@ const (
 type App struct {
 	Repo    gitx.Repo
 	Runner  engine.Runner
-	Tests   engine.TestRunner // runs config.tests; nil leaves the test gates in error
+	Tests   engine.TestRunner  // runs config.tests; nil leaves the test gates in error
+	Checks  engine.CheckRunner // runs config.checks; nil leaves every check in error (never a pass)
 	Version string
 	Now     func() time.Time
 }
@@ -250,6 +251,9 @@ type CheckOptions struct {
 	// Golden is the golden master recorded on the base in Stage -1 (golden.json). When set, its cases are replayed on the
 	// candidate and each difference is a FAIL target golden::<case id>, waivable with enforce_new_behavior.
 	Golden *contract.Golden
+	// FireOn is the firing point of config.checks: "" or "check" for a2dlc check; a2dlc run passes "stage:<id>", and only
+	// the checks whose fire_on lists it run.
+	FireOn string
 }
 
 // candidateTree is the tree that check judges: opts.CandidateTree without the gate outputs, or the working tree's.
@@ -422,6 +426,13 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 		}
 		addTests(&v, waivers, approved)
 	}
+	// Pluggable checks (protocol §5 Checks): they lower the verdict, never raise it; what did not run stays in view.
+	fireOn := opts.FireOn
+	if fireOn == "" {
+		fireOn = FireOnCheck
+	}
+	checks, pendingChecks := a.runChecks(ctx, cfg, fireOn, changed, export, &baseDir, &candDir, waivers, approved)
+	applyChecks(&v, checks, pendingChecks)
 	// Coverage precondition: what no engine examined and no test executed cannot be PASS.
 	if v.Coverage, err = a.precondition(cfg, baseSha, tree, sources, v.Targets, cov.report, cov.note); err != nil {
 		return v, err
@@ -459,14 +470,15 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 
 // waiverFlags splits the waivers in two: the engine targets they waive (a test waiver covers no engine target, and the
 // reverse), and whether some waiver asks to enforce new behavior, which the tests_diff gate reads. A file-level
-// waiver (target "file::*") is the approval of a protected path: it covers no target and sets no intent.
+// waiver (target "file::*") is the approval of a protected path: it covers no target and sets no intent. An
+// accept_finding covers a finding of a pluggable check and no engine target.
 func waiverFlags(waivers map[string]contract.Waiver) (waived map[string]bool, intent bool) {
 	waived = map[string]bool{}
 	for t, w := range waivers {
 		if strings.HasSuffix(t, protectedSuffix) {
 			continue
 		}
-		if !contract.IsTestDecision(w.Decision) {
+		if !contract.IsTestDecision(w.Decision) && w.Decision != contract.AcceptFinding {
 			waived[t] = true
 		}
 		intent = intent || w.Decision == contract.EnforceNewBehavior
@@ -660,6 +672,13 @@ func (a App) Verify(commit string) ([]string, error) {
 	for _, t := range v.Tests {
 		if t.Waived {
 			waived = append(waived, t.Target)
+		}
+	}
+	for _, c := range v.Checks {
+		for _, f := range c.Findings {
+			if f.Waived {
+				waived = append(waived, f.Target)
+			}
 		}
 	}
 	for _, t := range waived {

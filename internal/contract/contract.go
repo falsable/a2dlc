@@ -43,6 +43,15 @@ const (
 	CheckBlocking = "blocking"
 )
 
+// Statuses of a check in verdict.checks ($defs/check). A response says ran or not_applicable; the core adds the rest.
+const (
+	CheckRan           = "ran"
+	CheckNotApplicable = "not_applicable"
+	CheckNotConfigured = "not_configured"
+	CheckError         = "error"
+	CheckTimeout       = "timeout"
+)
+
 // CheckConfig is one pluggable deterministic check: an image run without network over /base:ro and /cand:ro that
 // writes a CheckResponse to $A2DLC_OUT. FireOn defaults to ["check"]; Matches absent means every changed file.
 type CheckConfig struct {
