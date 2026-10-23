@@ -73,6 +73,17 @@ clean over the one changed `.ts` file of its last diff; with a type error append
 one finding on the right line (`server.ts::L1725`, TS2322) and the verdict was FAIL. The repo now declares it
 `blocking`.
 
+Two more Python repos of the ecosystem, same binary and adapter. The first pins ruff 0.1.15 and black in its
+`pyproject` and runs both in CI: over its last diff (18 files, 11 `.py`) both ran clean; with an undefined name and an
+unformatted line appended to a changed file, `ruff` gave `memory_bench.py::L1522` (F821) and `black --check` gave
+`memory_bench.py::black` (with `--quiet` it had printed nothing and was an error). Both now `blocking`; over the 6
+`.py` files uncommitted in its working tree they ran clean again. The second keeps a contract test
+(`contracts/validar.py`: metaschema, positive and negative examples) that regenerates its example files, so in the
+read-only `/cand` it failed with `OSError: [Errno 30]`; with `--copy` it ran, `not_applicable` on the real diff (13
+files, none of the three it reads) and FAIL with a finding on `contracts/v1/bloques.schema.json` when a required
+field is added to one `$def`. `ruff` with defaults found a real F401 at `test_bridge_a2dlc.py::L9` on the current
+tree, so it is `advisory` there until that import is removed; the contract test is `blocking`.
+
 ## Limits
 
 - The findings are grep's: the rule (`raises(Exception)` or `import os`) was chosen because the frozen cases contain
