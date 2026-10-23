@@ -55,6 +55,8 @@ ADLC's Test phase is a rule: "every session verifies its own work first". Made e
 
 Of the five cases that must block: the changed-files reading blocks 2 and lets 3 through (the toothless test, the regression in a file the session did not touch, the method no oracle examined); the whole-suite reading blocks all 9 cases, the 4 good ones included, because of the pre-existing red; the suite reading with the base's reds discounted blocks 3 and lets 2 through (the toothless test and the unexamined method), and the discounting is the bookkeeping a2dlc's baseline gate automates. a2dlc blocks 5 of 5 and passes the 4 that must pass, with no false block. Under the most generous reading, self-verification still passes a test that proves nothing and code that nothing examined, which is the Circular Trap stated in one table. The frozen cases are not edited.
 
+AI-DLC v2 (`awslabs/aidlc-workflows`), the agentic lifecycle whose verification layer is "an adversarial verifier backed by a deterministic checker", was run on the same nine cases on 2026-10-23: its deterministic layer is six sensors fired at the stage gate, and all six filter by path (`**/*.{ts,js}`, `**/*.{ts,tsx}`, `**/traceability.json`, `**/{aidlc-docs,intents,codekb}/**`). On the 14 changed files, 84 fires, no sensor ran, and the gate opens for all 9 cases: 5 of 5 blocking cases through. A sensor that cannot run counts as passed in its dispatcher, and all six ship as advisory. Rows, scripts and limits in `e2e/aidlc-sensors/RESULTS.md`.
+
 ## Measured head to head on external data: 38 real agent patches
 
 The nine cases above were written by this project. `e2e/bench-swe-abs/RESULTS.md` holds a run over data this project did not write: 10 SWE-bench Verified instances and 38 patches submitted by real coding agents, labelled by SWE-ABS (18 rejected by its abstract tests, 20 accepted). Every one of the 38 was submitted by its agent as done, so under the ADLC rule all 38 pass self-verification by construction: the agent verified its own work and shipped. The SWE-ABS label plays the part of SDLC's separate QA stage: tests the author did not write.
@@ -62,6 +64,7 @@ The nine cases above were written by this project. `e2e/bench-swe-abs/RESULTS.md
 | Gate | Rejected patches blocked (18) | Accepted patches blocked (20) | Note |
 |---|---|---|---|
 | ADLC self-verification | 0 | 0 | By construction: the agent declared each patch done. |
+| AI-DLC v2 sensors (`awslabs/aidlc-workflows` 306bd83) | 0 | 0 | No sensor applies to a `.py` file: 1,080 fires over the 180 files of the 156 patches of these 10 instances, 0 sensors ran (`e2e/aidlc-sensors/RESULTS.md`). |
 | a2dlc Lite, engine alone (VARA 1) | 0 blocked, 11 empty `PASS` | 0 | Refuted on 2026-10-17: the engine saw nothing in 25 of 38 checks. It is why the oracle became test-mediated. |
 | a2dlc Lite, repo tests + coverage precondition (A1) | 12 (`INCONCLUSIVE`, `uncovered_change` or `tooling`), 6 `PASS` | 11 `INCONCLUSIVE`, 8 `PASS`, 1 error | No gold involved. It blocks two thirds of the bad patches by refusing to approve what nothing examined, and blocks half of the good ones for the same reason. |
 | a2dlc with Saboteur overlay and peer oracle (A2) | 18 `FAIL` | 0 `FAIL`, 5 `INCONCLUSIVE` | The peer is the gold patch: an upper bound. A3, without gold, was not measured. |

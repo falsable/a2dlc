@@ -1,0 +1,12 @@
+probe	/home/probe/probe.ts	claim-sources	1	aidlc-sensor: output path "/home/probe/probe.ts" does not match sensor "claim-sources" filter "**/{aidlc-docs,intents}/**"
+probe	/home/probe/probe.ts	linter	0	{"fire_id":"4382be3f","sensor_id":"linter","stage":"build-and-test","output_path":"/home/probe/probe.ts","result":"passed","detail_path":null,"note":"tool-unavailable"}
+probe	/home/probe/probe.ts	required-sections	1	aidlc-sensor: output path "/home/probe/probe.ts" does not match sensor "required-sections" filter "**/{aidlc-docs,intents,codekb}/**"
+probe	/home/probe/probe.ts	traceability	1	aidlc-sensor: output path "/home/probe/probe.ts" does not match sensor "traceability" filter "**/traceability.json"
+probe	/home/probe/probe.ts	type-check	0	{"fire_id":"1fb8ca1e","sensor_id":"type-check","stage":"build-and-test","output_path":"/home/probe/probe.ts","result":"passed","detail_path":null,"note":"script-error: exit-1"}
+probe	/home/probe/probe.ts	upstream-coverage	1	aidlc-sensor: output path "/home/probe/probe.ts" does not match sensor "upstream-coverage" filter "**/{aidlc-docs,intents,codekb}/**"
+probe-with-config	/home/aidlc/probe.ts	claim-sources	1	aidlc-sensor: output path "/home/aidlc/probe.ts" does not match sensor "claim-sources" filter "**/{aidlc-docs,intents}/**"
+probe-with-config	/home/aidlc/probe.ts	linter	0	{"fire_id":"3050f3e6","sensor_id":"linter","stage":"build-and-test","output_path":"probe.ts","result":"passed","detail_path":null,"note":"tool-unavailable"}
+probe-with-config	/home/aidlc/probe.ts	required-sections	1	aidlc-sensor: output path "/home/aidlc/probe.ts" does not match sensor "required-sections" filter "**/{aidlc-docs,intents,codekb}/**"
+probe-with-config	/home/aidlc/probe.ts	traceability	1	aidlc-sensor: output path "/home/aidlc/probe.ts" does not match sensor "traceability" filter "**/traceability.json"
+probe-with-config	/home/aidlc/probe.ts	type-check	0	{"fire_id":"405ae5f9","sensor_id":"type-check","stage":"build-and-test","output_path":"probe.ts","result":"passed","detail_path":null,"note":"tool-unavailable"}
+probe-with-config	/home/aidlc/probe.ts	upstream-coverage	1	aidlc-sensor: output path "/home/aidlc/probe.ts" does not match sensor "upstream-coverage" filter "**/{aidlc-docs,intents,codekb}/**"

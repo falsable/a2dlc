@@ -1,0 +1,14 @@
+C1-feature-con-test	src/calc.py
+C1-feature-con-test	tests/test_media.py
+C2-test-sin-dientes	src/calc.py
+C2-test-sin-dientes	tests/test_media.py
+C3-bugfix-con-waiver	src/calc.py
+C3-bugfix-con-waiver	tests/test_divide.py
+C4-refactor-caracterizacion	src/calc.py
+C4-refactor-caracterizacion	tests/test_refactor.py
+C5-test-nuevo-rojo	tests/test_mal.py
+C6-regresion	src/calc.py
+C7-metodo-anidado-sin-stub	src/calc.py
+C7-metodo-anidado-sin-stub	tests/test_anidado.py
+C8-corrida-sin-tests	tests/conftest.py
+C9-test-modificado	tests/test_calc.py
