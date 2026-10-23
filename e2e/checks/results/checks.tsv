@@ -1,0 +1,55 @@
+C1-feature-con-test	0	PASS	grep	blocking	ran	0	0	
+C1-feature-con-test	0	PASS	grep-advisory	advisory	ran	0	0	
+C1-feature-con-test	0	PASS	md-only	blocking	not_applicable	0	0	0 of 2 changed files match **/*.md
+C1-feature-con-test	0	PASS	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C1-feature-con-test	0	PASS	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C2-test-sin-dientes	1	FAIL	grep	blocking	ran	1	0	
+C2-test-sin-dientes	1	FAIL	grep-advisory	advisory	ran	1	0	
+C2-test-sin-dientes	1	FAIL	md-only	blocking	not_applicable	0	0	0 of 2 changed files match **/*.md
+C2-test-sin-dientes	1	FAIL	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C2-test-sin-dientes	1	FAIL	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C3-bugfix-con-waiver	0	PASS	grep	blocking	ran	0	0	
+C3-bugfix-con-waiver	0	PASS	grep-advisory	advisory	ran	0	0	
+C3-bugfix-con-waiver	0	PASS	md-only	blocking	not_applicable	0	0	0 of 2 changed files match **/*.md
+C3-bugfix-con-waiver	0	PASS	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C3-bugfix-con-waiver	0	PASS	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C4-refactor-caracterizacion	0	PASS	grep	blocking	ran	0	0	
+C4-refactor-caracterizacion	0	PASS	grep-advisory	advisory	ran	0	0	
+C4-refactor-caracterizacion	0	PASS	md-only	blocking	not_applicable	0	0	0 of 2 changed files match **/*.md
+C4-refactor-caracterizacion	0	PASS	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C4-refactor-caracterizacion	0	PASS	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C5-test-nuevo-rojo	0	PASS	grep	blocking	ran	0	0	
+C5-test-nuevo-rojo	0	PASS	grep-advisory	advisory	ran	0	0	
+C5-test-nuevo-rojo	0	PASS	md-only	blocking	not_applicable	0	0	0 of 1 changed files match **/*.md
+C5-test-nuevo-rojo	0	PASS	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C5-test-nuevo-rojo	0	PASS	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C6-regresion	0	PASS	grep	blocking	ran	0	0	
+C6-regresion	0	PASS	grep-advisory	advisory	ran	0	0	
+C6-regresion	0	PASS	md-only	blocking	not_applicable	0	0	0 of 1 changed files match **/*.md
+C6-regresion	0	PASS	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C6-regresion	0	PASS	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C7-metodo-anidado-sin-stub	0	PASS	grep	blocking	ran	0	0	
+C7-metodo-anidado-sin-stub	0	PASS	grep-advisory	advisory	ran	0	0	
+C7-metodo-anidado-sin-stub	0	PASS	md-only	blocking	not_applicable	0	0	0 of 2 changed files match **/*.md
+C7-metodo-anidado-sin-stub	0	PASS	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C7-metodo-anidado-sin-stub	0	PASS	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C8-corrida-sin-tests	1	FAIL	grep	blocking	ran	1	0	
+C8-corrida-sin-tests	1	FAIL	grep-advisory	advisory	ran	1	0	
+C8-corrida-sin-tests	1	FAIL	md-only	blocking	not_applicable	0	0	0 of 1 changed files match **/*.md
+C8-corrida-sin-tests	1	FAIL	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C8-corrida-sin-tests	1	FAIL	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C9-test-modificado	0	PASS	grep	blocking	ran	0	0	
+C9-test-modificado	0	PASS	grep-advisory	advisory	ran	0	0	
+C9-test-modificado	0	PASS	md-only	blocking	not_applicable	0	0	0 of 1 changed files match **/*.md
+C9-test-modificado	0	PASS	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C9-test-modificado	0	PASS	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C1-missing-tool-blocking	2	INCONCLUSIVE	grep	blocking	ran	0	0	
+C1-missing-tool-blocking	2	INCONCLUSIVE	grep-advisory	advisory	ran	0	0	
+C1-missing-tool-blocking	2	INCONCLUSIVE	md-only	blocking	not_applicable	0	0	0 of 2 changed files match **/*.md
+C1-missing-tool-blocking	2	INCONCLUSIVE	missing-tool	blocking	error	0	0	the check exited 127: sh: no-such-tool: not found
+C1-missing-tool-blocking	2	INCONCLUSIVE	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)
+C2-accept-finding-unsigned	0	PASS	grep	blocking	ran	1	1	
+C2-accept-finding-unsigned	0	PASS	grep-advisory	advisory	ran	1	1	
+C2-accept-finding-unsigned	0	PASS	md-only	blocking	not_applicable	0	0	0 of 2 changed files match **/*.md
+C2-accept-finding-unsigned	0	PASS	missing-tool	advisory	error	0	0	the check exited 127: sh: no-such-tool: not found
+C2-accept-finding-unsigned	0	PASS	slow	advisory	timeout	0	0	the check exceeded its timeout (timeout_s=2)

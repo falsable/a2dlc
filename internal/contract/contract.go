@@ -88,15 +88,24 @@ type CheckTool struct {
 	Version string `json:"version,omitempty"`
 }
 
-// VerdictCheck is one check in verdict.checks: the mirror of Gate for pluggable checks. Pass is set only when it ran.
+// VerdictCheck is one check in verdict.checks: the mirror of Gate for pluggable checks. Pass and Findings are set only
+// when it ran (Findings points to an empty list when it ran clean: the key is present, as the schema requires).
 type VerdictCheck struct {
-	ID       string                `json:"id"`
-	Severity string                `json:"severity"`
-	Status   string                `json:"status"`
-	Reason   string                `json:"reason,omitempty"`
-	Pass     *bool                 `json:"pass,omitempty"`
-	Findings []VerdictCheckFinding `json:"findings,omitempty"`
-	Tool     *CheckTool            `json:"tool,omitempty"`
+	ID       string                 `json:"id"`
+	Severity string                 `json:"severity"`
+	Status   string                 `json:"status"`
+	Reason   string                 `json:"reason,omitempty"`
+	Pass     *bool                  `json:"pass,omitempty"`
+	Findings *[]VerdictCheckFinding `json:"findings,omitempty"`
+	Tool     *CheckTool             `json:"tool,omitempty"`
+}
+
+// FindingList is the findings of a check that ran; nil otherwise.
+func (c VerdictCheck) FindingList() []VerdictCheckFinding {
+	if c.Findings == nil {
+		return nil
+	}
+	return *c.Findings
 }
 
 type VerdictCheckFinding struct {

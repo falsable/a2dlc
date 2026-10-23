@@ -674,9 +674,12 @@ func (a App) Verify(commit string) ([]string, error) {
 			waived = append(waived, t.Target)
 		}
 	}
+	// Two checks can waive the same finding target: one problem per target.
+	seen := map[string]bool{}
 	for _, c := range v.Checks {
-		for _, f := range c.Findings {
-			if f.Waived {
+		for _, f := range c.FindingList() {
+			if f.Waived && !seen[f.Target] {
+				seen[f.Target] = true
 				waived = append(waived, f.Target)
 			}
 		}

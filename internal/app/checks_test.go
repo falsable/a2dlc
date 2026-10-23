@@ -58,7 +58,7 @@ const blockingLint = `[{"id":"lint","image":"lint:1","command":"lint","severity"
 func findingsOf(v contract.Verdict, id string) []contract.VerdictCheckFinding {
 	for _, c := range v.Checks {
 		if c.ID == id {
-			return c.Findings
+			return c.FindingList()
 		}
 	}
 	return nil
@@ -134,8 +134,9 @@ func TestChecksTruthTable(t *testing.T) {
 			if got := kinds(escalations(v)); got != c.esc {
 				t.Fatalf("escalations %q, want %q", got, c.esc)
 			}
-			if c.status == contract.CheckRan && v.Checks[0].Pass == nil || c.status != contract.CheckRan && v.Checks[0].Pass != nil {
-				t.Fatalf("pass is set only when the check ran: %+v", v.Checks[0])
+			ran := c.status == contract.CheckRan
+			if ran != (v.Checks[0].Pass != nil) || ran != (v.Checks[0].Findings != nil) {
+				t.Fatalf("pass and findings are set exactly when the check ran: %+v", v.Checks[0])
 			}
 			if c.status == contract.CheckRan && fake != nil && strings.Join(fake.files["lint"], " ") != "README.md" {
 				t.Fatalf("the check received %v", fake.files["lint"])

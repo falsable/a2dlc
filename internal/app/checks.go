@@ -90,16 +90,16 @@ func (a App) runChecks(ctx context.Context, cfg contract.Config, on string, chan
 			fail(contract.CheckNotApplicable, "the check reported not_applicable over "+fmt.Sprint(len(files))+" file(s)")
 			continue
 		}
-		pass := r.Response.Pass
-		vc.Status, vc.Pass, vc.Findings = contract.CheckRan, &pass, []contract.VerdictCheckFinding{}
+		pass, findings := r.Response.Pass, []contract.VerdictCheckFinding{}
 		for _, f := range r.Response.Findings {
 			w, ok := waivers[f.Target]
 			waived := ok && w.Decision == contract.AcceptFinding
 			if waived && !approved[f.Target] {
 				pending = append(pending, f.Target)
 			}
-			vc.Findings = append(vc.Findings, contract.VerdictCheckFinding{Target: f.Target, Message: f.Message, Waived: waived})
+			findings = append(findings, contract.VerdictCheckFinding{Target: f.Target, Message: f.Message, Waived: waived})
 		}
+		vc.Status, vc.Pass, vc.Findings = contract.CheckRan, &pass, &findings
 		out = append(out, vc)
 	}
 	return out, pending
@@ -152,7 +152,7 @@ func applyChecks(v *contract.Verdict, checks []contract.VerdictCheck, pending []
 		case contract.CheckError, contract.CheckTimeout:
 			inc = true
 		case contract.CheckRan:
-			for _, f := range c.Findings {
+			for _, f := range c.FindingList() {
 				fail = fail || !f.Waived
 			}
 		}
@@ -189,7 +189,7 @@ func checkEscalations(v contract.Verdict, pending map[string]bool) []contract.Es
 				out = append(out, escalation("tooling", pathConfig+"::checks."+c.ID, "The blocking check "+c.ID+" could not run ("+c.Status+"): "+c.Reason, contract.Evidence{Message: c.Reason}))
 			}
 		case contract.CheckRan:
-			for _, f := range c.Findings {
+			for _, f := range c.FindingList() {
 				switch {
 				case f.Waived && pending[f.Target]:
 					out = append(out, escalation("signature_pending", f.Target, "The waiver awaits a signature: a2dlc approve "+f.Target, contract.Evidence{Message: f.Message}))
