@@ -68,6 +68,9 @@ func run(args []string) int {
 	cwd, _ := os.Getwd()
 	repo, err := gitx.Open(cwd)
 	if err != nil {
+		if args[0] == "hook" && len(args) > 1 {
+			return app.HookOutsideRepo(args[1], os.Stdout)
+		}
 		fmt.Fprintln(os.Stderr, "a2dlc:", err)
 		return 64
 	}

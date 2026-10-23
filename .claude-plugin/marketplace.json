@@ -1,0 +1,24 @@
+{
+  "name": "falsable",
+  "owner": { "name": "falsable", "url": "https://github.com/falsable" },
+  "metadata": {
+    "description": "Claude Code integrations for the falsable tools. Each plugin lives in its product's repo; this file only lists them."
+  },
+  "plugins": [
+    {
+      "name": "a2dlc",
+      "source": "./integrations/claude-code",
+      "description": "The a2dlc gate as PreToolUse and Stop hooks, active only in repos that installed a2dlc."
+    },
+    {
+      "name": "chronosgraph",
+      "source": { "source": "git-subdir", "url": "https://github.com/falsable/chronosgraph.git", "path": "integrations/claude-code" },
+      "description": "The ChronosGraph code-intelligence MCP server of a running ChronosGraph stack."
+    },
+    {
+      "name": "entropos",
+      "source": { "source": "git-subdir", "url": "https://github.com/falsable/Entropos.git", "path": "integrations/claude-code" },
+      "description": "The Entropos MCP tools of a running Entropos server. Routing Claude Code's own traffic through Entropos stays a user setting (ANTHROPIC_BASE_URL)."
+    }
+  ]
+}
