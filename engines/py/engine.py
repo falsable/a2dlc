@@ -220,6 +220,33 @@ def module(file: str) -> str:
     return file[:-3].replace("/", ".").removesuffix(".__init__")
 
 
+# Base and candidate are imported in one process, so a module that registers a metric at import registers the same
+# name twice in prometheus_client's default REGISTRY ("Duplicated timeseries") and every target in a file that
+# imports it came back INCONCLUSIVE (a2dlc-gdp). Python imports sitecustomize from PYTHONPATH (WORK) at startup, so
+# both copies run with the same patch: the duplicate is not registered, the metric object still counts.
+IMPORT_SHIMS = '''\
+import importlib.util
+
+if importlib.util.find_spec("prometheus_client") is not None:
+    from prometheus_client import registry as _registry
+
+    _register = _registry.CollectorRegistry.register
+
+    def _register_once(self, collector):
+        try:
+            _register(self, collector)
+        except ValueError as e:
+            if "Duplicated timeseries" not in str(e):
+                raise
+
+    _registry.CollectorRegistry.register = _register_once
+'''
+
+
+def install_import_shims() -> None:
+    (WORK / "sitecustomize.py").write_text(IMPORT_SHIMS, encoding="utf-8")
+
+
 def run(cmd: list[str], timeout: float) -> tuple[int | None, str]:
     try:
         r = subprocess.run(cmd, cwd=WORK, capture_output=True, text=True, timeout=timeout,
@@ -1632,6 +1659,7 @@ def diff(req: dict, clock=time.monotonic) -> int:
     for origin, package in ((base_dir, "a2dlc_base"), (cand_dir, "a2dlc_cand")):
         copy_py(origin, WORK / package)
         rewrite_imports(WORK / package, package)
+    install_import_shims()
 
     layout: list[dict | Block] = []  # output order: a finished target, or the jobs of one changed file
     for file in req["changed_files"]:

@@ -60,6 +60,7 @@ def run_lemmas(req: dict) -> int:
     if ctx.refactor:
         core.copy_py(ctx.base, core.WORK / "a2dlc_base")
         core.rewrite_imports(core.WORK / "a2dlc_base", "a2dlc_base")
+        core.install_import_shims()
     lemmas = [_lemma(i, spec, ctx) for i, spec in enumerate(budget.get("functions") or [])]
     resp = {"schema_version": 1, "lemmas": lemmas}
     (core.IO / "response.json").write_text(json.dumps(resp, ensure_ascii=False, indent=1), encoding="utf-8")

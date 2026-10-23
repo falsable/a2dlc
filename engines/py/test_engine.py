@@ -6,6 +6,7 @@
 Each case comes from a review finding; the name says which invariant it guards.
 """
 import ast
+import importlib.util
 import itertools
 import json
 import sys
@@ -840,6 +841,36 @@ class LocalRoots(unittest.TestCase):
         self.write("src/pkg/m.py", "import pkg.sub as s\n")
         engine.rewrite_imports(self.tree, "a2dlc_cand")
         self.assertEqual((self.tree / "src/pkg/m.py").read_text(encoding="utf-8"), "import a2dlc_cand.src.pkg.sub as s\n")
+
+
+@unittest.skipUnless(importlib.util.find_spec("prometheus_client"), "prometheus_client is not installed in this image")
+class ProcessGlobalRegistries(unittest.TestCase):
+    """Base and candidate share one process: a metric registered at import must not break the second copy (a2dlc-gdp)."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        patcher = mock.patch.object(engine, "WORK", Path(tmp.name))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        for package in ("a2dlc_base", "a2dlc_cand"):
+            (engine.WORK / package).mkdir(parents=True)
+            (engine.WORK / package / "__init__.py").write_text("", encoding="utf-8")
+            (engine.WORK / package / "m.py").write_text(
+                "from prometheus_client import Counter\nHITS = Counter('a2dlc_test_hits_total', 'hits')\n", encoding="utf-8")
+
+    def test_both_copies_of_a_module_level_counter_import_in_one_process_and_still_count(self):
+        engine.install_import_shims()
+        rc, out = engine.run([sys.executable, "-c", "import a2dlc_base.m as b, a2dlc_cand.m as c\n"
+                              "c.HITS.inc(); b.HITS.inc(2)\nprint(b.HITS._value.get(), c.HITS._value.get())"], 60)
+        self.assertEqual((rc, out.strip()), (0, "2.0 1.0"), out)
+
+    def test_another_registry_error_is_still_raised(self):
+        engine.install_import_shims()
+        rc, out = engine.run([sys.executable, "-c", "from prometheus_client import registry\n"
+                              "registry.REGISTRY.register(object())"], 60)
+        self.assertNotEqual(rc, 0)
+        self.assertNotIn("Duplicated timeseries", out)
 
 
 if __name__ == "__main__":
