@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/check-response.schema.json",
+  "title": "Check response (the file a pluggable check writes to $A2DLC_OUT)",
+  "description": "schema_version 1. What a check declared in config.checks (protocol §5 Checks, ADR meta/0006) reports after running in its image, without network, over /base:ro and /cand:ro with the changed files it matches in $A2DLC_CHANGED. A finding is bound to a file: <file>::<check id> or <file>::L<line>. The check never reports an error about itself: a missing or invalid file, a non-zero exit, a missing image or a timeout are recorded by the core as status error (never a pass). A check can lower the verdict, never raise it; the only override is a signed waiver with decision accept_finding on the finding's target.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,63}$", "description": "The id of config.checks it answers for; another id is a core error." },
+    "status": {
+      "description": "ran: it examined the files and judged. not_applicable: nothing to judge in the files it received (pass true, no findings); the core also records not_applicable, with the count, when 0 changed files match.",
+      "enum": ["ran", "not_applicable"]
+    },
+    "pass": { "type": "boolean", "description": "false whenever there is a finding." },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target": { "$ref": "defs.schema.json#/$defs/target_id", "description": "<file>::<check id> for a file-level finding, <file>::L<line> for a line." },
+          "message": { "type": "string", "minLength": 1 }
+        },
+        "required": ["target", "message"],
+        "additionalProperties": false
+      }
+    },
+    "tool": {
+      "type": "object",
+      "description": "What produced the findings, for the verdict's reader.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "id", "status", "pass", "findings"],
+  "allOf": [
+    { "if": { "properties": { "findings": { "minItems": 1 } } }, "then": { "properties": { "pass": { "const": false } } } },
+    { "if": { "properties": { "status": { "const": "not_applicable" } }, "required": ["status"] }, "then": { "properties": { "pass": { "const": true }, "findings": { "maxItems": 0 } } } }
+  ],
+  "additionalProperties": false
+}

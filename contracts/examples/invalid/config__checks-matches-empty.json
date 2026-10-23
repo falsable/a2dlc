@@ -1,0 +1,42 @@
+{
+ "schema_version": 1,
+ "engines": [
+  {
+   "language": "python",
+   "image": "a2dlc-engine-py:0.7",
+   "paths": [
+    "src/**"
+   ],
+   "budget": {
+    "per_condition_timeout_s": 10
+   }
+  }
+ ],
+ "checks": [
+  {
+   "id": "ruff",
+   "image": "a2dlc-check-ruff:0.1",
+   "command": "ruff check --output-format json $A2DLC_CHANGED > /tmp/r.json; a2dlc-check-ruff /tmp/r.json > \"$A2DLC_OUT\"",
+   "severity": "blocking",
+   "matches": [],
+   "timeout_s": 60
+  },
+  {
+   "id": "aidlc-linter",
+   "image": "a2dlc-check-aidlc-sensor:0.1",
+   "command": "aidlc-sensor linter",
+   "severity": "advisory",
+   "fire_on": [
+    "check",
+    "stage:4"
+   ],
+   "matches": [
+    "**/*.ts",
+    "**/*.js"
+   ],
+   "timeout_s": 300,
+   "memory": "2g",
+   "cpus": 2
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "schema_version": 1,
+ "waivers": [
+  {
+   "target": "ruff",
+   "decision": "accept_finding",
+   "reason": "The import is used by the doctest in the module docstring; ruff cannot see it."
+  }
+ ]
+}

@@ -1,0 +1,2 @@
+{"schema_version": 1, "id": "aidlc-linter", "status": "not_applicable", "pass": true, "findings": [],
+ "tool": {"name": "eslint", "version": "10.11.0"}}

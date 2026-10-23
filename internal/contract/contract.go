@@ -33,6 +33,67 @@ type Config struct {
 	Tier0 *PolicyTier0 `json:"tier0,omitempty"`
 	// Integration (Stage 6 of a2dlc run): consumer matrix and migrations linter; nil leaves the stage skipped.
 	Integration *IntegrationConfig `json:"integration,omitempty"`
+	// Checks are the pluggable deterministic checks (protocol §5 Checks, ADR meta/0006): they lower the verdict, never raise it.
+	Checks []CheckConfig `json:"checks,omitempty"`
+}
+
+// Check severities (config.checks[].severity): blocking lowers the verdict, advisory is recorded only.
+const (
+	CheckAdvisory = "advisory"
+	CheckBlocking = "blocking"
+)
+
+// CheckConfig is one pluggable deterministic check: an image run without network over /base:ro and /cand:ro that
+// writes a CheckResponse to $A2DLC_OUT. FireOn defaults to ["check"]; Matches absent means every changed file.
+type CheckConfig struct {
+	ID       string   `json:"id"`
+	Image    string   `json:"image"`
+	Command  string   `json:"command"`
+	Severity string   `json:"severity"`
+	FireOn   []string `json:"fire_on,omitempty"`
+	Matches  []string `json:"matches,omitempty"`
+	TimeoutS int      `json:"timeout_s,omitempty"`
+	Memory   string   `json:"memory,omitempty"`
+	CPUs     float64  `json:"cpus,omitempty"`
+}
+
+// CheckResponse is what a check writes to $A2DLC_OUT (check-response.schema.json). It never says "error" about
+// itself: the core records that.
+type CheckResponse struct {
+	SchemaVersion int            `json:"schema_version"`
+	ID            string         `json:"id"`
+	Status        string         `json:"status"`
+	Pass          bool           `json:"pass"`
+	Findings      []CheckFinding `json:"findings"`
+	Tool          *CheckTool     `json:"tool,omitempty"`
+}
+
+// CheckFinding is bound to a file: <file>::<check id> or <file>::L<line>.
+type CheckFinding struct {
+	Target  string `json:"target"`
+	Message string `json:"message"`
+}
+
+type CheckTool struct {
+	Name    string `json:"name"`
+	Version string `json:"version,omitempty"`
+}
+
+// VerdictCheck is one check in verdict.checks: the mirror of Gate for pluggable checks. Pass is set only when it ran.
+type VerdictCheck struct {
+	ID       string                `json:"id"`
+	Severity string                `json:"severity"`
+	Status   string                `json:"status"`
+	Reason   string                `json:"reason,omitempty"`
+	Pass     *bool                 `json:"pass,omitempty"`
+	Findings []VerdictCheckFinding `json:"findings,omitempty"`
+	Tool     *CheckTool            `json:"tool,omitempty"`
+}
+
+type VerdictCheckFinding struct {
+	Target  string `json:"target"`
+	Message string `json:"message"`
+	Waived  bool   `json:"waived"`
 }
 
 // TestsConfig holds the cheap Tier 1 gates (protocol §5, Stage 4 step 0).
@@ -279,6 +340,8 @@ type Verdict struct {
 	TestGates      *TestGates      `json:"test_gates,omitempty"`
 	Coverage       *Coverage       `json:"coverage,omitempty"`
 	Tests          []TestResult    `json:"tests,omitempty"`
+	// Checks are the pluggable checks (config.checks) in config order; what did not run stays in view.
+	Checks []VerdictCheck `json:"checks,omitempty"`
 }
 
 // States of the coverage precondition.
@@ -403,12 +466,14 @@ type Evidence struct {
 	Mutant         *Mutant           `json:"mutant,omitempty"`
 }
 
-// Waiver decisions: the first two cover engine targets; the last two, tests.
+// Waiver decisions: the first two cover engine targets; the next two, tests; the last one, a finding of a pluggable
+// check (<file>::<check id> or <file>::L<line>).
 const (
 	EnforceNewBehavior   = "enforce_new_behavior"
 	PreserveLegacy       = "preserve_legacy"
 	CharacterizationTest = "characterization_test"
 	QuarantineFlaky      = "quarantine_flaky"
+	AcceptFinding        = "accept_finding"
 )
 
 // IsTestDecision reports whether a waiver decision belongs to the test class.

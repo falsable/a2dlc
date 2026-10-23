@@ -389,6 +389,29 @@ cases = {
     "intent__delivery-sentinel-without-thresholds.json": (read("intent__delivery-writes.json"), lambda x: x["delivery"].update(writes=True, sentinel={"invariants": ["x"]})),
     # a branch id is <from line>-><to line>: b1 names no decision
     "capture__branch-id-format.json": (read("capture__traces.json"), lambda x: x["traces"][0].update(branch_ids=["b1"])),
+    # pluggable checks (protocol §5 Checks, ADR meta/0006): severity has no default, no host command, a check never reports its own error
+    "config__checks-missing-severity.json": (read("config__checks.json"), lambda x: x["checks"][0].pop("severity")),
+    "config__checks-severity-unknown.json": (read("config__checks.json"), lambda x: x["checks"][0].update(severity="warning")),
+    "config__checks-missing-image.json": (read("config__checks.json"), lambda x: x["checks"][0].pop("image")),
+    "config__checks-host-command.json": (read("config__checks.json"), lambda x: x["checks"][0].update(host_command="ruff check .")),
+    "config__checks-fire-on-unknown-stage.json": (read("config__checks.json"), lambda x: x["checks"][1].update(fire_on=["stage:9"])),
+    "config__checks-fire-on-verify.json": (read("config__checks.json"), lambda x: x["checks"][1].update(fire_on=["verify"])),
+    "config__checks-timeout-zero.json": (read("config__checks.json"), lambda x: x["checks"][0].update(timeout_s=0)),
+    "config__checks-matches-empty.json": (read("config__checks.json"), lambda x: x["checks"][0].update(matches=[])),
+    "check-response__status-error.json": (read("check-response__ran-findings.json"), lambda x: x.update(status="error", findings=[])),
+    "check-response__pass-with-findings.json": (read("check-response__ran-findings.json"), lambda x: x.update({"pass": True})),
+    "check-response__not-applicable-with-findings.json": (read("check-response__ran-findings.json"), lambda x: x.update(status="not_applicable")),
+    "check-response__finding-without-file.json": (read("check-response__ran-findings.json"), lambda x: x["findings"][0].update(target="F401 unused import")),
+    "check-response__findings-count.json": (read("check-response__ran-findings.json"), lambda x: x.update(findings_count=2)),
+    "verdict__check-error-without-reason.json": (read("verdict__checks.json"), lambda x: x["checks"][2].pop("reason")),
+    "verdict__check-error-pass.json": (read("verdict__checks.json"), lambda x: x["checks"][2].update({"pass": True})),
+    "verdict__check-ran-without-findings-field.json": (read("verdict__checks.json"), lambda x: x["checks"][0].pop("findings")),
+    "verdict__check-status-unknown.json": (read("verdict__checks.json"), lambda x: x["checks"][1].update(status="skipped")),
+    "verdict__check-finding-without-waived.json": (read("verdict__checks.json"), lambda x: x["checks"][0]["findings"][0].pop("waived")),
+    "waivers__accept-finding-free-target.json": (read("waivers__accept-finding.json"), lambda x: x["waivers"][0].update(target="ruff")),
+    "escalation__check-failed-missing-message.json": (read("escalation__check-failed.json"), lambda x: x["items"][0]["evidence"].pop("message")),
+    "escalation__check-failed-with-legacy-waiver.json": (read("escalation__check-failed.json"), lambda x: x["items"][0].update(resolve_with=["preserve_legacy"])),
+    "escalation__check-failed-no-resolution.json": (read("escalation__check-failed.json"), lambda x: x["items"][0].update(resolve_with=[])),
 }
 for name, (base, breaks) in cases.items():
     doc = copy.deepcopy(base)

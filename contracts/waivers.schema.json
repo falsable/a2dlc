@@ -13,8 +13,8 @@
         "properties": {
           "target": { "$ref": "defs.schema.json#/$defs/target_id" },
           "decision": {
-            "description": "On an engine target: enforce_new_behavior | preserve_legacy. On a test (<test file>::<id>): characterization_test (the test passes on the base on purpose) | quarantine_flaky (quarantine: does not count for PASS or FAIL). A decision of the other class does not cover the target.",
-            "enum": ["enforce_new_behavior", "preserve_legacy", "characterization_test", "quarantine_flaky"]
+            "description": "On an engine target: enforce_new_behavior | preserve_legacy. On a test (<test file>::<id>): characterization_test (the test passes on the base on purpose) | quarantine_flaky (quarantine: does not count for PASS or FAIL). On a finding of a pluggable check (<file>::<check id> or <file>::L<line>): accept_finding (the finding is accepted on purpose; the signature binds the file's blob, so it covers this content of the file and not the check's future findings). A decision of the other class does not cover the target.",
+            "enum": ["enforce_new_behavior", "preserve_legacy", "characterization_test", "quarantine_flaky", "accept_finding"]
           },
           "reason": { "type": "string", "minLength": 1 }
         },

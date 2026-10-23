@@ -1,0 +1,20 @@
+{
+ "schema_version": 1,
+ "id": "ruff",
+ "status": "ran",
+ "pass": true,
+ "findings": [
+  {
+   "target": "src/calc.py::L12",
+   "message": "F401 `os` imported but unused"
+  },
+  {
+   "target": "src/calc.py::ruff",
+   "message": "2 findings in the file; the first is listed by line"
+  }
+ ],
+ "tool": {
+  "name": "ruff",
+  "version": "0.6.9"
+ }
+}

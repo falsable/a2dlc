@@ -1,0 +1,3 @@
+{"schema_version": 1,
+ "waivers": [{"target": "src/calc.py::L12", "decision": "accept_finding",
+   "reason": "The import is used by the doctest in the module docstring; ruff cannot see it."}]}

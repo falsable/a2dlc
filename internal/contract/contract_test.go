@@ -55,7 +55,8 @@ func exampleTypes() map[string]func() any {
 	return map[string]func() any{
 		"config": func() any { return &Config{} }, "engine-request": func() any { return &Request{} },
 		"engine-response": func() any { return &Response{} }, "verdict": func() any { return &Verdict{} },
-		"waivers": func() any { return &Waivers{} }, "approvals": func() any { return &Approvals{} },
+		"check-response": func() any { return &CheckResponse{} },
+		"waivers":        func() any { return &Waivers{} }, "approvals": func() any { return &Approvals{} },
 		"engine-stub-response": func() any { return &StubResponse{} }, "escalation": func() any { return &Escalations{} },
 		"engine-signatures-response": func() any { return &SignaturesResponse{} },
 		"roles":                      func() any { return &Roles{} }, "role-request": func() any { return &RoleRequest{} },
@@ -99,6 +100,7 @@ var inOtherPackage = map[string]string{"blackbox": "engines/blackbox TestBlackbo
 // "unknown field" error.
 var unknownPropertyInvalid = []string{
 	"verdict__extra-field.json",
+	"check-response__findings-count.json",
 	"intent__extra-field.json",
 	"baseline__extra-field.json",
 	"golden__extra-field.json",

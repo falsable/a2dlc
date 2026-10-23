@@ -135,6 +135,38 @@
         }
       },
       "additionalProperties": false
+    },
+    "checks": {
+      "description": "Pluggable deterministic checks (protocol §5 Checks, ADR meta/0006): linters, type checkers, policy tools, or an adapter around another framework's sensors. Each one is an image a2dlc check runs without network, with the base at /base:ro, the candidate at /cand:ro, the matched changed files in $A2DLC_CHANGED (one path per line) and the response file to write in $A2DLC_OUT (check-response.schema.json). No host command: what runs is the image. A check lowers the verdict, never raises it: blocking with an unwaived finding is FAIL; blocking in error or past its timeout is INCONCLUSIVE; advisory is recorded in verdict.checks only. The only override is a signed waiver with decision accept_finding on the finding's target.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,63}$", "description": "Unique in the list; the response must answer for this id." },
+          "image": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 1, "description": "Run with sh -c inside the image, cwd /cand." },
+          "severity": { "enum": ["advisory", "blocking"], "description": "Required on purpose: no default, so the repo says what a finding costs." },
+          "fire_on": {
+            "type": "array",
+            "description": "When it fires: check (a2dlc check, the pre-push gate) or stage:<id> with a stage id of run-defs (a2dlc run). Default [\"check\"]. verify never runs checks: it reads the receipt.",
+            "items": { "type": "string", "pattern": "^(check|stage:(-1|0|1|1\\.5|2|3|4|5|6|7|propose))$" },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "matches": {
+            "type": "array",
+            "description": "Globs over the changed files (** allowed). Absent: every changed file. 0 matches: status not_applicable with the count, never a run.",
+            "items": { "type": "string", "minLength": 1 },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "timeout_s": { "type": "integer", "minimum": 1, "default": 120 },
+          "memory": { "type": "string", "pattern": "^[0-9]+[kmg]$", "description": "Docker --memory (e.g. 2g)." },
+          "cpus": { "type": "number", "exclusiveMinimum": 0, "description": "Docker --cpus." }
+        },
+        "required": ["id", "image", "command", "severity"],
+        "additionalProperties": false
+      }
     }
   },
   "required": ["schema_version", "engines"],

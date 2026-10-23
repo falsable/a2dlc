@@ -1,0 +1,48 @@
+{
+ "schema_version": 1,
+ "a2dlc_version": "0.5.0",
+ "verdict": "FAIL",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-23T12:00:00Z",
+ "targets": [],
+ "out_of_scope": [
+  {
+   "file": "src/calc.py",
+   "reason": "not_exported"
+  }
+ ],
+ "pending_waivers": [
+  "src/calc.py::L12"
+ ],
+ "checks": [
+  {
+   "id": "ruff",
+   "severity": "blocking",
+   "status": "ran",
+   "pass": false,
+   "tool": {
+    "name": "ruff",
+    "version": "0.6.9"
+   }
+  },
+  {
+   "id": "aidlc-linter",
+   "severity": "advisory",
+   "status": "not_applicable",
+   "reason": "0 of 3 changed files match **/*.ts, **/*.js"
+  },
+  {
+   "id": "mypy",
+   "severity": "blocking",
+   "status": "error",
+   "reason": "image a2dlc-check-mypy:0.1 not found"
+  },
+  {
+   "id": "semgrep",
+   "severity": "advisory",
+   "status": "timeout",
+   "reason": "past timeout_s 120"
+  }
+ ]
+}
