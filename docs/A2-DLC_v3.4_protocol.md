@@ -263,6 +263,33 @@ The Saboteur generates the PBT suite **in parallel** with the Builder, without s
 3. **Rollback ≠ undo.** Slices with writes must declare a **compensation strategy** (compensating events, a data repair script, or tagging records with the slice version to isolate them). Without it, the slice cannot move past the 1% ring.
 4. **Production parity (refactor):** dual legacy/new execution in the style of GitHub Scientist, **only on read-only paths**. On paths with writes, canary with compensation is used.
 
+### Checks: pluggable deterministic gates (Lite and full)
+
+The protocol judges behavior. What a repo also wants judged deterministically and has a tool for (a linter, a type
+checker, a policy or secrets scanner, another framework's sensors) is declared in `config.checks` and run by the gate
+under the same discipline as an engine; the core knows no tool, only the contract (`check-response.schema.json`).
+
+- **Declaration:** `{id, image, command, severity, fire_on?, matches?, timeout_s?, memory?, cpus?}`. `severity` is
+  `advisory` or `blocking` and has **no default**: the repo says what a finding costs. `fire_on` is `check` (the
+  pre-push gate, the default) or `stage:<id>` of `a2dlc run`; `matches` are globs over the changed files, absent
+  means every changed file.
+- **Execution:** the image runs with `--network none`, the base at `/base:ro`, the candidate at `/cand:ro` (the cwd),
+  the matched changed files in `$A2DLC_CHANGED` and the response file to write in `$A2DLC_OUT`. There is no host
+  command: what runs is the image. The response says `ran` or `not_applicable`, `pass`, and the findings, each bound to
+  a file (`<file>::<check id>` or `<file>::L<n>`) with a message. A check never reports an error about itself.
+- **Truth table, applied after the engines and the test gates:** a `blocking` check with an unwaived finding is
+  `FAIL` (escalation `check_failed`); a `blocking` check in `error` (missing image, non-zero exit, missing or invalid
+  response, a finding on a file it did not receive) or `timeout` is `INCONCLUSIVE` (escalation `tooling`, no waiver
+  resolves it); an `advisory` check is recorded only, and its errors are recorded as errors, never as a pass; 0
+  matching files is `not_applicable` with the count. **A check lowers the verdict, never raises it.** Everything that
+  fired is in `verdict.checks`, in config order: what did not run stays in view.
+- **Override:** a waiver with decision `accept_finding` on the finding's target, signed like any other (§6.4): the
+  signature binds the file's blob, so it covers this content of the file and no future finding. `verify` runs no
+  checks: it reads the receipt and refuses an unsigned `accept_finding` like any unsigned waiver.
+
+Measured over the 9 frozen `gates-py` cases with one throwaway image (`e2e/checks/RESULTS.md`) and with the six
+AI-DLC v2 sensors behind an adapter (`templates/checks/aidlc-sensor/`).
+
 ---
 
 ## 6. Artifacts
@@ -403,6 +430,10 @@ When the slice is modified, the orchestrator injects `rejected_alternatives` and
 ```
 
 Waives feed the Locked Contract `S*` as assertions, so the same divergence does not escalate again.
+
+On a test the decisions are `characterization_test` and `quarantine_flaky` (§4.4); on a finding of a pluggable check
+(§5, Checks) the decision is `accept_finding` on `<file>::<check id>` or `<file>::L<n>`. A decision of another class
+does not cover the target, and every signature binds the blob of the target's file.
 
 ---
 
