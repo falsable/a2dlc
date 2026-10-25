@@ -287,6 +287,26 @@ def run(cmd: list[str], timeout: float) -> tuple[int | None, str]:
         return None, output if isinstance(output, str) else output.decode("utf-8", "replace")
 
 
+# Importing agencia-ia's app/core/deps.py ends in `fcntl.ioctl(0, TIOCGWINSZ)` (a library asking for the terminal size), and
+# CrossHair aborts the target while loading the module ("Unable to load ... SideEffectDetected"), before any coroutine or
+# function runs. Only that read-only query is allowed (event prefix: fd 0, request 21523 = TIOCGWINSZ); any other ioctl
+# is still a side effect.
+UNBLOCK_TERMINAL_SIZE = "--unblock=fcntl.ioctl:0:21523"
+SIDE_EFFECT = re.compile(r"SideEffectDetected: (.*?)\. It's dangerous")  # what CrossHair blocked
+PLAIN_TYPES = {"int", "float", "str", "bool", "bytes", "None", "list", "dict", "set", "frozenset", "tuple", "complex",
+               "Optional", "List", "Dict", "Set", "FrozenSet", "Tuple", "Union", "Any", "Literal", "Sequence", "Mapping",
+               "Iterable", "Callable"}
+
+
+def opaque_params(fn: ast.AST) -> list[str]:
+    """`name: Annotation` of each parameter whose annotation names something other than a builtin or typing type: the ones
+    CrossHair most likely cannot build (Request, AsyncSession, a repo's class with a constructor of its own)."""
+    a = fn.args
+    return [f"{p.arg}: {ast.unparse(p.annotation)}" for p in [*a.posonlyargs, *a.args, *a.kwonlyargs]
+            if p.annotation is not None
+            and any(isinstance(x, ast.Name) and x.id not in PLAIN_TYPES for x in ast.walk(p.annotation))]
+
+
 DIFFERENCE = re.compile(r"^Given: \((?P<args>.*)\),\s*$\n^\s*\S+ : (?P<old>.*)$\n^\s*\S+ : (?P<new>.*)$", re.M)
 WITHOUT_DIFFERENCE = re.compile(r"No differences found\. \(attempted (\d+) iterations\)")
 
@@ -353,7 +373,7 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
         old_ref, new_ref, target = f"a2dlc_base.{mod}.{n}", f"a2dlc_cand.{mod}.{n}", None
     limit = timeout_s * 4 + 60
     rc, out = run([sys.executable, "-m", "crosshair", "diffbehavior", "--per_condition_timeout", str(timeout_s),
-                      old_ref, new_ref], limit)
+                      UNBLOCK_TERMINAL_SIZE, old_ref, new_ref], limit)
     m_dif, m_ok = DIFFERENCE.search(out), WITHOUT_DIFFERENCE.search(out)
     harness = [f"{side}: {h}" for side, h in (("old", harness_error(m_dif["old"].strip())),
                                                ("new", harness_error(m_dif["new"].strip()))) if h] if m_dif else []
@@ -375,13 +395,20 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
     elif m_ok:
         doubt = asyncdrive.doubt_of(out) if is_async else None
         if doubt:  # a PASS needs completed calls on both sides: not one reached by exceptions or by paths nobody ran
+            opaque = opaque_params(fn)
+            if doubt.startswith(asyncdrive.NOTHING_RAN) and opaque:
+                doubt += f" (most likely {', '.join(opaque)})"
             inconclusive(doubt)
         else:
             t["search_budget"]["iterations"] = int(m_ok.group(1))
     elif rc is None:
         inconclusive(f"CrossHair exceeded {limit:.0f} s")
     elif "SideEffectDetected" in out:
-        inconclusive("side effects detected while running")
+        event = SIDE_EFFECT.search(out)
+        inconclusive("side effects detected while running" + (f": {event[1]}" if event else ""))
+    elif "in gen_args" in out:  # the traceback of CrossHair building the arguments
+        opaque = ", ".join(opaque_params(fn))
+        inconclusive("CrossHair cannot build symbolic arguments" + (f" for {opaque}" if opaque else "") + " (AssertionError in gen_args)")
     elif "usage:" in out:
         inconclusive(f"the function read sys.argv and ended the process (rc={rc})")
     else:

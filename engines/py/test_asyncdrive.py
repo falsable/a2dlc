@@ -86,6 +86,8 @@ class Driver(unittest.TestCase):
         self.assertIn("no call of the new coroutine returned (ValueError)",
                       self.doubt(done, {"returned": 0, "suspended": 0, "raised": {"ValueError": 4}}))
         self.assertIn("did not finish", self.doubt({**done, "suspended": 1}, done))
+        self.assertIn("CrossHair ran no call of the old coroutine",
+                      self.doubt({"returned": 0, "suspended": 0, "raised": {}}, done))
         self.assertIn("reported no counts", asyncdrive.doubt_of("No differences found."))
 
 
@@ -148,6 +150,28 @@ class Diff(unittest.TestCase):
         base = "async def f(n: int):\n    yield n\n"
         t = self.judge(base, base.replace("yield n", "yield n + 1"))
         self.assertEqual(t["verdict"], "FAIL", t)
+
+    def test_a_parameter_crosshair_cannot_build_is_named_in_the_reason(self):
+        base = ("from typing import Awaitable, Callable\n\n\nclass Request:\n"
+                "    def __init__(self, receive: Callable[[], Awaitable[dict]]):\n        self.receive = receive\n\n\n"
+                "async def f(request: Request, n: int) -> int:\n    return n\n")
+        t = self.judge(base, base.replace("return n", "return n + 1"))
+        self.assertEqual(t["verdict"], "INCONCLUSIVE", t)
+        self.assertIn("request: Request", t["reason"])
+        self.assertNotIn("n: int", t["reason"])
+
+    def test_a_module_that_asks_for_the_terminal_size_when_imported_is_still_judged(self):
+        # A library calling fcntl.ioctl(0, TIOCGWINSZ) at import made CrossHair abort the load (SideEffectDetected)
+        head = ("import fcntl\nimport termios\n\ntry:\n    fcntl.ioctl(0, termios.TIOCGWINSZ, b'\\0' * 8)\n"
+                "except OSError:\n    pass\n\n\n")
+        t = self.judge(head + "async def f(x: int) -> int:\n    return x\n", head + "async def f(x: int) -> int:\n    return x + 1\n")
+        self.assertEqual(t["verdict"], "FAIL", t)
+
+    def test_another_side_effect_is_named_and_still_inconclusive(self):
+        head = "import os\n\nos.getcwd()\nopen('/tmp/a2dlc-test-side-effect', 'w').close()\n\n\n"
+        t = self.judge(head + "def f(x: int) -> int:\n    return x\n", head + "def f(x: int) -> int:\n    return x + 1\n")
+        self.assertEqual(t["verdict"], "INCONCLUSIVE", t)
+        self.assertRegex(t["reason"], r"^side effects detected while running: \S+")
 
     def test_untyped_parameters_are_inconclusive_for_the_missing_types(self):
         t = self.judge("async def f(x):\n    return x\n", "async def f(x):\n    return x + 1\n")

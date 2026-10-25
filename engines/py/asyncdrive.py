@@ -23,6 +23,7 @@ import sys
 STEP_TIMEOUT_S = 1.0
 MAX_ITEMS = 1000  # an async generator that yields more than this is treated as unbounded
 STATS_PREFIX = "A2DLC_ASYNC_STATS "
+NOTHING_RAN = "CrossHair ran no call of the "
 
 stats: dict[str, dict] = {side: {"returned": 0, "suspended": 0, "raised": {}} for side in ("old", "new")}
 
@@ -101,6 +102,8 @@ def doubt_of(output: str) -> str | None:
             return (f"{s['suspended']} call(s) of the {side} coroutine did not finish within {STEP_TIMEOUT_S:g} s "
                     "(real I/O, a long sleep, a future nobody sets): those paths were not judged")
         if not s.get("returned"):
-            raised = ", ".join(sorted(s.get("raised") or {})) or "nothing ran"
+            if not s.get("raised"):
+                return f"{NOTHING_RAN}{side} coroutine: it could not build the arguments, or discarded every path"
+            raised = ", ".join(sorted(s["raised"]))
             return f"no call of the {side} coroutine returned ({raised}): only the exceptions were compared"
     return None
