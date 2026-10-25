@@ -27,7 +27,7 @@ func (d Docker) Deps(ctx context.Context, e contract.EngineConfig, req contract.
 	defer removeIO(io)
 	raw, err := os.ReadFile(filepath.Join(io, "response.json"))
 	if err != nil {
-		return resp, fmt.Errorf("engine %s did not write /io/response.json (%v): %s", e.Image, errRun, tail(output))
+		return resp, noResponse(e.Image, errRun, output)
 	}
 	if err := contract.DecodeStrictBytes(raw, &resp); err != nil {
 		return resp, fmt.Errorf("engine %s gives no deps graph (response outside engine-deps-response: %v)", e.Image, err)

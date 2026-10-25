@@ -25,7 +25,7 @@ func (d Docker) Tier0(ctx context.Context, e contract.EngineConfig, req contract
 	defer os.RemoveAll(io)
 	raw, err := os.ReadFile(filepath.Join(io, "response.json"))
 	if err != nil {
-		return resp, fmt.Errorf("engine %s did not write /io/response.json (%v): %s", e.Image, errRun, tail(output))
+		return resp, noResponse(e.Image, errRun, output)
 	}
 	if err := contract.DecodeStrictBytes(raw, &resp); err != nil {
 		return resp, fmt.Errorf("%w (%s: response outside engine-tier0-response: %v)", ErrWithoutTier0, e.Image, err)

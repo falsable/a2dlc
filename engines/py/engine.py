@@ -409,6 +409,10 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
     elif "in gen_args" in out:  # the traceback of CrossHair building the arguments
         opaque = ", ".join(opaque_params(fn))
         inconclusive("CrossHair cannot build symbolic arguments" + (f" for {opaque}" if opaque else "") + " (AssertionError in gen_args)")
+    elif rc is not None and rc < 0:  # the kernel's OOM killer picks the biggest process: CrossHair, not this one
+        inconclusive(f"CrossHair was killed by signal {-rc}" + (
+            " (SIGKILL: most likely the container ran out of memory; raise engines[].memory in .a2dlc/config.json or "
+            "lower budget.workers)" if rc == -9 else ""))
     elif "usage:" in out:
         inconclusive(f"the function read sys.argv and ended the process (rc={rc})")
     else:

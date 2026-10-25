@@ -5,6 +5,7 @@ which is in the engine image:
         --entrypoint python <engine image> -m unittest test_asyncdrive -v   (from /engine)
 """
 import asyncio
+import ast
 import json
 import sys
 import tempfile
@@ -89,6 +90,22 @@ class Driver(unittest.TestCase):
         self.assertIn("CrossHair ran no call of the old coroutine",
                       self.doubt({"returned": 0, "suspended": 0, "raised": {}}, done))
         self.assertIn("reported no counts", asyncdrive.doubt_of("No differences found."))
+
+
+class Killed(unittest.TestCase):
+    def test_a_crosshair_the_kernel_killed_says_memory(self):
+        fn = ast.parse("def f(x: int) -> int:\n    return x\n").body[0]
+        with mock.patch.object(engine, "run", return_value=(-9, "")):
+            t = engine.compare("m.py", "m", "f", fn, 0, "", 10)
+        self.assertEqual(t["verdict"], "INCONCLUSIVE")
+        self.assertIn("signal 9", t["reason"])
+        self.assertIn("ran out of memory", t["reason"])
+
+    def test_another_signal_is_named_without_guessing_the_cause(self):
+        fn = ast.parse("def f(x: int) -> int:\n    return x\n").body[0]
+        with mock.patch.object(engine, "run", return_value=(-11, "")):
+            t = engine.compare("m.py", "m", "f", fn, 0, "", 10)
+        self.assertEqual(t["reason"], "CrossHair was killed by signal 11")
 
 
 class Diff(unittest.TestCase):

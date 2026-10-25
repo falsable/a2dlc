@@ -28,7 +28,7 @@ func (d Docker) Mutate(ctx context.Context, e contract.EngineConfig, req contrac
 	defer os.RemoveAll(io)
 	raw, err := os.ReadFile(filepath.Join(io, "response.json"))
 	if err != nil {
-		return resp, nil, fmt.Errorf("engine %s did not write /io/response.json (%v): %s", e.Image, errRun, tail(output))
+		return resp, nil, noResponse(e.Image, errRun, output)
 	}
 	if err := contract.DecodeStrictBytes(raw, &resp); err != nil {
 		return resp, nil, fmt.Errorf("engine %s does not mutate (response outside engine-mutate-response: %v)", e.Image, err)

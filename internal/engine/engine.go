@@ -115,7 +115,7 @@ func (d Docker) Run(ctx context.Context, e contract.EngineConfig, req contract.R
 	defer os.RemoveAll(io)
 	raw, err := os.ReadFile(filepath.Join(io, "response.json"))
 	if err != nil {
-		return resp, fmt.Errorf("engine %s did not write /io/response.json (%v): %s", e.Image, errRun, tail(output))
+		return resp, noResponse(e.Image, errRun, output)
 	}
 	if err := contract.DecodeStrictBytes(raw, &resp); err != nil {
 		return resp, fmt.Errorf("response.json outside contract: %v", err)
@@ -139,7 +139,7 @@ func (d Docker) Stub(ctx context.Context, e contract.EngineConfig, req contract.
 	defer os.RemoveAll(io)
 	raw, err := os.ReadFile(filepath.Join(io, "response.json"))
 	if err != nil {
-		return resp, nil, fmt.Errorf("engine %s did not write /io/response.json (%v): %s", e.Image, errRun, tail(output))
+		return resp, nil, noResponse(e.Image, errRun, output)
 	}
 	// An engine older than operation: stub responds with a diff: it does not match this schema and is treated as "without stubs".
 	if err := contract.DecodeStrictBytes(raw, &resp); err != nil {
@@ -162,7 +162,7 @@ func (d Docker) Signatures(ctx context.Context, e contract.EngineConfig, req con
 	defer os.RemoveAll(io)
 	raw, err := os.ReadFile(filepath.Join(io, "response.json"))
 	if err != nil {
-		return resp, fmt.Errorf("engine %s did not write /io/response.json (%v): %s", e.Image, errRun, tail(output))
+		return resp, noResponse(e.Image, errRun, output)
 	}
 	if err := contract.DecodeStrictBytes(raw, &resp); err != nil {
 		return resp, fmt.Errorf("engine %s gives no signatures (response outside engine-signatures-response: %v)", e.Image, err)
@@ -197,7 +197,7 @@ func (d Docker) Golden(ctx context.Context, e contract.EngineConfig, req contrac
 	defer removeIO(io)
 	raw, err := os.ReadFile(filepath.Join(io, "response.json"))
 	if err != nil {
-		return resp, fmt.Errorf("engine %s did not write /io/response.json (%v): %s", e.Image, errRun, tail(output))
+		return resp, noResponse(e.Image, errRun, output)
 	}
 	if err := contract.DecodeStrictBytes(raw, &resp); err != nil {
 		return resp, fmt.Errorf("engine %s gives no golden response (response outside engine-golden-response: %v)", e.Image, err)
@@ -358,6 +358,19 @@ func (d DockerTests) runIn(ctx context.Context, t contract.TestsConfig, command 
 		r.Coverage = b
 	}
 	return r, nil
+}
+
+// noResponse is the error for an engine container that left no /io/response.json. Exit 137 is SIGKILL, and a container
+// the kernel kills for going over its --memory limit exits that way with no output at all (measured: OOMKilled=true,
+// ExitCode=137, empty log), which read as a mute crash. Docker's VM running out of memory kills it the same way.
+func noResponse(image string, errRun error, output string) error {
+	var ee *exec.ExitError
+	if errors.As(errRun, &ee) && ee.ExitCode() == 137 {
+		return fmt.Errorf("engine %s was killed (exit 137, SIGKILL) before it wrote /io/response.json: it most likely ran out of "+
+			"memory, either the container's own limit (engines[].memory in .a2dlc/config.json, default 1g) or Docker's VM, which "+
+			"every other container shares. Run it again; if it repeats, raise memory, lower budget.workers or free Docker's memory", image)
+	}
+	return fmt.Errorf("engine %s did not write /io/response.json (%v): %s", image, errRun, tail(output))
 }
 
 func tail(s string) string {

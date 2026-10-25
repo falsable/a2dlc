@@ -49,7 +49,7 @@ func (z Z3) Solve(ctx context.Context, req contract.Z3Request) (contract.Z3Respo
 	errRun := c.Run()
 	raw, err := os.ReadFile(filepath.Join(io, "response.json"))
 	if err != nil {
-		return resp, fmt.Errorf("engine %s did not write /io/response.json (%v): %s", z.Image, errRun, tail(out.String()))
+		return resp, noResponse(z.Image, errRun, out.String())
 	}
 	if err := contract.DecodeStrictBytes(raw, &resp); err != nil {
 		return resp, fmt.Errorf("response of %s outside z3-response: %v", z.Image, err)
