@@ -5,7 +5,7 @@
 set -eu
 
 REPO="falsable/a2dlc"
-VERSION="${A2DLC_VERSION:-v0.4.0}"
+VERSION="${A2DLC_VERSION:-v0.4.1}"
 INSTALL_DIR="${A2DLC_INSTALL_DIR:-$HOME/.local/bin}"
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"

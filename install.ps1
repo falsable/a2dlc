@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 
 $Repo = "falsable/a2dlc"
-$Version = if ($env:A2DLC_VERSION) { $env:A2DLC_VERSION } else { "v0.4.0" }
+$Version = if ($env:A2DLC_VERSION) { $env:A2DLC_VERSION } else { "v0.4.1" }
 $InstallDir = if ($env:A2DLC_INSTALL_DIR) { $env:A2DLC_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "a2dlc\bin" }
 
 $BinName = "a2dlc-windows-amd64.exe"
