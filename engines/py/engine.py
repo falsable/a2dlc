@@ -6,6 +6,8 @@ within the same file (transitive closure). Methods and new functions are out of 
 Both versions are copied to /tmp/a2dlc/a2dlc_base and a2dlc_cand so they can be imported at the same time; absolute
 imports of the repo's own modules are rewritten to that prefix.
 CrossHair does not use generators: generators is always typed_default, and without type annotations the target is INCONCLUSIVE.
+A coroutine function (async def) is compared through asyncdrive, which runs each version to completion in its own event
+loop; a PASS needs completed calls on both sides (asyncdrive.doubt_of).
 """
 from __future__ import annotations  # the `X | None` annotations must be valid on the repo's Python 3.9 (SWE-bench)
 
@@ -16,6 +18,7 @@ import difflib
 import importlib.util
 import inspect
 import io
+import itertools
 import json
 import re
 import shutil
@@ -25,6 +28,8 @@ import time
 import tokenize
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+import asyncdrive
 
 IO = Path("/io")
 WORK = Path("/tmp/a2dlc")
@@ -247,6 +252,30 @@ def install_import_shims() -> None:
     (WORK / "sitecustomize.py").write_text(IMPORT_SHIMS, encoding="utf-8")
 
 
+# CrossHair calls plain functions, so each coroutine target gets a generated module with `old` and `new`: the base and
+# candidate functions run to completion by asyncdrive.sync_of. The module name is unique per target (workers run in threads).
+ASYNC_WRAPPER = '''\
+import a2dlc_base.{mod} as _base
+import a2dlc_cand.{mod} as _cand
+from a2dlc_asyncdrive import sync_of
+
+old = sync_of(_base.{name}, "old")
+new = sync_of(_cand.{name}, "new")
+'''
+_wrappers = itertools.count()
+
+
+def install_async_driver() -> None:
+    shutil.copyfile(asyncdrive.__file__, WORK / "a2dlc_asyncdrive.py")
+
+
+def async_wrapper(mod: str, name: str) -> str:
+    """Name of the module that exposes `old` and `new` for the coroutine function `name` of module `mod`."""
+    wrapper = f"a2dlc_async_{next(_wrappers)}"
+    (WORK / f"{wrapper}.py").write_text(ASYNC_WRAPPER.format(mod=mod, name=name), encoding="utf-8")
+    return wrapper
+
+
 def run(cmd: list[str], timeout: float) -> tuple[int | None, str]:
     try:
         r = subprocess.run(cmd, cwd=WORK, capture_output=True, text=True, timeout=timeout,
@@ -313,19 +342,26 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
     if rc_imp != 0:
         last = (out_imp or "").strip().splitlines()[-1:] or ["no output"]
         return inconclusive(f"could not import: {last[0]}")
-    if isinstance(fn, ast.AsyncFunctionDef):
-        return inconclusive("async function: not supported yet")
     if not typed(fn):
         t["typed"] = False
         return inconclusive("no type annotations on the parameters: CrossHair has no domain")
+    is_async = isinstance(fn, ast.AsyncFunctionDef)
+    if is_async:  # compared through the module that runs each version to completion (asyncdrive)
+        wrapper = async_wrapper(mod, n)
+        old_ref, new_ref, target = f"{wrapper}.old", f"{wrapper}.new", (wrapper, wrapper, "old,new")
+    else:
+        old_ref, new_ref, target = f"a2dlc_base.{mod}.{n}", f"a2dlc_cand.{mod}.{n}", None
     limit = timeout_s * 4 + 60
     rc, out = run([sys.executable, "-m", "crosshair", "diffbehavior", "--per_condition_timeout", str(timeout_s),
-                      f"a2dlc_base.{mod}.{n}", f"a2dlc_cand.{mod}.{n}"], limit)
+                      old_ref, new_ref], limit)
     m_dif, m_ok = DIFFERENCE.search(out), WITHOUT_DIFFERENCE.search(out)
     harness = [f"{side}: {h}" for side, h in (("old", harness_error(m_dif["old"].strip())),
                                                ("new", harness_error(m_dif["new"].strip()))) if h] if m_dif else []
     if harness:
         inconclusive(f"CrossHair/harness error, not the function's behavior ({'; '.join(harness)})")
+    elif m_dif and is_async and "Suspended" in m_dif["old"] + m_dif["new"]:
+        inconclusive(f"the two versions differ only in a call that did not finish within {asyncdrive.STEP_TIMEOUT_S:g} s "
+                     f"({m_dif['args']}): not a behavior difference that was observed")
     elif m_dif and rel and equivalents(m_dif["old"].strip(), m_dif["new"].strip(), rel):
         # CrossHair stops at the first difference. If that one vanishes under π_S, it does not mean there is no other one,
         # and PASS would claim something nobody searched for.
@@ -335,9 +371,13 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
         t["verdict"] = "FAIL"
         found = {"args": m_dif["args"], "old": m_dif["old"].strip(), "new": m_dif["new"].strip()}
         shrink_s = SHRINK_BUDGET_S if remaining is None else min(SHRINK_BUDGET_S, remaining)
-        t["counterexample"] = shrink_counterexample(mod, n, found, rel or {}, shrink_s)
+        t["counterexample"] = shrink_counterexample(mod, n, found, rel or {}, shrink_s, target)
     elif m_ok:
-        t["search_budget"]["iterations"] = int(m_ok.group(1))
+        doubt = asyncdrive.doubt_of(out) if is_async else None
+        if doubt:  # a PASS needs completed calls on both sides: not one reached by exceptions or by paths nobody ran
+            inconclusive(doubt)
+        else:
+            t["search_budget"]["iterations"] = int(m_ok.group(1))
     elif rc is None:
         inconclusive(f"CrossHair exceeded {limit:.0f} s")
     elif "SideEffectDetected" in out:
@@ -357,14 +397,15 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
 # CrossHair: the candidate's code is user code, and the container has no network. Only literal arguments are shrunk;
 # anything else keeps CrossHair's counterexample as it was.
 
-# argv of the script: base module, candidate module, function, arguments, relaxations (rel), seconds it may run.
+# argv of the script: base module, candidate module, function ("old,new" when they are two names), arguments,
+# relaxations (rel), seconds it may run.
 # The script runs under the budget left by the diff (at most SHRINK_BUDGET_S); its subprocess timeout is that plus 1 s.
 SHRINK_BUDGET_S = 10
 SHRINK_SCRIPT_BODY = """
 import ast, contextlib, copy, importlib, io, json, math, sys, time
 deadline = time.monotonic() + float(sys.argv[6])
-old = getattr(importlib.import_module(sys.argv[1]), sys.argv[3])
-new = getattr(importlib.import_module(sys.argv[2]), sys.argv[3])
+old = getattr(importlib.import_module(sys.argv[1]), sys.argv[3].split(",")[0])
+new = getattr(importlib.import_module(sys.argv[2]), sys.argv[3].split(",")[-1])
 best = ast.literal_eval(sys.argv[4])
 rel = ast.literal_eval(sys.argv[5])
 MAX_CHECKS = 300
@@ -427,11 +468,15 @@ print(json.dumps({"args": ", ".join(f"{k}={v!r}" for k, v in best.items()), "old
 """
 
 
-def shrink_counterexample(mod: str, name: str, found: dict, rel: dict, budget_s: float = SHRINK_BUDGET_S) -> dict:
+def shrink_counterexample(mod: str, name: str, found: dict, rel: dict, budget_s: float = SHRINK_BUDGET_S,
+                          target: tuple[str, str, str] | None = None) -> dict:
     """The counterexample with its literal arguments shrunk while the two functions still disagree; CrossHair's own
     counterexample if the arguments are not literal keywords, the subprocess fails, there is less than a second of budget
     left, or the shrunk pair is equivalent under the requested relaxations. Keys: args, old, new (the same shape as
-    CrossHair's). The args are written as CrossHair writes them: `x=1001`."""
+    CrossHair's). The args are written as CrossHair writes them: `x=1001`.
+    target: (module of the old function, module of the new one, their name or "old,new") when they are not
+    a2dlc_base.<mod>.<name> and a2dlc_cand.<mod>.<name>: the coroutines are shrunk through their wrapper, because a
+    coroutine object has a new address on every call and would always look different."""
     try:
         call = ast.parse(f"f({found['args']})", mode="eval").body
         if not isinstance(call, ast.Call) or call.args or any(k.arg is None for k in call.keywords):
@@ -441,12 +486,13 @@ def shrink_counterexample(mod: str, name: str, found: dict, rel: dict, budget_s:
         return found
     if not kwargs or budget_s < 1:
         return found
-    rc, out = run([sys.executable, "-c", SHRINK_SCRIPT, f"a2dlc_base.{mod}", f"a2dlc_cand.{mod}", name, repr(kwargs),
+    old_module, new_module, names = target or (f"a2dlc_base.{mod}", f"a2dlc_cand.{mod}", name)
+    rc, out = run([sys.executable, "-c", SHRINK_SCRIPT, old_module, new_module, names, repr(kwargs),
                    repr(rel), repr(budget_s)], budget_s + 1)
     if rc != 0:
         return found
-    try:
-        shrunk = json.loads(out.strip().splitlines()[-1])
+    try:  # the asyncdrive counters are printed to stderr at exit, after the answer
+        shrunk = json.loads([x for x in out.strip().splitlines() if x.startswith("{")][-1])
     except (ValueError, IndexError):
         return found
     if not isinstance(shrunk, dict) or set(shrunk) != {"args", "old", "new"} or not all(isinstance(v, str) for v in shrunk.values()):
@@ -1732,6 +1778,7 @@ def diff(req: dict, clock=time.monotonic) -> int:
         copy_py(origin, WORK / package)
         rewrite_imports(WORK / package, package)
     install_import_shims()
+    install_async_driver()
 
     layout: list[dict | Block] = []  # output order: a finished target, or the jobs of one changed file
     for file in req["changed_files"]:
