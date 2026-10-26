@@ -209,3 +209,50 @@ func TestCandidateAndNOPRunConcurrentlyWithTheSameResult(t *testing.T) {
 		}
 	}
 }
+
+// slowEngine is an engine whose differential takes d, counted in the same in-flight tally as the test runs.
+type slowEngine struct {
+	*lister
+	ft *fakeTests
+	d  time.Duration
+}
+
+func (s *slowEngine) Run(ctx context.Context, e contract.EngineConfig, req contract.Request, baseDir, candDir string) (contract.Response, error) {
+	s.ft.mu.Lock()
+	s.ft.inflight++
+	s.ft.peak = max(s.ft.peak, s.ft.inflight)
+	s.ft.mu.Unlock()
+	defer func() {
+		s.ft.mu.Lock()
+		s.ft.inflight--
+		s.ft.mu.Unlock()
+	}()
+	time.Sleep(s.d)
+	return s.lister.Run(ctx, e, req, baseDir, candDir)
+}
+
+// The engines' differential runs while the test gates do, and the check says the same thing as when they run one after the
+// other.
+func TestEnginesAndTestGatesOverlapWithTheSameVerdict(t *testing.T) {
+	a, fe, ft := staticRepo(t)
+	l := &lister{fakeEngine: fe, listed: map[string][]contract.ListedTest{
+		"tests/a.t": {{Name: "old"}, {Name: "previous"}}, "tests/b.t": {{Name: "oldb"}}}}
+	a.Runner = l
+	quick, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ft.delay, ft.peak = 300*time.Millisecond, 0
+	a.Runner = &slowEngine{lister: l, ft: ft, d: 300 * time.Millisecond}
+	slow, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ft.peak < 3 {
+		t.Fatalf("the engine differential and the two test runs did not overlap, peak %d", ft.peak)
+	}
+	if slow.Verdict != quick.Verdict || !reflect.DeepEqual(slow.Targets, quick.Targets) || !reflect.DeepEqual(testsOf(slow), testsOf(quick)) ||
+		!reflect.DeepEqual(slow.Coverage, quick.Coverage) || !reflect.DeepEqual(slow.TestGates.NOPOracle, quick.TestGates.NOPOracle) { // not Baseline: the second check reads its cache
+		t.Fatalf("overlap changed the verdict:\nquick %s %+v\nslow  %s %+v", quick.Verdict, quick.Coverage, slow.Verdict, slow.Coverage)
+	}
+}

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/falsable/a2dlc/internal/approval"
@@ -354,22 +355,25 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 		oos = append(oos, contract.OutOfScope{File: f, Reason: "deleted"})
 	}
 	var baseDir, candDir string
+	var exportOnce sync.Once
+	var exportErr error
+	// export prepares baseDir and candDir once; every caller sees the same error. It is called from the engine operations
+	// and the test gates, which now run together, and each reads the folders only after export returned.
 	export := func() error {
-		if baseDir != "" {
-			return nil
-		}
-		var err error
-		defer func(t0 time.Time) { tm.sync(time.Since(t0)) }(time.Now())
-		if baseDir, err = os.MkdirTemp("", "a2dlc-base-*"); err != nil {
-			return err
-		}
-		if candDir, err = os.MkdirTemp("", "a2dlc-cand-*"); err != nil {
-			return err
-		}
-		if err := a.Repo.Export(baseSha, baseDir); err != nil {
-			return err
-		}
-		return a.Repo.Export(tree, candDir)
+		exportOnce.Do(func() {
+			defer func(t0 time.Time) { tm.sync(time.Since(t0)) }(time.Now())
+			if baseDir, exportErr = os.MkdirTemp("", "a2dlc-base-*"); exportErr != nil {
+				return
+			}
+			if candDir, exportErr = os.MkdirTemp("", "a2dlc-cand-*"); exportErr != nil {
+				return
+			}
+			if exportErr = a.Repo.Export(baseSha, baseDir); exportErr != nil {
+				return
+			}
+			exportErr = a.Repo.Export(tree, candDir)
+		})
+		return exportErr
 	}
 	defer func() {
 		if baseDir != "" {
@@ -389,44 +393,6 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 		}
 		byEngine = nil
 	}
-	if len(byEngine) > 0 {
-		if err := export(); err != nil {
-			return v, err
-		}
-		for _, i := range sortedIndexes(byEngine) {
-			e, files := cfg.Engines[i], byEngine[i]
-			req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseRef: baseSha,
-				BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: files, Budget: e.Budget, GeneratorsOverride: generators(candDir),
-				EquivalenceRelaxations: opts.EquivalenceRelaxations}
-			if len(req.Budget) == 0 {
-				req.Budget = json.RawMessage("{}")
-			}
-			t0 := time.Now()
-			resp, err := a.Runner.Run(ctx, e, req, baseDir, candDir)
-			timerOf(ctx).engineOp("diff", time.Since(t0))
-			if err != nil {
-				errs = append(errs, contract.EngineError{Language: e.Language, Files: files, Error: err.Error()})
-				continue
-			}
-			// equivalence_unsupported: the engine did not apply some relaxation of pi_s, so the judgment of this
-			// response is not the one the relaxations asked for. The relaxation is diff-wide, so every target it
-			// judged is INCONCLUSIVE, and the reason names the relaxations.
-			if len(resp.EquivalenceUnsupported) > 0 {
-				reason := "the engine did not apply the equivalence relaxation(s) " + strings.Join(resp.EquivalenceUnsupported, "; ") + ": the target cannot be decided"
-				for i := range resp.Targets {
-					resp.Targets[i].Verdict, resp.Targets[i].Reason = contract.INCONCLUSIVE, reason
-				}
-			}
-			// diff_budget: the engine's time budget adds up over the engines, and each function it cut is INCONCLUSIVE
-			// where the engine answered it (a FAIL is still a finding).
-			if b := resp.DiffBudget; b != nil {
-				diffBudget = verdict.MergeDiffBudget(diffBudget, b)
-				verdict.MarkCut(resp.Targets, b.Cut)
-			}
-			targets = append(targets, resp.Targets...)
-			oos = append(oos, resp.OutOfScope...)
-		}
-	}
 	waivers, err := a.waivers("")
 	if err != nil {
 		return v, err
@@ -438,6 +404,79 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	// A waiver covers only the targets of its class: engine targets do not cover a test, nor the reverse.
 	waived, intent := waiverFlags(waivers)
 	approved, _ := a.approved(tree, waivers, approvals)
+	runEngines := func() error {
+		if len(byEngine) > 0 {
+			if err := export(); err != nil {
+				return err
+			}
+			for _, i := range sortedIndexes(byEngine) {
+				e, files := cfg.Engines[i], byEngine[i]
+				req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseRef: baseSha,
+					BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: files, Budget: e.Budget, GeneratorsOverride: generators(candDir),
+					EquivalenceRelaxations: opts.EquivalenceRelaxations}
+				if len(req.Budget) == 0 {
+					req.Budget = json.RawMessage("{}")
+				}
+				t0 := time.Now()
+				resp, err := a.Runner.Run(ctx, e, req, baseDir, candDir)
+				timerOf(ctx).engineOp("diff", time.Since(t0))
+				if err != nil {
+					errs = append(errs, contract.EngineError{Language: e.Language, Files: files, Error: err.Error()})
+					continue
+				}
+				// equivalence_unsupported: the engine did not apply some relaxation of pi_s, so the judgment of this
+				// response is not the one the relaxations asked for. The relaxation is diff-wide, so every target it
+				// judged is INCONCLUSIVE, and the reason names the relaxations.
+				if len(resp.EquivalenceUnsupported) > 0 {
+					reason := "the engine did not apply the equivalence relaxation(s) " + strings.Join(resp.EquivalenceUnsupported, "; ") + ": the target cannot be decided"
+					for i := range resp.Targets {
+						resp.Targets[i].Verdict, resp.Targets[i].Reason = contract.INCONCLUSIVE, reason
+					}
+				}
+				// diff_budget: the engine's time budget adds up over the engines, and each function it cut is INCONCLUSIVE
+				// where the engine answered it (a FAIL is still a finding).
+				if b := resp.DiffBudget; b != nil {
+					diffBudget = verdict.MergeDiffBudget(diffBudget, b)
+					verdict.MarkCut(resp.Targets, b.Cut)
+				}
+				targets = append(targets, resp.Targets...)
+				oos = append(oos, resp.OutOfScope...)
+			}
+		}
+		return nil
+	}
+	// The engines (equivalence) and the test gates share nothing but the exported trees, so they run side by side. The line
+	// classification joins them: it needs the candidate's coverage, not the engines' answer, and classifies every line the
+	// candidate's tests left unexecuted; the lines the engines examined are dropped when the two are joined.
+	var engErr error
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		engErr = runEngines()
+	}()
+	cov := &accumulated{}
+	var testGates *contract.TestGates
+	var testResults []contract.TestResult
+	var classified lineNotes
+	if cfg.Tests != nil {
+		tcfg := *cfg.Tests
+		tcfg.InvalidBaseFailures = invalidBaseFailures(cfg)
+		in := gateInput{cfg: tcfg, baseSha: baseSha, tree: tree, tests: changedTests, sources: sources, intent: intent, changeKind: opts.ChangeKind, cov: cov, engines: cfg.Engines}
+		testGates, testResults = a.gates(ctx, cfg, in, export, &baseDir, &candDir, peers, opts.TestsOverlay)
+		if opts.Golden != nil {
+			testResults = append(testResults, a.goldenResults(ctx, in, *opts.Golden)...)
+		}
+		if cov.report != nil {
+			if pre, err := a.precondition(cfg, baseSha, tree, sources, nil, cov.report, cov.note); err == nil {
+				classified = a.classifyLines(ctx, cfg, pre, export, &baseDir, &candDir)
+			}
+		}
+	}
+	wg.Wait()
+	if engErr != nil {
+		return v, engErr
+	}
 	critical := cfg.CriticalCode
 	if opts.StrictDivergence {
 		critical = allCritical
@@ -445,15 +484,8 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	v.Verdict, v.Targets, v.PendingWaivers = verdict.Aggregate(targets, waived, approved, len(errs), critical)
 	v.BaseRef, v.TreeHash, v.OutOfScope, v.EngineErrors = baseSha, treePrefix+tree, oos, errs
 	v.DiffBudget = diffBudget
-	cov := &accumulated{}
 	if cfg.Tests != nil {
-		tcfg := *cfg.Tests
-		tcfg.InvalidBaseFailures = invalidBaseFailures(cfg)
-		in := gateInput{cfg: tcfg, baseSha: baseSha, tree: tree, tests: changedTests, sources: sources, intent: intent, changeKind: opts.ChangeKind, cov: cov, engines: cfg.Engines}
-		v.TestGates, v.Tests = a.gates(ctx, cfg, in, export, &baseDir, &candDir, peers, opts.TestsOverlay)
-		if opts.Golden != nil {
-			v.Tests = append(v.Tests, a.goldenResults(ctx, in, *opts.Golden)...)
-		}
+		v.TestGates, v.Tests = testGates, testResults
 		addTests(&v, waivers, approved)
 	}
 	// Pluggable checks (protocol §5 Checks): they lower the verdict, never raise it; what did not run stays in view.
@@ -470,7 +502,11 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	if v.Coverage.Status == contract.CoverageNotConfigured && a.candidateAddsTests(cfg, opts.CandidateTree) {
 		v.Coverage.Reason = testsBlockIgnored
 	}
-	a.noteUncovered(ctx, cfg, v.Coverage, export, &baseDir, &candDir)
+	if classified != nil {
+		applyNotes(v.Coverage, classified)
+	} else {
+		a.noteUncovered(ctx, cfg, v.Coverage, export, &baseDir, &candDir)
+	}
 	if v.Verdict == contract.PASS && hasUncovered(v.Coverage) {
 		v.Verdict = contract.INCONCLUSIVE
 	}

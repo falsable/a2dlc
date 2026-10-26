@@ -100,9 +100,20 @@ func examined(ts []contract.VerdictTarget, l int) bool {
 // unexamined: a runner without LineClassifier, a file with no engine, an engine without the operation, an engine that
 // errors or answers outside the contract. export prepares baseDir and candDir.
 func (a App) noteUncovered(ctx context.Context, cfg contract.Config, cov *contract.Coverage, export func() error, baseDir, candDir *string) {
+	if notes := a.classifyLines(ctx, cfg, cov, export, baseDir, candDir); notes != nil {
+		applyNotes(cov, notes)
+	}
+}
+
+// lineNotes are the notes an engine gave to lines, by file.
+type lineNotes map[string][]contract.LineNote
+
+// classifyLines asks the engines about the Uncovered lines of cov. nil means nothing was asked or nothing came back; the
+// lines then stay unexamined, which is what the gate did before the notes.
+func (a App) classifyLines(ctx context.Context, cfg contract.Config, cov *contract.Coverage, export func() error, baseDir, candDir *string) lineNotes {
 	lc, ok := a.Runner.(engine.LineClassifier)
 	if !ok || cov == nil {
-		return
+		return nil
 	}
 	var files []string
 	byFile := map[string]*contract.CoverageFile{}
@@ -114,8 +125,9 @@ func (a App) noteUncovered(ctx context.Context, cfg contract.Config, cov *contra
 	}
 	byEngine, _ := verdict.Assign(cfg.Engines, files)
 	if len(byEngine) == 0 || export() != nil {
-		return
+		return nil
 	}
+	out := lineNotes{}
 	for _, i := range sortedIndexes(byEngine) {
 		e, own := cfg.Engines[i], byEngine[i]
 		lines := map[string][]int{}
@@ -135,24 +147,54 @@ func (a App) noteUncovered(ctx context.Context, cfg contract.Config, cov *contra
 			continue
 		}
 		for _, cf := range resp.Files {
-			f, noted := byFile[cf.File], map[int]bool{}
-			notes := engine.SortedNotes(cf.Notes)
-			for _, n := range notes {
-				for _, l := range n.Lines {
+			if notes := engine.SortedNotes(cf.Notes); len(notes) > 0 {
+				out[cf.File] = notes
+			}
+		}
+	}
+	return out
+}
+
+// applyNotes moves from Uncovered to Noted the lines the engine classified. Each line is classified on its own, so notes
+// for a superset of the final Uncovered lines (asked before the engines' targets were known) give the same result as notes
+// asked about the final ones: lines outside Uncovered are dropped from the notes.
+func applyNotes(cov *contract.Coverage, notes lineNotes) {
+	if cov == nil {
+		return
+	}
+	for i := range cov.Files {
+		f := &cov.Files[i]
+		ns, ok := notes[f.File]
+		if !ok {
+			continue
+		}
+		open := map[int]bool{}
+		for _, l := range f.Uncovered {
+			open[l] = true
+		}
+		noted, kept := map[int]bool{}, []contract.LineNote{}
+		for _, n := range ns {
+			var ls []int
+			for _, l := range n.Lines {
+				if open[l] {
+					ls = append(ls, l)
 					noted[l] = true
 				}
 			}
-			if len(noted) == 0 {
-				continue
+			if len(ls) > 0 {
+				kept = append(kept, contract.LineNote{Category: n.Category, Lines: ls})
 			}
-			rest := []int{}
-			for _, l := range f.Uncovered {
-				if !noted[l] {
-					rest = append(rest, l)
-				}
-			}
-			f.Uncovered, f.Noted = rest, notes
 		}
+		if len(noted) == 0 {
+			continue
+		}
+		rest := []int{}
+		for _, l := range f.Uncovered {
+			if !noted[l] {
+				rest = append(rest, l)
+			}
+		}
+		f.Uncovered, f.Noted = rest, kept
 	}
 }
 
