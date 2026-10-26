@@ -88,7 +88,7 @@ Plus test gates: *no-op test* detection (passes on the base tree), coverage prec
 
 **2. Agent lifecycle hooks** — `PreToolUse` blocks edits to `protected_paths` and `git push --no-verify` *before* they run; the `Stop` / `AfterAgent` hook runs the gate at end of turn and feeds `args / old / new` back to the agent until it passes. `pre-push` runs `a2dlc verify` (<50 ms) so a stale or forged receipt never reaches the remote.
 
-**3. Intentional changes are signed, not argued** — the agent declares the change in `.a2dlc/waivers.json`; a human signs it with `a2dlc approve src/pricing.py::apply_discount --key ~/.ssh/id_ed25519`. Agents never hold the key.
+**3. Intentional changes are signed, not argued** — the agent declares the change in `.a2dlc/waivers.json`; a human signs it with `a2dlc approve src/pricing.py::apply_discount --key ~/.ssh/id_ed25519`. Agents never hold the key. A behavior change the engines find in code your `.a2dlc/config.json` does not list under `critical_code` is only a note in the receipt, with its counterexample; on critical code it fails until signed ([docs/DIVERGENCE_NOTES.md](docs/DIVERGENCE_NOTES.md)).
 
 <details>
 <summary><b>4. Full Protocol Mode (<code>a2dlc run</code>) — the clean-room state machine</b></summary>
