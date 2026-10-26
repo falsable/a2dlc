@@ -14,6 +14,8 @@ import (
 // fakeDocker writes a shell stand-in for the docker binary. The Go tests run in the Linux container, so a shell script
 // is enough. Every invocation appends its arguments to log; "image inspect" prints inspect (or fails with inspectErr);
 // "run" copies response (if set) to the /io folder it is given and records whether /io/golden.json was present.
+// The copy-in path: "create" keeps its arguments and prints the id ctr1, "cp" extracts its stdin into <dir>/ctr (or
+// fails if <dir>/cp-fails exists), and "start" does what "run" does with the arguments "create" kept.
 func fakeDocker(t *testing.T, inspect, inspectErr, response string) (bin, log string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -26,7 +28,16 @@ image)
   if [ -n "` + inspectErr + `" ]; then echo "` + inspectErr + `" >&2; exit 1; fi
   printf '%s' '` + inspect + `'
   exit 0;;
-run)
+create)
+  printf '%s\n' "$@" > "` + dir + `/create.args"
+  echo ctr1
+  exit 0;;
+cp)
+  if [ -f "` + dir + `/cp-fails" ]; then echo "cp refused" >&2; exit 1; fi
+  mkdir -p "` + dir + `/ctr" && tar -x -C "` + dir + `/ctr"
+  exit $?;;
+run|start)
+  if [ "$1" = start ]; then set -- $(cat "` + dir + `/create.args"); fi
   for a in "$@"; do case "$a" in *:/io) io="${a%:/io}";; esac; done
   if [ -f "$io/golden.json" ]; then echo golden-present >> "` + log + `"; fi
   if [ -n "` + response + `" ]; then cp "` + response + `" "$io/response.json"; fi
@@ -81,6 +92,76 @@ func TestRunTestsRunsAsHostUserOnNonWindows(t *testing.T) {
 	}
 	if !got {
 		t.Fatalf("no --user in %s", b)
+	}
+}
+
+// With CopyIn the tree goes into the container through docker cp and is not mounted; the container is removed after.
+func TestRunTestsCopiesTheTreeIn(t *testing.T) {
+	bin, log := fakeDocker(t, "[]", "", "")
+	src := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(src, "pkg"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "pkg", "a.py"), []byte("x = 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (DockerTests{Bin: bin, CopyIn: true}).RunTests(context.Background(), contract.TestsConfig{Image: "tests:1"}, "true", nil, src); err != nil {
+		t.Fatal(err)
+	}
+	if b, err := os.ReadFile(filepath.Join(filepath.Dir(log), "ctr", "work", "pkg", "a.py")); err != nil || string(b) != "x = 1\n" {
+		t.Fatalf("tree not copied into /work: %q, %v", b, err)
+	}
+	b, _ := os.ReadFile(log)
+	for _, bad := range []string{"run --rm", ":/work", "--user"} {
+		if strings.Contains(string(b), bad) {
+			t.Fatalf("%q in %s", bad, b)
+		}
+	}
+	if !strings.Contains(string(b), "start -a ctr1") || !strings.Contains(string(b), "rm -f ctr1") {
+		t.Fatalf("no start or rm of the container: %s", b)
+	}
+}
+
+func TestEngineCopiesBaseAndCandidateIn(t *testing.T) {
+	resp := filepath.Join(t.TempDir(), "response.json")
+	if err := os.WriteFile(resp, []byte(`{"schema_version":1,"cases":[],"diffs":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	bin, log := fakeDocker(t, "[]", "", resp)
+	base, cand := t.TempDir(), t.TempDir()
+	if err := os.WriteFile(filepath.Join(base, "f.go"), []byte("base"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cand, "f.go"), []byte("cand"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	req := contract.Request{SchemaVersion: contract.SchemaVersion, Operation: "golden_record", Budget: []byte(`{"cases":["c/*"]}`)}
+	if _, err := (Docker{Bin: bin, CopyIn: true}).Golden(context.Background(), contract.EngineConfig{Image: "bb:1"}, req, base, cand, nil); err != nil {
+		t.Fatal(err)
+	}
+	for at, want := range map[string]string{"base": "base", "cand": "cand"} {
+		if b, err := os.ReadFile(filepath.Join(filepath.Dir(log), "ctr", at, "f.go")); err != nil || string(b) != want {
+			t.Fatalf("/%s/f.go: %q, %v", at, b, err)
+		}
+	}
+	if b, _ := os.ReadFile(log); strings.Contains(string(b), ":/cand") {
+		t.Fatalf("candidate mounted: %s", b)
+	}
+}
+
+// A copy that fails is an error, not the exit code of the tests, and the container it created is still removed.
+func TestRunTestsCopyFailureIsAnErrorAndRemovesTheContainer(t *testing.T) {
+	bin, log := fakeDocker(t, "[]", "", "")
+	if err := os.WriteFile(filepath.Join(filepath.Dir(log), "cp-fails"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := (DockerTests{Bin: bin, CopyIn: true}).RunTests(context.Background(), contract.TestsConfig{Image: "tests:1"}, "true", nil, t.TempDir())
+	if err == nil || !strings.Contains(err.Error(), "cp refused") {
+		t.Fatalf("err %v", err)
+	}
+	b, _ := os.ReadFile(log)
+	if strings.Contains(string(b), "start") || !strings.Contains(string(b), "rm -f ctr1") {
+		t.Fatalf("log %s", b)
 	}
 }
 

@@ -54,6 +54,7 @@ type ImageDigester interface {
 type Docker struct {
 	Bin     string        // "docker" if empty
 	Timeout time.Duration // 30 min if empty
+	CopyIn  bool          // copy base and candidate into the container instead of bind-mounting them (CopyInDefault)
 }
 
 func (d Docker) bin() string {
@@ -98,12 +99,10 @@ func (d Docker) engineWith(ctx context.Context, e contract.EngineConfig, req con
 	}
 	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
-	args := []string{"run", "--rm", "--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus),
-		"-v", baseDir + ":/base:ro", "-v", candDir + ":/cand:ro", "-v", io + ":/io", e.Image}
 	var out bytes.Buffer
-	c := exec.CommandContext(ctx, d.bin(), args...)
-	c.Stdout, c.Stderr = &out, &out
-	errRun := c.Run()
+	errRun := container{bin: d.bin(), copyIn: d.CopyIn, image: e.Image, ro: true,
+		flags: []string{"--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus), "-v", io + ":/io"},
+		trees: []dirAt{{baseDir, "/base"}, {candDir, "/cand"}}}.run(ctx, &out)
 	return io, out.String(), errRun
 }
 
@@ -264,7 +263,10 @@ type TestRunner interface {
 	RunTests(ctx context.Context, t contract.TestsConfig, command string, env map[string]string, tree string) (TestRun, error)
 }
 
-type DockerTests struct{ Bin string }
+type DockerTests struct {
+	Bin    string
+	CopyIn bool // copy the tree into the container instead of bind-mounting it (CopyInDefault)
+}
 
 // ImageDigest returns the sha256 digest of the image from its RepoDigests, or "" when the image has none (a local
 // build that was never pushed). A missing image is an error: the tests cannot run either.
@@ -313,11 +315,12 @@ func (d DockerTests) RunTests(ctx context.Context, t contract.TestsConfig, comma
 	}
 	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
-	args := []string{"run", "--rm", "--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus),
-		"-v", tree + ":/work", "-v", io + ":/io", "-w", "/work", "-e", "A2DLC_JUNIT=/io/junit.xml", "-e", "A2DLC_COVERAGE=/io/coverage.out"}
-	if runtime.GOOS != "windows" {
+	args := []string{"--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus),
+		"-v", io + ":/io", "-w", "/work", "-e", "A2DLC_JUNIT=/io/junit.xml", "-e", "A2DLC_COVERAGE=/io/coverage.out"}
+	if !d.CopyIn && runtime.GOOS != "windows" {
 		// On a Linux host the tree is owned by the host user; without --user the container writes as root into it and
-		// the files it leaves are root's. Docker Desktop on Windows maps ownership itself, so it is left alone there.
+		// the files it leaves are root's. Docker Desktop on Windows maps ownership itself, so it is left alone there. A
+		// copied-in tree is root's inside the container and nothing of it comes back, so it runs as the image's user.
 		args = append(args, "--user", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()))
 	}
 	keys := make([]string, 0, len(env))
@@ -328,11 +331,10 @@ func (d DockerTests) RunTests(ctx context.Context, t contract.TestsConfig, comma
 	for _, k := range keys {
 		args = append(args, "-e", k+"="+env[k])
 	}
-	args = append(args, "--entrypoint", "sh", t.Image, "-c", command)
+	args = append(args, "--entrypoint", "sh")
 	var out bytes.Buffer
-	c := exec.CommandContext(ctx, bin, args...)
-	c.Stdout, c.Stderr = &out, &out
-	errRun := c.Run()
+	errRun := container{bin: bin, copyIn: d.CopyIn, flags: args, trees: []dirAt{{tree, "/work"}}, image: t.Image,
+		cmd: []string{"-c", command}}.run(ctx, &out)
 	r.Log = tail(out.String())
 	var ee *exec.ExitError
 	switch {
