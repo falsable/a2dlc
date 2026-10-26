@@ -1,0 +1,21 @@
+"""Port of the immutable cryptographic ledger."""
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
+
+
+@runtime_checkable
+class IAuditLedgerPort(Protocol):
+    """Port of the ledger of decisions."""
+
+    async def append(self, entry: Dict[str, Any], *, tenant_id: Optional[str] = None) -> str:
+        """Append a record to the chain and return the entry_hash."""
+        ...
+
+    async def entries(self, tenant_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Return the ordered entries of the tenant."""
+        ...
+
+    async def verify(self, tenant_id: Optional[str] = None) -> Tuple[bool, List[str], str, int]:
+        """Recompute the Merkle chain from the base."""
+        ...

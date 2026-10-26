@@ -1,0 +1,20 @@
+"""Port of the per-tenant document store.
+
+No infrastructure or database dependency.
+"""
+from __future__ import annotations
+
+from typing import Any, Optional, Protocol, runtime_checkable
+
+
+@runtime_checkable
+class ITenantStorePort(Protocol):
+    """Document persistence isolated by tenant."""
+
+    async def read(self, key: str, *, tenant_id: Optional[str] = None) -> Any:
+        """Read the document or list of documents of the key and tenant."""
+        ...
+
+    async def write(self, key: str, data: Any, *, tenant_id: Optional[str] = None) -> None:
+        """Write or replace the document of the key and tenant."""
+        ...

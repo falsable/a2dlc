@@ -1,0 +1,24 @@
+"""Port of tool authorization and governance."""
+from __future__ import annotations
+
+from typing import Any, Optional, Protocol, runtime_checkable
+
+
+@runtime_checkable
+class IToolAuthzPort(Protocol):
+    """Authorization of governed tools."""
+
+    def authorize(
+        self,
+        surface: Optional[str],
+        tool: str,
+        *,
+        tenant_write_granted: bool = False,
+        human_signature: Any = None,
+        turn_id: Optional[str] = None,
+        arguments: Any = None,
+        schema_rules: Any = None,
+        tool_spec: Optional[dict] = None
+    ) -> str:
+        """Return the authorized scope or raise (fail closed)."""
+        ...

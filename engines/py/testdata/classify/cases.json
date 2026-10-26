@@ -1,0 +1,23 @@
+{
+  "_comment": "Minimal fixtures of the five real commits that settled the rule (bead a2dlc-os3). `uncovered` are the lines that commit's coverage run left unexamined, renumbered to the fixture; `noted` is what the engine must classify, `blocking` what must stay unclassified.",
+  "cases": [
+    {"id": "69fb47d/ports/__init__", "fixture": "ports_init.py.txt", "uncovered": [2, 3, 4, 6],
+     "noted": {"declarative_only": [2, 3, 4, 6]}, "blocking": []},
+    {"id": "69fb47d/ports/audit_ledger", "fixture": "ports_audit_ledger.py.txt", "uncovered": [2, 4, 7, 8, 11, 15, 19],
+     "noted": {"declarative_only": [2, 4, 7, 8, 11, 15, 19]}, "blocking": []},
+    {"id": "69fb47d/ports/tenant_store", "fixture": "ports_tenant_store.py.txt", "uncovered": [5, 7, 10, 11, 14, 18],
+     "noted": {"declarative_only": [5, 7, 10, 11, 14, 18]}, "blocking": []},
+    {"id": "69fb47d/ports/tool_authz", "fixture": "ports_tool_authz.py.txt", "uncovered": [2, 4, 7, 8, 11],
+     "noted": {"declarative_only": [2, 4, 7, 8, 11]}, "blocking": []},
+    {"id": "b7cc3c5/governance 119-120", "fixture": "governance_anchors.py.txt", "uncovered": [8, 9],
+     "noted": {"defensive_handler": [8, 9]}, "blocking": []},
+    {"id": "b7cc3c5/guardrail_policy 232-234", "fixture": "guardrail_policy.py.txt", "uncovered": [5, 6, 7],
+     "noted": {"defensive_handler": [5, 6, 7]}, "blocking": []},
+    {"id": "60f5c6b/value_report 39-43", "fixture": "value_report.py.txt", "uncovered": [4, 5, 7, 8],
+     "noted": {"defensive_handler": [7, 8]}, "blocking": [4, 5]},
+    {"id": "141097e/budget_reservations 57-58", "fixture": "budget_reservations.py.txt", "uncovered": [4, 5],
+     "noted": {}, "blocking": [4, 5]},
+    {"id": "767a5cb/governance 577,581,591-592", "fixture": "route_nodes.py.txt", "uncovered": [7, 11, 20, 21],
+     "noted": {}, "blocking": [7, 11, 20, 21]}
+  ]
+}

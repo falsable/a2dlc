@@ -1,0 +1,10 @@
+async def policy_in_force(tenant_id, db=None):
+    """What a ledger entry records about the guardrail policy."""
+    try:
+        policy = await load_policy(tenant_id, db=db)
+    except Exception:  # noqa: BLE001 - the decision is still recorded; the entry says the policy was unreadable
+        logger.warning("guardrail policy unreadable while writing a ledger entry", exc_info=True)
+        return {"status": "unreadable", "sha256": None}
+    if policy is None:
+        return {"status": "none", "sha256": None}
+    return {"status": "in_force", "sha256": policy_sha256(policy)}

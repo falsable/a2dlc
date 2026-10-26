@@ -1,0 +1,10 @@
+async def hold(tenant_id, amount_usd, *, department_id=None, person_id=None, ttl=HOLD_TTL):
+    """Reserve `amount_usd` and return what is reserved up to and including this call."""
+    now = datetime.now(timezone.utc)
+    async with _db.session_factory() as session:
+        await _db.set_db_tenant_context(session, tenant_id)
+        row = BudgetReservationSql(tenant_id=tenant_id, department_id=department_id, person_id=person_id,
+                                   amount_usd=max(float(amount_usd), 0.0), created_at=now, expires_at=now + ttl)
+        session.add(row)
+        await session.flush()
+        return row

@@ -1,0 +1,23 @@
+async def route_nodes(tid):
+    raw_verif = await store_read(None, "code_verification.json", tenant_id=tid)
+    is_receipt = isinstance(raw_verif, dict) and raw_verif.get("source") == "a2dlc"
+    verdict = raw_verif.get("verdict") if is_receipt else None
+    gate = ("a2dlc_gate", "Deterministic Verification Gate", "verification_gate")
+    if verdict == "PASS":
+        gate_node = _route_node(*gate, "verified", "Last receipt verdict: PASS", {"verdict": verdict})
+    elif verdict == "FAIL":
+        gate_node = _route_node(*gate, "failed", "Last receipt verdict: FAIL", {"verdict": verdict})
+    elif isinstance(verdict, str) and verdict:
+        gate_node = _route_node(*gate, "inconclusive", f"Last receipt verdict: {verdict}", {"verdict": verdict})
+    else:
+        gate_node = _route_node(*gate, "no_data", "No verification receipt ingested")
+
+    policy = await load_policy(tid)
+    tools = ("mcp_tools", "Governed MCP Tools", "tool_execution")
+    if policy is None:
+        tools_node = _route_node(*tools, "no_data", "No guardrail policy stored")
+    else:
+        rules = len(policy.schema_rules or [])
+        tools_node = _route_node(*tools, "measured", f"{rules} schema rules configured",
+                                 {"schema_rules_configured": rules})
+    return gate_node, tools_node

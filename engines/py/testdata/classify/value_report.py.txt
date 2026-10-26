@@ -1,0 +1,9 @@
+async def _informe_actual(db, tid):
+    runs = await store_read(None, "factory_runs.json", tenant_id=tid)
+    politica = await load_policy(tid)
+    try:
+        asientos = await AuditLedger().entries(tid)
+        no_evaluado = count_not_evaluated(e.get("data") for e in asientos)
+    except Exception:  # noqa: BLE001 - ledger down: the block reads "not measured", never an invented zero
+        no_evaluado = None
+    return construir_informe(runs=runs or [], politica=politica, no_evaluado=no_evaluado)

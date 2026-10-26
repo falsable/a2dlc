@@ -7,5 +7,5 @@ COPY requirements.lock /tmp/requirements.lock
 RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements.lock && rm /tmp/requirements.lock
 WORKDIR /engine
 # Every module main() dispatches to, and what they import (traces imports graph, lemmas imports engine).
-COPY engine.py fuzz.py lemmas.py graph.py traces.py ./
+COPY engine.py classify.py fuzz.py lemmas.py graph.py traces.py ./
 ENTRYPOINT ["python", "/engine/engine.py"]

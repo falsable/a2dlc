@@ -1,0 +1,10 @@
+"""Hexagonal ports of the core: the abstract contract between the domain and the adapters."""
+from app.domain.ports.tenant_store import ITenantStorePort
+from app.domain.ports.audit_ledger import IAuditLedgerPort
+from app.domain.ports.tool_authz import IToolAuthzPort
+
+__all__ = [
+    "ITenantStorePort",
+    "IAuditLedgerPort",
+    "IToolAuthzPort",
+]

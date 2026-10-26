@@ -1594,6 +1594,26 @@ def complexity(req: dict) -> int:
     return 0
 
 
+# ---------- operation: classify_lines (coverage notes, docs/COVERAGE_NOTES.md) ----------
+# budget.lines maps each file to the changed lines nobody examined. Per file, the ones that are a defensive handler or
+# declaration-only code, by category (classify.py). Anything else is left out, and the core keeps it blocking.
+
+def classify_lines(req: dict) -> int:
+    import classify  # imported here like the other operations' modules: this file loads without it
+    cand = Path(req["candidate_dir"])
+    wanted = (req.get("budget") or {}).get("lines") or {}
+    files = []
+    for file in req["changed_files"]:
+        c = cand / file
+        notes = []
+        if file.endswith(".py") and c.is_file():
+            notes = classify.classify(c.read_text(encoding="utf-8", errors="replace"), wanted.get(file) or [])
+        files.append({"file": file, "notes": notes})
+    (IO / "response.json").write_text(json.dumps({"schema_version": 1, "files": files, "error": None},
+                                                  ensure_ascii=False, indent=1), encoding="utf-8")
+    return 0
+
+
 # ---------- operation: diff (the differential gate, protocol §5 Stage 4) ----------
 # budget.workers threads run the targets (default 1, at most MAX_WORKERS). Each target starts in order of priority: more
 # callers in its own file first, then by name. Results are assembled in the request's order, so the targets do not depend
@@ -1739,6 +1759,8 @@ def main() -> int:
     req = json.loads((IO / "request.json").read_text(encoding="utf-8"))
     if req.get("operation") == "complexity":
         return complexity(req)
+    if req.get("operation") == "classify_lines":
+        return classify_lines(req)
     if req.get("operation") == "stub":
         return stub(req)
     if req.get("operation") == "signatures":
