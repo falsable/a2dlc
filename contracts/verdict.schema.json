@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://a2dlc.local/contracts/verdict.schema.json",
   "title": "Verdict of a2dlc check (.a2dlc/verdict.json, not committed)",
-  "description": "aggregate verdict: FAIL if any target or test FAILs without a waiver; otherwise INCONCLUSIVE if any is, a gate could not run, or some changed line in scope was left unexamined (coverage.files[].uncovered not empty: never an empty PASS; lines in coverage.files[].noted do not count); otherwise PASS. A FAIL with a waiver, approved or pending, does not count, but the pending one goes to pending_waivers and verify blocks it.",
+  "description": "aggregate verdict: FAIL if any target or test FAILs without a waiver (a target FAIL with a counterexample on code outside config.critical_code is a note, targets[].note, and does not count); otherwise INCONCLUSIVE if any is, a gate could not run, or some changed line in scope was left unexamined (coverage.files[].uncovered not empty: never an empty PASS; lines in coverage.files[].noted do not count); otherwise PASS. A FAIL with a waiver, approved or pending, does not count, but the pending one goes to pending_waivers and verify blocks it.",
   "type": "object",
   "properties": {
     "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
@@ -28,7 +28,13 @@
       "type": "array",
       "items": {
         "allOf": [{ "$ref": "defs.schema.json#/$defs/target_result" }],
-        "properties": { "waived": { "type": "boolean" } },
+        "properties": {
+          "waived": { "type": "boolean" },
+          "note": {
+            "enum": ["behavior_divergence"],
+            "description": "A FAIL target with a counterexample, no waiver, on code that config.critical_code does not name: it stays in the receipt with its counterexample and does not count toward the verdict. Absent otherwise and in receipts from before it existed. Its own category, apart from coverage.files[].noted. verify refuses a note on critical code."
+          }
+        },
         "required": ["waived"],
         "unevaluatedProperties": false
       }

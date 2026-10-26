@@ -21,6 +21,9 @@ const (
 type Config struct {
 	// ProtectedPaths are globs an agent cannot change without a signed approval (protected_path).
 	ProtectedPaths []string `json:"protected_paths,omitempty"`
+	// CriticalCode are globs over "file" or "file::symbol" naming the code where a behavior divergence stays FAIL until a
+	// signed waiver. Absent means nothing is critical: every divergence is a note in the receipt (VerdictTarget.Note).
+	CriticalCode []string `json:"critical_code,omitempty"`
 	// SupplyChain names the dependency allowlist file (config.supply_chain).
 	SupplyChain   *SupplyChain    `json:"supply_chain,omitempty"`
 	SchemaVersion int             `json:"schema_version"`
@@ -334,7 +337,14 @@ type Response struct {
 type VerdictTarget struct {
 	TargetResult
 	Waived bool `json:"waived"`
+	// Note is set on a FAIL target with a counterexample that is not critical code (config.critical_code) and has no
+	// waiver: it stays in the receipt and does not fail the verdict. Absent in receipts before the notes existed. It is
+	// a category of its own, apart from coverage.files[].noted.
+	Note string `json:"note,omitempty"`
 }
+
+// NoteBehaviorDivergence is the value of VerdictTarget.Note: the engines found a counterexample on code not declared critical.
+const NoteBehaviorDivergence = "behavior_divergence"
 
 type EngineError struct {
 	Language string   `json:"language"`

@@ -33,6 +33,12 @@
       "uniqueItems": true,
       "description": "Globs of paths an agent cannot change without a signed approval: tests written by a person and other human-owned paths. A changed file that matches with no valid approval escalates protected_path."
     },
+    "critical_code": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "description": "Globs over \"file\" or \"file::symbol\" naming the code where a behavior divergence stays FAIL until a signed waiver (the file part uses the syntax of paths; in the symbol part * does not cross a \"/\"). A glob without \"::\" covers every symbol of the matching files. Absent: nothing is critical, and a divergence the engines found with a counterexample is a note on its target in the verdict (targets[].note) that does not fail it. Read from the base's config, like the rest, so a diff cannot drop its own critical code."
+    },
     "supply_chain": {
       "type": "object",
       "properties": {

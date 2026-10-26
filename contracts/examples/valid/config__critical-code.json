@@ -1,0 +1,3 @@
+{"schema_version": 1,
+ "engines": [{"language": "python", "image": "a2dlc-engine-py:0.7", "paths": ["app/**"], "budget": {"per_condition_timeout_s": 10}}],
+ "critical_code": ["app/domain/billing/**", "app/domain/valor.py::calcular_*", "app/auth/*.py"]}

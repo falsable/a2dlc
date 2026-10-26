@@ -1,0 +1,33 @@
+{
+ "schema_version": 1,
+ "a2dlc_version": "0.5.0",
+ "verdict": "PASS",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-26T12:00:00Z",
+ "targets": [
+  {
+   "target": "app/domain/valor.py::construir_informe",
+   "engine": "crosshair-diffbehavior",
+   "engine_version": "0.7.0",
+   "verdict": "FAIL",
+   "search_budget": {
+    "iterations": 0,
+    "per_condition_timeout_s": 10
+   },
+   "generators": "typed_default",
+   "typed": true,
+   "domain_guard": null,
+   "equivalence": "strict",
+   "counterexample": {
+    "args": "{\"evaluados\": []}",
+    "old": "{\"total\": 0}",
+    "new": "{\"total\": 0, \"no_evaluado\": []}"
+   },
+   "waived": false,
+   "note": "defensive_handler"
+  }
+ ],
+ "out_of_scope": [],
+ "pending_waivers": []
+}
