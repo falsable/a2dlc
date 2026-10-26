@@ -365,6 +365,66 @@ class Budget(Directory):
         self.assertEqual(engine.MAX_WORKERS, 2)
 
 
+class HarnessErrors(Directory):
+    """a2dlc-qb1: when either side of CrossHair's difference is a failure of CrossHair or of its argument builder, the target
+    is INCONCLUSIVE with the reason and no counterexample; a real divergence stays FAIL. CrossHair is faked with the
+    output it printed on agencia-ia 60f5c6b (build_audit_package)."""
+
+    TYPING = "raises TypeError(\"typing.Literal['with-info'] is not a module, class, method, or function.\")"
+    SIDE_EFFECT = ("raises SideEffectDetected('A \"fcntl.ioctl\" operation was detected. It\\'s dangerous to run CrossHair "
+                   "on code with side effects.')")
+    TEXT = "def f(x: int) -> int:\n    return x\n"
+
+    def setUp(self):
+        super().setUp()
+        for name, value in (("WORK", self.io.parent / "work"), ("run", mock.Mock(side_effect=self.fake_run))):
+            patcher = mock.patch.object(engine, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.outcomes = ("returns 1", "returns 1")
+
+    def fake_run(self, cmd, timeout):
+        if cmd[1] == "-c":  # the import check, and the shrink (which finds nothing to parse and keeps this output)
+            return 0, ""
+        old, new = self.outcomes
+        return 1, f"Given: (x=0),\n  a2dlc_base.m.f(x=0) : {old}\n  a2dlc_cand.m.f(x=0) : {new}\n"
+
+    def target(self, old, new):
+        self.outcomes = (old, new)
+        Budget.diff(self, self.TEXT, self.TEXT.replace("return x", "return x + 0"))
+        (t,) = self.response()["targets"]
+        return t
+
+    def test_the_agencia_ia_case_is_inconclusive_without_a_counterexample(self):
+        t = self.target(self.TYPING, self.SIDE_EFFECT)
+        self.assertEqual((t["verdict"], t["counterexample"]), ("INCONCLUSIVE", None))
+        self.assertIn("not the function's behavior", t["reason"])
+        self.assertIn("old: TypeError", t["reason"])
+        self.assertIn("new: SideEffectDetected", t["reason"])
+
+    def test_one_harness_side_is_enough(self):
+        for old, new, side in ((self.SIDE_EFFECT, "returns 1", "old"), ("returns 1", self.TYPING, "new")):
+            t = self.target(old, new)
+            self.assertEqual(t["verdict"], "INCONCLUSIVE")
+            self.assertIn(side + ": ", t["reason"])
+
+    def test_the_internal_errors_of_crosshair_are_harness_errors(self):
+        for name in ("CrossHairInternal", "CrosshairUnsupported", "UnexploredPath", "NotDeterministic"):
+            self.assertEqual(self.target(f"raises {name}()", "returns 1")["verdict"], "INCONCLUSIVE", name)
+
+    def test_a_real_divergence_stays_fail(self):
+        for old, new in (("returns 1", "returns 2"), ("raises ValueError('negative')", "returns 0"),
+                         ("raises ValueError('a')", "raises KeyError('a')"), ("raises ValueError('a')", "raises ValueError('b')"),
+                         ("raises TypeError('not an int')", "returns 0")):
+            t = self.target(old, new)
+            self.assertEqual(t["verdict"], "FAIL", (old, new))
+            self.assertEqual((t["counterexample"]["old"], t["counterexample"]["new"]), (old, new))
+
+    def test_a_function_exception_that_only_looks_like_the_typing_error_stays_behavior(self):
+        self.assertEqual(self.target("raises TypeError('typing is not a module')", "returns 0")["verdict"], "FAIL")
+        self.assertEqual(self.target("raises MySideEffectDetected('x')", "returns 0")["verdict"], "FAIL")
+
+
 class Typecheck(Directory):
     """mypy --strict per changed file: only errors that are new with respect to the base; if mypy does not run, tooling."""
 

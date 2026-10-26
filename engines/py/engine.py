@@ -261,6 +261,29 @@ def run(cmd: list[str], timeout: float) -> tuple[int | None, str]:
 DIFFERENCE = re.compile(r"^Given: \((?P<args>.*)\),\s*$\n^\s*\S+ : (?P<old>.*)$\n^\s*\S+ : (?P<new>.*)$", re.M)
 WITHOUT_DIFFERENCE = re.compile(r"No differences found\. \(attempted (\d+) iterations\)")
 
+# What CrossHair prints as "raises X(...)" is not always the function's behavior. These are failures of CrossHair or of the
+# harness that builds the arguments: a divergence where either side is one of them says nothing about the two functions,
+# so the target is INCONCLUSIVE, never FAIL with a counterexample (a2dlc-qb1: agencia-ia 60f5c6b, build_audit_package).
+# The rule is by exception name or by exact message, not "anything unfamiliar": an exception the function raises itself
+# (ValueError, its own classes) stays behavior.
+HARNESS_EXCEPTIONS = frozenset({
+    "SideEffectDetected",  # CrossHair refused an operation of the function with side effects (fcntl.ioctl, open, ...)
+    "CrossHairInternal", "CrosshairUnsupported", "UnexploredPath", "UnknownSatisfiability", "PathTimeout",
+    "IgnoreAttempt", "NotDeterministic"})
+# typing.Literal[...] reaching inspect when CrossHair builds an argument from the annotation.
+HARNESS_TYPING_ERROR = re.compile(r"""^TypeError\(["'](?:typing|typing_extensions)\..* is not a module, class, method, or function""")
+
+
+def harness_error(outcome: str) -> str | None:
+    """A short description if a CrossHair outcome line ("raises X(...)") is a failure of CrossHair or the harness, not of the
+    function; None for a return value and for any exception the function itself can raise."""
+    r = _result(outcome)
+    if r is None or r[0] != "raises":
+        return None
+    if r[1].split("(", 1)[0] in HARNESS_EXCEPTIONS or HARNESS_TYPING_ERROR.match(r[1]):
+        return r[1][:100]
+    return None
+
 
 def new_target(target: str, timeout_s: float) -> dict:
     return {"target": target, "engine": "crosshair-diffbehavior", "engine_version": CROSSHAIR_VERSION,
@@ -299,7 +322,11 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
     rc, out = run([sys.executable, "-m", "crosshair", "diffbehavior", "--per_condition_timeout", str(timeout_s),
                       f"a2dlc_base.{mod}.{n}", f"a2dlc_cand.{mod}.{n}"], limit)
     m_dif, m_ok = DIFFERENCE.search(out), WITHOUT_DIFFERENCE.search(out)
-    if m_dif and rel and equivalents(m_dif["old"].strip(), m_dif["new"].strip(), rel):
+    harness = [f"{side}: {h}" for side, h in (("old", harness_error(m_dif["old"].strip())),
+                                               ("new", harness_error(m_dif["new"].strip()))) if h] if m_dif else []
+    if harness:
+        inconclusive(f"CrossHair/harness error, not the function's behavior ({'; '.join(harness)})")
+    elif m_dif and rel and equivalents(m_dif["old"].strip(), m_dif["new"].strip(), rel):
         # CrossHair stops at the first difference. If that one vanishes under π_S, it does not mean there is no other one,
         # and PASS would claim something nobody searched for.
         inconclusive(f"the difference CrossHair found ({m_dif['args']}) disappears under π_S ({', '.join(rel['_requested'])}); "
