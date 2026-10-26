@@ -252,3 +252,35 @@ func TestCheckRecordsNotesAndDoesNotBlockOnThem(t *testing.T) {
 		t.Fatalf("%v %+v", err, esc.Items)
 	}
 }
+
+// emptyCobertura leaves what the recommended Python command writes when coverage has no data: a valid Cobertura report with
+// no packages.
+type emptyCobertura struct{ *fakeTests }
+
+func (e emptyCobertura) RunTests(ctx context.Context, c contract.TestsConfig, cmd string, env map[string]string, tree string) (engine.TestRun, error) {
+	r, err := e.fakeTests.RunTests(ctx, c, cmd, env, tree)
+	r.Coverage = []byte(`<?xml version="1.0" ?><coverage version="7.6" lines-valid="0" lines-covered="0" line-rate="1"><sources><source>/work</source></sources><packages/></coverage>`)
+	return r, err
+}
+
+// A report with no data is "no line executed": the changed lines are unexamined (and the classifier may note them), but
+// the coverage status is ran, not unavailable.
+func TestEmptyCoberturaReportIsNoLineExecutedNotUnavailable(t *testing.T) {
+	a, _, ft, dir := gatesRepo(t)
+	a.Tests = emptyCobertura{ft}
+	write(t, dir, "src/lib/f.ts", "export const f = 1\nNO_TARGET\nswallow\n")
+	v, err := a.Check(context.Background(), "HEAD")
+	if err != nil || v.Coverage == nil {
+		t.Fatalf("%v %+v", err, v.Coverage)
+	}
+	if v.Coverage.Status != contract.CoverageRan || v.Coverage.Reason != "" {
+		t.Fatalf("an empty report was read as unavailable: %+v", v.Coverage)
+	}
+	f := v.Coverage.Files[0]
+	if !reflect.DeepEqual(f.Uncovered, []int{2, 3}) || len(f.Covered) != 0 {
+		t.Fatalf("no line should be covered: %+v", f)
+	}
+	if v.Verdict == contract.PASS {
+		t.Fatalf("unexamined lines cannot pass: %s", v.Verdict)
+	}
+}

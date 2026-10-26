@@ -178,3 +178,28 @@ func TestMergeKeepsHighestHit(t *testing.T) {
 		t.Fatal("arbitrary text passed")
 	}
 }
+
+// A Cobertura report with no packages is what the recommended Python command writes when coverage has no data (every
+// changed file declaration-only, or no test imported it). It is a valid report that executed no line, never "unreadable".
+func TestEmptyCoberturaIsNoLineExecuted(t *testing.T) {
+	r, err := Parse([]byte(`<?xml version="1.0" ?>
+<coverage version="7.6" timestamp="0" lines-valid="0" lines-covered="0" line-rate="1" branches-covered="0" branches-valid="0" branch-rate="0" complexity="0">
+ <sources><source>/work</source></sources>
+ <packages/>
+</coverage>`))
+	if err != nil || r == nil {
+		t.Fatalf("an empty Cobertura report must parse: %v", err)
+	}
+	if r.Files() != 0 || r.Lookup("app/models.py") != nil {
+		t.Fatalf("no file was reported: files=%d lookup=%v", r.Files(), r.Lookup("app/models.py"))
+	}
+	merged := New()
+	merged.Merge(r)
+	if merged.Lookup("app/models.py") != nil {
+		t.Fatal("a merge of the empty report invented data")
+	}
+	// ...whereas zero bytes is not a report at all
+	if _, err := Parse(nil); err == nil {
+		t.Fatal("an empty file is unreadable, not an empty report")
+	}
+}

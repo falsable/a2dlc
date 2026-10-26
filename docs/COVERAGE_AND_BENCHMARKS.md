@@ -370,6 +370,21 @@ copy of the tree per run) and reads JUnit XML.
   - The full suite never runs by default. Without `baseline_command` the baseline gate does not run, and the verdict says so.
   - Declare `baseline_command` even when every change comes with a test. Stage 4 takes line coverage from the runs of the gates, and `command` runs only the test files that changed: a fix that adds no test, covered by the existing suite, has no run that covers its lines and ends `INCONCLUSIVE` with the changed lines unexamined. `baseline_command` runs the existing suite on the candidate, so those lines are covered. `a2dlc install` prints it in the `tests` section it proposes: the same command as `command` without `$A2DLC_TESTS`, that is, the whole suite. A repo with a slow suite narrows it to the tests the change affects, as above.
 - **Coverage.** If a command writes line coverage to `$A2DLC_COVERAGE` (Cobertura XML or LCOV, the two formats every toolchain emits), the core unions the coverage of every run on the candidate and uses it for the coverage precondition. `source_paths` puts code under that precondition even when no engine covers it, so a language without an engine can be gated by its tests alone (`engines: []`). Without coverage, every changed line that no engine examined counts as uncovered.
+- **Recommended Python command.** Coverage over the whole repository costs more than the tests themselves (measured on a 78 MB tree: 46 s of tracing and 11 s of XML on top of 41 s of pytest). Scope it to the changed sources and give the empty case a defined report:
+  - `--include` takes `$A2DLC_CHANGED`, so only the changed files are traced. With no changed source the command skips coverage.
+  - `COVERAGE_CORE=sysmon` on Python 3.12 or later (coverage 7.4 or later; an older coverage ignores the variable). Measured: 41.6 s scoped with sysmon against 100.4 s scoped with the classic tracer.
+  - When coverage has no data (every changed file declaration-only, or no test imports it), `coverage xml` writes nothing and exits 1. The command then writes a Cobertura report with no packages. The core reads it as a run in which no line was executed: the changed lines stay unexamined, the engine may note the defensive and declaration-only ones, and the coverage status is `ran`. A missing or zero-byte `$A2DLC_COVERAGE` is "unavailable" and keeps the verdict from passing.
+  - The exit status is pytest's, not the coverage tool's.
+
+  ```sh
+  if python -c 'import sys; sys.exit(sys.version_info < (3, 12))'; then export COVERAGE_CORE=sysmon; fi
+  inc=$(printf %s "$A2DLC_CHANGED" | tr ' ' ',')
+  if [ -n "$inc" ]; then run="python -m coverage run --include=$inc -m pytest"; else run="python -m pytest"; fi
+  $run -q -p no:cacheprovider -o junit_family=xunit1 --junitxml="$A2DLC_JUNIT" $A2DLC_TESTS; rc=$?
+  [ -n "$inc" ] && python -m coverage xml -o "$A2DLC_COVERAGE" >/dev/null 2>&1
+  [ -s "$A2DLC_COVERAGE" ] || printf '%s' '<?xml version="1.0" ?><coverage version="1" lines-valid="0" lines-covered="0" line-rate="1" branches-valid="0" branches-covered="0" branch-rate="0" complexity="0"><sources><source>/work</source></sources><packages/></coverage>' > "$A2DLC_COVERAGE"
+  exit $rc
+  ```
 - **N-tree differential (`tests_diff`).** With `--peer` or `--tests-overlay`, the same set of tests T (the candidate's changed tests, each peer's changed tests, the overlay) runs on the base, the candidate and every peer, each on a clean copy of its tree with T laid over it.
   - A test red on the candidate and green on any other tree is `FAIL` (`behavior_divergence`, with the status per tree as evidence): the other tree proves the test can be satisfied. This is how a candidate that passes the original suite but not another builder's tests gets caught.
   - Red on every tree that ran it is `INCONCLUSIVE` (`test_without_teeth`): the test discriminates nothing. Unless it was already red on the base with the base's own test file: that is a pre-existing failure of the repository (an xfail the runner reports as a failure, a test broken for years), it is recorded with its trees and does not touch the verdict.
