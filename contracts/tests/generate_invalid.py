@@ -101,6 +101,11 @@ cases = {
     "config__critical-code-empty-glob.json": (c, lambda x: x.update(critical_code=[""])),
     "config__critical-code-repeated.json": (c, lambda x: x.update(critical_code=["a.py", "a.py"])),
     "config__critical-code-not-a-list.json": (c, lambda x: x.update(critical_code="app/domain/valor.py")),
+    # list_tests: a file that cannot be listed says why and lists nothing; a test has a class path and a name
+    "engine-list-tests-response__unlistable-without-reason.json": (read("engine-list-tests-response__py.json"), lambda x: x["files"][1].pop("reason")),
+    "engine-list-tests-response__unlistable-with-tests.json": (read("engine-list-tests-response__py.json"), lambda x: x["files"][1].update(tests=[{"class": "", "name": "test_a"}])),
+    "engine-list-tests-response__test-without-class.json": (read("engine-list-tests-response__py.json"), lambda x: x["files"][0]["tests"][0].pop("class")),
+    "engine-list-tests-response__listable-missing.json": (read("engine-list-tests-response__py.json"), lambda x: x["files"][0].pop("listable")),
     "engine-classify-lines-response__category-unknown.json": (classify_resp, lambda x: x["files"][0]["notes"][0].update(category="logic")),
     "engine-classify-lines-response__lines-empty.json": (classify_resp, lambda x: x["files"][0]["notes"][0].update(lines=[])),
     "engine-classify-lines-response__line-zero.json": (classify_resp, lambda x: x["files"][0]["notes"][0].update(lines=[0, 4])),

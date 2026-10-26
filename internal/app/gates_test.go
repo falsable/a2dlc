@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/engine"
@@ -97,7 +99,15 @@ func (m *fakeEngine) Mutate(_ context.Context, _ contract.EngineConfig, req cont
 // "covers <file>:<a>-<b>" leaves LCOV coverage with those lines executed (and lines 1-99 as statements). A line
 // "imports <symbol>" is the module's import: without "IMPL" or "STUB" of that symbol in src the whole file does not
 // collect (no testcase in the JUnit), like a module ImportError in pytest.
-type fakeTests struct{ runs []string }
+type fakeTests struct {
+	mu       sync.Mutex // the candidate and the NOP run are concurrent
+	runs     []string
+	selected []string      // A2DLC_TESTS of each run, in the order they started
+	module   bool          // classname is the module of the file, as pytest writes it, instead of "c"
+	delay    time.Duration // each run takes at least this long
+	inflight int
+	peak     int // most runs in flight at once
+}
 
 // fakeTestsDigest is the digest the fake tests image resolves to; the baseline gate keys its cache by it.
 const fakeTestsDigest = "sha256:00000000000000000000000000000000000000000000000000000000000000f1"
@@ -106,7 +116,18 @@ const fakeTestsDigest = "sha256:000000000000000000000000000000000000000000000000
 func (f *fakeTests) ImageDigest(context.Context, string) (string, error) { return fakeTestsDigest, nil }
 
 func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command string, env map[string]string, tree string) (engine.TestRun, error) {
+	f.mu.Lock()
 	f.runs = append(f.runs, command)
+	f.selected = append(f.selected, env["A2DLC_TESTS"])
+	f.inflight++
+	f.peak = max(f.peak, f.inflight)
+	f.mu.Unlock()
+	defer func() {
+		f.mu.Lock()
+		f.inflight--
+		f.mu.Unlock()
+	}()
+	time.Sleep(f.delay)
 	var files []string
 	if command == "nop" {
 		files = strings.Fields(env["A2DLC_TESTS"])
@@ -182,7 +203,11 @@ func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command 
 					state = "failed:ImportError: cannot import name " + s
 				}
 			}
-			fmt.Fprintf(&x, `<testcase classname="c" name="%s" file="%s">`, fields[0], a)
+			class := "c"
+			if f.module {
+				class = moduleOf(a)
+			}
+			fmt.Fprintf(&x, `<testcase classname="%s" name="%s" file="%s">`, class, fields[0], a)
 			if m, ok := strings.CutPrefix(state, "failed"); ok {
 				exit = 1
 				fmt.Fprintf(&x, `<failure message="%s"/>`, strings.TrimPrefix(m, ":"))

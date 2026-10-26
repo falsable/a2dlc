@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
@@ -100,10 +101,11 @@ type gateInput struct {
 	intent     bool              // the change declares the intent to change behavior (enforce_new_behavior waiver)
 	changeKind string            // intent.change_kind: feature, bugfix or refactor; "" when not declared
 	stubs      map[string][]byte
-	symbols    []string     // symbols that received a stub
-	unstubbed  []string     // new symbols the engine could not stub
-	stubNote   string       // why there were no stubs, if there were none
-	cov        *accumulated // coverage from the runs overlaid on the candidate (all that leave it)
+	symbols    []string                // symbols that received a stub
+	unstubbed  []string                // new symbols the engine could not stub
+	stubNote   string                  // why there were no stubs, if there were none
+	cov        *accumulated            // coverage from the runs overlaid on the candidate (all that leave it)
+	engines    []contract.EngineConfig // config.engines: the static listing of the base's tests asks them
 }
 
 // accumulated gathers the coverage left by the runs overlaid on the candidate, from any gate.
@@ -211,33 +213,6 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 		return contract.Gate{Status: contract.GateNotApplicable, Reason: "no test file changed"}, nil
 	}
 	env := envTests(tests, in.sources)
-	candidate, err := a.run(withLabel(ctx, "candidate"), in, in.cfg.Command, in.tree, in.overlay, nil, env)
-	if err == nil {
-		err = candidate.readable()
-	}
-	if err != nil {
-		return gateError("candidate", err), nil
-	}
-	if len(candidate.cases) == 0 {
-		return contract.Gate{Status: contract.GateNotApplicable, Reason: "the changed test files have no testcases"}, nil
-	}
-	own := map[string]junit.Case{}
-	var inBase []string
-	for _, f := range in.tests {
-		if _, err := a.Repo.Blob(in.baseSha, f); err == nil {
-			inBase = append(inBase, f)
-		}
-	}
-	if len(inBase) > 0 {
-		r, err := a.run(withLabel(ctx, "base_as_is"), in, in.cfg.Command, in.baseSha, nil, nil, envTests(inBase, in.sources))
-		if err == nil && !r.junit {
-			err = fmt.Errorf("did not leave JUnit (exit %d): %s", r.exit, r.log)
-		}
-		if err != nil {
-			return gateError("base without changes (to know which tests already existed)", err), nil
-		}
-		own = r.cases
-	}
 	overlaid := map[string][]byte{}
 	for f, b := range in.stubs {
 		overlaid[f] = b
@@ -245,10 +220,80 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	for f, b := range in.overlay {
 		overlaid[f] = b
 	}
-	nop, err := a.run(withLabel(ctx, "base_with_stubs"), in, in.cfg.Command, in.baseSha, overlaid, in.tests, env)
-	if err == nil && !nop.junit {
-		err = fmt.Errorf("did not leave JUnit (exit %d): %s", nop.exit, nop.log)
+	var inBase []string
+	for _, f := range in.tests {
+		if _, err := a.Repo.Blob(in.baseSha, f); err == nil {
+			inBase = append(inBase, f)
+		}
 	}
+	// The candidate run, the NOP run on the stubbed base and the static listing of the base's tests start together: none
+	// needs another's result. They are judged below in the order the gate always judged them, so the same input gives the
+	// same reason whichever finishes first.
+	ctx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	defer func() { cancel(); wg.Wait() }()
+	type ran struct {
+		r   run
+		err error
+	}
+	candCh, nopCh, listCh := make(chan ran, 1), make(chan ran, 1), make(chan listings, 1)
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		r, err := a.run(withLabel(ctx, "candidate"), in, in.cfg.Command, in.tree, in.overlay, nil, env)
+		if err == nil {
+			err = r.readable()
+		}
+		candCh <- ran{r, err}
+	}()
+	go func() {
+		defer wg.Done()
+		r, err := a.run(withLabel(ctx, "base_with_stubs"), in, in.cfg.Command, in.baseSha, overlaid, in.tests, env)
+		if err == nil && !r.junit {
+			err = fmt.Errorf("did not leave JUnit (exit %d): %s", r.exit, r.log)
+		}
+		nopCh <- ran{r, err}
+	}()
+	go func() {
+		defer wg.Done()
+		listCh <- a.listBase(ctx, in, inBase)
+	}()
+	cand := <-candCh
+	candidate, err := cand.r, cand.err
+	if err != nil {
+		return gateError("candidate", err), nil
+	}
+	if len(candidate.cases) == 0 {
+		return contract.Gate{Status: contract.GateNotApplicable, Reason: "the changed test files have no testcases"}, nil
+	}
+	// Which candidate testcases already existed on the base: from the static listing; the base is run only for the files
+	// the engine could not list, or whose testcases could not be matched to the listing.
+	own := map[string]junit.Case{}
+	if len(inBase) > 0 {
+		listed := <-listCh
+		var fallback map[string]bool
+		own, fallback = existing(candidate.cases, inBase, listed)
+		var need []string
+		for _, f := range inBase {
+			if _, ok := listed[f]; !ok || fallback[f] {
+				need = append(need, f)
+			}
+		}
+		if len(need) > 0 {
+			r, err := a.run(withLabel(ctx, "base_as_is"), in, in.cfg.Command, in.baseSha, nil, nil, envTests(need, in.sources))
+			if err == nil && !r.junit {
+				err = fmt.Errorf("did not leave JUnit (exit %d): %s", r.exit, r.log)
+			}
+			if err != nil {
+				return gateError("base without changes (to know which tests already existed)", err), nil
+			}
+			for id, c := range r.cases {
+				own[id] = c
+			}
+		}
+	}
+	nopRan := <-nopCh
+	nop, err := nopRan.r, nopRan.err
 	if err != nil {
 		return gateError("base with stubs", err), nil
 	}

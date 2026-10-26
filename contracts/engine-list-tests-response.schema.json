@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-list-tests-response.schema.json",
+  "title": "Engine response to operation: list_tests (/io/response.json)",
+  "description": "The test functions of each requested file in the base, read from its source without running anything. The core uses the list to tell tests that already existed from new ones. Listing is at function level: class is the dotted class path (empty at module level), name the function without any parametrize suffix. An engine over-lists rather than under-lists: a name that is not a test never appears as a testcase, but a test missing from the list would be taken for a new one. A file whose collection cannot be read from its source (it does not parse, builds tests dynamically, inherits from a base the file does not show) is listable false with a reason, and the core runs the base for that file only. An engine without the operation replies with an error or with another shape, and the core runs the base for every file.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "listable": { "type": "boolean" },
+          "reason": { "type": "string", "minLength": 1 },
+          "tests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "class": { "type": "string" },
+                "name": { "type": "string", "minLength": 1 }
+              },
+              "required": ["class", "name"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["file", "listable", "tests"],
+        "if": { "properties": { "listable": { "const": false } } },
+        "then": { "required": ["reason"], "properties": { "tests": { "maxItems": 0 } } },
+        "additionalProperties": false
+      }
+    },
+    "error": { "type": ["string", "null"] }
+  },
+  "required": ["schema_version", "files", "error"],
+  "additionalProperties": false
+}

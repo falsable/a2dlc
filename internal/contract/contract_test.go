@@ -77,6 +77,7 @@ func exampleTypes() map[string]func() any {
 		// block 8
 		"engine-complexity-response": func() any { return &ComplexityResponse{} }, "selection": func() any { return &Selection{} },
 		"engine-classify-lines-response": func() any { return &ClassifyResponse{} },
+		"engine-list-tests-response":     func() any { return &ListTestsResponse{} },
 		// Stages 6 and 7
 		"integration": func() any { return &IntegrationReport{} }, "delivery": func() any { return &DeliveryPlan{} },
 		// Stage -1

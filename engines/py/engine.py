@@ -1641,6 +1641,31 @@ def classify_lines(req: dict) -> int:
     return 0
 
 
+# ---------- operation: list_tests (static ids of the base's test files, bead a2dlc-uca) ----------
+# changed_files are test files under base_dir. Per file, the test functions and methods by class path (listing.py), or
+# listable: false with the reason when the AST does not show what pytest would collect. The core then runs the base for it.
+
+def list_tests_op(req: dict) -> int:
+    import listing  # imported here like the other operations' modules: this file loads without it
+    base = Path(req["base_dir"])
+    files = []
+    for file in req["changed_files"]:
+        c = base / file
+        if not file.endswith(".py"):
+            files.append({"file": file, "listable": False, "reason": "not a Python file", "tests": []})
+        elif not c.is_file():
+            files.append({"file": file, "listable": False, "reason": "not in the base", "tests": []})
+        else:
+            ok, reason, tests = listing.list_tests(c.read_text(encoding="utf-8", errors="replace"))
+            f = {"file": file, "listable": ok, "tests": [{"class": k, "name": n} for k, n in tests]}
+            if not ok:
+                f["reason"] = reason
+            files.append(f)
+    (IO / "response.json").write_text(json.dumps({"schema_version": 1, "files": files, "error": None},
+                                                  ensure_ascii=False, indent=1), encoding="utf-8")
+    return 0
+
+
 # ---------- operation: diff (the differential gate, protocol §5 Stage 4) ----------
 # budget.workers threads run the targets (default 1, at most MAX_WORKERS). Each target starts in order of priority: more
 # callers in its own file first, then by name. Results are assembled in the request's order, so the targets do not depend
@@ -1788,6 +1813,8 @@ def main() -> int:
         return complexity(req)
     if req.get("operation") == "classify_lines":
         return classify_lines(req)
+    if req.get("operation") == "list_tests":
+        return list_tests_op(req)
     if req.get("operation") == "stub":
         return stub(req)
     if req.get("operation") == "signatures":

@@ -449,7 +449,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	if cfg.Tests != nil {
 		tcfg := *cfg.Tests
 		tcfg.InvalidBaseFailures = invalidBaseFailures(cfg)
-		in := gateInput{cfg: tcfg, baseSha: baseSha, tree: tree, tests: changedTests, sources: sources, intent: intent, changeKind: opts.ChangeKind, cov: cov}
+		in := gateInput{cfg: tcfg, baseSha: baseSha, tree: tree, tests: changedTests, sources: sources, intent: intent, changeKind: opts.ChangeKind, cov: cov, engines: cfg.Engines}
 		v.TestGates, v.Tests = a.gates(ctx, cfg, in, export, &baseDir, &candDir, peers, opts.TestsOverlay)
 		if opts.Golden != nil {
 			v.Tests = append(v.Tests, a.goldenResults(ctx, in, *opts.Golden)...)
