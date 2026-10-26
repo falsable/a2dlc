@@ -298,6 +298,7 @@ func (a App) Check(ctx context.Context, base string) (contract.Verdict, error) {
 
 func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (contract.Verdict, error) {
 	v := contract.Verdict{SchemaVersion: contract.SchemaVersion, A2dlcVersion: a.Version}
+	ctx, tm := withTimer(ctx)
 	if base == "" {
 		base = a.defaultBase()
 	}
@@ -358,6 +359,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 			return nil
 		}
 		var err error
+		defer func(t0 time.Time) { tm.sync(time.Since(t0)) }(time.Now())
 		if baseDir, err = os.MkdirTemp("", "a2dlc-base-*"); err != nil {
 			return err
 		}
@@ -399,7 +401,9 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 			if len(req.Budget) == 0 {
 				req.Budget = json.RawMessage("{}")
 			}
+			t0 := time.Now()
 			resp, err := a.Runner.Run(ctx, e, req, baseDir, candDir)
+			timerOf(ctx).engineOp("diff", time.Since(t0))
 			if err != nil {
 				errs = append(errs, contract.EngineError{Language: e.Language, Files: files, Error: err.Error()})
 				continue
@@ -491,6 +495,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	}
 	v.CreatedAt = a.Now().UTC().Format(time.RFC3339)
 	verdict.CompleteDiffBudget(&v)
+	v.Timings = tm.result()
 	if err := a.write(pathVerdict, v); err != nil {
 		return v, err
 	}

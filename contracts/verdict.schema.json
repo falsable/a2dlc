@@ -77,6 +77,19 @@
       "required": ["total_s", "used_s", "cut"],
       "additionalProperties": false
     },
+    "timings": {
+      "description": "Where the check spent its time, in milliseconds, measured by the core. total_ms is the whole check; sync_ms the tree sync (export or warm-tree sync); stubs_ms the stub operation; test_runs one entry per test command run (name says which: candidate, base_with_stubs, base_as_is, baseline_base, ...), engine_ops one per engine operation (diff, stub, classify_lines, list_tests). Runs that overlap are listed separately, so their sum can exceed total_ms.",
+      "type": "object",
+      "properties": {
+        "total_ms": { "type": "integer", "minimum": 0 },
+        "sync_ms": { "type": "integer", "minimum": 0 },
+        "stubs_ms": { "type": "integer", "minimum": 0 },
+        "test_runs": { "$ref": "#/$defs/timed_list" },
+        "engine_ops": { "$ref": "#/$defs/timed_list" }
+      },
+      "required": ["total_ms"],
+      "additionalProperties": false
+    },
     "test_gates": {
       "description": "What happened with each test gate (config.tests). What does not run stays in view, never silently.",
       "type": "object",
@@ -176,6 +189,18 @@
     }
   },
   "$defs": {
+    "timed_list": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "ms": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["name", "ms"],
+        "additionalProperties": false
+      }
+    },
     "lines": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "uniqueItems": true },
     "check": {
       "type": "object",

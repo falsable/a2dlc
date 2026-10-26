@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/coverage"
@@ -127,7 +128,9 @@ func (a App) noteUncovered(ctx context.Context, cfg contract.Config, cov *contra
 		}
 		req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseDir: "/base", CandidateDir: "/cand",
 			ChangedFiles: own, Budget: budget}
+		t0 := time.Now()
 		resp, err := lc.ClassifyLines(ctx, e, req, *baseDir, *candDir)
+		timerOf(ctx).engineOp("classify_lines", time.Since(t0))
 		if err != nil || engine.ValidateClassify(req, resp) != nil {
 			continue
 		}

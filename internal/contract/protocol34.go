@@ -265,3 +265,19 @@ type AllowEntry struct {
 	Name      string `json:"name"`
 	Versions  string `json:"versions,omitempty"`
 }
+
+// Timing is one measured step of a check: what ran and how long it took, in milliseconds.
+type Timing struct {
+	Name string `json:"name"`
+	Ms   int64  `json:"ms"`
+}
+
+// Timings is verdict.timings: where the check spent its time. Runs that overlap are listed separately, so the entries
+// can add up to more than TotalMs.
+type Timings struct {
+	TotalMs   int64    `json:"total_ms"`
+	SyncMs    int64    `json:"sync_ms,omitempty"`
+	StubsMs   int64    `json:"stubs_ms,omitempty"`
+	TestRuns  []Timing `json:"test_runs,omitempty"`
+	EngineOps []Timing `json:"engine_ops,omitempty"`
+}

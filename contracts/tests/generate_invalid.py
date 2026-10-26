@@ -339,6 +339,12 @@ cases = {
     "candidate__tier0-reviewed-no-bool.json": (read("candidate__builder-unreviewed.json"), lambda x: x.update(tier0_reviewed=0)),
     # wave 0 (v3.4): each new field has at least one way to be wrong
     "verdict__diff-budget-cut-missing-reason.json": (read("verdict__diff-budget.json"), lambda x: x["diff_budget"]["cut"][0].pop("reason")),
+    # timings: whole milliseconds, a total, and no free-form fields
+    "verdict__timings-negative-ms.json": (read("verdict__timings.json"), lambda x: x["timings"]["test_runs"][0].update(ms=-1)),
+    "verdict__timings-fractional-ms.json": (read("verdict__timings.json"), lambda x: x["timings"].update(total_ms=1.5)),
+    "verdict__timings-missing-total.json": (read("verdict__timings.json"), lambda x: x["timings"].pop("total_ms")),
+    "verdict__timings-run-missing-name.json": (read("verdict__timings.json"), lambda x: x["timings"]["engine_ops"][0].pop("name")),
+    "verdict__timings-extra-field.json": (read("verdict__timings.json"), lambda x: x["timings"].update(wall_s=52)),
     "verdict__equivalence-gate-unknown-status.json": (read("verdict__diff-budget.json"), lambda x: x["test_gates"]["equivalence_s"].update(status="skipped")),
     "config__trace-coverage-over-one.json": (read("config__v3-gates.json"), lambda x: x["tests"]["trace_coverage"].update(min_branch=1.5)),
     "config__golden-master-missing-cases.json": (read("config__v3-gates.json"), lambda x: x["tests"]["golden_master"].pop("cases")),

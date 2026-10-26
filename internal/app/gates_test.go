@@ -354,6 +354,24 @@ func TestCheckFeatureWithTestPasses(t *testing.T) {
 	if _, ok := ts["previous"]; ok {
 		t.Fatal("a red from before on the base was judged")
 	}
+	// verdict.timings: the check times itself (candidate and base with stubs at least, the stub operation, and a total)
+	if v.Timings == nil || v.Timings.TotalMs <= 0 {
+		t.Fatalf("timings: %+v", v.Timings)
+	}
+	names := map[string]bool{}
+	for _, r := range v.Timings.TestRuns {
+		names[r.Name] = true
+	}
+	if !names["candidate"] || !names["base_with_stubs"] {
+		t.Fatalf("test runs not timed: %+v", v.Timings.TestRuns)
+	}
+	var ops []string
+	for _, o := range v.Timings.EngineOps {
+		ops = append(ops, o.Name)
+	}
+	if !strings.Contains(strings.Join(ops, ","), "stub") || v.Timings.StubsMs <= 0 {
+		t.Fatalf("stub operation not timed: %+v", v.Timings)
+	}
 }
 
 // A test that passes with stubs does not prove the change: FAIL and escalation; with a characterization_test waiver

@@ -372,6 +372,8 @@ type Verdict struct {
 	Tests          []TestResult    `json:"tests,omitempty"`
 	// Checks are the pluggable checks (config.checks) in config order; what did not run stays in view.
 	Checks []VerdictCheck `json:"checks,omitempty"`
+	// Timings says where the check spent its time (ms); optional, the verdict does not depend on it.
+	Timings *Timings `json:"timings,omitempty"`
 }
 
 // States of the coverage precondition.

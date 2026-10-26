@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/coverage"
@@ -115,6 +116,9 @@ type accumulated struct {
 // and runs command. Each run, and each re-run too, starts from a clean tree.
 func (a App) run(ctx context.Context, in gateInput, command, treeish string, overlay map[string][]byte, fromCandidate []string, env map[string]string) (run, error) {
 	var c run
+	defer func(t0 time.Time) {
+		timerOf(ctx).testRun(runName(ctx, in, treeish, overlay, fromCandidate), time.Since(t0))
+	}(time.Now())
 	dir, err := os.MkdirTemp("", "a2dlc-tests-*")
 	if err != nil {
 		return c, err
@@ -175,6 +179,20 @@ func (a App) run(ctx context.Context, in gateInput, command, treeish string, ove
 	return c, nil
 }
 
+// runName names a test run for verdict.timings: the label the caller set, else candidate or base by the tree it ran.
+func runName(ctx context.Context, in gateInput, treeish string, overlay map[string][]byte, fromCandidate []string) string {
+	if l := labelOf(ctx); l != "" {
+		return l
+	}
+	switch {
+	case treeish == in.tree:
+		return "candidate"
+	case len(overlay)+len(fromCandidate) > 0:
+		return "base_with_overlay"
+	}
+	return "base"
+}
+
 func envTests(tests, sources []string) map[string]string {
 	return map[string]string{"A2DLC_TESTS": strings.Join(tests, " "), "A2DLC_CHANGED": strings.Join(sources, " ")}
 }
@@ -193,7 +211,7 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 		return contract.Gate{Status: contract.GateNotApplicable, Reason: "no test file changed"}, nil
 	}
 	env := envTests(tests, in.sources)
-	candidate, err := a.run(ctx, in, in.cfg.Command, in.tree, in.overlay, nil, env)
+	candidate, err := a.run(withLabel(ctx, "candidate"), in, in.cfg.Command, in.tree, in.overlay, nil, env)
 	if err == nil {
 		err = candidate.readable()
 	}
@@ -211,7 +229,7 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 		}
 	}
 	if len(inBase) > 0 {
-		r, err := a.run(ctx, in, in.cfg.Command, in.baseSha, nil, nil, envTests(inBase, in.sources))
+		r, err := a.run(withLabel(ctx, "base_as_is"), in, in.cfg.Command, in.baseSha, nil, nil, envTests(inBase, in.sources))
 		if err == nil && !r.junit {
 			err = fmt.Errorf("did not leave JUnit (exit %d): %s", r.exit, r.log)
 		}
@@ -227,7 +245,7 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	for f, b := range in.overlay {
 		overlaid[f] = b
 	}
-	nop, err := a.run(ctx, in, in.cfg.Command, in.baseSha, overlaid, in.tests, env)
+	nop, err := a.run(withLabel(ctx, "base_with_stubs"), in, in.cfg.Command, in.baseSha, overlaid, in.tests, env)
 	if err == nil && !nop.junit {
 		err = fmt.Errorf("did not leave JUnit (exit %d): %s", nop.exit, nop.log)
 	}
@@ -504,7 +522,9 @@ func (a App) stubs(ctx context.Context, cfg contract.Config, in *gateInput, base
 		e := cfg.Engines[i]
 		req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseRef: in.baseSha,
 			BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: byEngine[i], Budget: json.RawMessage("{}")}
+		t0 := time.Now()
 		resp, files, err := a.Runner.Stub(ctx, e, req, baseDir, candDir)
+		timerOf(ctx).engineOp("stub", time.Since(t0))
 		if err != nil {
 			notes = append(notes, e.Language+": "+err.Error())
 			continue
