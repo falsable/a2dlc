@@ -53,7 +53,8 @@ func (c container) run(ctx context.Context, out io.Writer) error {
 		return cmd.Run()
 	}
 	var idOut, errOut bytes.Buffer
-	create := exec.CommandContext(ctx, c.bin, append(append(append([]string{"create"}, c.flags...), c.image), c.cmd...)...)
+	// --rm as well as the deferred rm: if a2dlc itself is killed after start, the container still goes when it exits.
+	create := exec.CommandContext(ctx, c.bin, append(append(append([]string{"create", "--rm"}, c.flags...), c.image), c.cmd...)...)
 	create.Stdout, create.Stderr = &idOut, &errOut
 	if err := create.Run(); err != nil {
 		return fmt.Errorf("docker create %s: %v: %s", c.image, err, tail(errOut.String()))
