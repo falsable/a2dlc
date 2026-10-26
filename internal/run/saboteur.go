@@ -232,6 +232,7 @@ func (m *Machine) recordedGolden() (*contract.Golden, error) {
 // The π_S relaxations of contract.json (Stage 1.5) go to the engines in each check.
 func (m *Machine) judgeLoop(ctx context.Context, opts app.CheckOptions, artV string) (contract.Verdict, string, error) {
 	opts.EquivalenceRelaxations = m.relaxations()
+	opts.StrictDivergence = true // Stage 4 ranks candidates by verdict: a divergence is never only a note here
 	// The oracle's own inputs: the golden master recorded on the base by Stage -1 (replayed by CheckWith) and the change
 	// kind the person declared (the gates that apply to feature, bugfix or refactor read it).
 	if m.intent != nil {

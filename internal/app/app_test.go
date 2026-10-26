@@ -88,7 +88,7 @@ func newRepo(t *testing.T) (App, *fakeEngine, string) {
 	git(t, dir, "init", "-q")
 	write(t, dir, "src/lib/f.ts", "export const f = 1\n")
 	write(t, dir, "README.md", "hello\n")
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}]}`)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],"critical_code":["src/lib/**"]}`)
 	write(t, dir, ".gitignore", ".a2dlc/verdict.json\n.a2dlc/reports/\n")
 	git(t, dir, "add", "-A")
 	git(t, dir, "commit", "-qm", "base")
@@ -120,7 +120,7 @@ func TestCheckFailAndFileWithoutEngine(t *testing.T) {
 
 func TestOverMaxFilesDoesNotRunAndSaysSo(t *testing.T) {
 	a, m, dir := newRepo(t)
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],"max_files":1}`)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],"max_files":1,"critical_code":["src/lib/**"]}`)
 	git(t, dir, "commit", "-qam", "cap 1")
 	write(t, dir, "src/lib/f.ts", "export const f = 2\n")
 	write(t, dir, "src/lib/g.ts", "export const g = 1\n")
@@ -297,7 +297,7 @@ func TestGateOutputsDoNotChangeTree(t *testing.T) {
 
 func TestHookClaudeBlocksAndExhausts(t *testing.T) {
 	a, _, dir := newRepo(t)
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],"agent_hook":{"max_blocks":2}}`)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],"agent_hook":{"max_blocks":2},"critical_code":["src/lib/**"]}`)
 	git(t, dir, "commit", "-qam", "max 2")
 	write(t, dir, "src/lib/f.ts", "export const f = 2\n")
 	codes := []int{}
@@ -512,7 +512,7 @@ func TestCheckAdoptsTheCandidateConfigWhenTheBaseNeverHadOne(t *testing.T) {
 		t.Fatal(err)
 	}
 	a := App{Repo: repo, Runner: &fakeEngine{}, Version: "test", Now: func() time.Time { return time.Unix(0, 0) }}
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}]}`)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],"critical_code":["src/lib/**"]}`)
 	write(t, dir, "src/lib/f.ts", "export const f = 2 // FAIL\n")
 	v, err := a.Check(context.Background(), "HEAD")
 	if err != nil || v.Verdict != contract.FAIL {

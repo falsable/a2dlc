@@ -254,7 +254,14 @@ type CheckOptions struct {
 	// FireOn is the firing point of config.checks: "" or "check" for a2dlc check; a2dlc run passes "stage:<id>", and only
 	// the checks whose fire_on lists it run.
 	FireOn string
+	// StrictDivergence keeps a divergence on any code a FAIL, as if everything were critical. a2dlc run sets it: the
+	// Stage 4 oracle ranks candidates by their verdict, and a note would let a candidate that changes the base's behavior
+	// pass. a2dlc check leaves it off, and config.critical_code decides there.
+	StrictDivergence bool
 }
+
+// allCritical makes every target critical (CheckOptions.StrictDivergence).
+var allCritical = []string{"**"}
 
 // candidateTree is the tree that check judges: opts.CandidateTree without the gate outputs, or the working tree's.
 func (a App) candidateTree(candidate string) (string, error) {
@@ -412,7 +419,11 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	// A waiver covers only the targets of its class: engine targets do not cover a test, nor the reverse.
 	waived, intent := waiverFlags(waivers)
 	approved, _ := a.approved(tree, waivers, approvals)
-	v.Verdict, v.Targets, v.PendingWaivers = verdict.Aggregate(targets, waived, approved, len(errs))
+	critical := cfg.CriticalCode
+	if opts.StrictDivergence {
+		critical = allCritical
+	}
+	v.Verdict, v.Targets, v.PendingWaivers = verdict.Aggregate(targets, waived, approved, len(errs), critical)
 	v.BaseRef, v.TreeHash, v.OutOfScope, v.EngineErrors = baseSha, treePrefix+tree, oos, errs
 	v.DiffBudget = diffBudget
 	cov := &accumulated{}
@@ -664,6 +675,7 @@ func (a App) Verify(commit string) ([]string, error) {
 		return nil, err
 	}
 	approved, reason := a.approved(tree, waivers, approvals)
+	probs = append(probs, a.noteProblems(v)...)
 	waived := []string{}
 	for _, t := range v.Targets {
 		if t.Waived {
@@ -696,6 +708,38 @@ func (a App) Verify(commit string) ([]string, error) {
 		probs = append(probs, "waiver for "+t+": "+m)
 	}
 	return probs, nil
+}
+
+// noteProblems are the reasons verify refuses the divergence notes of a receipt: a note is only valid on a FAIL target with
+// a counterexample, no waiver, and code that the base's config.critical_code does not name. The receipt is a file the
+// agent could edit, so verify decides again with the config of the receipt's base, the one check read.
+func (a App) noteProblems(v contract.Verdict) []string {
+	var probs []string
+	var critical []string
+	configRead := false
+	for _, t := range v.Targets {
+		if t.Note == "" {
+			continue
+		}
+		if t.Note != contract.NoteBehaviorDivergence || t.Verdict != contract.FAIL || t.Counterexample == nil || t.Waived {
+			probs = append(probs, "note on "+t.Target+" is not a behavior divergence with a counterexample and no waiver")
+			continue
+		}
+		if !configRead {
+			configRead = true
+			cfg, err := a.configAt(v.BaseRef)
+			if err != nil {
+				probs = append(probs, "cannot confirm the divergence notes: "+err.Error())
+				critical = []string{"**"}
+			} else {
+				critical = cfg.CriticalCode
+			}
+		}
+		if verdict.IsCritical(critical, t.Target) {
+			probs = append(probs, "behavior divergence on critical code "+t.Target+" has no waiver: write one and a person runs a2dlc approve "+t.Target)
+		}
+	}
+	return probs
 }
 
 func sortedIndexes(byEngine map[int][]string) []int {

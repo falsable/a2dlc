@@ -108,6 +108,12 @@ func run(args []string) int {
 		if noted > 0 {
 			fmt.Printf("note: %d changed lines were not examined and do not block (defensive exception handlers or declaration-only code): see coverage.files[].noted in .a2dlc/verdict.json\n", noted)
 		}
+		for _, t := range v.Targets {
+			if t.Note == contract.NoteBehaviorDivergence {
+				fmt.Printf("note: behavior divergence on %s does not fail the verdict (not critical code): args=%s old=%s new=%s\n",
+					t.Target, t.Counterexample.Args, t.Counterexample.Old, t.Counterexample.New)
+			}
+		}
 		for _, e := range v.EngineErrors {
 			fmt.Fprintf(os.Stderr, "a2dlc check: engine %s (%s): %s\n", e.Language, strings.Join(e.Files, ", "), e.Error)
 		}

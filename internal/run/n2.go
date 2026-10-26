@@ -203,7 +203,7 @@ func (m *Machine) judgmentN2(ctx context.Context, p, o contract.CandidateEntry) 
 		// the Saboteur brought tests in the orthogonal's rounds: the primary is judged again with them, without new rounds,
 		// with the same π_S relaxations as the first pass (judge sets them in each check)
 		if verdictP, err = m.app.CheckWith(ctx, m.baseSha, app.CheckOptions{CandidateTree: p.Commit, Peers: []string{o.Commit}, TestsOverlay: overlay,
-			EquivalenceRelaxations: m.relaxations()}); err != nil {
+			EquivalenceRelaxations: m.relaxations(), StrictDivergence: true}); err != nil {
 			return "", "", "", err
 		}
 		if err := m.seal(&verdictP); err != nil {
