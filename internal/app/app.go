@@ -437,6 +437,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	if v.Coverage, err = a.precondition(cfg, baseSha, tree, sources, v.Targets, cov.report, cov.note); err != nil {
 		return v, err
 	}
+	a.noteUncovered(ctx, cfg, v.Coverage, export, &baseDir, &candDir)
 	if v.Verdict == contract.PASS && hasUncovered(v.Coverage) {
 		v.Verdict = contract.INCONCLUSIVE
 	}

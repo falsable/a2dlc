@@ -93,15 +93,21 @@ func run(args []string) int {
 			fmt.Fprintln(os.Stderr, "a2dlc check:", err)
 			return 2
 		}
-		covered, without := 0, 0
+		covered, without, noted := 0, 0, 0
 		if v.Coverage != nil {
 			for _, f := range v.Coverage.Files {
 				covered += len(f.ByEngine) + len(f.Covered)
 				without += len(f.Uncovered)
+				for _, n := range f.Noted {
+					noted += len(n.Lines)
+				}
 			}
 		}
 		fmt.Printf("%s: %d targets, %d tests judged, %d out of scope, %d changed lines examined and %d not examined, %d waivers pending, %d engines with errors\n",
 			v.Verdict, len(v.Targets), len(v.Tests), len(v.OutOfScope), covered, without, len(v.PendingWaivers), len(v.EngineErrors))
+		if noted > 0 {
+			fmt.Printf("note: %d changed lines were not examined and do not block (defensive exception handlers or declaration-only code): see coverage.files[].noted in .a2dlc/verdict.json\n", noted)
+		}
 		for _, e := range v.EngineErrors {
 			fmt.Fprintf(os.Stderr, "a2dlc check: engine %s (%s): %s\n", e.Language, strings.Join(e.Files, ", "), e.Error)
 		}

@@ -1,11 +1,15 @@
 package app
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/coverage"
+	"github.com/falsable/a2dlc/internal/engine"
+	"github.com/falsable/a2dlc/internal/verdict"
 )
 
 // Coverage precondition (VARA-2, rule 1): each changed line of a file in scope must be either inside an engine target
@@ -87,6 +91,66 @@ func examined(ts []contract.VerdictTarget, l int) bool {
 		}
 	}
 	return false
+}
+
+// noteUncovered asks the engine that owns each file which of its unexamined changed lines are defensive exception
+// handlers or declaration-only code (operation: classify_lines, docs/COVERAGE_NOTES.md) and moves those from Uncovered to
+// Noted, so they stay in the receipt and do not block. It only ever lowers what blocks, and any failure leaves the lines
+// unexamined: a runner without LineClassifier, a file with no engine, an engine without the operation, an engine that
+// errors or answers outside the contract. export prepares baseDir and candDir.
+func (a App) noteUncovered(ctx context.Context, cfg contract.Config, cov *contract.Coverage, export func() error, baseDir, candDir *string) {
+	lc, ok := a.Runner.(engine.LineClassifier)
+	if !ok || cov == nil {
+		return
+	}
+	var files []string
+	byFile := map[string]*contract.CoverageFile{}
+	for i := range cov.Files {
+		if f := &cov.Files[i]; len(f.Uncovered) > 0 {
+			files = append(files, f.File)
+			byFile[f.File] = f
+		}
+	}
+	byEngine, _ := verdict.Assign(cfg.Engines, files)
+	if len(byEngine) == 0 || export() != nil {
+		return
+	}
+	for _, i := range sortedIndexes(byEngine) {
+		e, own := cfg.Engines[i], byEngine[i]
+		lines := map[string][]int{}
+		for _, f := range own {
+			lines[f] = byFile[f].Uncovered
+		}
+		budget, err := json.Marshal(contract.ClassifyBudget{Lines: lines})
+		if err != nil {
+			continue
+		}
+		req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseDir: "/base", CandidateDir: "/cand",
+			ChangedFiles: own, Budget: budget}
+		resp, err := lc.ClassifyLines(ctx, e, req, *baseDir, *candDir)
+		if err != nil || engine.ValidateClassify(req, resp) != nil {
+			continue
+		}
+		for _, cf := range resp.Files {
+			f, noted := byFile[cf.File], map[int]bool{}
+			notes := engine.SortedNotes(cf.Notes)
+			for _, n := range notes {
+				for _, l := range n.Lines {
+					noted[l] = true
+				}
+			}
+			if len(noted) == 0 {
+				continue
+			}
+			rest := []int{}
+			for _, l := range f.Uncovered {
+				if !noted[l] {
+					rest = append(rest, l)
+				}
+			}
+			f.Uncovered, f.Noted = rest, notes
+		}
+	}
 }
 
 // hasUncovered says whether some changed line in scope was left unexamined.
