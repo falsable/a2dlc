@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://a2dlc.local/contracts/verdict.schema.json",
   "title": "Verdict of a2dlc check (.a2dlc/verdict.json, not committed)",
-  "description": "aggregate verdict: FAIL if any target or test FAILs without a waiver; otherwise INCONCLUSIVE if any is, a gate could not run, or some changed line in scope was left unexamined (coverage.files[].uncovered not empty: never an empty PASS); otherwise PASS. A FAIL with a waiver, approved or pending, does not count, but the pending one goes to pending_waivers and verify blocks it.",
+  "description": "aggregate verdict: FAIL if any target or test FAILs without a waiver; otherwise INCONCLUSIVE if any is, a gate could not run, or some changed line in scope was left unexamined (coverage.files[].uncovered not empty: never an empty PASS; lines in coverage.files[].noted do not count); otherwise PASS. A FAIL with a waiver, approved or pending, does not count, but the pending one goes to pending_waivers and verify blocks it.",
   "type": "object",
   "properties": {
     "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
@@ -84,7 +84,7 @@
       "additionalProperties": false
     },
     "coverage": {
-      "description": "Coverage precondition over the changed files in scope (engine paths and tests.source_paths). Per file, which changed lines a PASS/FAIL target examined (by_engine), which ones some test ran on the candidate (covered), and which nobody looked at (uncovered). Lines that coverage does not list as statements do not appear.",
+      "description": "Coverage precondition over the changed files in scope (engine paths and tests.source_paths). Per file, which changed lines a PASS/FAIL target examined (by_engine), which ones some test ran on the candidate (covered), and which nobody looked at (uncovered). Of those, the ones an engine recognised as a defensive exception handler or declaration-only code move to noted. Lines that coverage does not list as statements do not appear.",
       "type": "object",
       "properties": {
         "status": {
@@ -100,7 +100,20 @@
               "file": { "type": "string", "minLength": 1 },
               "by_engine": { "$ref": "#/$defs/lines" },
               "covered": { "$ref": "#/$defs/lines" },
-              "uncovered": { "$ref": "#/$defs/lines" }
+              "uncovered": { "$ref": "#/$defs/lines" },
+              "noted": {
+                "description": "Lines that no engine examined and no test executed but that the engine recognised as a defensive exception handler or as declaration-only code. The receipt states them and they do not block: they are not in uncovered. Absent when nothing was classified (older receipts, an engine without the operation).",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "category": { "enum": ["defensive_handler", "declarative_only"] },
+                    "lines": { "$ref": "#/$defs/lines", "minItems": 1 }
+                  },
+                  "required": ["category", "lines"],
+                  "additionalProperties": false
+                }
+              }
             },
             "required": ["file", "by_engine", "covered", "uncovered"],
             "additionalProperties": false

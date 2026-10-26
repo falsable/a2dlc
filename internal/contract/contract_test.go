@@ -76,6 +76,7 @@ func exampleTypes() map[string]func() any {
 		"z3-request":             func() any { return &Z3Request{} }, "z3-response": func() any { return &Z3Response{} },
 		// block 8
 		"engine-complexity-response": func() any { return &ComplexityResponse{} }, "selection": func() any { return &Selection{} },
+		"engine-classify-lines-response": func() any { return &ClassifyResponse{} },
 		// Stages 6 and 7
 		"integration": func() any { return &IntegrationReport{} }, "delivery": func() any { return &DeliveryPlan{} },
 		// Stage -1
@@ -109,6 +110,9 @@ var unknownPropertyInvalid = []string{
 	"engine-request__tier0-budget-foreign.json",
 	"engine-request__capture-traces-budget-foreign.json",
 	"engine-traces-response__extra-field.json",
+	"verdict__coverage-noted-extra-field.json",
+	"engine-classify-lines-response__note-extra-field.json",
+	"engine-request__classify-lines-budget-foreign.json",
 	"roles__mounts-in-config.json",
 	"roles__tier-up-nested.json",
 	"capture__signature-with-body.json",

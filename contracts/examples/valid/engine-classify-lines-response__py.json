@@ -1,0 +1,9 @@
+{"schema_version": 1,
+ "files": [
+  {"file": "src/calc.py", "notes": [
+   {"category": "defensive_handler", "lines": [3, 4]},
+   {"category": "declarative_only", "lines": [9]}
+  ]},
+  {"file": "README.md", "notes": []}
+ ],
+ "error": null}

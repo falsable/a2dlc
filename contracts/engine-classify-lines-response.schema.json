@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.local/contracts/engine-classify-lines-response.schema.json",
+  "title": "Engine response to operation: classify_lines (/io/response.json)",
+  "description": "Which of the unexamined changed lines the engine recognises as a defensive exception handler or as declaration-only code. The request's budget.lines maps each file to the lines of the candidate that no engine target examined and no test executed; the engine answers per file in changed_files, with one note per category and only the lines it is sure of. A line in no note stays unexamined and keeps blocking: the core only ever lowers what blocks because of what this response says, so an engine that is unsure leaves the line out. Notes carry only lines that were asked about, each line in at most one note. An engine without the operation replies with an error or with another shape, and the core then keeps every line unexamined.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "description": "defensive_handler: a broad except (bare, Exception, BaseException) whose whole body only swallows or logs; the header and every body line. declarative_only: lines that only declare and compute nothing (imports, __all__, type-only imports, class skeletons such as a Protocol). The exact rules of each engine are in docs/COVERAGE_NOTES.md.",
+                  "enum": ["defensive_handler", "declarative_only"]
+                },
+                "lines": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 1 }, "uniqueItems": true }
+              },
+              "required": ["category", "lines"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["file", "notes"],
+        "additionalProperties": false
+      }
+    },
+    "error": { "type": ["string", "null"] }
+  },
+  "required": ["schema_version", "files", "error"],
+  "additionalProperties": false
+}

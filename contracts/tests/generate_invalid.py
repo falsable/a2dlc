@@ -29,6 +29,8 @@ ct = read("config__tests-py.json")
 rs = read("engine-request__py-stub.json")
 st = read("engine-stub-response__py.json")
 verdict_tests = read("verdict__tests.json")
+verdict_noted = read("verdict__coverage-noted.json")
+classify_resp = read("engine-classify-lines-response__py.json")
 escalation = read("escalation__check.json")
 ro = read("roles__claude-gemini.json")
 rq = read("role-request__saboteur.json")
@@ -88,6 +90,17 @@ cases = {
     # line 0 does not exist: coverage counts from 1
     "verdict__coverage-line-zero.json": (verdict_tests, lambda x: x["coverage"]["files"][0].update(uncovered=[0, 21])),
     "verdict__coverage-missing-status.json": (verdict_tests, lambda x: x["coverage"].pop("status")),
+    # coverage notes: only the two known categories, and a note without lines says nothing
+    "verdict__coverage-noted-category-unknown.json": (verdict_noted, lambda x: x["coverage"]["files"][0]["noted"][0].update(category="flaky_test")),
+    "verdict__coverage-noted-empty-lines.json": (verdict_noted, lambda x: x["coverage"]["files"][0]["noted"][0].update(lines=[])),
+    "verdict__coverage-noted-extra-field.json": (verdict_noted, lambda x: x["coverage"]["files"][0]["noted"][0].update(reason="defensive")),
+    "engine-classify-lines-response__category-unknown.json": (classify_resp, lambda x: x["files"][0]["notes"][0].update(category="logic")),
+    "engine-classify-lines-response__lines-empty.json": (classify_resp, lambda x: x["files"][0]["notes"][0].update(lines=[])),
+    "engine-classify-lines-response__line-zero.json": (classify_resp, lambda x: x["files"][0]["notes"][0].update(lines=[0, 4])),
+    "engine-classify-lines-response__missing-notes.json": (classify_resp, lambda x: x["files"][0].pop("notes")),
+    "engine-classify-lines-response__note-extra-field.json": (classify_resp, lambda x: x["files"][0]["notes"][0].update(why="except Exception")),
+    "engine-request__classify-lines-budget-without-lines.json": (read("engine-request__py-classify-lines.json"), lambda x: x.update(budget={})),
+    "engine-request__classify-lines-budget-foreign.json": (read("engine-request__py-classify-lines.json"), lambda x: x["budget"].update(seconds=3)),
     "verdict__gate-unknown.json": (verdict_tests, lambda x: x["tests"][3].update(gate="n_tree")),
     # escalation lines [first, last]: a single number does not say what the target examined
     "engine-response__lines-only-one.json": (read("engine-response__py-crosshair.json"), lambda x: x["targets"][0].update(lines=[12])),

@@ -1,0 +1,53 @@
+{
+ "schema_version": 1,
+ "a2dlc_version": "0.5.0",
+ "verdict": "PASS",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-26T12:00:00Z",
+ "targets": [],
+ "out_of_scope": [],
+ "pending_waivers": [],
+ "coverage": {
+  "status": "ran",
+  "files": [
+   {
+    "file": "app/api/routes/governance.py",
+    "by_engine": [],
+    "covered": [
+     112,
+     113,
+     118
+    ],
+    "uncovered": [],
+    "noted": [
+     {
+      "category": "flaky_test",
+      "lines": [
+       119,
+       120
+      ]
+     }
+    ]
+   },
+   {
+    "file": "app/domain/ports/tool_authz.py",
+    "by_engine": [],
+    "covered": [],
+    "uncovered": [],
+    "noted": [
+     {
+      "category": "declarative_only",
+      "lines": [
+       6,
+       8,
+       11,
+       12,
+       15
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

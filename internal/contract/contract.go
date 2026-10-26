@@ -207,6 +207,8 @@ func checkBudget(operation string, budget json.RawMessage) error {
 		shape = &GoldenBudget{}
 	case "capture_traces":
 		shape = &CaptureTracesBudget{}
+	case "classify_lines":
+		shape = &ClassifyBudget{}
 	default:
 		return nil
 	}
@@ -382,6 +384,9 @@ type CoverageFile struct {
 	ByEngine  []int  `json:"by_engine"`
 	Covered   []int  `json:"covered"`
 	Uncovered []int  `json:"uncovered"`
+	// Noted are unexamined lines that the engine classified as a defensive handler or declaration-only code: they are
+	// stated here and are not in Uncovered, so they do not block. Absent in receipts before the classification existed.
+	Noted []LineNote `json:"noted,omitempty"`
 }
 
 // States of a testcase in a run (defs.schema.json#/$defs/test_status).
