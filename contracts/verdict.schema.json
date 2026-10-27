@@ -97,7 +97,7 @@
           "description": "ran: some run on the candidate produced coverage. unavailable: config.tests exists but no command left $A2DLC_COVERAGE. not_configured: no config.tests. In the last two only the engines examine.",
           "enum": ["ran", "unavailable", "not_configured"]
         },
-        "reason": { "type": "string", "minLength": 1, "description": "Why there was no coverage (unavailable), e.g. the report could not be read." },
+        "reason": { "type": "string", "minLength": 1, "description": "Why there was no coverage: unavailable, e.g. the report could not be read; or not_configured while the candidate's config adds a tests block the base lacks (check judges with the base's config, so the block takes effect once it is in the base)." },
         "files": {
           "type": "array",
           "items": {

@@ -201,6 +201,21 @@ func (a App) baseConfig(baseSha, candidate string) (contract.Config, error) {
 	return cfg, err
 }
 
+// testsBlockIgnored is the coverage reason when the diff adds config.tests to a base that has none (a2dlc-31w). The
+// base's config judges, deliberately: a candidate that supplied its own test command and coverage report could raise its
+// own verdict. The block takes effect once it is in the base.
+const testsBlockIgnored = "the candidate's " + pathConfig + " adds a tests block that the base's config does not have, and check judges with the base's config: " +
+	"no test gate ran and no test coverage counts. Land the config change on its own first (push it, or pass it as --base), then check again"
+
+// candidateAddsTests says whether the candidate's config has a tests block that the config in use (the base's) lacks.
+func (a App) candidateAddsTests(cfg contract.Config, candidate string) bool {
+	if cfg.Tests != nil {
+		return false
+	}
+	c, err := a.configAt(candidate)
+	return err == nil && c.Tests != nil
+}
+
 func generators(candidate string) *string {
 	m, _ := filepath.Glob(filepath.Join(candidate, dirA2dlc, "arbs.*"))
 	if len(m) != 1 {
@@ -447,6 +462,9 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	// Coverage precondition: what no engine examined and no test executed cannot be PASS.
 	if v.Coverage, err = a.precondition(cfg, baseSha, tree, sources, v.Targets, cov.report, cov.note); err != nil {
 		return v, err
+	}
+	if v.Coverage.Status == contract.CoverageNotConfigured && a.candidateAddsTests(cfg, opts.CandidateTree) {
+		v.Coverage.Reason = testsBlockIgnored
 	}
 	a.noteUncovered(ctx, cfg, v.Coverage, export, &baseDir, &candDir)
 	if v.Verdict == contract.PASS && hasUncovered(v.Coverage) {
@@ -1059,6 +1077,9 @@ func message(v contract.Verdict, err error, notes string) string {
 					f.File, len(f.Uncovered), ranges(f.Uncovered))
 			}
 		}
+	}
+	if c := v.Coverage; c != nil && c.Status == contract.CoverageNotConfigured && c.Reason != "" {
+		b.WriteString("No test ran: " + c.Reason + ".\n")
 	}
 	if notes != "" {
 		b.WriteString("Protected paths without a valid approval (a person signs them, not you):\n" + notes)

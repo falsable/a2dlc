@@ -105,6 +105,9 @@ func run(args []string) int {
 		}
 		fmt.Printf("%s: %d targets, %d tests judged, %d out of scope, %d changed lines examined and %d not examined, %d waivers pending, %d engines with errors\n",
 			v.Verdict, len(v.Targets), len(v.Tests), len(v.OutOfScope), covered, without, len(v.PendingWaivers), len(v.EngineErrors))
+		if c := v.Coverage; c != nil && c.Status == contract.CoverageNotConfigured && c.Reason != "" {
+			fmt.Printf("note: no test ran: %s\n", c.Reason)
+		}
 		if noted > 0 {
 			fmt.Printf("note: %d changed lines were not examined and do not block (defensive exception handlers or declaration-only code): see coverage.files[].noted in .a2dlc/verdict.json\n", noted)
 		}
