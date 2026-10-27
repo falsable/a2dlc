@@ -906,41 +906,20 @@ func (a App) Hook(ctx context.Context, agent string, stdin io.Reader, stdout, st
 	if tool != "" {
 		return a.preTool(agent, tool, in, stdout, stderr)
 	}
-	session, _ := in["session_id"].(string)
-	if session == "" {
-		session = "no-session"
-	}
-	max := 4
-	if cfg, err := a.config(); err == nil && cfg.AgentHook != nil && cfg.AgentHook.MaxBlocks > 0 {
-		max = cfg.AgentHook.MaxBlocks
-	}
-	counter := a.path(pathReports + "/hook-" + sanitize(session) + ".n")
-	v, err := a.Check(ctx, "")
-	if err == nil && v.Verdict == contract.PASS {
+	// Stop is the end of every agent turn, so it runs the static level: it informs and never blocks (owner's decision of
+	// 2026-10-27). The blocking gate, level 1, is `a2dlc check` when the agent says "done", the pre-push verify and the PR
+	// check. Claude Code does not show a Stop hook's stdout to the model, only systemMessage to the person: the agent finds
+	// out through .a2dlc/reports/level0.json. A failure of level 0 itself is also not a block (exit 2 would be).
+	v, err := a.Level0(ctx, "")
+	if err != nil {
+		fmt.Fprintln(stderr, "a2dlc: level 0:", err)
 		return allow(agent, stdout)
 	}
-	n := 0
-	if b, e := os.ReadFile(counter); e == nil {
-		fmt.Sscan(string(b), &n)
-	}
-	n++
-	os.MkdirAll(filepath.Dir(counter), 0o755)
-	os.WriteFile(counter, []byte(fmt.Sprint(n)), 0o644)
-	if n > max {
-		fmt.Fprintf(stderr, "a2dlc: gate exhausted after %d blocks; the push will be stopped by a2dlc verify.\n", max)
-		return allow(agent, stdout)
-	}
-	notes := ""
-	if err == nil {
-		notes = a.protectedNotes()
-	}
-	msg := message(v, err, notes)
 	if agent == "gemini" {
-		json.NewEncoder(stdout).Encode(map[string]string{"decision": "block", "reason": msg})
-		return 0
+		return allow(agent, stdout)
 	}
-	fmt.Fprintln(stderr, msg)
-	return 2
+	json.NewEncoder(stdout).Encode(map[string]string{"systemMessage": Level0Summary(v)})
+	return 0
 }
 
 // Installed reports whether this repo has an a2dlc config in the working tree or in HEAD.

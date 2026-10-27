@@ -374,6 +374,10 @@ type Verdict struct {
 	Checks []VerdictCheck `json:"checks,omitempty"`
 	// Timings says where the check spent its time (ms); optional, the verdict does not depend on it.
 	Timings *Timings `json:"timings,omitempty"`
+	// Level and Static mark a level 0 receipt (a2dlc check --level 0). Level is a pointer because 0 is a value: omitempty
+	// on an int would write a level 0 receipt as if it were level 1.
+	Level  *int          `json:"level,omitempty"`
+	Static *StaticReport `json:"static,omitempty"`
 }
 
 // States of the coverage precondition.

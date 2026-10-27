@@ -90,6 +90,63 @@
       "required": ["total_ms"],
       "additionalProperties": false
     },
+    "level": {
+      "description": "Which level wrote the receipt. Absent means 1 (a2dlc check, the blocking gate, .a2dlc/verdict.json). 0 is the static level (a2dlc check --level 0, .a2dlc/reports/level0.json): it runs no test and no differential, informs and never blocks, so its verdict is always INCONCLUSIVE and no verify can take it for a pass.",
+      "enum": [0, 1]
+    },
+    "static": {
+      "description": "Level 0 only. What the diff shows without running anything of the repo: which changed files are sources and which are tests, the test functions the engine lists from the source of the changed test files, and which changed sources no changed test imports. The import reading is DIRECT only: a source reached through an unchanged module appears as not imported, so it is a hint to look at, not a finding. coverage.files[].uncovered of a level 0 receipt are the changed lines that the engine's classification left as needing evidence from tests (level 1), and noted the ones it classified as defensive handlers or declaration-only code.",
+      "type": "object",
+      "properties": {
+        "changed_sources": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "changed_tests": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "brings_tests": { "description": "Whether the diff changes some test file (config.tests.paths).", "type": "boolean" },
+        "tests": {
+          "description": "One entry per changed test file that exists in the candidate. listable false: the engine could not read its tests statically (reason says why), and count/new are absent. new: functions in the candidate that the base's file did not list (all of them for a new file); absent when the base file could not be listed.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file": { "type": "string", "minLength": 1 },
+              "listable": { "type": "boolean" },
+              "reason": { "type": "string", "minLength": 1 },
+              "count": { "type": "integer", "minimum": 0 },
+              "new": { "type": "integer", "minimum": 0 }
+            },
+            "required": ["file", "listable"],
+            "additionalProperties": false
+          }
+        },
+        "imports": {
+          "description": "ran: the engine's import edges were read. unavailable: no engine answered deps_graph (reason says why). not_applicable: nothing to compare (no changed test, no changed source, or no config.tests).",
+          "type": "object",
+          "properties": {
+            "status": { "enum": ["ran", "unavailable", "not_applicable"] },
+            "reason": { "type": "string", "minLength": 1 }
+          },
+          "required": ["status"],
+          "allOf": [{ "if": { "properties": { "status": { "enum": ["unavailable", "not_applicable"] } }, "required": ["status"] }, "then": { "required": ["reason"] } }],
+          "additionalProperties": false
+        },
+        "not_imported_by_diff_tests": {
+          "description": "Changed sources that no changed test imports directly. Empty when imports did not run.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "protected_paths": {
+          "description": "Changed or deleted files that match config.protected_paths; level 1 asks for a signed approval of each.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": { "file": { "type": "string", "minLength": 1 }, "glob": { "type": "string", "minLength": 1 } },
+            "required": ["file", "glob"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["changed_sources", "changed_tests", "brings_tests", "tests", "imports", "not_imported_by_diff_tests", "protected_paths"],
+      "additionalProperties": false
+    },
     "test_gates": {
       "description": "What happened with each test gate (config.tests). What does not run stays in view, never silently.",
       "type": "object",
@@ -259,6 +316,23 @@
       "additionalProperties": false
     }
   },
+  "allOf": [
+    {
+      "if": { "properties": { "level": { "const": 0 } }, "required": ["level"] },
+      "then": {
+        "properties": {
+          "verdict": { "const": "INCONCLUSIVE" },
+          "targets": { "maxItems": 0 },
+          "pending_waivers": { "maxItems": 0 },
+          "tests": false,
+          "test_gates": false,
+          "checks": false
+        },
+        "required": ["static"]
+      },
+      "else": { "not": { "required": ["static"] } }
+    }
+  ],
   "required": ["schema_version", "a2dlc_version", "verdict", "base_ref", "tree_hash", "created_at", "targets", "out_of_scope", "pending_waivers"],
   "additionalProperties": false
 }

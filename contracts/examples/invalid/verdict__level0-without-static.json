@@ -1,0 +1,59 @@
+{
+ "schema_version": 1,
+ "a2dlc_version": "0.1.0-dev",
+ "verdict": "INCONCLUSIVE",
+ "base_ref": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-27T10:00:00Z",
+ "level": 0,
+ "targets": [],
+ "out_of_scope": [
+  {
+   "file": "README.md",
+   "reason": "no_engine"
+  }
+ ],
+ "pending_waivers": [],
+ "coverage": {
+  "status": "unavailable",
+  "reason": "level 0 runs no test: uncovered lines are the changed lines whose evidence has to come from the tests (level 1)",
+  "files": [
+   {
+    "file": "app/consts.py",
+    "by_engine": [],
+    "covered": [],
+    "uncovered": [
+     3,
+     4
+    ],
+    "noted": [
+     {
+      "category": "declarative_only",
+      "lines": [
+       1,
+       2
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "timings": {
+  "total_ms": 2100,
+  "sync_ms": 4,
+  "engine_ops": [
+   {
+    "name": "list_tests",
+    "ms": 900
+   },
+   {
+    "name": "deps_graph",
+    "ms": 1300
+   },
+   {
+    "name": "classify_lines",
+    "ms": 1100
+   }
+  ]
+ }
+}

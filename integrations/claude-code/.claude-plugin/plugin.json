@@ -1,7 +1,7 @@
 {
   "name": "a2dlc",
   "version": "0.1.0",
-  "description": "Runs the a2dlc gate from Claude Code in every repo that installed a2dlc: PreToolUse blocks edits to protected_paths and git push --no-verify, Stop runs a2dlc check and returns counterexamples. Repos without .a2dlc/config.json are left alone.",
+  "description": "Runs the a2dlc gate from Claude Code in every repo that installed a2dlc: PreToolUse blocks edits to protected_paths and git push --no-verify, Stop runs the static level (a2dlc check --level 0), which informs and never blocks; a2dlc check is the blocking gate. Repos without .a2dlc/config.json are left alone.",
   "author": { "name": "falsable", "url": "https://github.com/falsable" },
   "license": "Apache-2.0",
   "homepage": "https://github.com/falsable/a2dlc",

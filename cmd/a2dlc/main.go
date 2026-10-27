@@ -24,10 +24,12 @@ import (
 var version = "0.1.0-dev"
 
 const usage = `usage: a2dlc <command>
-  check   [--base <ref>] [--peer <ref>]... [--tests-overlay <dir>] [--require-signatures]
+  check   [--level 0|1] [--base <ref>] [--peer <ref>]... [--tests-overlay <dir>] [--require-signatures]
           runs the engines and the test gates over what changed (base: the upstream, else the fork point from
           origin's default branch, else HEAD) and writes .a2dlc/verdict.json (0 PASS, 1 FAIL, 2 INCONCLUSIVE). --peer: tree of another builder of the same change;
-          --tests-overlay: tests from outside that run over base, candidate and peers without being committed
+          --tests-overlay: tests from outside that run over base, candidate and peers without being committed.
+          --level 1 (default) is the blocking gate above, for "done" and the PR check. --level 0 is the static level for
+          every turn: it runs no test, informs and never blocks, writes .a2dlc/reports/level0.json and exits 0 (2 only if a2dlc itself fails)
   propose [--base <ref>] --out <empty dir outside the repo>
           asks the propose_properties role (roles.json) for the properties of the change from base to the working tree;
           prints the outcome as JSON (0 ok, 1 otherwise). Nothing is written into the repo; the answer goes to --out.
@@ -89,7 +91,26 @@ func run(args []string) int {
 		var peers list
 		fs.Var(&peers, "peer", "commit of another builder of the same change (repeatable)")
 		overlay := fs.String("tests-overlay", "", "folder with tests from outside, at the path they would have in the repo")
+		level := fs.Int("level", 1, "1: the blocking gate (default); 0: the static level, which runs no test and never blocks")
 		if fs.Parse(args[1:]) != nil {
+			return 64
+		}
+		switch *level {
+		case 0:
+			if len(peers) > 0 || *overlay != "" || *signatures {
+				fmt.Fprintln(os.Stderr, "a2dlc check: --level 0 takes only --base")
+				return 64
+			}
+			v, err := a.Level0(ctx, *base)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "a2dlc check --level 0:", err)
+				return 2
+			}
+			fmt.Println(app.Level0Summary(v))
+			return 0
+		case 1:
+		default:
+			fmt.Fprintln(os.Stderr, "a2dlc check: --level is 0 or 1")
 			return 64
 		}
 		v, err := a.CheckWith(ctx, *base, app.CheckOptions{Peers: peers, TestsOverlay: *overlay})

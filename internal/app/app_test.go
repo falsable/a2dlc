@@ -295,25 +295,6 @@ func TestGateOutputsDoNotChangeTree(t *testing.T) {
 	}
 }
 
-func TestHookClaudeBlocksAndExhausts(t *testing.T) {
-	a, _, dir := newRepo(t)
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],"agent_hook":{"max_blocks":2},"critical_code":["src/lib/**"]}`)
-	git(t, dir, "commit", "-qam", "max 2")
-	write(t, dir, "src/lib/f.ts", "export const f = 2\n")
-	codes := []int{}
-	var errb bytes.Buffer
-	for i := 0; i < 3; i++ {
-		codes = append(codes, a.Hook(context.Background(), "claude", strings.NewReader(`{"session_id":"s1"}`), &bytes.Buffer{}, &errb))
-	}
-	if codes[0] != 2 || codes[1] != 2 || codes[2] != 0 || !strings.Contains(errb.String(), "before export const f = 1") {
-		t.Fatalf("codes %v, stderr %s", codes, errb.String())
-	}
-	var out bytes.Buffer
-	if c := a.Hook(context.Background(), "gemini", strings.NewReader(`{"session_id":"g1"}`), &out, &bytes.Buffer{}); c != 0 || !strings.Contains(out.String(), `"decision":"block"`) {
-		t.Fatalf("gemini: %d %s", c, out.String())
-	}
-}
-
 func TestInstallIgnoresRunFolder(t *testing.T) {
 	a, _, dir := newRepo(t)
 	if _, err := a.Install("/opt/a2dlc", []string{"claude"}); err != nil {

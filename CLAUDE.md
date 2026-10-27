@@ -29,7 +29,7 @@ Go is not installed on the host, and it will not be installed. Everything runs i
 - **`check` without `--base` compares against the upstream.** Against HEAD, after committing, it would not see what was committed, and an unsigned waiver would pass the push (covered by `TestCheckAgainstHEADDoesNotWashCommittedChanges`).
 - **The gate is the push, never the commit.** `install` writes no pre-commit: agents commit and merge their worktrees with no human in the loop; `pre-push` (`verify`) is where a behavior change needs a signed waiver.
 - **A check lowers the verdict, never raises it.** `config.checks` (protocol §5 Checks, `internal/app/checks.go`): blocking finding without a signed `accept_finding` is FAIL, blocking error or timeout is INCONCLUSIVE, advisory is recorded only; a check that cannot run is never a pass, and `severity` has no default. No host command: what runs is the image, with `--network none`.
-- **Agent hooks go through `a2dlc hook <agent>`.** In Claude, the Stop hook treats exit 1 as "does not block": wiring `check` directly would let FAILs through.
+- **Agent hooks go through `a2dlc hook <agent>`.** The Stop hook runs level 0 (`check --level 0`: static, informs, always allows) every turn; level 1 (`check`) is not a hook, it is the gate at "done", pre-push and the PR. Level 0 writes `.a2dlc/reports/level0.json`, never `verdict.json`, and its verdict is always INCONCLUSIVE.
 
 ## Never
 - An approval signature that does not bind the file's blob: it would be valid for future changes to the same function.
