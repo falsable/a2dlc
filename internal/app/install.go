@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/falsable/a2dlc/internal/contract"
@@ -237,4 +239,47 @@ func (a App) hookAgent(agent, exe string) (string, error) {
 	}
 	cfg["hooks"] = hooks
 	return a.path(rel), a.write(rel, cfg)
+}
+
+// HookBinaryWarning says, when the a2dlc block of the pre-push hook names a different binary than exe (the one running
+// now), which two builds are in play. install writes the path of the binary that ran it, so a rebuilt or reinstalled
+// a2dlc leaves the push gated by an older build (a2dlc-31w). It is a warning for check and verify, never a failure: ""
+// when the paths match, there is no hook or the hook has no a2dlc block.
+func (a App) HookBinaryWarning(exe string) string {
+	dir, err := a.Repo.HooksDir()
+	if err != nil {
+		return ""
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "pre-push"))
+	if err != nil {
+		return ""
+	}
+	text := strings.ReplaceAll(string(b), "\r\n", "\n")
+	i, j := strings.Index(text, blockStart), strings.Index(text, blockEnd)
+	if i < 0 || j < i {
+		return ""
+	}
+	for _, line := range strings.Split(text[i:j], "\n") {
+		if !strings.HasPrefix(line, `"`) || !strings.Contains(line, " verify ") {
+			continue
+		}
+		q := strings.Index(line[1:], `"`)
+		if q < 0 {
+			return ""
+		}
+		hook, err := strconv.Unquote(line[:q+2])
+		if err != nil || samePath(hook, exe) {
+			return ""
+		}
+		return fmt.Sprintf("the pre-push hook runs %s but this is %s: a push is gated by the hook's build, not by this one; run a2dlc install with the build you want", filepath.ToSlash(hook), filepath.ToSlash(exe))
+	}
+	return ""
+}
+
+func samePath(a, b string) bool {
+	a, b = filepath.ToSlash(filepath.Clean(a)), filepath.ToSlash(filepath.Clean(b))
+	if runtime.GOOS == "windows" {
+		return strings.EqualFold(a, b)
+	}
+	return a == b
 }

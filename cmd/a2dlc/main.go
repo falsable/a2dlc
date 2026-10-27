@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -77,6 +78,9 @@ func run(args []string) int {
 	a := app.App{Repo: repo, Runner: engine.Docker{CopyIn: engine.CopyInDefault}, Tests: engine.DockerTests{CopyIn: engine.CopyInDefault},
 		Checks: engine.DockerChecks{}, Version: version, Now: time.Now}
 	ctx := context.Background()
+	if args[0] == "check" || args[0] == "verify" {
+		warnHookBinary(a, os.Stderr)
+	}
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	switch args[0] {
 	case "check":
@@ -281,4 +285,15 @@ func run(args []string) int {
 	}
 	fmt.Fprintln(os.Stderr, usage)
 	return 64
+}
+
+// warnHookBinary tells check and verify when the pre-push hook is pinned to another build than the one running.
+func warnHookBinary(a app.App, w io.Writer) {
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	if msg := a.HookBinaryWarning(exe); msg != "" {
+		fmt.Fprintln(w, "a2dlc: warning:", msg)
+	}
 }
