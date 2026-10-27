@@ -106,6 +106,7 @@ type gateInput struct {
 	stubNote   string                  // why there were no stubs, if there were none
 	cov        *accumulated            // coverage from the runs overlaid on the candidate (all that leave it)
 	engines    []contract.EngineConfig // config.engines: the static listing of the base's tests asks them
+	warm       *warmTree               // the warm volume holding the base tree; nil runs export the whole tree
 }
 
 // accumulated gathers the coverage left by the runs overlaid on the candidate, from any gate.
@@ -131,8 +132,15 @@ func (a App) run(ctx context.Context, in gateInput, command, treeish string, ove
 			fmt.Fprintf(os.Stderr, "a2dlc: cannot remove the test tree %s: %v\n", dir, err)
 		}
 	}()
-	if err := a.Repo.Export(treeish, dir); err != nil {
-		return c, err
+	var deleted []string
+	warm := false
+	if in.warm != nil {
+		deleted, warm = a.warmDelta(in, treeish, dir)
+	}
+	if !warm {
+		if err := a.Repo.Export(treeish, dir); err != nil {
+			return c, err
+		}
 	}
 	write := func(rel string, b []byte) error {
 		p := filepath.Join(dir, filepath.FromSlash(rel))
@@ -155,7 +163,12 @@ func (a App) run(ctx context.Context, in gateInput, command, treeish string, ove
 			return c, err
 		}
 	}
-	r, err := a.Tests.RunTests(ctx, in.cfg, command, env, dir)
+	var r engine.TestRun
+	if warm {
+		r, err = a.Tests.(engine.WarmTests).RunTestsWarm(ctx, in.cfg, command, env, in.warm.volume, dir, deleted)
+	} else {
+		r, err = a.Tests.RunTests(ctx, in.cfg, command, env, dir)
+	}
 	if err != nil {
 		return c, err
 	}

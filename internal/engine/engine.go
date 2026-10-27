@@ -294,6 +294,12 @@ func (d DockerTests) ImageDigest(ctx context.Context, image string) (string, err
 }
 
 func (d DockerTests) RunTests(ctx context.Context, t contract.TestsConfig, command string, env map[string]string, tree string) (TestRun, error) {
+	return d.runIn(ctx, t, command, env, nil, []dirAt{{tree, "/work"}})
+}
+
+// runIn runs the shell command in the test image with trees in the container (copied in or bind-mounted) and extra docker
+// flags (a volume, for the warm tree), and collects JUnit and coverage from /io.
+func (d DockerTests) runIn(ctx context.Context, t contract.TestsConfig, command string, env map[string]string, extra []string, trees []dirAt) (TestRun, error) {
 	var r TestRun
 	io, err := os.MkdirTemp("", "a2dlc-tio-*")
 	if err != nil {
@@ -331,9 +337,9 @@ func (d DockerTests) RunTests(ctx context.Context, t contract.TestsConfig, comma
 	for _, k := range keys {
 		args = append(args, "-e", k+"="+env[k])
 	}
-	args = append(args, "--entrypoint", "sh")
+	args = append(append(args, extra...), "--entrypoint", "sh")
 	var out bytes.Buffer
-	errRun := container{bin: bin, copyIn: d.CopyIn, flags: args, trees: []dirAt{{tree, "/work"}}, image: t.Image,
+	errRun := container{bin: bin, copyIn: d.CopyIn, flags: args, trees: trees, image: t.Image,
 		cmd: []string{"-c", command}}.run(ctx, &out)
 	r.Log = tail(out.String())
 	var ee *exec.ExitError

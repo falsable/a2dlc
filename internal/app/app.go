@@ -630,6 +630,9 @@ func (a App) gates(ctx context.Context, cfg contract.Config, in gateInput, expor
 		return &contract.TestGates{NOPOracle: e, Baseline: e}, nil
 	}
 	in.overlay = overlayFiles
+	if len(in.tests)+len(in.overlay) > 0 || in.cfg.BaselineCommand != "" {
+		in.warm = a.syncWarm(ctx, in)
+	}
 	if len(in.tests)+len(in.overlay) > 0 && len(in.sources) > 0 {
 		if err := export(); err != nil {
 			e := gateError("export base and candidate", err)
