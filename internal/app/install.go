@@ -278,7 +278,7 @@ func (a App) writeHook(hookName, comment, cmd string) (string, error) {
 // prePush writes the a2dlc block into the real pre-push (respects core.hooksPath).
 func (a App) prePush(exe string) (string, error) {
 	return a.writeHook("pre-push",
-		"# Stops the push if the verdict is not PASS, is stale or has unsigned waivers. It verifies HEAD, not each pushed ref.",
+		"# Stops the push only on evidence about the tree: a FAIL, critical or protected code left unjudged, or an unsigned waiver of those. No verdict or INCONCLUSIVE only warns. It verifies HEAD, not each pushed ref.",
 		fmt.Sprintf("%q verify --commit HEAD || exit 1", exe))
 }
 

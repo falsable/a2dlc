@@ -38,7 +38,7 @@ a2dlc install --agent gemini
 a2dlc install --agent claude --agent gemini
 ```
 
-This creates `.a2dlc/config.json` (auto-detecting Python or TypeScript), adds `.a2dlc/verdict.json` to `.gitignore`, installs the `pre-push` (`a2dlc verify`) hook (commits are not blocked; run `a2dlc check` before pushing), and wires the agent lifecycle hooks (`PreToolUse` + `Stop`/`AfterAgent`).
+This creates `.a2dlc/config.json` (auto-detecting Python or TypeScript), adds `.a2dlc/verdict.json` to `.gitignore`, installs the `pre-push` (`a2dlc verify`) hook (commits are not blocked; run `a2dlc check` before pushing). The pre-push blocks only on evidence: a `FAIL`, a protected path without approval, or critical or protected code left unjudged; no receipt or an `INCONCLUSIVE` one only warns, because on a repo with history "could not judge" is normal and a gate that blocks on it gets bypassed (`a2dlc verify --strict` blocks on everything), and wires the agent lifecycle hooks (`PreToolUse` + `Stop`/`AfterAgent`).
 
 ### B. Running the Differential & Test Gate (`a2dlc check`)
 Before committing or finishing a coding task, always run:

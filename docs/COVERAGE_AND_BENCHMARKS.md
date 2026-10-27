@@ -224,7 +224,7 @@ agent ends its turn ──► a2dlc hook <agent> ──► a2dlc check ──►
                                                     │
                                                     ▼
                                     .a2dlc/verdict.json (PASS · FAIL · INCONCLUSIVE + tree_hash)
-git push ──► pre-push: a2dlc verify (milliseconds) ──► PASS? not stale? every waiver signed?
+git push ──► pre-push: a2dlc verify (milliseconds) ──► FAIL? critical or protected code unjudged? unsigned waiver of those?
 CI ──► a2dlc check again (the authority: a local receipt can be forged)
 ```
 
@@ -239,11 +239,12 @@ CI ──► a2dlc check again (the authority: a local receipt can be forged)
 3. **`approve`.** A person signs the target, the waiver and the file's git blob with `ssh-keygen -Y sign`.
    - If the file changes, the signature no longer applies.
    - Signatures live in `.a2dlc/approvals.json`, which is outside the `tree_hash`, so approving does not force the engines to re-run.
-4. **`verify`** runs in `pre-push` without engines. It requires four things:
-   - the verdict is `PASS`;
-   - the committed tree matches the receipt;
-   - the base is reachable from the upstream;
-   - every waiver in use carries a valid signature.
+4. **`verify`** runs in `pre-push` without engines and blocks only on evidence about the tree being pushed. On a repo with history `INCONCLUSIVE` is the normal case, and a gate that blocks on "could not judge" blocks almost everything and ends up bypassed. "Critical or protected" means the file matches `critical_code` or `protected_paths` in the base's config, never the pushed tree's.
+   - It blocks on a `FAIL`; on a protected path changed without a valid approval (with or without a receipt); on an unsigned waiver that exempts a `FAIL`, or an `INCONCLUSIVE` on critical or protected code; and on an `INCONCLUSIVE` receipt that leaves critical or protected code unjudged.
+   - With no receipt, a receipt over another tree, or one whose base does not reach the unpushed commits, it warns (`no verdict for this tree: nothing examined`). It blocks only if the pushed range (upstream to commit) touches critical or protected code, or if that range cannot be determined and the config declares either list.
+   - An unreadable `verdict.json` counts as no receipt. A failure of a2dlc or git exits 1 with a message saying it is not a verdict.
+   - It prints `a2dlc verify: blocked: <reason>` or `a2dlc verify: warning: <reason>`. For `INCONCLUSIVE` the warning sums up the lines not examined and the files out of scope, taken from the receipt.
+   - `verify --strict` keeps the earlier rule: the verdict is `PASS`, the committed tree matches the receipt, the base is reachable from the upstream, and every waiver in use carries a valid signature.
 
 ## Installation
 
@@ -278,7 +279,7 @@ git push                          # pre-push runs `a2dlc verify`
 |---|---|
 | `a2dlc install [--agent claude] [--agent gemini]` | Writes `.a2dlc/config.json` if missing, picking the engine from `package.json` or `pyproject.toml`. Adds its block to the real pre-push hook, respecting `core.hooksPath` and existing hooks. Uses the binary's absolute path, so a missing binary fails the push instead of skipping the gate. |
 | `a2dlc check [--level 0\|1] [--base <ref>] [--peer <ref>]... [--tests-overlay <dir>] [--require-signatures]` | Level 1 (default) runs the engines and the test gates and writes the verdict. `--level 0` is the static level: it runs no test, writes `.a2dlc/reports/level0.json`, and exits 0 (2 only if a2dlc itself fails); it takes only `--base`. `--peer` is the commit of another builder of the same change; `--tests-overlay` is a directory of test files, laid out as they would be in the repository, that run on every tree without being committed. |
-| `a2dlc verify [--commit HEAD]` | Checks the receipt; exits 0 if it passes, 1 if not. |
+| `a2dlc verify [--commit HEAD] [--strict]` | The pre-push policy: exits 1 only on evidence (a `FAIL`, critical or protected code unjudged, a protected path without approval, an unsigned waiver of those) and 0 with warnings otherwise. `--strict` exits 1 unless the receipt is a valid `PASS` for this tree. |
 | `a2dlc run --slice <id> [--intent <file>] [--mode lite\|refactor\|greenfield\|brownfield_facade] [--base <ref>] [--max-cost-usd <n>] [--max-rounds <n>] [--max-inner <n>] [--max-spec-rounds <n>] [--z3-image <img>]` | Runs, or resumes, the protocol's state machine on a slice (Stages −1 to 7). `--intent` is the slice's intent (Stage 0). `--max-rounds` caps the Saboteur rounds in Stage 4 (`uncovered_change`) and in Stage 5 (surviving mutants), `--max-inner` the Tier 0 loop, `--max-cost-usd` the reported cost (CB-03); each one left out falls back to the intent's budget, then to the default (3, 5, no cap). The Stage 5 mutant cap has no flag: the intent's `budget.max_mutants` (unless `null`), then `mutation.max_mutants`, then 30. LLM roles come from `.a2dlc/roles.json` and run in their own containers; state and isolation ledger live in `.a2dlc/run/<slice>/`. See [The state machine](#the-state-machine-a2dlc-run). `--max-spec-rounds` caps the Specifier α/β and Inquisitor rounds of Stage 1 before the divergence escalates (2 by default). `--z3-image` is the Stage 1.5 satisfiability engine (`a2dlc-engine-z3:0.1` by default; empty leaves Z3 skipped). |
 | `a2dlc verify-run --slice <id>` | Recomputes the ledger's hash chain, checks that the ledger does not record less spend than `state.json` (a deleted or truncated ledger) and the artifacts of every stage that left one (done, escalated or failed); exits 0 if everything matches. |
 | `a2dlc approve <file>::<symbol> --key <key> [--principal <id>]` | Signs a waiver. |
@@ -932,7 +933,8 @@ To cut a release: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 
 - `PASS` is a bounded search, not a proof of equivalence.
 - `check` alone has no Saboteur. When the same agent writes the test and the code, the differential cannot catch a misunderstanding of the spec; it covers refactors, not the intent of a new feature. `a2dlc run` with a `saboteur` role closes part of that gap on the lines nobody examined; its tests are only as good as the model behind the role command.
-- `verify` checks `HEAD`, not every pushed ref. On the first push of a new branch there is no upstream, so the base is `HEAD`; CI covers both cases.
+- `verify` checks `HEAD`, not every pushed ref. On the first push of a new branch there is no upstream, so the range is judged from where it forks from origin's default branch, and if there is none it blocks only when the config declares `critical_code` or `protected_paths`; CI covers both cases.
+- Since the policy of evidence, the pre-push lets through a push with no receipt or an `INCONCLUSIVE` one when it touches no critical or protected code. CI running `check` stays the authority; `verify --strict` is the old rule.
 - The test gates have run on Windows with Docker Desktop only. On a Linux CI runner the container writes into the tree copy as root, and the core may fail to remove those files afterwards; to be checked on the first CI run.
 - Stage 5 mutates Python only, with six operator families, and prunes only the equivalent mutants its conservative AST rules prove (logging-only statements, `assert`, branches with a literal condition): any other equivalent mutant that no test can kill keeps the gate below the threshold, and there is no waiver for it yet. Its cost is proportional to mutants × runs of T, per Saboteur round.
 - NOP judges new test ids only. A changed body of a test that already existed is not judged, because doing so generically would need language knowledge.

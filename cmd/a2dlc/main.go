@@ -43,7 +43,8 @@ const usage = `usage: a2dlc <command>
           --max-spec-rounds: Specifier α/β and Inquisitor rounds in Stage 1 before escalating (2 by default)
           --z3-image: z3 engine of Stage 1.5 (a2dlc-engine-z3:0.1 by default; empty leaves it skipped)
   verify-run --slice <id>          recalculates the ledger chain and the run's artifacts (0 passes, 1 does not)
-  verify  [--commit HEAD]          checks the receipt without running engines (0 passes, 1 does not)
+  verify  [--commit HEAD] [--strict]  the pre-push, without running engines: blocks (exit 1) only on evidence, a FAIL or critical
+          or protected code left unjudged; no receipt, a stale one or an INCONCLUSIVE one are warnings. --strict blocks on anything but a PASS receipt for this tree
   approve <target> --key <key> [--principal <id>]   signs a target's waiver (run by a person)
   answer  --slice <id> --probe <id> --choice <c> --reason <text> --by <name>
           records a person's answer to a probe of a run (answers.json; 0 written, 2 refused, 64 bad usage)
@@ -213,8 +214,27 @@ func run(args []string) int {
 		return 0
 	case "verify":
 		commit := fs.String("commit", "HEAD", "commit to verify")
+		strict := fs.Bool("strict", false, "block on anything but a PASS receipt for this tree, as before the policy of evidence")
 		if fs.Parse(args[1:]) != nil {
 			return 64
+		}
+		if !*strict {
+			rep, err := a.VerifyPolicy(*commit)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "a2dlc verify: error in a2dlc or git, this is not a verdict:", err)
+				return 1
+			}
+			lines, blocked := rep.Lines()
+			for _, l := range lines {
+				fmt.Fprintln(os.Stderr, l)
+			}
+			if blocked {
+				return 1
+			}
+			if len(lines) == 0 {
+				fmt.Println("a2dlc verify: ok")
+			}
+			return 0
 		}
 		problems, err := a.Verify(*commit)
 		if err != nil {

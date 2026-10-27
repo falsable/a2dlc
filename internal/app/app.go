@@ -175,12 +175,22 @@ func (a App) configAt(commit string) (contract.Config, error) {
 // scope to narrow). If it existed and was deleted, only a byte-identical restore of its last version is accepted:
 // deleting it must not let a weaker one in.
 func (a App) baseConfig(baseSha, candidate string) (contract.Config, error) {
+	cfg, note, err := a.baseConfigNote(baseSha, candidate)
+	if note != "" {
+		fmt.Fprintln(os.Stderr, note)
+	}
+	return cfg, err
+}
+
+// baseConfigNote is baseConfig without printing: the note about a first adoption or a restored config comes back as text.
+func (a App) baseConfigNote(baseSha, candidate string) (contract.Config, string, error) {
 	if _, err := a.Repo.Blob(baseSha, pathConfig); err == nil {
-		return a.configAt(baseSha)
+		cfg, err := a.configAt(baseSha)
+		return cfg, "", err
 	}
 	last, err := a.Repo.LastBlob(baseSha, pathConfig)
 	if err != nil {
-		return contract.Config{}, fmt.Errorf("%s is missing in the base %s: %v", pathConfig, short(baseSha), err)
+		return contract.Config{}, "", fmt.Errorf("%s is missing in the base %s: %v", pathConfig, short(baseSha), err)
 	}
 	note := "never had %s: judging with the candidate's (first adoption)"
 	if last != "" {
@@ -191,15 +201,15 @@ func (a App) baseConfig(baseSha, candidate string) (contract.Config, error) {
 			cand, err = a.Repo.Blob(candidate, pathConfig)
 		}
 		if err != nil || cand != last {
-			return contract.Config{}, fmt.Errorf("%s is missing in the base %s but existed in its history: check only accepts it back unchanged (restore its last version, blob %s, then check again)", pathConfig, short(baseSha), short(last))
+			return contract.Config{}, "", fmt.Errorf("%s is missing in the base %s but existed in its history: check only accepts it back unchanged (restore its last version, blob %s, then check again)", pathConfig, short(baseSha), short(last))
 		}
 		note = "had %s deleted: judging with the candidate's, an unchanged restore of its last version"
 	}
 	cfg, err := a.configAt(candidate)
-	if err == nil {
-		fmt.Fprintf(os.Stderr, "a2dlc: the base %s "+note+"\n", short(baseSha), pathConfig)
+	if err != nil {
+		return cfg, "", err
 	}
-	return cfg, err
+	return cfg, fmt.Sprintf("a2dlc: the base %s "+note, short(baseSha), pathConfig), nil
 }
 
 // testsBlockIgnored is the coverage reason when the diff adds config.tests to a base that has none (a2dlc-31w). The
@@ -695,8 +705,9 @@ func addTests(v *contract.Verdict, waivers map[string]contract.Waiver, approved 
 	}
 }
 
-// Verify checks in milliseconds, without engines, that the receipt is valid for the commit: PASS, not stale, and each
-// waiver used with a valid signature. It returns the problems; none means it passes.
+// Verify is the strict policy (a2dlc verify --strict, and the MCP verify tool): it checks in milliseconds, without
+// engines, that the receipt is valid for the commit: PASS, not stale, and each waiver used with a valid signature. It
+// returns the problems; none means it passes. The pre-push uses VerifyPolicy, which blocks only on evidence.
 func (a App) Verify(commit string) ([]string, error) {
 	var v contract.Verdict
 	if err := a.read("", pathVerdict, &v); err != nil {

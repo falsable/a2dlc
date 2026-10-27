@@ -161,7 +161,7 @@ Stage-by-stage against classic SDLC and ADLC: [`docs/VS_SDLC_AND_ADLC.md`](docs/
 |---|---|
 | `a2dlc install [--agent claude] [--agent gemini]` | Config, `pre-push` hook, agent lifecycle hooks; when it finds a test runner (vitest, `node --test`, pytest, or a `test` script) and the config has no `tests` section, it warns that changes to code no engine examines stay INCONCLUSIVE and prints a `tests` section to edit, with a `baseline_command` that runs the whole suite, without writing it |
 | `a2dlc check [--base <ref>] [--peer <ref>]` | Differential + test gates → `.a2dlc/verdict.json` |
-| `a2dlc verify [--commit HEAD]` | <50 ms: receipt is `PASS`, matches `tree_hash`, waivers signed |
+| `a2dlc verify [--commit HEAD] [--strict]` | <50 ms, the `pre-push`: blocks only on evidence about the pushed tree (a `FAIL`, an unsigned waiver of one, a protected path without approval, `critical_code` left unjudged); no receipt, a stale one or `INCONCLUSIVE` only warn, because on a repo with history "could not judge" is the normal case and a gate that blocks on it gets bypassed. `--strict`: receipt is `PASS`, matches `tree_hash`, waivers signed |
 | `a2dlc approve <file>::<symbol> --key <key>` | Sign an intentional behavior change (`ssh-keygen -Y`) |
 | `a2dlc run --slice <id> --intent <file>` | Full Protocol Mode, Stages −1 to 7 |
 | `a2dlc verify-run --slice <id>` | Verify the hash-chained container ledger |
