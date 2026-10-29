@@ -138,7 +138,7 @@ func TestIntegrateTheLanesOfARunBatchWithTheFakeClaude(t *testing.T) {
 	if l["issue-1"].Status != contract.IntegrationIntegrated || l["issue-2"].Status != contract.IntegrationConflict || rec.Integrated != 1 {
 		t.Fatalf("%+v", rec.Lanes)
 	}
-	if !l["issue-2"].Rebased || len(l["issue-2"].Conflicts) != 1 || l["issue-2"].Conflicts[0] != "src/f.py" {
+	if l["issue-1"].Rebased || !l["issue-2"].Rebased || len(l["issue-2"].Conflicts) != 1 || l["issue-2"].Conflicts[0] != "src/f.py" {
 		t.Errorf("%+v", l["issue-2"])
 	}
 	// what landed is the builder's diff alone: src/f.py, and not the lane's own setup commit (.a2dlc/roles.json)

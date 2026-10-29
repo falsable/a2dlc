@@ -85,7 +85,7 @@ func Integrate(ctx context.Context, d IntegrateDeps, spec contract.FactoryHoldou
 		pos := position
 		position++
 		l := contract.FactoryIntegrationLane{IssueID: lane.IssueID, QueuePosition: &pos, HoldoutFiles: []string{}}
-		integrateLane(ctx, d, spec, wtRepo, path, out, *lane.CandidateRef, integrated, &l)
+		integrateLane(ctx, d, spec, wtRepo, path, out, rep.BaseSha, *lane.CandidateRef, integrated, &l)
 		if l.Status == contract.IntegrationIntegrated {
 			integrated[lane.IssueID] = true
 			rec.Integrated++
@@ -107,7 +107,7 @@ func Integrate(ctx context.Context, d IntegrateDeps, spec contract.FactoryHoldou
 
 // integrateLane judges one queued lane on the integration worktree and fills l; whatever it does not integrate it rolls
 // back, so the next lane starts from the branch head.
-func integrateLane(ctx context.Context, d IntegrateDeps, spec contract.FactoryHoldout, wtRepo gitx.Repo, wt, out, ref string, integrated map[string]bool, l *contract.FactoryIntegrationLane) {
+func integrateLane(ctx context.Context, d IntegrateDeps, spec contract.FactoryHoldout, wtRepo gitx.Repo, wt, out, runBase, ref string, integrated map[string]bool, l *contract.FactoryIntegrationLane) {
 	stop := func(status, format string, a ...any) {
 		l.Status, l.Reason = status, fmt.Sprintf(format, a...)
 		rollback(wt)
@@ -121,12 +121,9 @@ func integrateLane(ctx context.Context, d IntegrateDeps, spec contract.FactoryHo
 		stop(contract.IntegrationCheckFailed, "%v", err)
 		return
 	}
-	laneBase, err := gitIn(wt, "rev-parse", ref+"^")
-	if err != nil {
-		stop(contract.IntegrationCheckFailed, "the candidate %s: %v", ref, err)
-		return
-	}
-	l.Rebased = laneBase != head
+	// a lane starts from the run's base (its own setup commit sits between, but carries no code), so it is rebased when
+	// something has landed ahead of it
+	l.Rebased = head != runBase
 	conflicts, err := applyLane(wt, ref)
 	switch {
 	case err != nil:

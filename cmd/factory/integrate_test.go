@@ -65,6 +65,8 @@ func TestIntegrateWritesTheRecordAndLeavesMainAlone(t *testing.T) {
 	if err := os.WriteFile(reportPath, b, 0o644); err != nil {
 		t.Fatal(err)
 	}
+	old := holdoutRunner
+	t.Cleanup(func() { holdoutRunner = old })
 	holdoutRunner = noHoldout{t}
 	e, out, errb := testEnv(t)
 	outDir := filepath.Join(root, "out")

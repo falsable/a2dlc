@@ -3,6 +3,8 @@ package factory
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -48,7 +50,8 @@ func (d DockerHoldout) Run(ctx context.Context, h contract.FactoryHoldout, tree 
 	}
 	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
-	args := []string{"run", "--rm", "--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus),
+	name := "a2dlc-holdout-" + randomHex()
+	args := []string{"run", "--rm", "--name", name, "--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus),
 		"-v", hostTree + ":/src:ro", "-v", hostHoldout + ":/holdout:ro", "-w", "/tmp",
 		"-e", "HOLDOUT_FILES=" + strings.Join(files, " "), "--entrypoint", "sh", h.Image, "-c", h.Command}
 	var out bytes.Buffer
@@ -58,6 +61,10 @@ func (d DockerHoldout) Run(ctx context.Context, h contract.FactoryHoldout, tree 
 	var ee *exec.ExitError
 	switch {
 	case ctx.Err() != nil:
+		// killing the docker client does not stop the container on Docker Desktop: remove it by name
+		rm, stop := context.WithTimeout(context.Background(), time.Minute)
+		defer stop()
+		exec.CommandContext(rm, bin, "rm", "-f", name).Run()
 		return 0, out.String(), fmt.Errorf("the holdout exceeded timeout_s=%d", int(limit.Seconds()))
 	case errors.As(err, &ee):
 		return ee.ExitCode(), out.String(), nil
@@ -113,4 +120,10 @@ func inside(dir, parent string) bool {
 	}
 	rel, err := filepath.Rel(b, a)
 	return err != nil || (rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)))
+}
+
+func randomHex() string {
+	b := make([]byte, 6)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }
