@@ -126,6 +126,7 @@ var unknownPropertyInvalid = []string{
 	"factory-batch__extra-field.json",
 	"factory-report__stage-extra-field.json",
 	"factory-report__usage-extra-field.json",
+	"factory-report__tests-touched-extra-field.json",
 }
 
 // knownLooseDecodes names invalid examples that the struct accepts although the schema rejects them. They are

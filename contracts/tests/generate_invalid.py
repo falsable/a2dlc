@@ -412,6 +412,10 @@ cases = {
     "factory-report__missing-cost-per-accepted.json": (read("factory-report__three-lanes.json"), lambda x: x.pop("cost_per_accepted_usd")),
     "factory-report__candidate-ref-not-a-run-ref.json": (read("factory-report__three-lanes.json"), lambda x: x["lanes"][0].update(candidate_ref="refs/heads/main")),
     "factory-report__outcome-unknown.json": (read("factory-report__three-lanes.json"), lambda x: x.update(outcome="aborted")),
+    # a lane that touched base tests (bead a2dlc-3fu.9): the change is a closed set and the list is never empty
+    "factory-report__tests-touched-change-unknown.json": (read("factory-report__test-edit-rejected.json"), lambda x: x["lanes"][0]["tests_touched"][0].update(change="renamed")),
+    "factory-report__tests-touched-empty.json": (read("factory-report__test-edit-rejected.json"), lambda x: x["lanes"][0].update(tests_touched=[])),
+    "factory-report__tests-touched-extra-field.json": (read("factory-report__test-edit-rejected.json"), lambda x: x["lanes"][0]["tests_touched"][0].update(lines=3)),
     "run-state__spent-cache-read-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_read_tokens=-1)),
     "run-state__spent-cache-creation-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_creation_tokens=-1)),
     "capture__branch-coverage-over-one.json": (read("capture__traces.json"), lambda x: x.update(branch_coverage=1.5)),

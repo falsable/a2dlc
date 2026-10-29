@@ -1,0 +1,319 @@
+{
+ "schema_version": 1,
+ "run_id": "run-0a1b2c3d4e5f",
+ "batch_id": "pilot.1",
+ "base_sha": "7af5229e839f6fd50f2337c9733a4463c5fbdf64",
+ "config_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+ "started_at": "2026-10-29T15:00:00Z",
+ "finished_at": "2026-10-29T15:05:10Z",
+ "outcome": "completed",
+ "prior_spend_usd": 1.25,
+ "usage": {
+  "usd": 0.83,
+  "calls": 5,
+  "turns": 19,
+  "input_tokens": 51000,
+  "cache_read_input_tokens": 35000,
+  "cache_creation_input_tokens": 9000,
+  "output_tokens": 2400
+ },
+ "accepted": 0,
+ "cost_per_accepted_usd": null,
+ "lanes": [
+  {
+   "issue_id": "issue-3",
+   "slice_id": "issue-3.0a1b2c",
+   "branch": "factory/run-0a1b2c3d4e5f/issue-3",
+   "status": "rejected",
+   "reason": "modified or deleted 2 base test files: tests/test_report.py (modified), tests/test_old.py (deleted)",
+   "run_outcome": null,
+   "candidate_ref": null,
+   "wall_seconds": 142.5,
+   "unreported_calls": 0,
+   "usage": {
+    "usd": 0.31,
+    "calls": 2,
+    "turns": 7,
+    "input_tokens": 21000,
+    "cache_read_input_tokens": 15000,
+    "cache_creation_input_tokens": 4000,
+    "output_tokens": 900
+   },
+   "stages": [
+    {
+     "stage": "-1",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "0",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "1",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "1.5",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "2",
+     "status": "done",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "3",
+     "status": "done",
+     "usd": 0.31,
+     "calls": 2,
+     "turns": 7,
+     "input_tokens": 21000,
+     "cache_read_input_tokens": 15000,
+     "cache_creation_input_tokens": 4000,
+     "output_tokens": 900
+    },
+    {
+     "stage": "4",
+     "status": "done",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "5",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "6",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "7",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    }
+   ],
+   "tests_touched": [
+    {
+     "path": "tests/test_report.py",
+     "change": "modified"
+    },
+    {
+     "path": "tests/test_old.py",
+     "change": "deleted"
+    }
+   ]
+  },
+  {
+   "issue_id": "issue-4",
+   "slice_id": "issue-4.0a1b2c",
+   "branch": "factory/run-0a1b2c3d4e5f/issue-4",
+   "status": "capped",
+   "reason": "lane turns: 12 of 12 used",
+   "run_outcome": null,
+   "candidate_ref": null,
+   "wall_seconds": 301.2,
+   "unreported_calls": 1,
+   "usage": {
+    "usd": 0.52,
+    "calls": 3,
+    "turns": 12,
+    "input_tokens": 30000,
+    "cache_read_input_tokens": 20000,
+    "cache_creation_input_tokens": 5000,
+    "output_tokens": 1500
+   },
+   "stages": [
+    {
+     "stage": "-1",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "0",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "1",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "1.5",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "2",
+     "status": "done",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "3",
+     "status": "escalated",
+     "usd": 0.52,
+     "calls": 3,
+     "turns": 12,
+     "input_tokens": 30000,
+     "cache_read_input_tokens": 20000,
+     "cache_creation_input_tokens": 5000,
+     "output_tokens": 1500
+    },
+    {
+     "stage": "4",
+     "status": "pending",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "5",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "6",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    },
+    {
+     "stage": "7",
+     "status": "skipped",
+     "usd": 0,
+     "calls": 0,
+     "turns": 0,
+     "input_tokens": 0,
+     "cache_read_input_tokens": 0,
+     "cache_creation_input_tokens": 0,
+     "output_tokens": 0
+    }
+   ]
+  },
+  {
+   "issue_id": "issue-10",
+   "slice_id": null,
+   "branch": null,
+   "status": "skipped",
+   "reason": "no done_command: not a ticket",
+   "run_outcome": null,
+   "candidate_ref": null,
+   "wall_seconds": 0,
+   "unreported_calls": 0,
+   "usage": {
+    "usd": 0,
+    "calls": 0,
+    "turns": 0,
+    "input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 0
+   },
+   "stages": []
+  }
+ ]
+}

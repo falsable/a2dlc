@@ -120,6 +120,7 @@ type fakeClaude struct {
 	mu     sync.Mutex
 	calls  []call
 	script func(n int, ctx context.Context) (cost *contract.Cost, rotten bool, err error)
+	edit   func(workDir string) // what else the builder does in /work
 }
 
 func (f *fakeClaude) Launch(ctx context.Context, r contract.Role, s run.LaunchSpec) (run.LaunchResult, error) {
@@ -143,6 +144,9 @@ func (f *fakeClaude) Launch(ctx context.Context, r contract.Role, s run.LaunchSp
 	p := filepath.Join(s.WorkDir, "src", "f.py")
 	if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
 		return run.LaunchResult{}, err
+	}
+	if f.edit != nil {
+		f.edit(s.WorkDir)
 	}
 	out, _ := json.Marshal(contract.BuilderResponse{Summary: "done", FilesChanged: []string{"src/f.py"}})
 	resp, _ := json.Marshal(contract.RoleResponse{SchemaVersion: 1, RunID: req.RunID, Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,

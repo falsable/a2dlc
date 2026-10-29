@@ -12,7 +12,7 @@ import (
 
 // laneStatus turns the end of a lane's run into a status. The run being killed wins over everything else, then a cap,
 // then what a2dlc run decided.
-func laneStatus(runCtx, laneCtx context.Context, acct *accountant, cfg contract.FactoryConfig, st contract.RunState, runErr error) (status, reason string) {
+func laneStatus(runCtx, laneCtx context.Context, acct *accountant, cfg contract.FactoryConfig, st contract.RunState, runErr error, touched []contract.TestTouch) (status, reason string) {
 	var capErr *CapError
 	killed, why := acct.wasKilled()
 	switch {
@@ -21,6 +21,8 @@ func laneStatus(runCtx, laneCtx context.Context, acct *accountant, cfg contract.
 			why = "run cancelled"
 		}
 		return contract.LaneKilled, why
+	case len(touched) > 0:
+		return contract.LaneRejected, touchReason(touched)
 	case errors.As(runErr, &capErr):
 		return contract.LaneCapped, capErr.Reason
 	case errors.Is(laneCtx.Err(), context.DeadlineExceeded):

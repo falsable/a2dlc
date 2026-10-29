@@ -45,7 +45,21 @@
         "wall_seconds": { "type": "number", "minimum": 0 },
         "unreported_calls": { "type": "integer", "minimum": 0 },
         "usage": { "$ref": "#/$defs/counters", "unevaluatedProperties": false },
-        "stages": { "type": "array", "items": { "$ref": "#/$defs/stage_usage" }, "description": "One entry per stage of the lane's run, in stage order; empty for a lane that never started." }
+        "stages": { "type": "array", "items": { "$ref": "#/$defs/stage_usage" }, "description": "One entry per stage of the lane's run, in stage order; empty for a lane that never started." },
+        "tests_touched": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Present only on a rejected lane that modified or deleted a file that exists on the base and matches config.tests.paths. Adding test files is not listed. The lane is rejected as soon as the builder's call returns, before Tier 0 or the oracle run.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "change": { "enum": ["modified", "deleted"] }
+            },
+            "required": ["path", "change"],
+            "additionalProperties": false
+          }
+        }
       },
       "required": ["issue_id", "slice_id", "branch", "status", "reason", "run_outcome", "candidate_ref", "wall_seconds", "unreported_calls", "usage", "stages"],
       "additionalProperties": false

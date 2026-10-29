@@ -122,6 +122,7 @@ type capLauncher struct {
 	acct  *accountant
 	lane  string
 	cfg   contract.FactoryConfig
+	guard *testGuard // nil = no check of base test files
 }
 
 func (l capLauncher) Launch(ctx context.Context, r contract.Role, s run.LaunchSpec) (run.LaunchResult, error) {
@@ -133,6 +134,11 @@ func (l capLauncher) Launch(ctx context.Context, r contract.Role, s run.LaunchSp
 	env[EnvLLMCmd] = ClaudeCommand(l.cfg, l.acct.remaining(l.lane))
 	r.Env = env
 	res, err := l.inner.Launch(ctx, r, s)
+	if err == nil && l.guard != nil && s.WorkDir != "" {
+		if touched := l.guard.check(s.WorkDir); len(touched) > 0 {
+			err = veto(s.OutDir, touched)
+		}
+	}
 	l.acct.add(l.lane, reportedCost(s.OutDir))
 	return res, err
 }

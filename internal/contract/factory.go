@@ -153,7 +153,20 @@ type FactoryLane struct {
 	UnreportedCalls int          `json:"unreported_calls"`
 	Usage           Counters     `json:"usage"`
 	Stages          []StageUsage `json:"stages"`
+	// TestsTouched lists the base test files a rejected lane modified or deleted (empty for every other lane).
+	TestsTouched []TestTouch `json:"tests_touched,omitempty"`
 }
+
+// TestTouch is one file of config.tests.paths that exists on the base and that a lane modified or deleted.
+type TestTouch struct {
+	Path   string `json:"path"`
+	Change string `json:"change"`
+}
+
+const (
+	TestModified = "modified"
+	TestDeleted  = "deleted"
+)
 
 const (
 	RunCompleted       = "completed"

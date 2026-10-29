@@ -58,16 +58,22 @@ func runLane(runCtx context.Context, d Deps, cfg contract.FactoryConfig, acct *a
 		return lane
 	}
 
+	guard, err := newTestGuard(repo, laneBase)
+	if err != nil {
+		lane.Reason = err.Error()
+		return lane
+	}
 	laneCtx, cancel := context.WithTimeout(runCtx, time.Duration(cfg.Caps.LaneSeconds)*time.Second)
 	defer cancel()
-	st, runErr := run.Run(laneCtx, d.NewApp(repo), capLauncher{inner: d.Launcher, acct: acct, lane: is.ID, cfg: cfg},
+	st, runErr := run.Run(laneCtx, d.NewApp(repo), capLauncher{inner: d.Launcher, acct: acct, lane: is.ID, cfg: cfg, guard: guard},
 		run.Options{Slice: slice, Mode: contract.ModeLite, Base: laneBase, Intent: intent, MaxCostUSD: cfg.Caps.LaneUSD})
 
 	ledger := filepath.Join(dir, ".a2dlc", "run", slice, "ledger.json")
 	lane.Usage, lane.UnreportedCalls, lane.Stages = laneUsage(ledger, st)
 	keepLedger(ledger, filepath.Join(d.Out, runID, "ledgers", is.ID+".json"))
 	lane.RunOutcome = st.Outcome
-	lane.Status, lane.Reason = laneStatus(runCtx, laneCtx, acct, cfg, st, runErr)
+	lane.TestsTouched = guard.result()
+	lane.Status, lane.Reason = laneStatus(runCtx, laneCtx, acct, cfg, st, runErr, lane.TestsTouched)
 	if lane.Status == contract.LaneAccepted {
 		ref := "refs/a2dlc/run/" + slice + "/" + Role
 		if _, err := gitIn(d.Repo.Dir, "rev-parse", "--verify", "-q", ref); err == nil {
