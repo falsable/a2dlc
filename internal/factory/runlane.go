@@ -23,6 +23,29 @@ func keepLedger(from, to string) {
 	}
 }
 
+// keepResponses copies the raw response.json of every launch of the lane (what claude answered, as the adapter wrote it)
+// out of its worktree, which is removed when the lane ends: the adapter's ledger entry keeps only cost, turns and status,
+// and without this nothing holds the model's answer after a paid run, so the leak scan (e2e/factory/check_leak.sh) of the
+// lane's output could not read it. One file per launch, named after the launch folder, in the lane's own folder under
+// responses/: <out>/<run id>/responses/<issue id>/<NNN>-<stage>-<role>-<attempt>.json. NNN is the launch's position in the
+// ledger, so the file's sha256 is the sha256 of "/out/response.json" in entry NNN of ledgers/<issue id>.json, which
+// hashed it when the launch returned. A launch that wrote no response.json (an error, a kill) leaves no file.
+func keepResponses(launches, to string) {
+	dirs, err := os.ReadDir(launches)
+	if err != nil {
+		return
+	}
+	for _, d := range dirs {
+		b, err := os.ReadFile(filepath.Join(launches, d.Name(), "out", "response.json"))
+		if err != nil || !d.IsDir() {
+			continue
+		}
+		if os.MkdirAll(to, 0o755) == nil {
+			os.WriteFile(filepath.Join(to, d.Name()+".json"), b, 0o644)
+		}
+	}
+}
+
 // runLane runs one issue to a lane record. It never panics the batch: whatever goes wrong becomes the lane's status.
 func runLane(runCtx context.Context, d Deps, cfg contract.FactoryConfig, acct *accountant, wt *worktrees, runID, base string, is contract.FactoryIssue) contract.FactoryLane {
 	slice := sliceID(is.ID, runID)
@@ -71,6 +94,7 @@ func runLane(runCtx context.Context, d Deps, cfg contract.FactoryConfig, acct *a
 	ledger := filepath.Join(dir, ".a2dlc", "run", slice, "ledger.json")
 	lane.Usage, lane.UnreportedCalls, lane.Stages = laneUsage(ledger, st)
 	keepLedger(ledger, filepath.Join(d.Out, runID, "ledgers", is.ID+".json"))
+	keepResponses(filepath.Join(dir, ".a2dlc", "run", slice, "launches"), filepath.Join(d.Out, runID, "responses", is.ID))
 	lane.RunOutcome = st.Outcome
 	lane.TestsTouched = guard.result()
 	lane.Status, lane.Reason = laneStatus(runCtx, laneCtx, acct, cfg, st, runErr, lane.TestsTouched)

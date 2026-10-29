@@ -117,7 +117,7 @@ func runBatch(args []string, e env) int {
 	fs.SetOutput(e.err)
 	cfgPath := fs.String("config", "", "factory config file")
 	batchPath := fs.String("batch", "", "batch file")
-	out := fs.String("out", filepath.Join(".a2dlc", "factory"), "where lanes, intents, ledgers and reports go")
+	out := fs.String("out", filepath.Join(".a2dlc", "factory"), "where lanes, intents, ledgers, kept responses and reports go")
 	base := fs.String("base", "", "commit the lanes start from (default HEAD)")
 	if fs.Parse(args) != nil || *cfgPath == "" || *batchPath == "" {
 		return 64

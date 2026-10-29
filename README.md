@@ -178,7 +178,7 @@ Stage-by-stage against classic SDLC and ADLC: [`docs/VS_SDLC_AND_ADLC.md`](docs/
 | Command | Purpose |
 |---|---|
 | `factory precheck --batch <batch.json>` | Lists which issues have a `done_command` and which are skipped, spending nothing |
-| `factory run --config <factory-config.json> --batch <batch.json> [--out <dir>]` | Runs the lanes; writes `<out>/<run id>/report.json` (cost per stage and per accepted change, with input, cache read, cache write and output tokens) and each lane's ledger |
+| `factory run --config <factory-config.json> --batch <batch.json> [--out <dir>]` | Runs the lanes; writes `<out>/<run id>/report.json` (cost per stage and per accepted change, with input, cache read, cache write and output tokens), each lane's ledger, and the raw `response.json` of every launch at `<out>/<run id>/responses/<issue>/<NNN>-<stage>-<role>-<attempt>.json` (its sha256 is the ledger entry's; scan that folder with `e2e/factory/check_leak.sh`) |
 | `factory integrate --report <report.json> --holdout <holdout.json> [--out <dir>] [--main-ref <branch>]` | Merge queue: puts the accepted lanes on `factory/<run id>/integration` one at a time, rebased, each judged by `a2dlc check` and by the sealed holdout on the integrated tree; writes `<out>/<run id>/integration.json`; never writes main |
 | `factory integrate ... --integrator reference --config <factory-config.json>` | Control arm: the same lanes through a reimplementation of the reference factory's integration stage (see below); writes `integration-reference.json` |
 

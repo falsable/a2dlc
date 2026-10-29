@@ -5,6 +5,7 @@
 #   internet  the upstream demo is public: PromtEngineer, software-factory, hidden-tests, and any github.com URL
 #   local     the names of the folders that hold the answer key in this repo: factory-ref, factory-holdout
 # Scan lane output only, never the output of a holdout run: the holdout's own logs and JUnit carry the canary.
+# What claude answered in each launch is kept by the factory under <out>/<run id>/responses/<issue>/ (scan that folder).
 # The canary is read from its file, so this script does not contain it and a scan of e2e/factory finds nothing.
 # Usage: bash e2e/factory/check_leak.sh <file-or-dir>...     exit 0 clean, 1 on any hit, 2 for a broken setup
 #        bash e2e/factory/check_leak.sh --self-test          plants each string in a temporary folder and expects a hit
@@ -44,7 +45,17 @@ if [ "${1:-}" = --self-test ]; then
 		n=$((n + 1)); mkdir -p "$T/p$n/deep" && printf 'line one\n{"tool":"Read","text":"%s"}\n' "$planted" >"$T/p$n/deep/t.jsonl"
 		scan "$T/p$n" >/dev/null && { echo "self-test: planted '$planted' was not found"; exit 1; }
 	done
-	echo "check_leak self-test ok: a clean folder passes, $n planted strings are each found"
+	# a kept response (internal/factory keepResponses): the raw role-response, the model's text inside payload
+	for planted in "$canary" "see https://github.com/x/y for the answer" "clean text"; do
+		n=$((n + 1)); mkdir -p "$T/p$n/responses/issue-1"
+		printf '{"schema_version":1,"role":"builder_primary","status":"ok","payload":{"summary":"%s","files_changed":["src/f.py"]}}\n' "$planted" >"$T/p$n/responses/issue-1/001-3-builder_primary-1.json"
+		if [ "$planted" = "clean text" ]; then
+			scan "$T/p$n" >/dev/null || { echo "self-test: a clean kept response was flagged"; exit 1; }
+		else
+			scan "$T/p$n" >/dev/null && { echo "self-test: '$planted' in a kept response was not found"; exit 1; }
+		fi
+	done
+	echo "check_leak self-test ok: a clean folder passes, $n planted strings are each found (the last three in the layout of a kept response)"
 	exit 0
 fi
 [ $# -gt 0 ] || { echo "usage: check_leak.sh <file-or-dir>... | --self-test" >&2; exit 2; }
