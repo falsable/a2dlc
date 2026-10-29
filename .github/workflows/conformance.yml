@@ -1,5 +1,6 @@
 # The specification and its test material: RFC §6.4 against the schemas and the code, and (conformance job, below) the
-# conformance kit against the binary built from this commit. They run when what they read changes, not on every push.
+# conformance kit against the binary built from this commit, and the clean-room Python verifier against the kit. They run when
+# what they read changes, not on every push.
 name: conformance
 on:
   push:
@@ -8,6 +9,7 @@ on:
       - 'docs/A2-DLC_*_protocol.md'
       - 'contracts/**'
       - 'conformance/**'
+      - 'verifiers/**'
       - 'internal/**'
       - 'cmd/**'
       - 'go.mod'
@@ -17,6 +19,7 @@ on:
       - 'docs/A2-DLC_*_protocol.md'
       - 'contracts/**'
       - 'conformance/**'
+      - 'verifiers/**'
       - 'internal/**'
       - 'cmd/**'
       - 'go.mod'
@@ -57,3 +60,23 @@ jobs:
           python3 -m venv /tmp/v
           /tmp/v/bin/pip install --quiet jsonschema==4.23.0 referencing==0.35.1 rfc3339-validator==0.1.4
           /tmp/v/bin/python conformance/run.py --binary dist/a2dlc --engine-image a2dlc-engine-fake:0.1 --strict --require-schema
+  verifier-python:
+    # verifiers/python is written from the RFC alone: the kit is its acceptance test. Everything runs with the network off;
+    # only the image build needs it. The script is its own entrypoint (shebang, mode 100755).
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build the test image (Python, git, ssh-keygen)
+        run: docker build -q -t a2dlc-verifier-test:0.1 verifiers/python
+      - name: Unit tests of the verifier
+        run: |
+          docker run --rm --network none -v "$PWD:/r:ro" -w /r/verifiers/python -e PYTHONDONTWRITEBYTECODE=1 \
+            a2dlc-verifier-test:0.1 python -m unittest discover -p "test_*.py"
+      - name: Conformance kit, verifier class, against the verifier (a skipped vector fails)
+        run: |
+          docker run --rm --network none -v "$PWD:/r:ro" -w /r -e PYTHONDONTWRITEBYTECODE=1 a2dlc-verifier-test:0.1 \
+            python conformance/run.py --class verifier --binary /r/verifiers/python/a2dlc_verify.py \
+              --implementation clean-room-python --reasons a2dlc --strict
+      - name: Runner tests
+        run: python3 -m unittest discover -s conformance -p "test_run.py"
