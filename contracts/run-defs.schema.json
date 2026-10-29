@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/run-defs.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/run-defs.schema.json",
   "title": "Common definitions for a2dlc run (protocol state machine, Stages -1 to 7)",
   "$defs": {
     "role": {

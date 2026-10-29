@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/slice-contract.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/slice-contract.schema.json",
   "title": "Contract of a slice (protocol §6.1 in JSON): contract.json (S*) and the candidates contract_alpha.json / contract_beta.json of .a2dlc/run/<slice>/",
   "description": "Stage 1 produces it. In greenfield and brownfield_facade, Specifier α and β each write a candidate (source specifier_alpha / specifier_beta) and the Inquisitor merges them into S* (source consensus). In refactor the core derives it without LLM from the public signatures, with strict π_S: the legacy is the oracle. A subset of §6.1: functions with pre/post, errors and invariants in text, boundary probes, assumptions and π_S. Optional: io_contract, invariants (with the §6.2 DSL) and lemmas. Capabilities are declared in intent.capabilities. A probe is the concrete input and what S* says happens; probes.json blocks them with the hash of S*.",
   "type": "object",

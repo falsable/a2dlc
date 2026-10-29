@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/backtranslation.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/backtranslation.schema.json",
   "title": "Blind back-translation of S* (.a2dlc/run/<slice>/backtranslation.json)",
   "description": "Stage 1.5 step 5 (§5): the Back-translator reads only contract.json (S* with π_S inside), without the intent or the specifiers' reasoning, and writes in natural language what the slice does according to S*: what the contract allows and what it forbids. The core saves it with the hash of the contract that was translated. Matching the intent proves nothing (§10.1); not matching opens a review.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-lemmas-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-lemmas-response.schema.json",
   "title": "Engine response to operation lemmas (/io/response.json)",
   "description": "Stage 2 of Critical slices: one entry per declared lemma. pass: the postcondition holds for the engine's search. fail: a counterexample is attached. inconclusive: the engine could not decide within its budget. no_pair: in refactor, the base has no lemma of the same name to diff against. A passing lemma never raises the verdict of its parent function.",
   "type": "object",

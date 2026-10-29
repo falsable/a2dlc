@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/backtranslation-review.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/backtranslation-review.schema.json",
   "title": "Review of the back-translation against the intent (.a2dlc/run/<slice>/backtranslation_review.json)",
   "description": "Stage 1.5 step 5 (§5): the Inquisitor compares the back-translation with the intent and flags what the translation omitted, added or distorted. matches true has no discrepancies; false brings at least one. With false the stage escalates (backtranslation_mismatch): the contract or the translation may be wrong, and it is not corrected on its own.",
   "type": "object",

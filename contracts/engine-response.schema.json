@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-response.schema.json",
   "title": "Engine response to the core (/io/response.json)",
   "description": "Without response.json, or with a non-null error, the core marks all the changed_files of the request INCONCLUSIVE.",
   "type": "object",

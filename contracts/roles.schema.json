@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/roles.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/roles.schema.json",
   "title": "Roles with LLM from the protocol (.a2dlc/roles.json, versioned)",
   "description": "Which command runs each role of §3 of the protocol and which family it belongs to. a2dlc run launches each role in its own --rm container, without a persistent HOME, with /in (read-only: request.json and the artifacts the core's policy lets it see), /out (empty, writable: it leaves response.json there) and, only for the builders, /work (writable copy of the tree). The role → visible artifacts policy is fixed in the binary (ADR meta/0004, amendment 2026-10-17): this file chooses image, command and family, but cannot widen mounts. A role that is absent leaves its stage skipped; the verdict says so. The core knows nothing of providers: the credential arrives through env_file, which the core passes to docker without using its values (it only reads the variable names). tier_up (CB-02b) is the same kind of configuration: the higher tier that Stage 3 tries once when a builder exhausts its rounds without a green Tier 0.",
   "type": "object",

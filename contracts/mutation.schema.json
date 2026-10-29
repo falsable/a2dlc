@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/mutation.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/mutation.schema.json",
   "title": "Kill gate of Stage 5 (.a2dlc/run/<slice>/mutation.json, not committed)",
   "description": "Protocol §5, Stage 5 step 3: gate of the suite, not of the candidate. The mutants come from the changed lines (operation: mutate of the engine); each one is judged with the set T (the candidate's changed tests + the run's overlay) on the candidate with the mutated file on top, against a clean run of T on the candidate. kill_rate = killed / (killed + survived). PASS only if kill_rate >= threshold and nothing was left unrun or ungenerated (not_run, not_generated): what was not measured does not count as killed.",
   "type": "object",

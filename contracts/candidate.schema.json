@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/candidate.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/candidate.schema.json",
   "title": "Builder candidate (.a2dlc/run/<slice>/candidate.json, Stage 3 artifact)",
   "description": "The state of /work when Tier 0 gave ok, turned into a commit on the run's base (message \"a2dlc <builder> <run_id>\", also in refs/a2dlc/run/<slice>/<builder>). What counts is /work, not what the Builder said. Stage 4 judges this commit instead of the user's working tree. The top-level fields are those of the first candidate (builder_primary if it converged). With track N=2 (route.json and builder_orthogonal in roles.json) both builders run, each in its own /work; candidates lists those that converged and dropped those that did not, with their reason; with two candidates Stage 4 judges each one with the other as peer and chooses (selection.json).",
   "type": "object",

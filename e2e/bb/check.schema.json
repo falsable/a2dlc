@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/e2e/bb/check.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/e2e/bb/check.schema.json",
   "title": "Input for the \"check\" surface of the black-box self-test",
   "description": "An instance describes a repo: which files change from the base to the working tree, which verdict each fake engine gives per file, the engine config (globs, and whether the engine answers, crashes or answers garbage), which targets have a waiver, and the max_files cap. e2e/bb/setup materializes it; e2e/bb/fakedocker stands in for docker. It covers the whole surface of config.json and waivers.json except signatures (no fixture keys in v1).",
   "type": "object",

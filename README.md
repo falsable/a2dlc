@@ -213,6 +213,8 @@ A2-DLC needs only the `a2dlc` binary, Git and Docker, and works with your existi
 
 Bug reports with a frozen mutant are the most valuable thing you can send: see [`e2e/testdata/`](e2e/testdata) for the format. Engines for new languages implement the contract in [`contracts/`](contracts) — Rust and Java are the most requested. Open a Discussion if you want to add one.
 
+Project policies: [CONTRIBUTING](CONTRIBUTING.md) · [GOVERNANCE](GOVERNANCE.md) · [SECURITY](SECURITY.md) · [Compatibility](docs/COMPATIBILITY.md) · [Name and conformance](docs/NAME_AND_CONFORMANCE.md) · [RFCs](rfcs/README.md)
+
 ## License
 
 [Apache-2.0](LICENSE) · © 2026 Aldemar Hernández · [falsable](https://github.com/falsable)

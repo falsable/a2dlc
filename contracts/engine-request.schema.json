@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-request.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-request.schema.json",
   "title": "Core's request to an engine (/io/request.json)",
   "description": "The core mounts the base at /base and the candidate at /cand, both read-only, and /io writable. The engine discovers the targets within changed_files and responds in /io/response.json.",
   "type": "object",

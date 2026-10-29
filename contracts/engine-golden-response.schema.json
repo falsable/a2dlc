@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-golden-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-golden-response.schema.json",
   "title": "Engine response to operations golden_record and golden_replay (/io/response.json)",
   "description": "golden_record: the I/O of each case run on the base, hashed (golden.json). golden_replay: the same cases run on the candidate; diffs lists each case whose output differs from the recorded one, with both outputs. A diff is a behavior divergence unless a relaxation of pi_S applies. golden_replay reads the recorded golden record from /io/golden.json, which the core writes before the replay.",
   "type": "object",

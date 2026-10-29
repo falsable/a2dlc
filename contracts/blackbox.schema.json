@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/blackbox.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/blackbox.schema.json",
   "title": "Surface of the black-box engine (.a2dlc/blackbox.json, versioned)",
   "description": "The engine reads it from the candidate. build compiles each side with $A2DLC_OUT pointing to its output folder; harness (optional) compiles from the candidate what the setup and the program need on the PATH ($A2DLC_HARNESS). Each surface generates inputs from input_schema, runs setup with $A2DLC_INPUT and $A2DLC_WORK, and compares what is observable in argv between the base and the candidate after applying normalize to each piece. Golden cases are named <case>::<surface>; for the golden operations the spec, the harness and the cases are read from the base tree, not the candidate.",
   "type": "object",

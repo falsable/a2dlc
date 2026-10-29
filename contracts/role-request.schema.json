@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/role-request.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/role-request.schema.json",
   "title": "Request to a role (/in/request.json, written by a2dlc run)",
   "description": "Common to all roles. inputs lists exactly the files mounted at /in: it is the role's only view of the repo and the artifacts, and the ledger stores its hash. The payload depends on the role and the stage, and role-payloads.schema.json fixes it for the seven roles (specifiers, inquisitor in Stages 1 and 1.5, back_translator, builders, saboteur). A role that needs something not in inputs asks for it in response.refused with the reason: it does not search for it.",
   "type": "object",

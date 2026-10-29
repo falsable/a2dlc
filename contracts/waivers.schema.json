@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/waivers.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/waivers.schema.json",
   "title": "Repo waivers (.a2dlc/waivers.json, versioned)",
   "description": "The agent declares a deliberate behavior change here. Declaring is not approving: the approval is a signature in .a2dlc/approvals.json (ADR meta/0004). A waiver without a valid signature lets check pass and blocks verify.",
   "type": "object",

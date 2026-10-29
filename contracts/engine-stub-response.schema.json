@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-stub-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-stub-response.schema.json",
   "title": "Engine response to operation: stub (/io/response.json)",
   "description": "For the NOP gate (protocol §5, Stage 4): the base receives stubs of the new symbols so that a new test fails for the test and not for an import. The base's bodies and values are not touched: they could be the fix itself. With a non-null error, the core runs NOP without stubs.",
   "type": "object",

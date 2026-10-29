@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/escalation.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/escalation.schema.json",
   "title": "Escalations from a2dlc check (.a2dlc/escalations.json, not committed) and from a2dlc run (.a2dlc/run/<slice>/escalations.json, run artifact)",
   "description": "schema_version 1. What the engines and the test gates emit (check) and the a2dlc run stages emit (1, 1.5, 4 with N=2, 5, 6 and 7); check never emits the run kinds. \"v2\" marks optional fields added (cluster_id and builder), not a change of schema_version. It is what a person has to decide, or what the tool could not decide, in a form that an orchestrator or a UI consumes without reading the verdict (ADR meta/0004, boundary with the LLM roles). The decision comes back as a waiver in .a2dlc/waivers.json and is approved with a signature; the decisions that can be taken go in resolve_with. It is outside the tree_hash.",
   "type": "object",

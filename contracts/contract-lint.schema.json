@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/contract-lint.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/contract-lint.schema.json",
   "title": "a2dlc lint of an S* contract (.a2dlc/run/<slice>/lint.json)",
   "description": "Stage 1.5 step 1 (§5): the deterministic check of contract.json, without LLM. ok is false if there is at least one finding of error; with error the stage escalates before spending on Z3 or on the back-translation. contract_hash is the sha256 of contract.json as it was read: a lint.json with another hash is stale. trace_coverage is the clause coverage gate: each post and invariant of S* must have a probe that names it (rule in rule).",
   "type": "object",

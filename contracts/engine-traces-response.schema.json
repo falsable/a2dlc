@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-traces-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-traces-response.schema.json",
   "title": "Engine response to operation capture_traces (/io/response.json)",
   "description": "Stage 1, refactor and legacy: the base tests run under the trace harness (engines/py traces.py for Python). traces record each call of a changed function: its input, its output and the decisions (branch_ids) it went through. runner is the test runner that ran, or null when none ran; test_exit is the runner's exit code, or null when it did not run. branch_coverage is the fraction of the decisions in the changed functions that the traces reached; it is absent when those functions have no decision. skipped names the files the engine did not trace and why. error is set when the harness could not run at all, and then traces is empty.",
   "type": "object",

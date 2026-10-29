@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/intent.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/intent.schema.json",
   "title": "Intent of a slice (Stage 0 of the protocol): goal, invariants, criticality and budget",
   "description": "Provided by a person with a2dlc run --intent <file>; the core validates it, copies it as-is to .a2dlc/run/<slice>/intent.json and the run is tied to that file (another intent on resume is an error). It is mounted at /in for the specifiers, the builders and the saboteur whenever it exists (§3; the builders and the saboteur are a deviation declared in the README); the Back-translator does not see it and the Inquisitor receives it only in the Stage 1.5 payload. The Stage 2 Router reads criticality, criticality_tags and critical_paths; CB-03 and the loop caps fall back to budget when the command line does not give them.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-signatures-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-signatures-response.schema.json",
   "title": "Engine response to operation: signatures (/io/response.json)",
   "description": "The public signatures of the candidate in each file of changed_files: name, signature as written in the language, first part of the docstring and lines. No bodies: the Saboteur (§3) writes tests against the interface and the contract, never against the implementation; if it saw the code, its tests would confirm what the builder did instead of refuting it. With a non-null error, the core proceeds without signatures and says so in the artifact.",
   "type": "object",

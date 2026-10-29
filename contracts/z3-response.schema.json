@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/z3-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/z3-response.schema.json",
   "title": "Response of the z3 engine (/io/response.json; the core saves it as the run's z3.json)",
   "description": "One result per requested function, in the same order. sat: the clauses have a model (model has it) and it continues. unsat: no input satisfies them: CB-02a, and reason carries the unsat core (the conflicting asserts). unknown: Z3 did not decide (timeout or outside the decidable fragment): the function stays runtime_and_pbt and does not block. skipped: the SMT-LIB could not be parsed or there was nothing to resolve; reason says why. Non-null error: the engine did not run and no result is valid.",
   "type": "object",

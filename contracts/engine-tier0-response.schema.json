@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-tier0-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-tier0-response.schema.json",
   "title": "Engine response to operation: tier0 (/io/response.json)",
   "description": "Tier 0 of the protocol (§5, Stage 3): compile, typecheck and lint of the changed_files in the candidate, plus the blocked probes of budget.probes. Only new findings relative to the same file's base: what was already wrong is not the Builder's and cannot jam the loop. ok is true if and only if there are no findings. It is also the shape of tier0_feedback.json, what the Builder receives in the next round.",
   "type": "object",

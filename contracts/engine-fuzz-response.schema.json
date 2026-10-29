@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-fuzz-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-fuzz-response.schema.json",
   "title": "Engine response to operation fuzz (/io/response.json)",
   "description": "Stage 4, deterministic fuzzing of the changed public functions with a fixed seed. Each finding is an input that raised an error the engine did not expect, with the seed that reproduces it. runs and seconds say what the budget bought.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-classify-lines-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-classify-lines-response.schema.json",
   "title": "Engine response to operation: classify_lines (/io/response.json)",
   "description": "Which of the unexamined changed lines the engine recognises as a defensive exception handler or as declaration-only code. The request's budget.lines maps each file to the lines of the candidate that no engine target examined and no test executed; the engine answers per file in changed_files, with one note per category and only the lines it is sure of. A line in no note stays unexamined and keeps blocking: the core only ever lowers what blocks because of what this response says, so an engine that is unsure leaves the line out. Notes carry only lines that were asked about, each line in at most one note. An engine without the operation replies with an error or with another shape, and the core then keeps every line unexamined.",
   "type": "object",

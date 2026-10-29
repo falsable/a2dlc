@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/assumption-catalogue.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/assumption-catalogue.schema.json",
   "title": "Domain assumption catalogue (.a2dlc/catalogue.json of the repo; copy in .a2dlc/run/<slice>/catalogue.json)",
   "description": "Protocol §5 Stage 1 step 4: the consensus probes come from a deterministic catalogue per domain, not from the LLM's judgment. The catalogue governs: the Inquisitor instantiates each entry for the slice (the exact input and the possible results) and does not choose which apply nor add entries. They are repo data, versioned with it; a2dlc run reads them from the run's base, never from the working tree, so that the candidate's diff cannot remove categories.",
   "type": "object",

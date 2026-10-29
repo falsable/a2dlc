@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/capture.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/capture.schema.json",
   "title": "Behavioral capture of a refactor (.a2dlc/run/<slice>/capture.json)",
   "description": "Stage 1 in refactor mode, deterministic and without LLM: the existing tests in the base that touch the changed files (the safety net the legacy already had) and the candidate's public signatures in those files. selection says by which rule the tests were chosen: the core knows no languages, so it is a declared textual heuristic. traces[] (when present) is the recorded I/O of each call of the changed functions, with the branches it took. branch_coverage is the fraction of branches the traces cover. The VCR of anonymized real traffic is not part of this artifact.",
   "type": "object",

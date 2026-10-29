@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/indexer-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/indexer-response.schema.json",
   "title": "Code Graph Indexer response (ChronosGraph / AST blast radius)",
   "description": "Response from the Code Graph Indexer (ChronosGraph, AST / SCIP): discovered dependency edges, total impacted count, and per-file blast radius and risk rankings.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/check-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/check-response.schema.json",
   "title": "Check response (the file a pluggable check writes to $A2DLC_OUT)",
   "description": "schema_version 1. What a check declared in config.checks (protocol §5 Checks, ADR meta/0006) reports after running in its image, without network, over /base:ro and /cand:ro with the changed files it matches in $A2DLC_CHANGED. A finding is bound to a file: <file>::<check id> or <file>::L<line>. The check never reports an error about itself: a missing or invalid file, a non-zero exit, a missing image or a timeout are recorded by the core as status error (never a pass). A check can lower the verdict, never raise it; the only override is a signed waiver with decision accept_finding on the finding's target.",
   "type": "object",

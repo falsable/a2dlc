@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/route.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/route.schema.json",
   "title": "Router decision (Stage 2): .a2dlc/run/<slice>/route.json",
   "description": "The Router is deterministic and is core, not a role. Rules, in order: the criticality declared in the intent (low without an intent); it goes up one level if a changed or deleted file matches intent.critical_paths; high or critical gives N=2; dual-spec is mandatory in greenfield with effective criticality medium or higher (in refactor and brownfield_facade Stage 1 is behavior capture and the second builder is the legacy); lite mode always gives N=1 without dual-spec; with S*, the metrics rule_count and state_mutation_depth give N=2 when they cross a threshold (without an extra dual-spec). Each rule applied stays in reasons.",
   "type": "object",

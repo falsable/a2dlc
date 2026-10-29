@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/delivery.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/delivery.schema.json",
   "title": "Delivery plan of Stage 7, Progressive Delivery (.a2dlc/run/<slice>/delivery.json, not committed)",
   "description": "Protocol §5, Stage 7. The binary does not deploy: from intent.delivery and the verdict, it builds the plan that the platform executes, and the run is tied to it (verify-run checks it by hash). Feature flag + canary rings (1 % → 10 % → 100 % by default), Rollback Sentinel over telemetry (error_rate_delta, latency_p99 and the slice's invariants, the expensive ones by periodic reconciliation), and CB-06: a slice with writes and no compensation strategy does not go past the 1 % ring (max_ring 1, blocked_by CB-06). In refactor, legacy/new parity only on read-only paths; on write paths, canary with compensation.",
   "type": "object",

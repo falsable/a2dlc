@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/role-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/role-response.schema.json",
   "title": "Role response (/out/response.json, written by the role's command)",
   "description": "Common section. status ok brings the role's payload (its shape is fixed by role-payloads.schema.json per role and stage, for the seven roles); refused says what it lacked or why it cannot (it is not a tool error: the core escalates it); error is a command failure and is retried up to roles.<role>.retries. A response that does not validate counts as an error. The core reads nothing else from /out than what the payload names.",
   "type": "object",

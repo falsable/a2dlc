@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/defs.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/defs.schema.json",
   "title": "Common definitions of the A2-DLC Lite contract",
   "$defs": {
     "schema_version": { "const": 1 },

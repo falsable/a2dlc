@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/engine-mutate-response.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/engine-mutate-response.schema.json",
   "title": "Engine response to operation: mutate (/io/response.json)",
   "description": "Stage 5, Tier 2 (protocol §5): mutants of the candidate's changed lines, one per change. Each mutant is the whole mutated file at /io/mutants/<id>/<file>, and nothing else in that folder. The core runs the tests of set T on the candidate with that file on top: a mutant that no test kills is a gap in the suite, not in the code. The descriptions travel to the Saboteur, which does not see the builder's code (§3): they state the operator, never identifiers or literals of the candidate. With a non-null error, the requested files stay unmutated and the core says so.",
   "type": "object",

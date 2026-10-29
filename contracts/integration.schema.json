@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/integration.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/integration.schema.json",
   "title": "Report of Stage 6, Integration (.a2dlc/run/<slice>/integration.json, not committed)",
   "description": "Protocol §5, Stage 6, the part that fits in the provider repo's binary. Declared blast radius: the changed files from base to candidate that match the contracts of each consumer of config.integration. Consumer-driven contract matrix: each affected consumer runs its suite, without network, against the candidate in /work; a red one rejects (escalation consumer_broken). Expand-and-contract: the changed migration files go through the destructive DDL linter (escalation destructive_migration). verdict: PASS if every affected consumer passed and there is no destructive DDL; FAIL if a consumer broke or there is destructive DDL; INCONCLUSIVE if some run could not be judged. Outside the binary: the service graph and the durable contract workflow.",
   "type": "object",

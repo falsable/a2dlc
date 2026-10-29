@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/role-payloads.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/role-payloads.schema.json",
   "title": "Payloads per role of a2dlc run (what goes inside role-request.payload and role-response.payload)",
   "description": "Each block of the build order (ADR meta/0004, amendment 2026-10-17) adds its role's payload here. role-request and role-response require them per role with if/then. Block 2: the Saboteur. Block 3: the Builder (Tier 0). Block 5: the live mutants of Stage 5 in the Saboteur's request (survivors). Block 6: the specifiers and the Inquisitor of Stage 1. Block 7: the Back-translator and the Inquisitor comparator of Stage 1.5.",
   "$defs": {

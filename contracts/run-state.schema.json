@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/run-state.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/run-state.schema.json",
   "title": "State of an a2dlc run (.a2dlc/run/<slice>/state.json, not committed)",
   "description": "The state machine is linear (protocol §5) with two bounded loops inside a stage. A stage ends in done with its artifact, in skipped with the reason (role not configured, the mode does not require it), or in failed/escalated with the escalation that stopped it. Resuming means running again: the core skips the done stages whose artifact is still on disk with the recorded hash and continues from the first one missing. It is outside the tree_hash.",
   "type": "object",

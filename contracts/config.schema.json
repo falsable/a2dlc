@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/config.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/config.schema.json",
   "title": "Repo configuration (.a2dlc/config.json, versioned)",
   "type": "object",
   "properties": {

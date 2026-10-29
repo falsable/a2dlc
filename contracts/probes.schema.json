@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/probes.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/probes.schema.json",
   "title": "Blocked probes of a slice (.a2dlc/run/<slice>/probes.json)",
   "description": "The S* probes tied to the contract that fixed them: contract_hash is the sha256 of contract.json as it is on disk. The core writes it when Stage 1 closes; the Builders see it (§3: S* + blocked probes) and a probes.json whose contract_hash does not match contract.json is stale.",
   "type": "object",

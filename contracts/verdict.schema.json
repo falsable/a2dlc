@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/verdict.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/verdict.schema.json",
   "title": "Verdict of a2dlc check (.a2dlc/verdict.json, not committed)",
   "description": "aggregate verdict: FAIL if any target or test FAILs without a waiver (a target FAIL with a counterexample on code outside config.critical_code is a note, targets[].note, and does not count); otherwise INCONCLUSIVE if any is, a gate could not run, or some changed line in scope was left unexamined (coverage.files[].uncovered not empty: never an empty PASS; lines in coverage.files[].noted do not count); otherwise PASS. A FAIL with a waiver, approved or pending, does not count, but the pending one goes to pending_waivers and verify blocks it.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2dlc.local/contracts/run-ledger.schema.json",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/run-ledger.schema.json",
   "title": "Isolation ledger of a2dlc run (.a2dlc/run/<slice>/ledger.json, not committed)",
   "description": "One entry per launch of a role, append-only and chained: hash = sha256(prev_hash + canonical JSON of the entry without hash). It attests what each role saw (inputs mounted with their hash), what it left (outputs), with which image and command, with which network and which variable names. The negative attestation (the Saboteur did not see the Builder's code) holds because the only one that launches containers is the core. a2dlc verify-run recomputes the chain. Limit: it records the declared family and what the CLI reported, not which model answered.",
   "type": "object",
