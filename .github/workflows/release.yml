@@ -32,6 +32,7 @@ jobs:
           python3 -m venv /tmp/v
           /tmp/v/bin/pip install --quiet jsonschema==4.23.0 referencing==0.35.1 rfc3339-validator==0.1.4
           /tmp/v/bin/python contracts/tests/validate.py contracts
+          /tmp/v/bin/python contracts/tests/check_rfc.py .
       # SBOM of the source tree the binaries come from, in SPDX JSON. Pinned image tag (Docker Hub anchore/syft). It goes
       # to the release next to SHA256SUMS and is covered by it.
       - name: SBOM (syft)

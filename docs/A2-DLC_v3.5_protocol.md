@@ -1,6 +1,6 @@
-# RFC-0001: Autonomous Agentic Development Lifecycle (A2-DLC) v3.4
+# RFC-0001: Autonomous Agentic Development Lifecycle (A2-DLC) v3.5
 
-**Status:** Consolidated draft (v3.4) — pending empirical validation (see §12); the Lite differential engine has a smoke run (§12, Phase 0). Of what was added in v3.4, the domain guard has a first measurement (§12); the lemmas and the back-translation are unmeasured.
+**Status:** Consolidated draft (v3.5). §6.4 (the receipt) is normative and describes what the reference implementation does; `contracts/` and `conformance/` accompany it. The rest of the document is unchanged from v3.4 and stays pending empirical validation (see §12); the Lite differential engine has a smoke run (§12, Phase 0). Of what was added in v3.4, the domain guard has a first measurement (§12); the lemmas and the back-translation are unmeasured.
 **Target environment:** multi-agent software engineering systems
 **Design goal:** minimal human intervention through deterministic verification, adversarial testing with context isolation and differential probing of the specification.
 
@@ -19,7 +19,7 @@ Correctness is pursued through clean-room context isolation, differential execut
 
 <div align="center">
 
-<img src="assets/protocol-architecture.svg" alt="A2-DLC Protocol Architecture & Clean-Room State Machine (RFC-0001 v3.4)" width="100%" />
+<img src="assets/protocol-architecture.svg" alt="A2-DLC Protocol Architecture & Clean-Room State Machine (RFC-0001 v3.5)" width="100%" />
 
 </div>
 
@@ -228,7 +228,7 @@ The Saboteur generates the PBT suite **in parallel** with the Builder, without s
        - A test that passes against the stub (e.g. `pytest.raises(Exception)`, which also catches `NotImplementedError`) is refuted by the gate: it does not distinguish the stub from the implementation. It is the gate working, not a false positive.
    - **No regression against baseline:** the existing suite is run once per base commit and saved. "Passing" means **does not get worse**: a new red blocks, a pre-existing red does not. If the parser identifies no failing test in a red run, the result is `INCONCLUSIVE`, not `PASS`. The baseline expires when the base commit changes; an old one turns a new red into "pre-existing".
      - **Flaky tests:** before blocking, each new red is re-run k times (k = 3) on the base and on the candidate.
-       - **It is flaky only if it is also intermittent on the base:** it passes and fails across the k runs on the base. Then it goes to a versioned quarantine (`.a2dlc/flaky.yaml`, with date and owner) and does not block.
+       - **It is flaky only if it is also intermittent on the base:** it passes and fails across the k runs on the base. Then a `quarantine_flaky` waiver (§6.4.6) puts it in quarantine and it does not block.
        - **Stable green on the base and red on the candidate blocks, even if the red is intermittent.** An intermittent failure only on the candidate may be a race condition introduced by the change.
        - A test in quarantine counts neither for `PASS` nor for `FAIL`, and the quarantine is reviewed like the waives.
    - If a cheap gate fails, the following ones are not paid for.
@@ -388,52 +388,303 @@ delivery:
 
 When the slice is modified, the orchestrator injects `rejected_alternatives` and `do_not_refactor` as constraints on the agent.
 
-### 6.4 Verdict and waives (common to Lite and full)
+### 6.4 The receipt: verdict, waivers and approvals (common to Lite and full)
 
-**Verdict** (`.a2dlc/latest.json`; history in `.a2dlc/reports/`):
+This section is normative. MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119. It describes what the reference implementation (the `a2dlc` binary) does as of v3.5, byte for byte where bytes matter, so that a verifier or a producer written from this text and `contracts/` agrees with it. The JSON Schemas in `contracts/` govern the shape of every document named here; this section governs what the values mean and how the hashes and signatures are computed. `contracts/tests/check_rfc.py` fails if this section contradicts a schema, and `conformance/` holds the test vectors.
 
+Three roles appear below. A **producer** runs the gates and writes a receipt (`a2dlc check`). A **verifier** decides, without running engines, whether a receipt is valid for a commit (`a2dlc verify`). An **engine** judges the files of one language (§4.4).
+
+#### 6.4.1 Files
+
+<!-- a2dlc:files -->
+| Path | Schema | In the `tree_hash` | Role |
+|---|---|---|---|
+| `.a2dlc/config.json` | `config` | yes | What is judged. A producer reads it at the receipt's `base_ref`, not from the working tree. |
+| `.a2dlc/waivers.json` | `waivers` | yes | Decisions the agent declares. Declaring is not approving. |
+| `.a2dlc/approvals.json` | `approvals` | no | Signatures over waivers (§6.4.7). |
+| `.a2dlc/verdict.json` | `verdict` | no | The receipt. A producer writes it; it is not committed by default. |
+| `.a2dlc/escalations.json` | `escalation` | no | What a person has to decide. |
+| `.a2dlc/reports/` | none | no | Gate output. |
+| `.a2dlc/run/` | none | no | State of `a2dlc run`. |
+
+#### 6.4.2 The tree hash
+
+`tree_hash` binds a receipt to the content of one commit. It is the string `git-tree:` followed by the lowercase hexadecimal id of a git tree object, in the object format of the repository (SHA-1: 40 digits; SHA-256: 64 digits). The schema pattern is `^git-tree:[0-9a-f]{40}([0-9a-f]{24})?$`.
+
+**Definition (normative).** Let `C` be a commit and `R` the root tree of `C`. The tree of `C` is `R` with these changes, in this order:
+
+1. Remove every entry whose path, relative to the repository root, equals an excluded path or lies under one (the excluded path followed by `/`).
+2. Remove every directory that has no entry left.
+
+`tree_hash(C)` is the id git gives the resulting root tree: the hash, in the repository's object format, of the bytes `tree <n>\0` followed by the entries in git's tree order. Nothing else enters the computation: not the commit message, author, parents or dates, not local configuration, not `.gitignore`.
+
+The excluded paths are the gate outputs and the signatures:
+
+<!-- a2dlc:excluded -->
+```text
+.a2dlc/verdict.json
+.a2dlc/reports
+.a2dlc/approvals.json
+.a2dlc/escalations.json
+.a2dlc/run
+```
+
+- Matching is exact and case-sensitive, from the repository root. None of these paths is excluded:
+
+<!-- a2dlc:not-excluded -->
+```text
+.a2dlc/runner/x
+.a2dlc/verdict.json.bak
+sub/.a2dlc/verdict.json
+.A2DLC/verdict.json
+```
+
+- Everything else is in the hash: `.a2dlc/config.json`, `.a2dlc/waivers.json`, `.gitattributes`, executable bits, symbolic links, and gitlinks (a submodule counts as its commit id).
+- The hash is of the stored objects. Line-ending conversion, `.gitattributes` filters and `core.autocrlf` act when a file is added to git and are not applied again, so a verifier reading the commit's objects does not depend on them.
+- Informative: with git, `read-tree <C>` into a temporary index, `rm --cached -r --ignore-unmatch -- <excluded paths>`, `write-tree` gives the same id. That is how the reference computes it.
+
+**Working-tree preview.** `a2dlc check` without a candidate commit hashes the working tree instead: a temporary copy of the index, `add -A`, the same removal, `write-tree`. That tree depends on `.gitignore`, `.gitattributes`, `core.autocrlf` and on what is untracked, so it is a local preview. The preview becomes the receipt's `tree_hash`, and the receipt is valid for a commit only when the preview equals `tree_hash(C)` at verification (§6.4.8). A producer SHOULD run on a clean checkout of the commit it expects to be verified.
+
+#### 6.4.3 The receipt
+
+`.a2dlc/verdict.json` is one JSON object per run, with one entry per judged target. Its schema is `contracts/verdict.schema.json`; `schema_version` is `1`. A producer MUST NOT emit a field the schema does not name. A verifier MUST reject a receipt that does not validate against the schema, with the exceptions in §6.4.11.
+
+<!-- a2dlc:fields verdict -->
+| Field | Required | Meaning |
+|---|---|---|
+| `schema_version` | yes | `1`. |
+| `a2dlc_version` | yes | Version of the producer. Informative. |
+| `verdict` | yes | `PASS`, `FAIL` or `INCONCLUSIVE` (§6.4.4). |
+| `base_ref` | yes | Commit id the diff was taken from. |
+| `tree_hash` | yes | `git-tree:<hex>` of the judged tree (§6.4.2). |
+| `created_at` | yes | RFC 3339 date-time. |
+| `targets` | yes | One result per function the engines judged. |
+| `out_of_scope` | yes | Changed files no engine judged, each with a reason. A receipt says nothing about them. |
+| `pending_waivers` | yes | Targets whose waiver has no valid signature. |
+| `stage` | no | Stage of `a2dlc run` that wrote it; absent from `a2dlc check`. |
+| `contract_hash` | no | `sha256:<hex>` of the slice contract the run judged against. |
+| `engine_errors` | no | Engines that did not answer, or answered badly. |
+| `diff_budget` | no | Time budget of the engines and the functions it cut. |
+| `test_gates` | no | Status of each test gate. |
+| `coverage` | no | Which changed lines something examined. |
+| `tests` | no | Test cases the gates judged. |
+| `checks` | no | Pluggable checks (§5, Checks). |
+
+Each entry of `targets` is an engine's result (`engine`, `engine_version`, `verdict`, `search_budget`, `generators`, `typed`, `domain_guard`, `equivalence`, `counterexample`, and `reason` when `INCONCLUSIVE`) plus `waived` and, rarely, `note` (§6.4.5). A `PASS` target with no recorded `search_budget` is not valid: "no difference found" is a bounded search (§10.8), and the receipt carries the bound.
+
+<!-- a2dlc:schema verdict -->
 ```json
 {
-  "target": "core/rolling.py::rolling_max",
-  "stage": "tier1_differential",
-  "verdict": "FAIL",
-  "engine": "crosshair-diffbehavior",
-  "search_budget": {"iterations": 216, "per_condition_timeout_s": 10},
-  "typed": true,
-  "domain_guard": null,
-  "equivalence": "strict",
-  "base_ref": "sha1:…",
-  "tree_hash": "sha256:…",
-  "contract_hash": "sha256:…",
-  "counterexample": {"kwargs": {"xs": "[1, 2, 2]", "w": "2"}, "old": "2", "new": "1"},
-  "cluster_id": "div-07"
+  "schema_version": 1,
+  "a2dlc_version": "0.4.1",
+  "verdict": "PASS",
+  "base_ref": "0123456789abcdef0123456789abcdef01234567",
+  "tree_hash": "git-tree:5d968b6758b92dea858e8d9cc9254c37a45b6c1d",
+  "created_at": "2026-10-29T12:00:00Z",
+  "targets": [
+    {
+      "target": "src/m.py::f",
+      "engine": "crosshair-diffbehavior",
+      "engine_version": "0.0.111",
+      "verdict": "FAIL",
+      "search_budget": {"iterations": 12, "per_condition_timeout_s": 10},
+      "generators": "typed_default",
+      "typed": true,
+      "domain_guard": null,
+      "equivalence": "strict",
+      "counterexample": {"args": "{\"x\": 0}", "old": "0", "new": "1"},
+      "waived": false,
+      "note": "behavior_divergence"
+    }
+  ],
+  "out_of_scope": [{"file": "README.md", "reason": "no_engine"}],
+  "pending_waivers": [],
+  "coverage": {"status": "not_configured", "files": []}
 }
 ```
 
-- **`search_budget` depends on the engine:**
-  - CrossHair: `{"iterations", "per_condition_timeout_s"}`.
-  - Hypothesis: `{"examples", "seed"}`, for example `{"examples": 2000, "seed": 42}`.
-  - A field from another engine is a schema error.
-- **`domain_guard`:** `null` when there is no guard; if there is one, `{"expr": "…", "source": "contract" | "ast_overapprox"}` (§4.4). Any other origin is a schema error.
-- **`verdict`:** `PASS` | `FAIL` | `INCONCLUSIVE`. "No differences found" is a **bounded search**, not an equivalence proof: that is why the verdict carries `engine` and `search_budget`, and a `PASS` without a recorded budget is not valid. `INCONCLUSIVE` covers functions without types, timeouts without a single useful iteration and red runs without identifiable tests; it blocks just like `FAIL`, but it escalates as a tool problem, not as a divergence.
-- **Tree-bound receipt:** `tree_hash` is the hash of the content of the tree on which the verdict was issued. Before merge it is recomputed; if someone edited or committed afterwards, the verdict becomes **stale** (the files are named) and it must be run again. There is no flag to skip it.
+The `engine` field names one of the engines the schema lists today (`fast-check`, `crosshair-diffbehavior`, `hypothesis`, `rapid`, `blackbox`), and `search_budget` has the shape that engine's entry in the schema requires. A new engine name is a schema change.
 
-**Waive** (`.a2dlc/waivers.yaml`, versioned, reviewable in PR):
+#### 6.4.4 Verdict values
 
-```yaml
-- target: "core/rolling.py::rolling_max"
-  cluster_id: "div-07"
-  decision: "enforce_new_behavior"     # preserve_legacy | enforce_new_behavior
-  reason: "The window must exclude the current element (historical bug)"
-  approved_by: "aldemar"
-  date: "2026-10-15"
+`verdict` is computed from the rest of the receipt. A producer MUST compute it as follows, and a verifier MAY recompute it.
+
+1. `FAIL` if any of these holds:
+   - A target has `verdict: FAIL`, `waived: false`, and no `note` (§6.4.5).
+   - A test in `tests` has `verdict: FAIL` and no waiver of its class.
+   - A check in `checks` has `severity: blocking`, `status: ran` and a finding with `waived: false`.
+2. Otherwise `INCONCLUSIVE` if any of these holds:
+   - A target has `verdict: INCONCLUSIVE`. A waiver never covers it: waivers cover `FAIL` only.
+   - `engine_errors` is not empty. An engine that crashed, timed out, answered with a document that does not validate, or reported an error of its own harness (CrossHair or the generator raising on either the old or the new side) is a tool problem, never a `FAIL` and never a `PASS`.
+   - A test in `tests` is `INCONCLUSIVE` without a waiver of its class, or a gate in `test_gates` has `status: error`.
+   - A check with `severity: blocking` has `status: error` or `timeout`.
+   - `coverage.files[].uncovered` is not empty for some file: a changed line in scope that no engine examined and no test executed. Lines in `coverage.files[].noted` do not count.
+   - `diff_budget.cut` is not empty: a function the time budget skipped was not judged.
+   - A path matched by `config.protected_paths` changed and has no valid approval.
+3. Otherwise `PASS`.
+
+`FAIL` wins over `INCONCLUSIVE`; the conditions in item 2 never turn a `FAIL` into `INCONCLUSIVE`. A check lowers the verdict and never raises it. A waived `FAIL` does not count toward `FAIL`, signed or not; an unsigned one is listed in `pending_waivers`, and a verifier refuses it (§6.4.8).
+
+The reference binary exits `0` for `PASS`, `1` for `FAIL` and `2` for `INCONCLUSIVE`. The exit code is not part of the receipt.
+
+#### 6.4.5 Notes and critical code
+
+A behavior divergence (a differential engine found an input where the old and the new code differ) is a finding for a person to look at. Whether it blocks depends on where the code lives.
+
+- `config.critical_code` is a list of globs naming code where any divergence blocks. It is read from `.a2dlc/config.json` at the receipt's `base_ref`.
+- A target with `verdict: FAIL`, a non-null `counterexample`, no waiver, whose id does not match `critical_code`, is recorded with `note: "behavior_divergence"`. It keeps `verdict: FAIL` and its counterexample, and it does not count toward the aggregate (§6.4.4).
+- A `FAIL` target on critical code, or without a counterexample, has no note and makes the receipt `FAIL` until a signed waiver covers it.
+- With no `critical_code`, nothing is critical. `a2dlc run` treats everything as critical.
+- A verifier MUST refuse a note unless the target is `FAIL` with a counterexample and `waived: false`, and MUST refuse it when the target matches `critical_code` of the config at `base_ref`. If that config cannot be read, every target is critical.
+
+A glob is matched against a target `<file>::<symbol>`, split at its first `::`. A glob without `::` matches the file part and covers every symbol in the file. A glob with `::` is split the same way, and its two halves match the file part and the symbol part separately. In a half, `**/` matches any number of leading directories including none, `**` matches any characters including `/`, `*` matches any run of characters except `/`, `?` matches one character except `/`, and every other character matches itself. The whole half must match.
+
+#### 6.4.6 Waivers and the WaiverSHA
+
+`.a2dlc/waivers.json` (`contracts/waivers.schema.json`) lists decisions. Each has a `target`, a `decision` and a free-text `reason`. The decision has a class, and a waiver covers only targets of its class:
+
+- Engine targets (`<file>::<symbol>`): `enforce_new_behavior` and `preserve_legacy`.
+- Test targets: `characterization_test` (a test that passes on the base on purpose) and `quarantine_flaky`; `enforce_new_behavior` also covers a test another tree passes and the candidate fails on purpose.
+- Findings of a check: `accept_finding`.
+- A protected path: a waiver whose target is `<file>::*`.
+
+<!-- a2dlc:schema waivers -->
+```json
+{
+  "schema_version": 1,
+  "waivers": [
+    {
+      "target": "src/m.py::f",
+      "decision": "enforce_new_behavior",
+      "reason": "The result now includes the offset <1> & more"
+    }
+  ]
+}
 ```
 
-Waives feed the Locked Contract `S*` as assertions, so the same divergence does not escalate again.
+When two entries of `waivers` have the same `target`, the last one is the waiver. A producer MUST NOT write a repeated object key; the reference keeps the last value.
 
-On a test the decisions are `characterization_test` and `quarantine_flaky` (§4.4); on a finding of a pluggable check
-(§5, Checks) the decision is `accept_finding` on `<file>::<check id>` or `<file>::L<n>`. A decision of another class
-does not cover the target, and every signature binds the blob of the target's file.
+**WaiverSHA.** The `waiver_sha256` of an approval is the SHA-256, as 64 lowercase hexadecimal digits, of these bytes, which are not the bytes of `waivers.json`:
+
+```text
+{"target":<T>,"decision":<D>,"reason":<R>}
+```
+
+The object has exactly these three keys, in this order, with no whitespace and no trailing newline. `<T>`, `<D>` and `<R>` are the three strings written as JSON strings in UTF-8 with these rules:
+
+| Character | Written as |
+|---|---|
+| `"` | `\"` |
+| `\` | `\\` |
+| U+0008, U+000C, U+000A, U+000D, U+0009 | `\b`, `\f`, `\n`, `\r`, `\t` |
+| any other U+0000 to U+001F | `\u00` and two lowercase hexadecimal digits |
+| `<`, `>`, `&` | `<`, `>`, `&` |
+| U+2028, U+2029 | ` `, ` ` |
+| a lone surrogate in the source document (`\ud800`) | the character U+FFFD, written as its UTF-8 bytes |
+| anything else, including `/`, U+007F and characters above U+007F | itself, as UTF-8 |
+
+The strings are the values the document has after JSON decoding, so `<` and `<` in `waivers.json` give the same hash. A `waivers.json` that is not valid UTF-8 is invalid; the reference replaces each offending byte with U+FFFD, and a verifier MAY reject the file instead. The rules above are the output of Go's `encoding/json` for these three fields (`HTMLEscape` on), and they are identical in Go 1.23 and 1.25. For the waiver above the bytes are:
+
+```text
+{"target":"src/m.py::f","decision":"enforce_new_behavior","reason":"The result now includes the offset <1> & more"}
+```
+
+and `waiver_sha256` is `b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957`.
+
+#### 6.4.7 Approvals
+
+An approval is a person's SSH signature over a waiver and over the file it concerns. The agent can write a waiver and cannot write a valid signature.
+
+<!-- a2dlc:schema approvals -->
+```json
+{
+  "schema_version": 1,
+  "approvals": [
+    {
+      "target": "src/m.py::f",
+      "waiver_sha256": "b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957",
+      "file_blob": "7b9ebfea08897d6daa1eace601ca7a9288519547",
+      "principal": "t@t",
+      "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\n-----END SSH SIGNATURE-----\n"
+    }
+  ]
+}
+```
+
+**Signed text.** The signature is made over these bytes, in UTF-8:
+
+```text
+a2dlc-approval/1\n<target>\n<waiver_sha256>\n<file_blob>\n
+```
+
+where `\n` is U+000A and each field is written as it appears in the approval, with no quotes. `file_blob` is the id, in the repository's object format, of the blob at the file part of `target` (the text before the first `::`) in the tree of the commit (§6.4.2). Because it names the blob, any later edit to that file, even to another function in it, invalidates the approval.
+
+**Signature.** The signature is an OpenSSH signature (`ssh-keygen -Y sign`; format in OpenSSH `PROTOCOL.sshsig`) with the namespace `a2dlc-approval`, armored as in the `signature` field. A verifier checks it against an allowed-signers file in the format of `ssh-keygen -Y verify`: the line for `principal` must list the signing key, and a `namespaces` option on that line, if present, must include `a2dlc-approval`. A verifier MUST support `ssh-ed25519` keys and MAY support others. The reference delegates to `ssh-keygen -Y verify -f <allowed_signers> -I <principal> -n a2dlc-approval -s <signature file>` with the signed text on standard input, so it accepts whatever that command accepts.
+
+**Allowed signers** never come from the repository, because an agent could add its own key in the same diff. In the reference they come from, in this order: the file named by `A2DLC_ALLOWED_SIGNERS`; the contents of `A2DLC_ALLOWED_SIGNERS_DATA`; `~/.config/a2dlc/allowed_signers`. With none of them, nothing is approved.
+
+An approval is valid for a commit when all of these hold:
+
+1. The commit's `.a2dlc/waivers.json` has a waiver for `target`.
+2. `waiver_sha256` equals the WaiverSHA of that waiver (§6.4.6).
+3. `file_blob` equals the blob id of the target's file in the commit's tree.
+4. The signature verifies for `principal` over the signed text.
+
+When `approvals` holds several entries for one target, one valid entry is enough.
+
+#### 6.4.8 Verification
+
+To verify a receipt for a commit `C` (default `HEAD`) a verifier reads `.a2dlc/verdict.json` from the working tree, and `.a2dlc/waivers.json`, `.a2dlc/approvals.json` and, for notes, `.a2dlc/config.json` at `base_ref` from the objects of the commit. It runs no engine. It reports every problem it finds, using these kinds:
+
+| Kind | Problem |
+|---|---|
+| `receipt_missing` | There is no `.a2dlc/verdict.json`. |
+| `receipt_invalid` | The file is not a receipt of this schema. |
+| `stale` | `tree_hash` differs from `tree_hash(C)`. The reference names up to ten files that differ. |
+| `not_pass` | `verdict` is not `PASS`. |
+| `base_unpushed` | The repository has a pushed base (the upstream of `HEAD`, else the fork point of `HEAD` from `refs/remotes/origin/HEAD`) and `base_ref` is not an ancestor of it or equal to it. |
+| `note_invalid` | A note that §6.4.5 does not allow. |
+| `note_on_critical_code` | A note on a target that `critical_code` names. |
+| `unsigned_waiver` | A waived target, test or finding has no valid approval. The reference also says why: no waiver in the commit, `waiver_changed`, `file_changed` or `signature_invalid`. |
+
+The set of waived targets is every entry of `targets` and `tests` with `waived: true` plus every finding of `checks` with `waived: true`, each target once. A receipt is **valid** for `C` when no problem is found. `pending_waivers` is not read: the reference derives the same fact from the `waived` flags and the approvals.
+
+The reference prints `a2dlc verify: ok` and exits `0` when the receipt is valid. Otherwise it prints one line per problem on standard error and exits `1`; it also exits `1` when it cannot read a document at all, so the exit code does not tell an invalid receipt from a verifier error.
+
+#### 6.4.9 What a receipt does not claim
+
+A valid receipt says that one tree, judged against one base with the base's configuration, got this verdict from these engines at `created_at`. It does not say:
+
+- That the rest of the test suite still passes. Gates run the changed tests and, with `baseline_command`, the tests the change affects. The full suite never runs by default (owner decision of 2026-10-26).
+- That the candidate is equivalent to the base. `PASS` means no difference was found within `search_budget`; `INCONCLUSIVE` and `out_of_scope` list what was not judged, and a receipt with no targets and files in `out_of_scope` is a `PASS`.
+- That a person read the code. An approval says a key holder agreed to one waiver on one version of one file.
+- Who produced the receipt. A verifier checks the receipt against the commit and the approvals against the allowed signers; nothing in `verdict.json` is signed. A hand-written `PASS` for the same tree passes verification. What closes that gap is running the producer in CI with `--require-signatures` over the same commit, not the verifier.
+- That the engine was correct. A receipt names the engine and its version, and trusts both.
+
+#### 6.4.10 Changes from v3.4
+
+v3.4 described the receipt from the goalie format before the implementation existed. v3.5 states what the implementation does. These are the differences, and the reason for each:
+
+| v3.4 | v3.5 | Reason |
+|---|---|---|
+| `.a2dlc/latest.json` | `.a2dlc/verdict.json`, with history in `.a2dlc/reports/` | Naming chosen before the specification was frozen. |
+| `.a2dlc/waivers.yaml` | `.a2dlc/waivers.json` | JSON only, so that one JSON Schema validates every artifact and the core needs no YAML parser. |
+| `tree_hash: "sha256:…"` | `tree_hash: "git-tree:<hex>"` | The implementation uses the id `git write-tree` returns; v3.4 named a SHA-256 of the content without defining it. |
+| One target per verdict | One verdict per run, with `targets[]` and `out_of_scope[]` | One receipt per tree, which is what verification checks. |
+| `stage`, `contract_hash`, `cluster_id` in the verdict | `stage` and `contract_hash` are optional (`a2dlc run` sets them); `cluster_id` is on every escalation, not on the verdict | The verdict has no divergence clusters. |
+| `approved_by: <name>` | An SSH signature over the target, the waiver and the file's git blob | A free-text name can be written by the agent itself. |
+| `cluster_id` and `date` in a waiver | A waiver has `target`, `decision` and `reason` | The approver is the signing principal of the approval, and the date is in git history. |
+| No note | `note: behavior_divergence` and `config.critical_code` | A divergence on code that is not critical asks for review without blocking the push. |
+| Quarantine in `.a2dlc/flaky.yaml` | The `quarantine_flaky` waiver | One file and one signature path for every decision. |
+
+Where the reference falls short of this section is in §6.4.11.
+
+#### 6.4.11 Known gaps of the reference
+
+- The reference rejects unknown fields when it reads a JSON document, but it does not enforce `required`, enums or string patterns (the cause of bead a2dlc-5fq). A receipt missing `created_at` is accepted by `a2dlc verify` although §6.4.3 says to reject it. `conformance/` marks such vectors as expected failures of the reference.
+- The reference matches object keys case-insensitively (`"Target"` is read as `target`), and reads `null` or a missing string as the empty string, in `waivers.json` as in every document it decodes. The schemas reject both; a verifier that validates against the schema is the stricter one, and a producer MUST NOT rely on either.
+- On a repository with `core.ignorecase=true`, git matches pathspecs case-insensitively in some commands. The reference was exercised on git 2.51.0 with `core.ignorecase` both `true` and `false` and excluded the same paths, so §6.4.2 holds there; other git versions are not covered.
+- A working tree that holds another repository's checkout inside the repository (a nested worktree that is not tracked) enters the preview and makes the receipt stale at verification (bead a2dlc-3hd).
 
 ---
 
@@ -619,3 +870,4 @@ The pilot data decides v4, not another round of paper review.
 | v3.2 | Lite mode (§4.4) as entry point, with an escalation path to the full flow. Common JSON verdict format and versioned waives (§6.4). CrossHair and Hypothesis ghostwriter as Python differential engines. goalie added to prior art. Phase 0 of the pilot in Lite mode. |
 | v3.3 | Changes from the smoke run of 2026-10-15:<br>- CrossHair as the main differential engine; ghostwriter only as a complement, with types, `max_examples ≥ 2000` and name patch.<br>- Mandatory types in Lite.<br>- Verdict with three values (`PASS` / `FAIL` / `INCONCLUSIVE`), tool and search budget.<br>- The gate is run by the harness; the line in `CLAUDE.md` only documents it.<br>- Clean checkout of the base with another package name.<br><br>Mechanisms taken from a harness in use:<br>- NOP/Oracle gate.<br>- "Does not get worse" baseline.<br>- Tree-bound receipt (`tree_hash`, stale before merge).<br>- Risks 7 and 8 in §10.<br><br>Same-day revision, after external critique:<br>- CrossHair budget measured (minimum 10 s per function; the default value gives false PASSes), in parallel and with priority.<br>- `search_budget` depends on the engine.<br>- NOP gate: the base fails against a stub that raises `NotImplementedError` (valid failure), not because of an import; a test that passes against the stub is refuted.<br>- Flaky only if also intermittent on the base; stable green on the base and red on the candidate blocks.<br>- §10.9 says which figures are measured.<br>- `INCONCLUSIVE` and flakiness metrics.<br>- goalie aligned with §4.4.<br>- Sources for Skill2Env and AI-DLC verified in their repos. |
 | v3.4 | Following an external critique (from an LLM) with three options and three techniques, all unmeasured:<br><br>Discarded, with reasons:<br>- Lean 4 / Isabelle for Z3's `UNKNOWN` (§10.2).<br>- Path pruning inside CrossHair (§4.4, "Engines").<br>- The "5 times" figure (§10.9).<br><br>Added:<br>- Assumption catalog above the LLM, which only instantiates examples (Stage 1).<br>- Domain guard before CrossHair, only contract-based or by mechanical over-approximation, recorded in the verdict (§4.4, §6.4).<br>- Lemmas with postcondition in Critical slices, without raising the parent verdict (Stage 2).<br>- Blind back-translation of `S*` and `π_S` with its own role (§3, Stage 1.5).<br><br>Each technique carries its opposite case and its metric (§12). Risks 10 and 11 in §10. |
+| v3.5 | The receipt (§6.4) is rewritten as a normative section from the schemas in `contracts/` and the reference implementation:<br>- `tree_hash` is `git-tree:<hex>`, the tree of a commit minus five excluded paths (§6.4.2), not `sha256:`.<br>- The bytes of the waiver hash and the signed approval text are fixed (§6.4.6, §6.4.7).<br>- Notes, `critical_code`, harness errors and what the receipt does not claim are stated (§6.4.4, §6.4.5, §6.4.9).<br>- The deviations of §6.4 from v3.4 are folded in (§6.4.10) and removed from the coverage matrix.<br>- One sentence of §4.4 follows it: the `.a2dlc/flaky.yaml` quarantine is the `quarantine_flaky` waiver.<br>- `contracts/tests/check_rfc.py` fails if §6.4 contradicts a schema. |

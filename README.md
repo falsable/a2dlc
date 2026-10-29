@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/falsable/a2dlc/releases"><img src="https://img.shields.io/github/v/release/falsable/a2dlc?style=flat-square&color=10b981" alt="Release"></a>
   <a href="https://github.com/falsable/a2dlc/actions"><img src="https://img.shields.io/github/actions/workflow/status/falsable/a2dlc/a2dlc.yml?style=flat-square&label=self-gated" alt="CI"></a>
-  <a href="docs/A2-DLC_v3.4_protocol.md"><img src="https://img.shields.io/badge/protocol-RFC--0001%20v3.4-6366f1.svg?style=flat-square" alt="Protocol"></a>
+  <a href="docs/A2-DLC_v3.5_protocol.md"><img src="https://img.shields.io/badge/protocol-RFC--0001%20v3.5-6366f1.svg?style=flat-square" alt="Protocol"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3b82f6.svg?style=flat-square" alt="License"></a>
   <a href="skills/a2dlc/SKILL.md"><img src="https://img.shields.io/badge/agent_skill-SKILL.md-8b5cf6.svg?style=flat-square" alt="Skill"></a>
 </p>
@@ -19,7 +19,7 @@
   <a href="#how-it-works">How it works</a> ·
   <a href="#hook-it-into-your-agent">Claude Code / Gemini / Cursor / MCP</a> ·
   <a href="#does-it-actually-catch-anything">Benchmarks</a> ·
-  <a href="docs/A2-DLC_v3.4_protocol.md">Spec</a>
+  <a href="docs/A2-DLC_v3.5_protocol.md">Spec</a>
 </p>
 
 <!-- TODO: record with asciinema/vhs → docs/assets/demo.gif (see examples/quickstart/) -->
@@ -95,7 +95,7 @@ Plus test gates: *no-op test* detection (passes on the base tree), coverage prec
 
 For autonomous slices, A2-DLC orchestrates isolated container roles so no single model sees the whole picture: dual **Specifiers** (α ≢ β) write the spec independently, an **Inquisitor** probes the boundaries, **Z3** checks invariants, clean-room **Builders** implement with lemma gates, and a blind **Saboteur** attacks the code from public signatures without ever seeing the implementation. Stages −1 to 7 end with diff-scoped mutation testing, blast-radius analysis (imports, OpenAPI, Protobuf, SQL DDL) and a canary rollback plan. Every stage writes to a SHA-256 hash-chained `ledger.json` verified by `a2dlc verify-run`.
 
-Measured: a greenfield slice converges in 84–127 s across 6–8 role containers at **$0.025–$0.069 per slice** (Claude Haiku 4.5 + Gemini 2.5 Flash). Full reference in the [spec](docs/A2-DLC_v3.4_protocol.md) and [coverage matrix](docs/COVERAGE_AND_BENCHMARKS.md).
+Measured: a greenfield slice converges in 84–127 s across 6–8 role containers at **$0.025–$0.069 per slice** (Claude Haiku 4.5 + Gemini 2.5 Flash). Full reference in the [spec](docs/A2-DLC_v3.5_protocol.md) and [coverage matrix](docs/COVERAGE_AND_BENCHMARKS.md).
 </details>
 
 <p align="center"><img src="docs/assets/protocol-architecture.svg" alt="A2-DLC architecture" width="820"></p>
@@ -204,7 +204,7 @@ A2-DLC needs only the `a2dlc` binary, Git and Docker, and works with your existi
 
 ## Docs
 
-- [Protocol specification — RFC-0001 v3.4](docs/A2-DLC_v3.4_protocol.md)
+- [Protocol specification — RFC-0001 v3.5](docs/A2-DLC_v3.5_protocol.md)
 - [Coverage matrix, stage reference, deviations & benchmarks](docs/COVERAGE_AND_BENCHMARKS.md)
 - [Agent skill](skills/a2dlc/SKILL.md) · [JSON Schema contracts](contracts)
 - [Quickstart example](examples/quickstart)

@@ -1,7 +1,7 @@
 ---
 name: a2dlc
 description: >-
-  Deterministic verification gate and autonomous state machine (A2-DLC v3.4) for AI coding agents.
+  Deterministic verification gate and autonomous state machine (A2-DLC v3.5) for AI coding agents.
   Activate this skill whenever working in a repository with `.a2dlc/config.json`, installing a2dlc,
   running `a2dlc check` / `a2dlc verify` / `a2dlc run`, interpreting `.a2dlc/verdict.json` or
   `.a2dlc/escalations.json`, or managing intentional behavioral changes via `.a2dlc/waivers.json`.
@@ -9,7 +9,7 @@ description: >-
 
 # A2-DLC Agent Skill (`a2dlc`)
 
-You are operating in a repository guarded by **a2dlc** (Autonomous Agentic Development Lifecycle, RFC-0001 v3.4). `a2dlc` replaces subjective code review with a deterministic verification gate executed inside hermetic (`--network none`) Docker engines.
+You are operating in a repository guarded by **a2dlc** (Autonomous Agentic Development Lifecycle, RFC-0001 v3.5). `a2dlc` replaces subjective code review with a deterministic verification gate executed inside hermetic (`--network none`) Docker engines.
 
 ---
 

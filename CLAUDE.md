@@ -1,6 +1,6 @@
 # a2dlc
 
-A2-DLC Lite differential gate, built to serve any language and any agent: a Go core and one engine per language in Docker. Measurements in §12 of protocol v3.4 (`docs/A2-DLC_v3.4_protocol.md`).
+A2-DLC Lite differential gate, built to serve any language and any agent: a Go core and one engine per language in Docker. Measurements in §12 of protocol v3.5 (`docs/A2-DLC_v3.5_protocol.md`).
 
 Task tracking: beads. Run `bd prime` to see the workflow.
 
@@ -16,6 +16,7 @@ Go is not installed on the host, and it will not be installed. Everything runs i
 - Test gates (NOP/Oracle, baseline, flakies): `bash e2e/measure_gates.sh <empty temporary folder>` with real pytest over the frozen cases in `e2e/testdata/gates-py/` (not edited or regenerated; Spanish keys, normalized by `e2e/normalize_manifest.py`). Needs `a2dlc-engine-py:0.2` (`engines/py`) and `a2dlc-tests-pytest:0.2` (`e2e/gates/pytest.Dockerfile`, with coverage); `FIXTURE=gates-prop` needs `a2dlc-tests-hypothesis:0.1`. The judge's own tests: `python -m unittest discover -s e2e -p "test_*.py"`. What pytest cannot make deterministic (flaky) is in `internal/app/gates_test.go` with a fake runner. `bash e2e/measure_self_verification.sh <that same folder>` afterwards runs the ADLC "session verifies its own work" rule over the trees measure_gates built (docs/VS_SDLC_AND_ADLC.md).
 - Current images built from this tree: `a2dlc-engine-py:0.7` (`engines/py`, 219 unit tests: `docker run --rm --network none -v "<repo>/engines/py:/engine:ro" --entrypoint python a2dlc-engine-py:0.7 -m unittest discover -s /engine -p "test_*.py"`), `a2dlc-roles:0.10` (`roles/`), `a2dlc-egress-proxy:dev` (`roles/egress-proxy`, needed by any role with `"network": "provider"`). Older tags (`engine-py` 0.2–0.6, `roles` 0.1–0.9) are kept for the measurements that cite them.
 - Contract test: it is in the README. If you change a schema, run `python contracts/tests/generate_invalid.py` and then `validate.py`.
+- RFC §6.4 (the receipt) is normative and must not contradict the schemas or `gitx.Excluded`: `docker run --rm --network none -v "<repo>:/r:ro" a2dlc-contract-test python /r/contracts/tests/check_rfc.py /r` (tests: `python -m unittest discover -s /r/contracts/tests -p test_check_rfc.py`). Change a schema, the excluded paths or `WaiverSHA`/`Payload` and the RFC changes with it. `e2e/test_rfc_reference.py` (host, stdlib) checks the RFC's tree and waiver-hash rules against git and the frozen Go output in `e2e/testdata/rfc/`.
 
 ## Rules
 - **The contract governs.** A change of shape goes first in `contracts/*.schema.json`, with valid and invalid examples; then in `internal/contract`. `TestExamplesOfContractDecode` fails if the struct and the schema drift apart.

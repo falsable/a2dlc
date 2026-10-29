@@ -1,0 +1,40 @@
+# The specification and its test material: RFC §6.4 against the schemas and the code, and (conformance job, below) the
+# conformance kit against the binary built from this commit. They run when what they read changes, not on every push.
+name: conformance
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/A2-DLC_*_protocol.md'
+      - 'contracts/**'
+      - 'conformance/**'
+      - 'internal/**'
+      - 'cmd/**'
+      - 'go.mod'
+      - '.github/workflows/conformance.yml'
+  pull_request:
+    paths:
+      - 'docs/A2-DLC_*_protocol.md'
+      - 'contracts/**'
+      - 'conformance/**'
+      - 'internal/**'
+      - 'cmd/**'
+      - 'go.mod'
+      - '.github/workflows/conformance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  spec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: RFC §6.4 against the schemas and gitx.Excluded
+        run: |
+          python3 -m venv /tmp/v
+          /tmp/v/bin/pip install --quiet jsonschema==4.23.0 referencing==0.35.1 rfc3339-validator==0.1.4
+          /tmp/v/bin/python contracts/tests/check_rfc.py .
+          /tmp/v/bin/python -m unittest discover -s contracts/tests -p "test_check_rfc.py"
+      - name: RFC rules against git and the frozen Go output
+        run: python3 -m unittest discover -s e2e -p "test_rfc_reference.py"

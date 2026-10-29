@@ -4,7 +4,7 @@
 
 <br>
 
-[![Protocol: A2-DLC v3.4](https://img.shields.io/badge/protocol-A2--DLC%20v3.4-6366f1.svg?style=flat-square)](A2-DLC_v3.4_protocol.md)
+[![Protocol: A2-DLC v3.5](https://img.shields.io/badge/protocol-A2--DLC%20v3.5-6366f1.svg?style=flat-square)](A2-DLC_v3.5_protocol.md)
 [![Release: v0.4.1](https://img.shields.io/badge/release-v0.4.1-10b981.svg?style=flat-square)](https://github.com/falsable/a2dlc/releases)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-3b82f6.svg?style=flat-square)](../LICENSE)
 [![Go: 1.23+](https://img.shields.io/badge/go-1.23%2B-00ADD8.svg?style=flat-square&logo=go)](../go.mod)
@@ -13,7 +13,7 @@
 <p align="center">
   <a href="#what-is-a2dlc"><b>What is a2dlc?</b></a> •
   <a href="#use-with-claude-code-gemini-cli-or-codex"><b>🤖 Use with Your AI Agent</b></a> •
-  <a href="A2-DLC_v3.4_protocol.md"><b>Specification (RFC-0001)</b></a> •
+  <a href="A2-DLC_v3.5_protocol.md"><b>Specification (RFC-0001)</b></a> •
   <a href="#quick-start"><b>Quick Start</b></a> •
   <a href="#the-state-machine-a2dlc-run"><b>State Machine</b></a> •
   <a href="#measured-results"><b>Benchmarks</b></a>
@@ -91,7 +91,7 @@ cp .claude/skills/a2dlc/SKILL.md .agents/skills/a2dlc/SKILL.md
 
 ## The protocol in one page
 
-A2-DLC (RFC-0001, v3.4) defines roles with strict isolation boundaries, three operating modes, and a staged state
+A2-DLC (RFC-0001, v3.5) defines roles with strict isolation boundaries, three operating modes, and a staged state
 machine. Each stage is guarded by deterministic gates. Whatever a compiler, an SMT solver, a fuzzer, a mutation
 tool or a linter can decide is never left to an LLM.
 
@@ -132,7 +132,7 @@ tool or a linter can decide is never left to an LLM.
 equivalent". `INCONCLUSIVE` blocks exactly like `FAIL`, but it escalates as a tooling problem rather than as a
 behaviour divergence.
 
-The full protocol specification is available in [docs/A2-DLC_v3.4_protocol.md](A2-DLC_v3.4_protocol.md).
+The full protocol specification is available in [docs/A2-DLC_v3.5_protocol.md](A2-DLC_v3.5_protocol.md).
 
 ## Protocol coverage
 
@@ -192,13 +192,9 @@ Legend: ✅ implemented · 🟡 partial · ⬜ not yet.
 
 | Specification (§6.4) | a2dlc | Why |
 |---|---|---|
-| `.a2dlc/latest.json` | `.a2dlc/verdict.json`, with history in `.a2dlc/reports/` | Naming chosen before the spec was frozen. |
-| `.a2dlc/waivers.yaml` | `.a2dlc/waivers.json` | JSON only, so that one JSON Schema validates every artifact. The core needs no YAML parser and stays dependency-free. |
-| One target per verdict | One verdict per run, with a `targets[]` array and `out_of_scope[]` | One receipt per tree, which is what `verify` checks. |
+| The v3.4 receipt: file names, `tree_hash`, one target per verdict, `stage`, `contract_hash`, `cluster_id`, `approved_by` | Folded into the specification as v3.5 [§6.4.10](A2-DLC_v3.5_protocol.md), which describes the receipt as implemented | The receipt is normative now; its differences from v3.4 and their reasons live next to the text they amend. |
 | `slice_contract.yaml` | `.a2dlc/run/<slice>/contract.json` (schema `slice-contract`) | JSON only, like the waivers. It is a run artifact, not a committed file: it is rebuilt for each slice. |
-| `stage`, `contract_hash`, `cluster_id` fields | Optional (v2). `a2dlc run` sets `stage` (the run-state stage id, `"4"`) and, when the run has a `contract.json`, `contract_hash`; `a2dlc check` sets neither. `cluster_id` is on every escalation, not on the verdict | Clustering is a hash of the escalation kind and its normalized message, not a root-cause analysis; it groups identical failures, nothing smarter. |
 | Occam selection in Stage 5, after the mutation kill gate | At the end of Stage 4 | The kill gate measures the Saboteur's suite, not the candidates, so selecting first changes nothing it measures, and mutation then runs on the selected candidate only. |
-| `approved_by: <name>` | An SSH signature over the target, the waiver and the file's git blob | A free-text name can be written by the agent itself. |
 | A back-translation discrepancy "does not block on its own"; the Inquisitor turns it into a probe (§5 Stage 1.5, step 5) | A mismatch stops the run at Stage 1.5 (`escalated`) with one `backtranslation_mismatch` per discrepancy; each one is a probe a person answers with `a2dlc answer` (`--choice contract` accepts `S*` as written and the resumed run goes on; any other choice keeps the escalation, and `S*` changes only by running Stage 1 again) | The person answers between attempts, not mid-run: a run never waits on a terminal, so stopping is how the discrepancy reaches a person before builders spend tokens. |
 | Z3 runs over the invariant DSL (§6.2), with `verification: runtime_and_pbt` written back on `UNKNOWN` | Z3 runs over the DSL expressions of `S*.invariants[].dsl` (translated by `internal/dsl`) and over optional SMT-LIB 2 clauses per function (`smt`); the outcome is recorded in `lint.json`, `z3.json` and the stage's reason as `smt`, `smt+pbt` or `runtime_and_pbt`, and `S*` is not rewritten; decimals are not translated (an invariant with a decimal literal is `runtime_and_pbt` with that reason), a free identifier is declared as an SMT constant, not reported as an unknown symbol, and the translator lives in `internal/dsl` (decision 6 named `internal/contract`) | `S*` is locked by its hash once Stage 1 closes, so the verification outcome lives next to it instead of inside it. Scaled decimals need a declared scale per invariant that §6.2 does not give; the parameter names of the targets are not in `S*`, so the translator cannot tell a parameter from a typo. |
 | Invariant DSL on the intent's `invariants[]` (§6.2 names the slice contract) | The DSL is in `S*` (`invariants[].dsl`), written by the specifiers; the intent's invariants stay prose | The intent is the person's text; the specifiers translate it, and Stage 1.5 verifies what they wrote against the intent through the back-translation. |
