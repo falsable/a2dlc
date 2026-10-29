@@ -93,6 +93,8 @@ func exampleTypes() map[string]func() any {
 		// cmd/factory (ADR meta/0008)
 		"factory-config": func() any { return &FactoryConfig{} }, "factory-batch": func() any { return &FactoryBatch{} },
 		"factory-report": func() any { return &FactoryReport{} },
+		// factory integrate (bead a2dlc-3fu.4)
+		"factory-holdout": func() any { return &FactoryHoldout{} }, "factory-integration": func() any { return &FactoryIntegration{} },
 	}
 }
 
@@ -127,6 +129,8 @@ var unknownPropertyInvalid = []string{
 	"factory-report__stage-extra-field.json",
 	"factory-report__usage-extra-field.json",
 	"factory-report__tests-touched-extra-field.json",
+	"factory-holdout__extra-field.json",
+	"factory-integration__lane-extra-field.json",
 }
 
 // knownLooseDecodes names invalid examples that the struct accepts although the schema rejects them. They are
