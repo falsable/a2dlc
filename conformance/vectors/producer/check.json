@@ -1,0 +1,626 @@
+{
+ "class": "producer",
+ "about": "RFC 6.4: what `check` writes. The engine is the fake engine of engines/fake (docker build -t a2dlc-engine-fake:0.1 engines/fake). P-check-011 to 014 derive from the frozen mutants of e2e/testdata/mutantes-bb.",
+ "vectors": [
+  {
+   "id": "P-check-001",
+   "title": "With no engine a changed file is out of scope and the receipt is a PASS",
+   "rfc": "6.4.3",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [],
+    "out_of_scope": [
+     {
+      "file": "src/m.py",
+      "reason": "no_engine"
+     }
+    ],
+    "pending_waivers": [],
+    "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38",
+    "base_ref": "$BASE"
+   }
+  },
+  {
+   "id": "P-check-002",
+   "title": "Nothing changed: PASS, and tree_hash is the tree of HEAD",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [],
+    "out_of_scope": [],
+    "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d",
+    "base_ref": "$BASE"
+   }
+  },
+  {
+   "id": "P-check-003",
+   "title": "The gate outputs of an earlier run do not enter the tree_hash",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/verdict.json": "{}\n",
+       ".a2dlc/run/s/state.json": "{}\n",
+       ".a2dlc/reports/r.json": "{}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": []\n}\n",
+       ".a2dlc/escalations.json": "{}\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d",
+    "base_ref": "$BASE"
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "P-check-004",
+   "title": "A divergence on code that is not critical is a note and the receipt is a PASS",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "export const f = 2\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "FAIL",
+      "waived": false,
+      "note": "behavior_divergence"
+     }
+    ],
+    "base_ref": "$BASE",
+    "pending_waivers": [],
+    "tree_hash": "git-tree:e053d76250ff6c671594c4d2ecfd4037c643eab7"
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ],
+   "verify": {
+    "valid": true
+   }
+  },
+  {
+   "id": "P-check-005",
+   "title": "A divergence on critical code is a FAIL",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}], \"critical_code\": [\"src/**\"]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "export const f = 2\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 1,
+    "verdict": "FAIL",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "FAIL",
+      "waived": false
+     }
+    ],
+    "base_ref": "$BASE",
+    "tree_hash": "git-tree:d7b00c8a7fe4b31f4556e80aaac1719ebd27cb4d"
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ],
+   "verify": {
+    "valid": false,
+    "kinds": [
+     "not_pass"
+    ]
+   }
+  },
+  {
+   "id": "P-check-006",
+   "title": "A * in critical_code does not cross a directory",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}], \"critical_code\": [\"src/*.ts\"]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "export const f = 2\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "FAIL",
+      "waived": false,
+      "note": "behavior_divergence"
+     }
+    ],
+    "base_ref": "$BASE"
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ],
+   "derived_from": {
+    "fixture": "e2e/testdata/mutantes-bb/mutantes.json",
+    "mutant": "B4-estrella-cruza",
+    "sha256": "247f92bab5964b9945556950d57a451e27d9e86ecde6e4ce176b8f9af413e687"
+   },
+   "verify": {
+    "valid": true
+   }
+  },
+  {
+   "id": "P-check-007",
+   "title": "A ** in critical_code does",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}], \"critical_code\": [\"src/**/*.ts\"]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "export const f = 2\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 1,
+    "verdict": "FAIL",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "FAIL",
+      "waived": false
+     }
+    ],
+    "base_ref": "$BASE"
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ],
+   "derived_from": {
+    "fixture": "e2e/testdata/mutantes-bb/mutantes.json",
+    "mutant": "B4-estrella-cruza",
+    "sha256": "247f92bab5964b9945556950d57a451e27d9e86ecde6e4ce176b8f9af413e687"
+   }
+  },
+  {
+   "id": "P-check-008",
+   "title": "critical_code can name a symbol",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}], \"critical_code\": [\"src/lib/f.ts::f\"]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "export const f = 2\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 1,
+    "verdict": "FAIL",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "FAIL",
+      "waived": false
+     }
+    ],
+    "base_ref": "$BASE"
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ]
+  },
+  {
+   "id": "P-check-009",
+   "title": "A symbol glob that does not match leaves the divergence a note",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}], \"critical_code\": [\"src/lib/f.ts::g*\"]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "export const f = 2\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "FAIL",
+      "waived": false,
+      "note": "behavior_divergence"
+     }
+    ],
+    "base_ref": "$BASE"
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ]
+  },
+  {
+   "id": "P-check-010",
+   "title": "A waived FAIL does not count; without a signature it is pending and verification refuses it",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}], \"critical_code\": [\"src/**\"]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "export const f = 2\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/lib/f.ts::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"intended\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "FAIL",
+      "waived": true
+     }
+    ],
+    "base_ref": "$BASE",
+    "pending_waivers": [
+     "src/lib/f.ts::f"
+    ]
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ],
+   "verify": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "unsigned"
+    ]
+   }
+  },
+  {
+   "id": "P-check-011",
+   "title": "An engine that cannot decide makes the receipt INCONCLUSIVE (exit 2)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "INCONCLUSIVE\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 2,
+    "verdict": "INCONCLUSIVE",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "INCONCLUSIVE",
+      "waived": false
+     }
+    ],
+    "base_ref": "$BASE"
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ],
+   "derived_from": {
+    "fixture": "e2e/testdata/mutantes-bb/mutantes.json",
+    "mutant": "B3-exit-inconcluso",
+    "sha256": "cd163de74e78712163b2232a5699b77b5ba101b2776d25c50512aad4f58f39cd"
+   },
+   "verify": {
+    "valid": false,
+    "kinds": [
+     "not_pass"
+    ]
+   }
+  },
+  {
+   "id": "P-check-012",
+   "title": "A waiver covers a FAIL and never an INCONCLUSIVE",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "INCONCLUSIVE\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/lib/f.ts::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"intended\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 2,
+    "verdict": "INCONCLUSIVE",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "INCONCLUSIVE",
+      "waived": false
+     }
+    ],
+    "base_ref": "$BASE"
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ],
+   "derived_from": {
+    "fixture": "e2e/testdata/mutantes-bb/mutantes.json",
+    "mutant": "B1-waiver-cualquiera",
+    "sha256": "4818b5881adefeacadff8f092248368027e37ec569de777f4004946fd2de83c6"
+   }
+  },
+  {
+   "id": "P-check-013",
+   "title": "An engine that dies makes the receipt INCONCLUSIVE and is listed in engine_errors",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "CRASH\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 2,
+    "verdict": "INCONCLUSIVE",
+    "targets": [],
+    "base_ref": "$BASE",
+    "engine_errors": 1
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ],
+   "derived_from": {
+    "fixture": "e2e/testdata/mutantes-bb/mutantes.json",
+    "mutant": "B2-motores-caidos",
+    "sha256": "beb6aa4a5db0ce4949c5d0cd0a8c9d0330643dfe31239209dd82289520236294"
+   }
+  },
+  {
+   "id": "P-check-014",
+   "title": "A file goes to the first engine whose glob matches, and to no other",
+   "rfc": "6.4.3",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}, {\"language\": \"other\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/**\"], \"budget\": {}}]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "export const f = 2\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "FAIL",
+      "waived": false,
+      "note": "behavior_divergence"
+     }
+    ],
+    "base_ref": "$BASE"
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ],
+   "derived_from": {
+    "fixture": "e2e/testdata/mutantes-bb/mutantes.json",
+    "mutant": "B5-asigna-a-todos",
+    "sha256": "0a34e644d0e6c47dbd461ac5e2e235f641c0f8ea3b8ce313ba27700adbe3720f"
+   }
+  },
+  {
+   "id": "P-check-015",
+   "title": "A changed file no engine covers is listed out of scope next to the judged ones",
+   "rfc": "6.4.3",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n",
+       "src/lib/f.ts": "export const f = 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [{\"language\": \"typescript\", \"image\": \"a2dlc-engine-fake:0.1\", \"paths\": [\"src/lib/**\"], \"budget\": {}}]}\n"
+      }
+     },
+     {
+      "files": {
+       "src/lib/f.ts": "export const f = 2\n",
+       "README.md": "bye\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [
+     {
+      "target": "src/lib/f.ts::f",
+      "verdict": "FAIL",
+      "waived": false,
+      "note": "behavior_divergence"
+     }
+    ],
+    "base_ref": "$BASE",
+    "out_of_scope": [
+     {
+      "file": "README.md",
+      "reason": "no_engine"
+     }
+    ]
+   },
+   "requires": [
+    "docker",
+    "image:a2dlc-engine-fake:0.1"
+   ]
+  }
+ ]
+}

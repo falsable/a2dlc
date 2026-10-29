@@ -1,0 +1,551 @@
+{
+ "class": "verifier",
+ "about": "RFC 6.4.3, 6.4.4 and 6.4.8: stale, not PASS, missing and malformed receipts.",
+ "template": {
+  "schema_version": 1,
+  "a2dlc_version": "0.4.1",
+  "verdict": "PASS",
+  "base_ref": "$BASE",
+  "tree_hash": "git-tree:0000000000000000000000000000000000000000",
+  "created_at": "2026-10-29T12:00:00Z",
+  "targets": [],
+  "out_of_scope": [],
+  "pending_waivers": [],
+  "coverage": {
+   "status": "not_configured",
+   "files": []
+  }
+ },
+ "vectors": [
+  {
+   "id": "V-receipt-001",
+   "title": "A PASS receipt for the commit is valid",
+   "rfc": "6.4.8",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38"
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-receipt-002",
+   "title": "A receipt issued over other content is stale",
+   "rfc": "6.4.8",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:6df65248411363d921beb17e06ac88fc9e89ba68"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   }
+  },
+  {
+   "id": "V-receipt-003",
+   "title": "A FAIL receipt is not valid",
+   "rfc": "6.4.8",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38",
+     "verdict": "FAIL"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "not_pass"
+    ]
+   }
+  },
+  {
+   "id": "V-receipt-004",
+   "title": "An INCONCLUSIVE receipt is not valid",
+   "rfc": "6.4.8",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38",
+     "verdict": "INCONCLUSIVE"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "not_pass"
+    ]
+   }
+  },
+  {
+   "id": "V-receipt-005",
+   "title": "There is no receipt",
+   "rfc": "6.4.8",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "receipt_missing"
+    ]
+   }
+  },
+  {
+   "id": "V-receipt-006",
+   "title": "A field the schema does not name is refused",
+   "rfc": "6.4.3",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38",
+     "surprise": 1
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "receipt_invalid"
+    ]
+   },
+   "receipt_valid_shape": false
+  },
+  {
+   "id": "V-receipt-007",
+   "title": "A required field missing is refused",
+   "rfc": "6.4.3",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38"
+    },
+    "unset": [
+     "created_at"
+    ]
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "receipt_invalid"
+    ]
+   },
+   "receipt_valid_shape": false,
+   "known_failure": "a2dlc-5fq"
+  },
+  {
+   "id": "V-receipt-008",
+   "title": "A tree_hash in the v3.4 form is refused",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds_any": [
+     "stale",
+     "receipt_invalid"
+    ]
+   },
+   "receipt_valid_shape": false
+  },
+  {
+   "id": "V-receipt-009",
+   "title": "A document that is not JSON is refused",
+   "rfc": "6.4.8",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": "this is not json\n",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "receipt_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-receipt-010",
+   "title": "Content after the JSON document is refused",
+   "rfc": "6.4.8",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": "{\"schema_version\": 1, \"a2dlc_version\": \"0.4.1\", \"verdict\": \"PASS\", \"base_ref\": \"$BASE\", \"tree_hash\": \"git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38\", \"created_at\": \"2026-10-29T12:00:00Z\", \"targets\": [], \"out_of_scope\": [], \"pending_waivers\": [], \"coverage\": {\"status\": \"not_configured\", \"files\": []}}\n{}\n",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "receipt_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-receipt-011",
+   "title": "Upper-case hexadecimal in tree_hash does not match",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092FCAB53E7A49A73A70C57D7EFA188817E4B38"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds_any": [
+     "stale",
+     "receipt_invalid"
+    ]
+   },
+   "receipt_valid_shape": false
+  },
+  {
+   "id": "V-receipt-012",
+   "title": "A verdict that is not one of the three values is not a PASS",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38",
+     "verdict": "pass"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds_any": [
+     "not_pass",
+     "receipt_invalid"
+    ]
+   },
+   "receipt_valid_shape": false
+  },
+  {
+   "id": "V-receipt-013",
+   "title": "A field the schema does not name inside a target is refused",
+   "rfc": "6.4.3",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "surprise": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "receipt_invalid"
+    ]
+   },
+   "receipt_valid_shape": false
+  },
+  {
+   "id": "V-receipt-014",
+   "title": "A PASS receipt may carry targets, out_of_scope entries and coverage",
+   "rfc": "6.4.3",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "PASS",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": null,
+       "waived": false
+      }
+     ],
+     "out_of_scope": [
+      {
+       "file": "README.md",
+       "reason": "no_engine"
+      }
+     ],
+     "coverage": {
+      "status": "ran",
+      "files": [
+       {
+        "file": "src/m.py",
+        "by_engine": [
+         2
+        ],
+        "covered": [
+         2
+        ],
+        "uncovered": [],
+        "noted": [
+         {
+          "category": "defensive_handler",
+          "lines": [
+           3
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  }
+ ]
+}

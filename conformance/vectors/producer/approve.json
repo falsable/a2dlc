@@ -1,0 +1,1920 @@
+{
+ "class": "producer",
+ "about": "RFC 6.4.6 and 6.4.7: what `approve` writes for each waivers.json of the frozen Go corpus.",
+ "vectors": [
+  {
+   "id": "P-approve-plain-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'plain'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInIifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "00a61366a68c350818708894edb9d22507b495e448f4db82225f5f9bf8a3ecac",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_00-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_00'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDBiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "43b8232fb33d4e0c0260b2646592624b896ced943613231081ac73907fc10ad7",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_01-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_01'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDFiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "f04731cc32b3dfc75e7a0b0722ef628cc323179a24b9e9b09759b6ba83f060c4",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_02-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_02'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDJiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "c05838fe92e2ac6a507664a76501ad505037259da5a26836875b2119e2f28cac",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_03-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_03'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDNiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "98b43de6b61376478bf536d14434ce3e5028d2f17bb66f9eb5b700e1357f38c9",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_04-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_04'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDRiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "e6cae9d53e7d7f66ec010c6c3b934c8b7d13ba0c950709d6a343db3583636d1c",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_05-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_05'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDViIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "c8d36131dcbf940d4f2270d516177d77158a3cf77025394566907b030c78e6ed",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_06-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_06'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDZiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "5d46fc2e1c8cf065f9a8c00ea016500c30b32fd0d55cbc214079f910b1e5c724",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_07-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_07'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDdiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "fcd2069dc23da9479a6f47e19a291fac229f197f342fdf676a7a4787481ec575",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_08-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_08'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcYmIifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "9ea5c4bbdce847da66978ec51fbc872e47641afba8bed69428f7d9f3d02d6d34",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_09-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_09'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdGIifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "b703cc47f960e084ae8a986428ceac5fc24059f6e43759ffef112a8043a89c39",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_0a-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_0a'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcbmIifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "764fc438840404af9fb98d2f8fe61df3235f070d9c30e40484c44cdcc0754343",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_0b-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_0b'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMGJiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "db202c2029f579603e6c6a314f5802e4bb6e4a95c67e17358ed4809e85dca582",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_0c-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_0c'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcZmIifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "9a535a7ead2b6479a46ab4a280067e31aaa32010996a42ca37d9673b87a673c9",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_0d-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_0d'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFccmIifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "907d5d1453e012ee6749bf440ecb781cb48b4717d72a56f2497b9acf6bd7f06e",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_0e-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_0e'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMGViIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "445bd9ffccd50640b029ddf3ed92eb723422f5284ae97ff02e7545f4d7ffd2b3",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_0f-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_0f'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMGZiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "640d1dc42af08b1fe8103f2278c376c43ec90f23a598f49611a2ec7bbaae7c21",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_10-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_10'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTBiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "db377f79c05e3311d63b2e7b47d4a467d2338ad0d0056ca371acaf5630486570",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_11-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_11'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTFiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "00e749dd7cab1677b3b8059ee5025830f0570673eb2cebdc3b976c2b32e899f8",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_12-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_12'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTJiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "8df722e5d7536c43b863a6b9d9346453ef9f970a99880c7a696c95f0fded3c3a",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_13-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_13'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTNiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "7c06c26092a872912996963e1da876868b48ca46e5cd3229a89535a8b00edccc",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_14-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_14'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTRiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "39121d8fc51177e1b52a328d1e1267b9ac8852d581489e0c76bb8d0f3d16b524",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_15-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_15'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTViIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "0328bd83e7a5ab2e0f1c612455737cafdc648c6caccd15183339a5f4efb26f0c",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_16-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_16'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTZiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "73cbc7a8199fd603be3d729a2cd7e576535449593fe9bc94ccb0146317fa24b3",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_17-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_17'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTdiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "f3ba861a7162e609bc3b8f41dbfc07880a9e1cea96967c926f68793eba545170",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_18-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_18'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMThiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "41031ea6c69e5f981bb450800fcc9a5da0dcbb6aad2b126d3b3bdd12a805050e",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_19-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_19'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTliIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "bc85d45f31b0e823a9916bb5f911e1321e7f78318bafa5911fdd82ecb3ad3b8d",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_1a-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_1a'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWFiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "10ab918b113b2accfb2ec5b0c3446995aef04d74075d7f4849b2cdf86ac6126a",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_1b-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_1b'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWJiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "eccb1c37964b48affafae17b9a35fe7a5958104c4db39a17c581b94d27befae7",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_1c-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_1c'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWNiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "0aa940e5a5d433e04d6f258b902675518a88cbf782758dbbbedce1b5ccd937ff",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_1d-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_1d'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWRiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "abad6d5de970ebfacf34be36826530044c6fad9897a8b9a5e6cff1f35ab7cd28",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_1e-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_1e'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWViIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "7120724440d37414fa96dae116a81835a136824ccc9396cba0bc40961ce0419f",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ctl_1f-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ctl_1f'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWZiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "f3daaf1bb0c1b5feb214a6702fe293400fc0e2fca8095a8f457ca5cd9fb370ac",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-del_7f-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'del_7f'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwN2ZiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "a1c55c7e23d47532823bc690f03bdc29f0a7c09450ab44278b3f31c1b867553e",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ch_lt-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ch_lt'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIng8eSJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "2c731e5d9c2d05858097d20eb8362f01f1610158655efe99280f17c993de0e0a",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ch_gt-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ch_gt'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIng+eSJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "330a568a2fe2e10f999e301273366576bf7fec6fdd06c121ee69085818128644",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ch_amp-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ch_amp'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIngmeSJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "064246a91a361d610ea154761a369e738836367ed3001351de144ee7a3291839",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ch_quote-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ch_quote'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcInkifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "dc1d688111c3caf2f9c5c02ea7cbdd8aa9a938dcb0753f07a8046f624ebef3aa",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ch_backslash-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ch_backslash'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcXHkifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "1cd5fc8f82ecac24ae1dc1cf30ca27cb907242355d6ccb5611403d8ee8d5a053",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ch_slash-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ch_slash'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIngveSJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "bef26dd2a95336ac0a57cb756bbcd3237af7d4f6e6d6c11017d65ca56e000399",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-ch_apos-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'ch_apos'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIngneSJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "6879c3d42d6c71d6da9847dec9c40cd932b494340b3e3967670584133100ba67",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-u2028-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'u2028'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTIwMjhiIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "dbcef42fb5487efc621ed29a22e91cd3c55f8cea6a6346da7bc5f31feed55b69",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-u2029-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'u2029'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTIwMjliIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "1f1427901cf85a4e9d0260794c005917ceb6539ef20b8007ee7abd9008b0d75c",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-u0085-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'u0085'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwODViIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "18885ddf491a35cbe0d318388b1349e9a520b6ae537bd2c14751ffd7fd3ed85a",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-latin-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'latin'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImNhZlx1MDBlOSJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "a6ecc05ae25b9dcd0b56b35d3584ae202a4993baf47104b4ce3de592f266123b",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-cjk-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'cjk'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIlx1NjVlNVx1NjcyY1x1OGE5ZSJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "d7b6c577b300a0b3a6a22999d907e887b918bb693440b99c662256041bef8da1",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-emoji_raw-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'emoji_raw'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcdWQ4M2RcdWRlMDB5In1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "46ee6478c49e1bfdd0b7aed1c4f9ede7fb2517d42590157635049aaf40992a03",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-fffd-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'fffd'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcdWZmZmR5In1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "11859cfc64b953676ce602982cd258268174d19b6f9256be174f699c4c4ac3a6",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-nonchar_fffe-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'nonchar_fffe'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcdWZmZmV5In1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "fdc594b76a50c6a1923048f3116a8d9ddeb7169f057ad0efa0858eb670bb08b4",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-target_unicode-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'target_unicode'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "d\u00edr/\u65e5.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImRcdTAwZWRyL1x1NjVlNS5weTo6Zlx1MDBlOSIsICJkZWNpc2lvbiI6ICJlbmZvcmNlX25ld19iZWhhdmlvciIsICJyZWFzb24iOiAiciJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "d\u00edr/\u65e5.py::f\u00e9",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "e47bbf1ee47c168eb1e42efaf80c7a26b52c589b0c72a918ddf1b4a7868156a1",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-in_escaped_slash-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'in_escaped_slash'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXC9iIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "3bbe02cc4c4af763c095dbcbc1dbb7890c91f2e98feabfcf52810fdcfcc292da",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-in_escaped_lt-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'in_escaped_lt'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHUwMDNjYiJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "7be40ebc18dfaf2b99bfafb9b1bd271c4c0b47c109e1b02532ec40483742708d",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-in_escaped_e_acute-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'in_escaped_e_acute'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJjYWZcdTAwZTkifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "a6ecc05ae25b9dcd0b56b35d3584ae202a4993baf47104b4ce3de592f266123b",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-in_escaped_E_acute_upper-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'in_escaped_E_acute_upper'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJjYWZcdTAwRTkifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "a6ecc05ae25b9dcd0b56b35d3584ae202a4993baf47104b4ce3de592f266123b",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-in_surrogate_pair-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'in_surrogate_pair'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJcdWQ4M2RcdWRlMDAifV19"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "b2890d6dfa812262debb88ecf185779000184f48f1297f439562e1ddaab201f2",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-in_lone_high-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'in_lone_high'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHVkODAwYiJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "d7ce554fd1b09f7d762c060bce3e0d247857a5db6155f074c0651611ca33856d",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-in_lone_low-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'in_lone_low'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHVkYzAwYiJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "d7ce554fd1b09f7d762c060bce3e0d247857a5db6155f074c0651611ca33856d",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-in_high_then_nonlow-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'in_high_then_nonlow'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHVkODAwXHUwMDQxYiJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "975aab63be7280bc698573df2260db4078652e683863e67b32ef42e3e2279943",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-in_nul_escape-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'in_nul_escape'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHUwMDAwYiJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "43b8232fb33d4e0c0260b2646592624b896ced943613231081ac73907fc10ad7",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-keys_reordered-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'keys_reordered'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sicmVhc29uIjoiciIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJ0YXJnZXQiOiJhLnB5OjpmIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "00a61366a68c350818708894edb9d22507b495e448f4db82225f5f9bf8a3ecac",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-whitespace_pretty-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'whitespace_pretty'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "ewogICJzY2hlbWFfdmVyc2lvbiI6IDEsCiAgIndhaXZlcnMiOiBbCiAgICB7InRhcmdldCI6ICJhLnB5OjpmIiwgImRlY2lzaW9uIjogImVuZm9yY2VfbmV3X2JlaGF2aW9yIiwgInJlYXNvbiI6ICJyIn0KICBdCn0K"
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "00a61366a68c350818708894edb9d22507b495e448f4db82225f5f9bf8a3ecac",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-reason_whitespace-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'reason_whitespace'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIiAgbGVhZCBhbmQgdHJhaWwgXHQgIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "f3a232efbee5c3fb404e128bafdae882f28a3238525893421f3847d4db2f92fa",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-reason_long-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'reason_long'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4In1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "cf28735db54d66867e61e757731b3ef48f6c3265916d62721312e059ce4f4df3",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-dup_targets-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'dup_targets'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImZpcnN0In0seyJ0YXJnZXQiOiAiYS5weTo6ZiIsICJkZWNpc2lvbiI6ICJlbmZvcmNlX25ld19iZWhhdmlvciIsICJyZWFzb24iOiAic2Vjb25kIn1dfQ=="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "aa25cab265127cd9094c541a6b26059b1ba541a1978efc268b455aa506e3b819",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-two_targets-0",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'two_targets'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInIifSx7InRhcmdldCI6ICJiLnB5OjpnIiwgImRlY2lzaW9uIjogInByZXNlcnZlX2xlZ2FjeSIsICJyZWFzb24iOiAiciJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "a.py::f",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "00a61366a68c350818708894edb9d22507b495e448f4db82225f5f9bf8a3ecac",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "P-approve-two_targets-1",
+   "title": "approve signs the waiver hash and the text of RFC 6.4.6 and 6.4.7 for 'two_targets'",
+   "rfc": "6.4.6",
+   "op": "approve",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "b.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInIifSx7InRhcmdldCI6ICJiLnB5OjpnIiwgImRlY2lzaW9uIjogInByZXNlcnZlX2xlZ2FjeSIsICJyZWFzb24iOiAiciJ9XX0="
+       }
+      }
+     }
+    ]
+   },
+   "target": "b.py::g",
+   "principal": "tester@a2dlc",
+   "expect": {
+    "waiver_sha256": "aa5730bc4eeda908434cfc3b93243efcb48fb076a8a820d8ae8efbbb28ef6b37",
+    "file_blob": "7d4290a117a4ddcc11daae7ea675841033830c8f"
+   },
+   "tags": [
+    "waiver_sha"
+   ]
+  }
+ ]
+}

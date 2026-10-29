@@ -1,0 +1,725 @@
+{
+ "class": "verifier",
+ "about": "RFC 6.4.2: tree_hash is the tree of the commit minus five paths. The receipt's tree_hash is set to the expected value, so a verifier that hashes differently calls the receipt stale.",
+ "template": {
+  "schema_version": 1,
+  "a2dlc_version": "0.4.1",
+  "verdict": "PASS",
+  "base_ref": "$BASE",
+  "tree_hash": "git-tree:0000000000000000000000000000000000000000",
+  "created_at": "2026-10-29T12:00:00Z",
+  "targets": [],
+  "out_of_scope": [],
+  "pending_waivers": [],
+  "coverage": {
+   "status": "not_configured",
+   "files": []
+  }
+ },
+ "vectors": [
+  {
+   "id": "V-tree-001",
+   "title": "A receipt whose tree_hash is the commit's tree is valid",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-tree-002",
+   "title": "A file under the excluded path .a2dlc/verdict.json does not enter the tree hash",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/verdict.json": "{}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-003",
+   "title": "A file under the excluded path .a2dlc/reports does not enter the tree hash",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/reports/r1.json": "{}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-004",
+   "title": "A file under the excluded path .a2dlc/approvals.json does not enter the tree hash",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/approvals.json": "{}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-005",
+   "title": "A file under the excluded path .a2dlc/escalations.json does not enter the tree hash",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/escalations.json": "{}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-006",
+   "title": "A file under the excluded path .a2dlc/run does not enter the tree hash",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/run/slice-1/state.json": "{}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-008",
+   "title": "Paths that only look like excluded ones enter the tree hash",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/runner/k.json": "k\n",
+       ".a2dlc/verdict.json.bak": "bak\n",
+       "sub/.a2dlc/verdict.json": "n\n",
+       ".A2DLC/verdict.json": "u\n",
+       ".a2dlc/approvals.json.old": "o\n",
+       ".a2dlc/running": "r\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:4cb1e0b0896afe79b6d63be0e449357bdf08da6f"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-009",
+   "title": ".a2dlc/runner/k.json is not excluded: a receipt that leaves it out is stale",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/runner/k.json": "k\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-010",
+   "title": ".a2dlc/verdict.json.bak is not excluded: a receipt that leaves it out is stale",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/verdict.json.bak": "bak\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-011",
+   "title": "sub/.a2dlc/verdict.json is not excluded: a receipt that leaves it out is stale",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "sub/.a2dlc/verdict.json": "n\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-012",
+   "title": ".A2DLC/verdict.json is not excluded: a receipt that leaves it out is stale",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".A2DLC/verdict.json": "u\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-013",
+   "title": ".a2dlc/approvals.json.old is not excluded: a receipt that leaves it out is stale",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/approvals.json.old": "o\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-014",
+   "title": ".a2dlc/running is not excluded: a receipt that leaves it out is stale",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/running": "r\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-015",
+   "title": ".a2dlc/waivers.json is in the tree hash: a receipt without it is stale",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/waivers.json": "{\"schema_version\":1,\"waivers\":[]}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   }
+  },
+  {
+   "id": "V-tree-016",
+   "title": ".a2dlc/config.json is in the tree hash: a receipt for another config is stale",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[],\"max_files\":9}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   }
+  },
+  {
+   "id": "V-tree-017",
+   "title": "Executable bits, symbolic links and gitlinks are entries of the tree hash",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "run.sh": {
+        "text": "#!/bin/sh\n",
+        "mode": "100755"
+       },
+       "link": {
+        "symlink": "src/m.py"
+       },
+       "vendor/lib": {
+        "gitlink": "0123456789abcdef0123456789abcdef01234567"
+       }
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9daecb26d32b0a942a454f5409f0b5d57cda1744"
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-tree-018",
+   "title": "A receipt that treats the executable, the link and the gitlink as plain files is stale",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "run.sh": {
+        "text": "#!/bin/sh\n",
+        "mode": "100755"
+       },
+       "link": {
+        "symlink": "src/m.py"
+       },
+       "vendor/lib": {
+        "gitlink": "0123456789abcdef0123456789abcdef01234567"
+       }
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:48994ff1f53d2d4a81bee80b1f6b8c989cfe0893"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   }
+  },
+  {
+   "id": "V-tree-019",
+   "title": "A directory left with no entry disappears from the tree",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/verdict.json": "{}\n",
+       ".a2dlc/run/slice-1/state.json": "{}\n",
+       "src/m.py": "m\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:8ce1c3861f0437a110c4d3622e34f15e4f5d8278"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-020",
+   "title": "A commit with only excluded files has the empty tree",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/verdict.json": "{}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
+   "id": "V-tree-021",
+   "title": "Entries are ordered as git orders them; names may hold spaces, quotes and non-ASCII",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.b": "dot\n",
+       "a/b": "dir\n",
+       "a-b": "dash\n",
+       "A": "up\n",
+       "a": "low\n",
+       "dir\u00e9/\u65e5.py": "uni\n",
+       "sp ace/q'uote.py": "q\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:235e34167d0c9b54244dd0a79eb67349535bfc0c"
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-tree-022",
+   "title": "The tree hash is of the stored bytes: CRLF and binary content are kept as they are",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "win.txt": {
+        "b64": "YQ0KYg0K"
+       },
+       "bin.dat": {
+        "b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w=="
+       }
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:8546eab41862d96a635a11a6b447c1117574efa3"
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-tree-023",
+   "title": "In a SHA-256 repository the tree hash has 64 digits",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha256",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:22d6841a97b61c3d55e862781b9001f270787f6f94975235b55868920e792889"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "sha256"
+   ]
+  },
+  {
+   "id": "V-tree-024",
+   "title": "The tree hash is of the commit asked for, not of an ancestor",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "stale"
+    ]
+   }
+  }
+ ]
+}

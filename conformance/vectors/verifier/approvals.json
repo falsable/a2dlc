@@ -1,0 +1,5052 @@
+{
+ "class": "verifier",
+ "about": "RFC 6.4.6 and 6.4.7: waivers, WaiverSHA and signed approvals. The V-waiversha vectors come from the frozen Go output.",
+ "template": {
+  "schema_version": 1,
+  "a2dlc_version": "0.4.1",
+  "verdict": "PASS",
+  "base_ref": "$BASE",
+  "tree_hash": "git-tree:0000000000000000000000000000000000000000",
+  "created_at": "2026-10-29T12:00:00Z",
+  "targets": [],
+  "out_of_scope": [],
+  "pending_waivers": [],
+  "coverage": {
+   "status": "not_configured",
+   "files": []
+  }
+ },
+ "vectors": [
+  {
+   "id": "V-approval-001",
+   "title": "A waived target with a valid approval is valid",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-002",
+   "title": "A waived target with no approvals.json is refused",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "unsigned"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-003",
+   "title": "An approval for another target does not cover this one",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/other.py::g\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAUMdmr/QAgRmETE1N7ESzzDBsjAEnOUCInEQ4ngAUXCNs3pfKr0\\nHwcWJIiFulfPv+Pl4I5WmouaCbIPo34jZfDw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "unsigned"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-004",
+   "title": "A waiver edited after it was signed is refused",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more (edited)\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:525837c520cb5cc582a52b2d3031d63397b263bc",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "waiver_changed"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-005",
+   "title": "A file edited after the approval was signed is refused",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"10219f0331a9b70c16d544eeea60804d41244878\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAPEbJVIxfC8WUCFPbE92HTvZbj2e15BTkEqMgQqNhNiQXIAjUx0\\n7DkAAFTTzM74iw7FkF+abzUrSOttjsfKVQCw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "file_changed"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-006",
+   "title": "A principal that the allowed signers do not list is refused",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"mallory@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "signature_invalid"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-007",
+   "title": "A signature made in another namespace is refused",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\\nAAAAQIgCf8OR5OdvBlXRmu/+Q2pZJsxnyIp0vezn8hUo0cHTG4XD4p9zX/nbHTLkg8y2qJ\\nITaETGKIgB+lQ2WNRx4Q0=\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "signature_invalid"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-008",
+   "title": "A signature over the text without its final newline is refused",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAo5p5cQorUyrc8+4u2sOUJrgO7bT5Wo7nRc41yEaIEM3x+eE+ve\\nxeFSX1GCfO2Dk2h7eV0r45jsByK6AYXcFtDg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "signature_invalid"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-009",
+   "title": "With no allowed signers nothing is approved",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "signature_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-approval-010",
+   "title": "A signature by a key the allowed signers do not hold is refused",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2W5zOrSdjDLwdpe4/+9UD1/e5t\\nT1EbtYj7AMUNMJzY0AAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABADQA6OLVvqXvnf//yEGxwflQSHEhykswpo7F4RZs3pxCgfhjbRg\\nU0hoe8Pq3TC7GxMtb6kgnwum5A2co/w7TNCg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "signature_invalid"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-011",
+   "title": "One valid approval is enough when another entry for the target is not",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"mallory@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-012",
+   "title": "An allowed-signers line limited to another namespace does not allow this one",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "signature_invalid"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc namespaces=\"git\" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-013",
+   "title": "An allowed-signers line that lists the namespace allows it",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"The result now includes the offset <1> & more\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f34caf0cc811327770b0a3a4f2e6156f33432464",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc namespaces=\"git,a2dlc-approval\" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-014",
+   "title": "With two waivers for one target the last one is the waiver",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"first\"\n  },\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"second\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"bbc5d46564f8905a49c838338cfa6e2f3feb0d1df8c4b55c86d1bc786edab7a9\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA4Yk1OulgWucSwH/PlalbrxVPiX9JT1z7pjGMW/SEw6ZDmL7x60\\nd1uZ+MB9jw/5oa9eMmIhngMFpSgT1acybjCw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:53473095d7b5de9b8f63fd8da0dbce57d4a8aca8",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-015",
+   "title": "An approval of the first of two waivers for one target is refused",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"first\"\n  },\n  {\n   \"target\": \"src/m.py::f\",\n   \"decision\": \"enforce_new_behavior\",\n   \"reason\": \"second\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"58575de1a2ff1470a30fa18692679041bd729d9ae26b72179a615a7b0883aaef\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAkIGyO9HZ95iGlzbGbGHLVUQjLCn40EaYyC9V1NEwCfgL5NKQ74\\nTU2dOehgCNbslV+7dA5p4JChA7hK6r/DsuBw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:53473095d7b5de9b8f63fd8da0dbce57d4a8aca8",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "waiver_changed"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-016",
+   "title": "An approval with no waiver in the commit is refused",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"src/m.py::f\",\n   \"waiver_sha256\": \"b4359b1a5f1e2b51b00940912264895bed79bc82512cbbf965b99113ba7bf957\",\n   \"file_blob\": \"7b9ebfea08897d6daa1eace601ca7a9288519547\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA7h+fM1TE696o1xgVYh0NFIQrvbUkCRoHNDJN9wB8/66G4u60rx\\naaKjyAlNT5uyr+0Ho/zqCNbSNZD4hDsJeVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3092fcab53e7a49a73a70c57d7efa188817e4b38",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "no_waiver"
+    ]
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-approval-017",
+   "title": "The approval binds the file of the target, in whatever directory it is",
+   "rfc": "6.4.7",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/waivers.json": "{\n \"schema_version\": 1,\n \"waivers\": [\n  {\n   \"target\": \"lib/deep/x.py::h\",\n   \"decision\": \"preserve_legacy\",\n   \"reason\": \"legacy\"\n  }\n ]\n}\n",
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"lib/deep/x.py::h\",\n   \"waiver_sha256\": \"0bbdf8c92027f93ad7492b75c061f9b2d1609a151e3e73cf276dbc95368ddcfd\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAHJnYscHCtSJD0J6S6Hzwc6npWseJ9+zwAqziNERr8VBgI/ymqE\\nx1+0Wtcq2Fy2GXiC9v/UUFmpeZRt+eKKr7Bw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n",
+       "lib/deep/x.py": "x = 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:0852ff7da852b8e02178695459aee3a177d8d225",
+     "targets": [
+      {
+       "target": "lib/deep/x.py::h",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key"
+  },
+  {
+   "id": "V-waiversha-plain-0",
+   "title": "The waiver hash of 'plain' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInIifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"00a61366a68c350818708894edb9d22507b495e448f4db82225f5f9bf8a3ecac\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAM2fwJxnvuRgp9DVBI8k2R4s+oGJ6c1nglCpgkcMVe+rnFpAUQa\\nymJkKlgS5l/VTqNnaoW5oj0PqypntM2bsnBw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:2452ee63b1ff9bed30e8ffdf2b0daca5cad5c036",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_00-0",
+   "title": "The waiver hash of 'ctl_00' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDBiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"43b8232fb33d4e0c0260b2646592624b896ced943613231081ac73907fc10ad7\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAaeUFVMzYdFVY1xEfKyPbiEjNMqinuPLbr4ntmc/Mh6ynzeW8tM\\n14QtWkiDs46Auwswf1z6h7VQk+YLwhl9iCBg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f1b4c3fe6d141de5659b9fa35712bd749ceb3406",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_01-0",
+   "title": "The waiver hash of 'ctl_01' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDFiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"f04731cc32b3dfc75e7a0b0722ef628cc323179a24b9e9b09759b6ba83f060c4\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAAO32fDuHxglWoJzff6R+4qkPU+DuFVCK+ndmmn7mz9HzuomGVE\\nOOu8DX7BvCtzygIjmo7DXqYr2sdYWXqwR1Bg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:a13070e4a08c37f30ab52ce6b0141e5cc4be0cd1",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_02-0",
+   "title": "The waiver hash of 'ctl_02' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDJiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"c05838fe92e2ac6a507664a76501ad505037259da5a26836875b2119e2f28cac\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABANIGR0DPhgYG8Z6PhPx2wPPIb9QLA92dMvUEBbsJjAVJ5disdtX\\nYu2IR4biXrs6NdKTbBQljM6lKcWcXpEyB7Dg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:a49285f8d708ea3bee1ee76546e9958a995a375d",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_03-0",
+   "title": "The waiver hash of 'ctl_03' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDNiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"98b43de6b61376478bf536d14434ce3e5028d2f17bb66f9eb5b700e1357f38c9\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAfWaEu+IyMsdtfnxA1ZKhDhbSyZ1zsi2V0MPSzStgP+I18Zeepr\\nKszk60OJkYnq8KjToipB0wCQyNdb6ziyvCCA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3ffa55d590035351ef90ea51b4f1e21415a30bdc",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_04-0",
+   "title": "The waiver hash of 'ctl_04' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDRiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"e6cae9d53e7d7f66ec010c6c3b934c8b7d13ba0c950709d6a343db3583636d1c\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAZ96GQeChWJ1cVRiuCvksRPFj3OEd3JPHhMfiiX81PDo2/dD0tT\\nNXZfAcDx+CrCA+wjdDvGExkST3JqRMFH8vAw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:a8f6c4b8d208e88a8cbcdd6486bcbea032f2e97c",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_05-0",
+   "title": "The waiver hash of 'ctl_05' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDViIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"c8d36131dcbf940d4f2270d516177d77158a3cf77025394566907b030c78e6ed\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAzuSOLLMBGpDy0gsBBYVkkTfWIcAdBUTg+MC6US137zaCtJoz8w\\nI4D84OKo2AFzvlxVUU2Kr4/O6Ys06CwfrDCw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:7cb2b305001945bc307af75bc56efc53ed5a672d",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_06-0",
+   "title": "The waiver hash of 'ctl_06' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDZiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"5d46fc2e1c8cf065f9a8c00ea016500c30b32fd0d55cbc214079f910b1e5c724\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABANDxF2dIPbke0hYCWAulm5DaJ1R1LUay1/o+tNOUuEA1+YgU0pT\\nB57waaz32VTDU9AJeWvk1WB2ZJiDxss0PVDQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:b90a12f26aba5d065cd9c6789edd5f2dcf15b803",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_07-0",
+   "title": "The waiver hash of 'ctl_07' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMDdiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"fcd2069dc23da9479a6f47e19a291fac229f197f342fdf676a7a4787481ec575\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAXZe1xkygG6ySWEXykr8FZCkZrA6QjrxEtvbxbIQ7+avNaGHLSu\\nys3tnMD96aNse4Ne3lLUNorHvCO46/mJ2bBA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:57d1ae870229b225485518acf57795fb2f632690",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_08-0",
+   "title": "The waiver hash of 'ctl_08' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcYmIifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"9ea5c4bbdce847da66978ec51fbc872e47641afba8bed69428f7d9f3d02d6d34\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAqfcM+/WP81VlIlqOHSIlZvqudV1LTthv2SF41Dutsxnq2wFlQp\\n4m1eGqKFr/NodT/qNJwBp9eCENc2ZdfEQxAQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:bdfd2597d2471d4e9863e6c1e776a2569abd335f",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_09-0",
+   "title": "The waiver hash of 'ctl_09' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdGIifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"b703cc47f960e084ae8a986428ceac5fc24059f6e43759ffef112a8043a89c39\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAlD1mB8bRLUtZ5/i6N7McjvDo9KX2BfU++mgxZzMSDrXCvMidZZ\\ny4fhRPZ+Hel2jCNpFlqsjXv124+s7izaEiCg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:e2ded99bee21a7fbf4d66deb5132412844333d2d",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_0a-0",
+   "title": "The waiver hash of 'ctl_0a' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcbmIifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"764fc438840404af9fb98d2f8fe61df3235f070d9c30e40484c44cdcc0754343\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAUN4tu1OSMz0Gm4Ov7lHVKJxzw1ka6klp0tQGFM2M2ueYPscBjG\\nL4d+bu5qAOJ/TpRNcsDU7ixQIJV8aXYys8DQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:e83b12bf335dfde54c64c96bb10d22014961373a",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_0b-0",
+   "title": "The waiver hash of 'ctl_0b' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMGJiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"db202c2029f579603e6c6a314f5802e4bb6e4a95c67e17358ed4809e85dca582\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA/z9qqlO9JDgrZx1czgUTmzmoFREAQgiooEndu+mj08Q121Tjfa\\nnokMRWo/0yNDQM+ZcYoiFUNCoDzrQxS36RDg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:56d2668deffefd0bd861d94e42b9aa701b8eb3be",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_0c-0",
+   "title": "The waiver hash of 'ctl_0c' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcZmIifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"9a535a7ead2b6479a46ab4a280067e31aaa32010996a42ca37d9673b87a673c9\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAufG9EWfHrQ1Fd/YGbbuIdaQwBVfdWZzWD1fNAo91/pXH2qjWs1\\nCszIRp6HhHCcgVuUzzdBeyq0kEKjk9tfEvAA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:0d14dca1ac22e25d50d0c222ab360c183cad4ae6",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_0d-0",
+   "title": "The waiver hash of 'ctl_0d' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFccmIifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"907d5d1453e012ee6749bf440ecb781cb48b4717d72a56f2497b9acf6bd7f06e\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA+4z4yD3l6fwlgzNQuoJ9SyzRn78xJPnR/7XmmXC9zVlqzKnpXg\\nmwYUgpEZ7Q8paHeRGSbKixYVyWcNl0BW5ACg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f8b791da98ad527334c4ab407e3e2c2e65325d9e",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_0e-0",
+   "title": "The waiver hash of 'ctl_0e' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMGViIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"445bd9ffccd50640b029ddf3ed92eb723422f5284ae97ff02e7545f4d7ffd2b3\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABALpHLdA9c7EB1BlYdceiuUtMBbhsbEL6zF+rxPbouDpFimCLlW4\\nVNRoRZ+80AirqAv3gZGK7+0vUCjk+BfNRmCw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:a0b2c0cc9a26e2b6e41cd931fb395f8e50e2bb3c",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_0f-0",
+   "title": "The waiver hash of 'ctl_0f' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMGZiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"640d1dc42af08b1fe8103f2278c376c43ec90f23a598f49611a2ec7bbaae7c21\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAtPebOryaAFtd4fTsTmmADFLnapVw8kIj1FqC5AxGCTJhNe1qu5\\nOm35dcUGf0zypnCsdCsVnxlTt7j7AYpaWUCQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3bf4404616b9e292568ee6fe3ed91faa3ad81737",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_10-0",
+   "title": "The waiver hash of 'ctl_10' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTBiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"db377f79c05e3311d63b2e7b47d4a467d2338ad0d0056ca371acaf5630486570\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAZNuYkTp8CXKL7EqoTFa7hnSnl8jPsjynJuIgC1vvQNNsRzw5tu\\nPKpMK+fflXP3Gik/4nb32LZEGV8cwVVDiiCQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:41088a2bd9019fa2f5c90dd953617d6ce11c37b6",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_11-0",
+   "title": "The waiver hash of 'ctl_11' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTFiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"00e749dd7cab1677b3b8059ee5025830f0570673eb2cebdc3b976c2b32e899f8\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAqaVfC+RKQxR8ZmjcHcck1wZBKVJroFwVKPuxiIr4S7NkLQK9Mf\\n5csEo7Jzea9ROUHTo/BXqP0JtBajMfv3kZBQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:964e1c3f9d3758e7bf73a6d8ecc3197ab14fae25",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_12-0",
+   "title": "The waiver hash of 'ctl_12' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTJiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"8df722e5d7536c43b863a6b9d9346453ef9f970a99880c7a696c95f0fded3c3a\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAi7DoFO5wjFG7F9AufkgVBK17VLvm6x6IA7R1DktooYM2d34olq\\n+GPyDe1vblDmnSx/E8sCwCIx69QQjspvOsAA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:da4dac2fac1cf9d48c56e9c9b1b4f939e1e9a27c",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_13-0",
+   "title": "The waiver hash of 'ctl_13' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTNiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"7c06c26092a872912996963e1da876868b48ca46e5cd3229a89535a8b00edccc\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA/d1xkLK+u06rzKz9gXhGnSltszSJA2H/n4AV43Uf2E0w7ogFP7\\nZzL0nknOfgdH0L+XegDLiYbJCT/54y4jLtBA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f7c505c7a2418e21bb9e294c46e442d2fc7611df",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_14-0",
+   "title": "The waiver hash of 'ctl_14' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTRiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"39121d8fc51177e1b52a328d1e1267b9ac8852d581489e0c76bb8d0f3d16b524\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAUaMwHO3EpDEuOQXqVoYEaI232hH2m0E8QoKnJiZuYMu6wVDHeM\\nxs8j7wLTxujulIXa9rL1dUxnLIt2g7xcZOBw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:175edbae25d9466b531a1a130d13528832e77442",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_15-0",
+   "title": "The waiver hash of 'ctl_15' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTViIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"0328bd83e7a5ab2e0f1c612455737cafdc648c6caccd15183339a5f4efb26f0c\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAZkxnUk0pOoErXa5XLBHNKxep4t1aHGYR1bU+Y57VoggZP+BwAJ\\nrmqPkS2Kq6qj0/rBQS6xlw9KOVC0aSUSXpDA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:6c7def6b2fdcb55e1ef8f0745f1abe6e1ebe9190",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_16-0",
+   "title": "The waiver hash of 'ctl_16' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTZiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"73cbc7a8199fd603be3d729a2cd7e576535449593fe9bc94ccb0146317fa24b3\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAC+g+5D+PDaeEeoIdM4KqXBi1/Nm+Z0TLqsYcLR/WMVohZW3cSM\\nOBDZtm1dRSrXXshs3/6LchmIjuruZrgmqYDg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:5b62c7255005b4c480bd2b1d361a57d8443f31ac",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_17-0",
+   "title": "The waiver hash of 'ctl_17' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTdiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"f3ba861a7162e609bc3b8f41dbfc07880a9e1cea96967c926f68793eba545170\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAkhdR65OIdt9FZ6czfJZyvsnHDN9ibblHDblgLWH2hK3Nn844tE\\npH0mAc2/nh+ul87IOj7Uk6YbC3B889jo7yBw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:091f0800ee1636050e41fb4d2c3b2f2dfc56932a",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_18-0",
+   "title": "The waiver hash of 'ctl_18' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMThiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"41031ea6c69e5f981bb450800fcc9a5da0dcbb6aad2b126d3b3bdd12a805050e\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAjgQw2IzITQqhOCroG+wRUD5Dp13v3jfUSbEoEBVnWoY9lxR0rL\\nb71kVwVpBqtF4YSwbt/dZE2aR5BP+hrX9fDw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:bd6016a469142098e00e4fd52657e6473306ac0b",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_19-0",
+   "title": "The waiver hash of 'ctl_19' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMTliIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"bc85d45f31b0e823a9916bb5f911e1321e7f78318bafa5911fdd82ecb3ad3b8d\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAQfRgxn3+tVWHARcjfmFWEEsBKKkqjEMuOw7MmhC1bgrFAIB3+M\\nIC42sU6C7z9MEXReh2WCPXM91pumRg34+ODg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:6624bafb04dd401592239b507196dd23592f3c6f",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_1a-0",
+   "title": "The waiver hash of 'ctl_1a' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWFiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"10ab918b113b2accfb2ec5b0c3446995aef04d74075d7f4849b2cdf86ac6126a\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAuz4yPiISbz7n/a5PPKo29s12V3b1kN6jjPibZ22gV8i4g7P5Al\\nFpUeNGyZT1Rxq+REE4gXhsG7iHF7O7O/qRCg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:238de8bf38ba36cb511274f6c279b2f7e1a1f780",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_1b-0",
+   "title": "The waiver hash of 'ctl_1b' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWJiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"eccb1c37964b48affafae17b9a35fe7a5958104c4db39a17c581b94d27befae7\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAUgnDTyP7tJpFcLEB6hT4T5zB57XA/q56d04W4ThBFjlEHHQa0k\\nmHI2JvvCAUFfJTL881cxRAI8oHFj1CW3CvCw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:09cf80e63c62a5f343d7d6b3cd96493e14b503a0",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_1c-0",
+   "title": "The waiver hash of 'ctl_1c' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWNiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"0aa940e5a5d433e04d6f258b902675518a88cbf782758dbbbedce1b5ccd937ff\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAE4GHdRU2nwDMRGmFDB85VkBG8Jic4S5dfiMs1YfWHPaL1fehik\\ndmmrhV/VWJJu+Cf0Q9doeYtxaFjdbUqfDTCw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:d88e4d9cc2deaabc5f593948fc8329bc8e648fd3",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_1d-0",
+   "title": "The waiver hash of 'ctl_1d' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWRiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"abad6d5de970ebfacf34be36826530044c6fad9897a8b9a5e6cff1f35ab7cd28\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAZrcZ0Qlimu0ZeURKSUhu8J6Zaov7+OoYD/KA20GwTpSryz4c+r\\nyPMlnowMWgD58Cvoo40tjuVzSsTgSzZq1XAQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f1d979f1a22f13a54e5ea9548945eda507b77dac",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_1e-0",
+   "title": "The waiver hash of 'ctl_1e' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWViIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"7120724440d37414fa96dae116a81835a136824ccc9396cba0bc40961ce0419f\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAsPCuw5QHAulWJ7EEE8FJncii4MR0QfdU6fNNdD2YfZIjrgzfYn\\nuT1fBeUUMaiMm7ob6R2FivAUoQmGOm3OA9Aw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9ab4504ddbe43fd594da075aa2e6b5a0e3b000b6",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ctl_1f-0",
+   "title": "The waiver hash of 'ctl_1f' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwMWZiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"f3daaf1bb0c1b5feb214a6702fe293400fc0e2fca8095a8f457ca5cd9fb370ac\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA0kVODqrpKuM2hHD+eKZGgfCnlfjtMepnpQl73oUTjkM5Sa9lbb\\n0F/dwjDyfaDJIRT2ayjdUSQRi6v1WXxLsWBg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:7361d7f32a0fef4744df9cb879f7e656ec362136",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-del_7f-0",
+   "title": "The waiver hash of 'del_7f' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwN2ZiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"a1c55c7e23d47532823bc690f03bdc29f0a7c09450ab44278b3f31c1b867553e\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAnlBTutRWgbLiC333xGT1Fu2qHHviAG6l3xks/wBoS3IGr3eY8N\\nKUZG4WoiqBLvbUTGOuxIyGZSgN+1w7feYNCQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:e27a45dbf35a256067dafe24d23c1470e2252e43",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ch_lt-0",
+   "title": "The waiver hash of 'ch_lt' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIng8eSJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"2c731e5d9c2d05858097d20eb8362f01f1610158655efe99280f17c993de0e0a\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA170tEa6tDfDbd+++ZHitZ+6v1y/WYj5m7/gDEYPWaw8ruy05LA\\nsyVMfBpVW8CmmUh/oT4mSBbnyY+LgqFvftCg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:756b547e3af36625d8e1f248a80139de04ae884d",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ch_gt-0",
+   "title": "The waiver hash of 'ch_gt' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIng+eSJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"330a568a2fe2e10f999e301273366576bf7fec6fdd06c121ee69085818128644\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAsAKOrz2SbXMku3yZrCv0A7Sqo8JEmGVFISrGiKIMLhNF/Q1PZx\\nZ9YBnEM3h4M/lEx6hxzdXcy+Y96dwWaJK3Dg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3c4dc8edeae9701c68e4b2e2276ade3096c57388",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ch_amp-0",
+   "title": "The waiver hash of 'ch_amp' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIngmeSJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"064246a91a361d610ea154761a369e738836367ed3001351de144ee7a3291839\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAdBPN9pG6YSSIQU9+PO/NfeLVGoE+Yl+yNll6uYHyUmnRST30Kq\\nK5EdY8qbhp+uGubJTSwE6yIyjTuIKGgEDwBQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:c219170fffc0726b9f3ff263132e2b887c13252e",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ch_quote-0",
+   "title": "The waiver hash of 'ch_quote' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcInkifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"dc1d688111c3caf2f9c5c02ea7cbdd8aa9a938dcb0753f07a8046f624ebef3aa\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAvOGG6YsoJR/RxuKi4atSBOW85hvTWry70349/l3s/DHNGWsmyo\\nKxXeXuoLVb2tqy617wIjjHaL8zK2KGMvRZCA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:06f6517218d87320f9cb2b4d44e4c3659a94505a",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ch_backslash-0",
+   "title": "The waiver hash of 'ch_backslash' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcXHkifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"1cd5fc8f82ecac24ae1dc1cf30ca27cb907242355d6ccb5611403d8ee8d5a053\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAlBslP0Qn4f2uzWyiI/u+IRSgcG3As4k5Lw3JrM+3oAekKS9C2p\\n/uNoq+DDQd6yL+lV3+uTblD0IrRCER6qzTBA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:79badb9d6d7f26295fe4b00387395e176292e6ae",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ch_slash-0",
+   "title": "The waiver hash of 'ch_slash' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIngveSJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"bef26dd2a95336ac0a57cb756bbcd3237af7d4f6e6d6c11017d65ca56e000399\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAxNmYMVL9lR9L2zUCoKUE75SNulwOV86vIQc03X92Ky5Taa5M+7\\nSLbUcnSC2H6J4shDEU4OojlBiINwCn0IAdBQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:a0f6782903fdb7a36405427a35a0b51f575ce2b7",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-ch_apos-0",
+   "title": "The waiver hash of 'ch_apos' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIngneSJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"6879c3d42d6c71d6da9847dec9c40cd932b494340b3e3967670584133100ba67\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAkaHvFPJ0svSc0Gqh5KZ/eOiRQywdMOUB9DcbZYJLDK/ZNUtPCR\\nEJXhvG69omjXKdKxoscDalKMU7fVD7fjc/DA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:a3022bd13e708dae59c18beb9dc9dc97077c5cd0",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-u2028-0",
+   "title": "The waiver hash of 'u2028' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTIwMjhiIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"dbcef42fb5487efc621ed29a22e91cd3c55f8cea6a6346da7bc5f31feed55b69\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAr52F6h8vT0rcBWdQXvKuUqouCLZ+AYAG3T/9jAjof7vcyj74Mu\\nAEVSde6dJ0OccTBol3YhGLXAT9ed9iZT7/AQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:6fd09ba31ac26820b3bfa445f11a81c80daf30d1",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-u2029-0",
+   "title": "The waiver hash of 'u2029' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTIwMjliIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"1f1427901cf85a4e9d0260794c005917ceb6539ef20b8007ee7abd9008b0d75c\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAQ6sunAP2I1bewhhV5gkLTX9oQ2go0ZIYIEJpavr72LcrOpwQGJ\\nisQHpZ+x/gaUt2UdHR0bc8gBN93GZ81jUZDw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:2406577183855b61c47d3ba9daedb1e8d5bc8733",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-u0085-0",
+   "title": "The waiver hash of 'u0085' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImFcdTAwODViIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"18885ddf491a35cbe0d318388b1349e9a520b6ae537bd2c14751ffd7fd3ed85a\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAYw8sSFu2wTfX5v9QN3pbGutY8B3oh0fKyWb6FJHqmFI5SAxEC+\\nmPzZKUNaHMU8+fBB9NDbmVLmFzrhBHZNAEBw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:975b37a050f8e80b555477147be09fb4be2b6573",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-latin-0",
+   "title": "The waiver hash of 'latin' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImNhZlx1MDBlOSJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"a6ecc05ae25b9dcd0b56b35d3584ae202a4993baf47104b4ce3de592f266123b\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAvH3aFAK7asROzf3qXnZA1Ql0kcR2GAxvuePD6HHoosHF4zQWWg\\nDCORbFVZkrb/NhvUYlBfCPDpFnhUJVNGPCBA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:3b27526b4a945fbdeb0a404270990d64fd12ac0d",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-cjk-0",
+   "title": "The waiver hash of 'cjk' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIlx1NjVlNVx1NjcyY1x1OGE5ZSJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"d7b6c577b300a0b3a6a22999d907e887b918bb693440b99c662256041bef8da1\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAFdU8UEYFHmZBHLUiR2gP4kVztFujLesrQUOTM8t0aAyoWo7ElB\\nmdWdIEgcR+LkagI5K9V7HzbigB+1QjmFSRAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:504013db2d8e19aed8020ab7ae15958f861277c4",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-emoji_raw-0",
+   "title": "The waiver hash of 'emoji_raw' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcdWQ4M2RcdWRlMDB5In1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"46ee6478c49e1bfdd0b7aed1c4f9ede7fb2517d42590157635049aaf40992a03\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA8p+UWwRWKXkpyEbYCVB/U7w0FpEij4tc3V7Xubg0a4g9PJDNal\\naJxCyefBryw1/UEp1kmgr0J+lGfdFBzToACw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:50d63c9a79a9672169589893229285c4935347ed",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-fffd-0",
+   "title": "The waiver hash of 'fffd' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcdWZmZmR5In1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"11859cfc64b953676ce602982cd258268174d19b6f9256be174f699c4c4ac3a6\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAQSLKcAENAtabVVDmCpc4iGElWQaWQKgU3VCm7Yug2BfxtRSGqt\\ntURgzHnv0+BKVI47aCmVlfAWd4mO0dK8MZDw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:312c709506ac15d0e42172fdc52b24870009a15d",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-nonchar_fffe-0",
+   "title": "The waiver hash of 'nonchar_fffe' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInhcdWZmZmV5In1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"fdc594b76a50c6a1923048f3116a8d9ddeb7169f057ad0efa0858eb670bb08b4\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAZfP31ImuM4YvMsALtCCZIzBT7ewdFnzFJRcjWQev4ks07MmzJT\\n+Ez43ZbjqmPkZdZexMStftugDyY7aPDbrZCg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:bce3604388878375a870831710e1a7d3b5991a81",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-target_unicode-0",
+   "title": "The waiver hash of 'target_unicode' (d\u00edr/\u65e5.py::f\u00e9) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "d\u00edr/\u65e5.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "d\u00edr/\u65e5.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImRcdTAwZWRyL1x1NjVlNS5weTo6Zlx1MDBlOSIsICJkZWNpc2lvbiI6ICJlbmZvcmNlX25ld19iZWhhdmlvciIsICJyZWFzb24iOiAiciJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"d\\u00edr/\\u65e5.py::f\\u00e9\",\n   \"waiver_sha256\": \"e47bbf1ee47c168eb1e42efaf80c7a26b52c589b0c72a918ddf1b4a7868156a1\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAJZNPxEy37pFDmGUCQhnQrqlNen9SWzWmijPdeDB/mTI52kxoqk\\nEZPblBPE2N0ogPVNc4gIzE1E/fQ3fVym5mAA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:183542af00946bec3046035fdf80c6d4ac0b158a",
+     "targets": [
+      {
+       "target": "d\u00edr/\u65e5.py::f\u00e9",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-in_escaped_slash-0",
+   "title": "The waiver hash of 'in_escaped_slash' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXC9iIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"3bbe02cc4c4af763c095dbcbc1dbb7890c91f2e98feabfcf52810fdcfcc292da\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAhgtwHK6rzl9K67uzfMfCIKhr/thGkSfVzY94/LVWS0XL4maI8f\\n8lWIJJ1kBXxlQAoma3o1ra+ukzGvq88TOtDA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:b1409dfd36bedbe6b187129099dad758482da589",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-in_escaped_lt-0",
+   "title": "The waiver hash of 'in_escaped_lt' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHUwMDNjYiJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"7be40ebc18dfaf2b99bfafb9b1bd271c4c0b47c109e1b02532ec40483742708d\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA5I+rJ/b9O88ArL84qobvsT1nyAZUP161J7HzvV4PDMIiueP/3u\\nx9TtuaI+jRW04NpJ/yId1kUAbDXym3xpVCCA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:8c913f3f944788e269dd941311364df01277e24b",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-in_escaped_e_acute-0",
+   "title": "The waiver hash of 'in_escaped_e_acute' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJjYWZcdTAwZTkifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"a6ecc05ae25b9dcd0b56b35d3584ae202a4993baf47104b4ce3de592f266123b\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAvH3aFAK7asROzf3qXnZA1Ql0kcR2GAxvuePD6HHoosHF4zQWWg\\nDCORbFVZkrb/NhvUYlBfCPDpFnhUJVNGPCBA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:8ca19f5a594de2f51e389384841ca01ed0156731",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-in_escaped_E_acute_upper-0",
+   "title": "The waiver hash of 'in_escaped_E_acute_upper' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJjYWZcdTAwRTkifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"a6ecc05ae25b9dcd0b56b35d3584ae202a4993baf47104b4ce3de592f266123b\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAvH3aFAK7asROzf3qXnZA1Ql0kcR2GAxvuePD6HHoosHF4zQWWg\\nDCORbFVZkrb/NhvUYlBfCPDpFnhUJVNGPCBA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:304e06895295d994e1b3550ea7034af066270e8b",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-in_surrogate_pair-0",
+   "title": "The waiver hash of 'in_surrogate_pair' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJcdWQ4M2RcdWRlMDAifV19"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"b2890d6dfa812262debb88ecf185779000184f48f1297f439562e1ddaab201f2\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABA422Gscti8RFr5jYkevQM/ibgMRs5JPeSTFjqthGsA29jfPrq0M\\n8MvY5m9IU973o4GaqZwqxzWyJhGIgFPhoVAg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:5ff93aa2905f28ec5021d3625ed992dbcd286fe0",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-in_lone_high-0",
+   "title": "The waiver hash of 'in_lone_high' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHVkODAwYiJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"d7ce554fd1b09f7d762c060bce3e0d247857a5db6155f074c0651611ca33856d\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAgq3CwIoP76HywHs0RqtK1ab+3U+XkNfyNxpznn/8fRjhfRTncp\\nY3PYZcNgwCR/uPHieJxYPnewct/KzIV5jpDQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:8c729e39384c143472fe8d1152705a4eb2df86d5",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-in_lone_low-0",
+   "title": "The waiver hash of 'in_lone_low' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHVkYzAwYiJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"d7ce554fd1b09f7d762c060bce3e0d247857a5db6155f074c0651611ca33856d\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAgq3CwIoP76HywHs0RqtK1ab+3U+XkNfyNxpznn/8fRjhfRTncp\\nY3PYZcNgwCR/uPHieJxYPnewct/KzIV5jpDQ==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:741fd33667ad84b842cfd1ce2c396c356900b002",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-in_high_then_nonlow-0",
+   "title": "The waiver hash of 'in_high_then_nonlow' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHVkODAwXHUwMDQxYiJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"975aab63be7280bc698573df2260db4078652e683863e67b32ef42e3e2279943\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAnfvXNDcNKKBmOlLih46uNZEbgjLNT1X/myZxIbkN+jitoJkbjC\\nBqrU+gxZwnTjzCyZe/GBkrx4otprESBG3hBg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9b3252373c03a2ae5e0cf61add6dd63b675fa1f4",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-in_nul_escape-0",
+   "title": "The waiver hash of 'in_nul_escape' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjoiYS5weTo6ZiIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJyZWFzb24iOiJhXHUwMDAwYiJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"43b8232fb33d4e0c0260b2646592624b896ced943613231081ac73907fc10ad7\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAaeUFVMzYdFVY1xEfKyPbiEjNMqinuPLbr4ntmc/Mh6ynzeW8tM\\n14QtWkiDs46Auwswf1z6h7VQk+YLwhl9iCBg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:1a6ee3c1f60e894158f44eb885bee851392b7f95",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-keys_reordered-0",
+   "title": "The waiver hash of 'keys_reordered' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sicmVhc29uIjoiciIsImRlY2lzaW9uIjoiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCJ0YXJnZXQiOiJhLnB5OjpmIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"00a61366a68c350818708894edb9d22507b495e448f4db82225f5f9bf8a3ecac\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAM2fwJxnvuRgp9DVBI8k2R4s+oGJ6c1nglCpgkcMVe+rnFpAUQa\\nymJkKlgS5l/VTqNnaoW5oj0PqypntM2bsnBw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:a9ade834fe8eb5fe6e3f30f7963f9bdda7398614",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-whitespace_pretty-0",
+   "title": "The waiver hash of 'whitespace_pretty' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "ewogICJzY2hlbWFfdmVyc2lvbiI6IDEsCiAgIndhaXZlcnMiOiBbCiAgICB7InRhcmdldCI6ICJhLnB5OjpmIiwgImRlY2lzaW9uIjogImVuZm9yY2VfbmV3X2JlaGF2aW9yIiwgInJlYXNvbiI6ICJyIn0KICBdCn0K"
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"00a61366a68c350818708894edb9d22507b495e448f4db82225f5f9bf8a3ecac\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAM2fwJxnvuRgp9DVBI8k2R4s+oGJ6c1nglCpgkcMVe+rnFpAUQa\\nymJkKlgS5l/VTqNnaoW5oj0PqypntM2bsnBw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:ca5c93e8d30d54c958c681ea9aab04eccb88b7e6",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-reason_whitespace-0",
+   "title": "The waiver hash of 'reason_whitespace' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogIiAgbGVhZCBhbmQgdHJhaWwgXHQgIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"f3a232efbee5c3fb404e128bafdae882f28a3238525893421f3847d4db2f92fa\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAxemG2Qvb4SNwuG/xNL13gDIofncQ6v8+/IvRFqTcX2ZD+9Gn87\\nspDzrbgHSMlms2hNYOf48pxoTegBuX1I84DA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:2b9693a03a42f598d169c2607f30d9dbdf71cb5f",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-reason_long-0",
+   "title": "The waiver hash of 'reason_long' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4In1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"cf28735db54d66867e61e757731b3ef48f6c3265916d62721312e059ce4f4df3\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAm1JLXEIVr8U+/K6UBJmx1i30Zg3OYuA++wvsyKHiCh5POl7W8W\\n0tZv6Dkp0dT04/jUODg22pCygmJXM39xVzDg==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:986c1e0eca4028dca5c661ce66792f619a6175af",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-dup_targets-0",
+   "title": "The waiver hash of 'dup_targets' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogImZpcnN0In0seyJ0YXJnZXQiOiAiYS5weTo6ZiIsICJkZWNpc2lvbiI6ICJlbmZvcmNlX25ld19iZWhhdmlvciIsICJyZWFzb24iOiAic2Vjb25kIn1dfQ=="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"aa25cab265127cd9094c541a6b26059b1ba541a1978efc268b455aa506e3b819\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAJPlhLku5c8KzrUF0cKY09aZsRIGdGkybxNyTT5aZepYcgWmEo7\\nwNEVFWODz5F/dCRFYCGjpWWle7nR+hdACcCw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:b223377ecb12014fb5d51e7f34c06b0f71e07ee9",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-two_targets-0",
+   "title": "The waiver hash of 'two_targets' (a.py::f) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "a.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "a.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInIifSx7InRhcmdldCI6ICJiLnB5OjpnIiwgImRlY2lzaW9uIjogInByZXNlcnZlX2xlZ2FjeSIsICJyZWFzb24iOiAiciJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"a.py::f\",\n   \"waiver_sha256\": \"00a61366a68c350818708894edb9d22507b495e448f4db82225f5f9bf8a3ecac\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAM2fwJxnvuRgp9DVBI8k2R4s+oGJ6c1nglCpgkcMVe+rnFpAUQa\\nymJkKlgS5l/VTqNnaoW5oj0PqypntM2bsnBw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:688366589be58091cfa353251c107288021de0f4",
+     "targets": [
+      {
+       "target": "a.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  },
+  {
+   "id": "V-waiversha-two_targets-1",
+   "title": "The waiver hash of 'two_targets' (b.py::g) is computed as RFC 6.4.6 says",
+   "rfc": "6.4.6",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "b.py": "x = 0\n"
+      }
+     },
+     {
+      "files": {
+       "b.py": "x = 1\n",
+       ".a2dlc/waivers.json": {
+        "b64": "eyJzY2hlbWFfdmVyc2lvbiI6MSwid2FpdmVycyI6W3sidGFyZ2V0IjogImEucHk6OmYiLCAiZGVjaXNpb24iOiAiZW5mb3JjZV9uZXdfYmVoYXZpb3IiLCAicmVhc29uIjogInIifSx7InRhcmdldCI6ICJiLnB5OjpnIiwgImRlY2lzaW9uIjogInByZXNlcnZlX2xlZ2FjeSIsICJyZWFzb24iOiAiciJ9XX0="
+       },
+       ".a2dlc/approvals.json": "{\n \"schema_version\": 1,\n \"approvals\": [\n  {\n   \"target\": \"b.py::g\",\n   \"waiver_sha256\": \"aa5730bc4eeda908434cfc3b93243efcb48fb076a8a820d8ae8efbbb28ef6b37\",\n   \"file_blob\": \"7d4290a117a4ddcc11daae7ea675841033830c8f\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAb4KBpVvRWj1iwPZ8/QmoPRzRyQsDuWZhwImCKV7M8d0dLKuXnP\\nXgnLTnfudxOgtNW3GwsBtkeCCb5Ux0urE/CA==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n ]\n}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:7aee60783e8030bdd7d7fe7fd1d0c03700b57c81",
+     "targets": [
+      {
+       "target": "b.py::g",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "tags": [
+    "waiver_sha"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,572 @@
+{
+ "class": "verifier",
+ "about": "Receipts that mirror the nine frozen cases of e2e/testdata/gates-py (pinned by sha256).",
+ "template": {
+  "schema_version": 1,
+  "a2dlc_version": "0.4.1",
+  "verdict": "PASS",
+  "base_ref": "$BASE",
+  "tree_hash": "git-tree:0000000000000000000000000000000000000000",
+  "created_at": "2026-10-29T12:00:00Z",
+  "targets": [],
+  "out_of_scope": [],
+  "pending_waivers": [],
+  "coverage": {
+   "status": "not_configured",
+   "files": []
+  }
+ },
+ "vectors": [
+  {
+   "id": "V-gates-01",
+   "title": "Receipt for the frozen gates-py case C1 (expected PASS)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "tests/test_calc.py": "def test_a():\n    assert True\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "tests/test_new.py": "def test_new():\n    assert True\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:918f59f47b5c0a12fa0a8d7b7e328154c7b9d15c",
+     "verdict": "PASS",
+     "tests": [
+      {
+       "target": "tests/test_new.py::test_media",
+       "gate": "nop_oracle",
+       "verdict": "PASS",
+       "base": "failed",
+       "candidate": "passed",
+       "waived": false
+      }
+     ],
+     "test_gates": {
+      "nop_oracle": {
+       "status": "ran"
+      },
+      "baseline": {
+       "status": "ran"
+      }
+     }
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "derived_from": {
+    "fixture": "e2e/testdata/gates-py/casos.json",
+    "case": "C1-feature-con-test",
+    "sha256": "7a78d432e8f87781e39afe7eb75d34e164de216226a38ac18adcce844d2f93ec"
+   }
+  },
+  {
+   "id": "V-gates-02",
+   "title": "Receipt for the frozen gates-py case C2 (expected FAIL)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "tests/test_calc.py": "def test_a():\n    assert True\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "tests/test_new.py": "def test_new():\n    assert True\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:918f59f47b5c0a12fa0a8d7b7e328154c7b9d15c",
+     "verdict": "FAIL",
+     "tests": [
+      {
+       "target": "tests/test_new.py::test_media_vacia",
+       "gate": "nop_oracle",
+       "verdict": "FAIL",
+       "base": "passed",
+       "candidate": "passed",
+       "waived": false,
+       "reason": "mirrors the frozen case C2-test-sin-dientes"
+      }
+     ],
+     "test_gates": {
+      "nop_oracle": {
+       "status": "ran"
+      },
+      "baseline": {
+       "status": "ran"
+      }
+     },
+     "targets": []
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "not_pass"
+    ]
+   },
+   "derived_from": {
+    "fixture": "e2e/testdata/gates-py/casos.json",
+    "case": "C2-test-sin-dientes",
+    "sha256": "6b05c5aa3df0b6801c72a3a22ed7096c1b2a841c7c00052770a78ada90f36760"
+   }
+  },
+  {
+   "id": "V-gates-03",
+   "title": "Receipt for the frozen gates-py case C3 (expected PASS, waiver pending)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "tests/test_calc.py": "def test_a():\n    assert True\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "tests/test_new.py": "def test_new():\n    assert True\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:918f59f47b5c0a12fa0a8d7b7e328154c7b9d15c",
+     "verdict": "PASS",
+     "tests": [
+      {
+       "target": "tests/test_new.py::test_divide_por_cero",
+       "gate": "nop_oracle",
+       "verdict": "PASS",
+       "base": "failed",
+       "candidate": "passed",
+       "waived": false
+      }
+     ],
+     "test_gates": {
+      "nop_oracle": {
+       "status": "ran"
+      },
+      "baseline": {
+       "status": "ran"
+      }
+     },
+     "targets": [
+      {
+       "target": "src/calc.py::divide",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true
+      }
+     ],
+     "pending_waivers": [
+      "src/calc.py::divide"
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "unsigned_waiver"
+    ],
+    "why": [
+     "unsigned"
+    ]
+   },
+   "derived_from": {
+    "fixture": "e2e/testdata/gates-py/casos.json",
+    "case": "C3-bugfix-con-waiver",
+    "sha256": "6e40b4479092fc5916dfd2c3a558c4acda7c046a5ef6bbe58536c9f823f419c0"
+   }
+  },
+  {
+   "id": "V-gates-04",
+   "title": "Receipt for the frozen gates-py case C4 (expected PASS)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "tests/test_calc.py": "def test_a():\n    assert True\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "tests/test_new.py": "def test_new():\n    assert True\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:918f59f47b5c0a12fa0a8d7b7e328154c7b9d15c",
+     "verdict": "PASS",
+     "tests": [
+      {
+       "target": "tests/test_new.py::test_redondea_medio",
+       "gate": "nop_oracle",
+       "verdict": "PASS",
+       "base": "failed",
+       "candidate": "passed",
+       "waived": false,
+       "characterization": true
+      }
+     ],
+     "test_gates": {
+      "nop_oracle": {
+       "status": "ran"
+      },
+      "baseline": {
+       "status": "ran"
+      }
+     }
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "derived_from": {
+    "fixture": "e2e/testdata/gates-py/casos.json",
+    "case": "C4-refactor-caracterizacion",
+    "sha256": "009bfe3214af547244e3e34ba4405bb5bdbdacad95fd6fe5a917067ca909369f"
+   }
+  },
+  {
+   "id": "V-gates-05",
+   "title": "Receipt for the frozen gates-py case C5 (expected FAIL)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "tests/test_calc.py": "def test_a():\n    assert True\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "tests/test_new.py": "def test_new():\n    assert True\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:918f59f47b5c0a12fa0a8d7b7e328154c7b9d15c",
+     "verdict": "FAIL",
+     "tests": [
+      {
+       "target": "tests/test_new.py::test_suma_mal",
+       "gate": "nop_oracle",
+       "verdict": "FAIL",
+       "base": "missing",
+       "candidate": "failed",
+       "waived": false,
+       "reason": "mirrors the frozen case C5-test-nuevo-rojo"
+      }
+     ],
+     "test_gates": {
+      "nop_oracle": {
+       "status": "ran"
+      },
+      "baseline": {
+       "status": "ran"
+      }
+     },
+     "targets": []
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "not_pass"
+    ]
+   },
+   "derived_from": {
+    "fixture": "e2e/testdata/gates-py/casos.json",
+    "case": "C5-test-nuevo-rojo",
+    "sha256": "2e6cdf18c1ecd10d6994cea16d7f8e7bd948668b2ed5d7f25cf2996d2825e65b"
+   }
+  },
+  {
+   "id": "V-gates-06",
+   "title": "Receipt for the frozen gates-py case C6 (expected FAIL)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "tests/test_calc.py": "def test_a():\n    assert True\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "tests/test_new.py": "def test_new():\n    assert True\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:918f59f47b5c0a12fa0a8d7b7e328154c7b9d15c",
+     "verdict": "FAIL",
+     "tests": [
+      {
+       "target": "tests/test_new.py::test_suma",
+       "gate": "baseline",
+       "verdict": "FAIL",
+       "base": "passed",
+       "candidate": "failed",
+       "waived": false,
+       "reason": "mirrors the frozen case C6-regresion"
+      }
+     ],
+     "test_gates": {
+      "nop_oracle": {
+       "status": "ran"
+      },
+      "baseline": {
+       "status": "ran"
+      }
+     },
+     "targets": []
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "not_pass"
+    ]
+   },
+   "derived_from": {
+    "fixture": "e2e/testdata/gates-py/casos.json",
+    "case": "C6-regresion",
+    "sha256": "8d3f43eb272dc0e3b33c749db2ac14e71ae9ca0d821791a7eea0ead58da23c36"
+   }
+  },
+  {
+   "id": "V-gates-07",
+   "title": "Receipt for the frozen gates-py case C7 (expected INCONCLUSIVE)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "tests/test_calc.py": "def test_a():\n    assert True\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "tests/test_new.py": "def test_new():\n    assert True\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:918f59f47b5c0a12fa0a8d7b7e328154c7b9d15c",
+     "verdict": "INCONCLUSIVE",
+     "tests": [
+      {
+       "target": "tests/test_new.py::test_nuevo",
+       "gate": "nop_oracle",
+       "verdict": "INCONCLUSIVE",
+       "base": "error",
+       "candidate": "passed",
+       "waived": false,
+       "reason": "mirrors the frozen case C7-metodo-anidado-sin-stub"
+      }
+     ],
+     "test_gates": {
+      "nop_oracle": {
+       "status": "ran"
+      },
+      "baseline": {
+       "status": "ran"
+      }
+     }
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "not_pass"
+    ]
+   },
+   "derived_from": {
+    "fixture": "e2e/testdata/gates-py/casos.json",
+    "case": "C7-metodo-anidado-sin-stub",
+    "sha256": "2dd075938315a3ff9dbeed3ccbba7ba79d178912c59946bda7386de55c633dff"
+   }
+  },
+  {
+   "id": "V-gates-08",
+   "title": "Receipt for the frozen gates-py case C8 (expected INCONCLUSIVE)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "tests/test_calc.py": "def test_a():\n    assert True\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "tests/test_new.py": "def test_new():\n    assert True\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:918f59f47b5c0a12fa0a8d7b7e328154c7b9d15c",
+     "verdict": "INCONCLUSIVE",
+     "tests": [],
+     "test_gates": {
+      "nop_oracle": {
+       "status": "ran"
+      },
+      "baseline": {
+       "status": "error",
+       "reason": "no tests were collected"
+      }
+     }
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "not_pass"
+    ]
+   },
+   "derived_from": {
+    "fixture": "e2e/testdata/gates-py/casos.json",
+    "case": "C8-corrida-sin-tests",
+    "sha256": "57a5a358a2939453066af221b1a33359bc9fb03091d5dcb8afb3c69f0e643a81"
+   }
+  },
+  {
+   "id": "V-gates-09",
+   "title": "Receipt for the frozen gates-py case C9 (expected PASS)",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       "tests/test_calc.py": "def test_a():\n    assert True\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "tests/test_new.py": "def test_new():\n    assert True\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:918f59f47b5c0a12fa0a8d7b7e328154c7b9d15c",
+     "verdict": "PASS",
+     "tests": [
+      {
+       "target": "tests/test_new.py::test_suma_negativos",
+       "gate": "nop_oracle",
+       "verdict": "PASS",
+       "base": "failed",
+       "candidate": "passed",
+       "waived": false,
+       "characterization": true
+      }
+     ],
+     "test_gates": {
+      "nop_oracle": {
+       "status": "ran"
+      },
+      "baseline": {
+       "status": "ran"
+      }
+     }
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "derived_from": {
+    "fixture": "e2e/testdata/gates-py/casos.json",
+    "case": "C9-test-modificado",
+    "sha256": "eb9a2fad501edc533fdec44cfa994b6d9530f69c56f04fb63ba4cbf92d382f2c"
+   }
+  }
+ ]
+}

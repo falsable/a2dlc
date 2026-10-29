@@ -1,0 +1,103 @@
+{
+ "class": "engine",
+ "about": "The engine interface: a request in /io, the trees at /base and /cand, a response in /io (contracts/engine-*.schema.json).",
+ "vectors": [
+  {
+   "id": "E-protocol-001",
+   "title": "A changed file that is equal in both trees is accounted for",
+   "rfc": "4.4",
+   "language": "any",
+   "requires": [
+    "docker"
+   ],
+   "base_files": {
+    "src/a.ts": "export const a = 1\n"
+   },
+   "candidate_files": {
+    "src/a.ts": "export const a = 1\n"
+   },
+   "changed_files": [
+    "src/a.ts"
+   ],
+   "expect": {
+    "verdicts": {
+     "src/a.ts": "PASS"
+    }
+   }
+  },
+  {
+   "id": "E-protocol-002",
+   "title": "A changed file is accounted for with a target or an out_of_scope entry",
+   "rfc": "4.4",
+   "language": "any",
+   "requires": [
+    "docker"
+   ],
+   "base_files": {
+    "src/a.ts": "export const a = 1\n"
+   },
+   "candidate_files": {
+    "src/a.ts": "export const a = 2\n"
+   },
+   "changed_files": [
+    "src/a.ts"
+   ],
+   "expect": {
+    "verdicts": {
+     "src/a.ts": "FAIL"
+    }
+   }
+  },
+  {
+   "id": "E-protocol-003",
+   "title": "Every changed file is accounted for, and no other",
+   "rfc": "4.4",
+   "language": "any",
+   "requires": [
+    "docker"
+   ],
+   "base_files": {
+    "src/a.ts": "1\n",
+    "src/b.ts": "1\n"
+   },
+   "candidate_files": {
+    "src/a.ts": "2\n",
+    "src/b.ts": "1\n"
+   },
+   "changed_files": [
+    "src/a.ts",
+    "src/b.ts"
+   ],
+   "expect": {
+    "verdicts": {
+     "src/a.ts": "FAIL",
+     "src/b.ts": "PASS"
+    }
+   }
+  },
+  {
+   "id": "E-protocol-004",
+   "title": "A file added by the candidate is accounted for",
+   "rfc": "4.4",
+   "language": "any",
+   "requires": [
+    "docker"
+   ],
+   "base_files": {
+    "src/a.ts": "1\n"
+   },
+   "candidate_files": {
+    "src/a.ts": "1\n",
+    "src/new.ts": "n\n"
+   },
+   "changed_files": [
+    "src/new.ts"
+   ],
+   "expect": {
+    "verdicts": {
+     "src/new.ts": "out_of_scope"
+    }
+   }
+  }
+ ]
+}

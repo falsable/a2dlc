@@ -1,0 +1,952 @@
+{
+ "class": "verifier",
+ "about": "RFC 6.4.5: behavior_divergence notes and critical_code, read at base_ref.",
+ "template": {
+  "schema_version": 1,
+  "a2dlc_version": "0.4.1",
+  "verdict": "PASS",
+  "base_ref": "$BASE",
+  "tree_hash": "git-tree:0000000000000000000000000000000000000000",
+  "created_at": "2026-10-29T12:00:00Z",
+  "targets": [],
+  "out_of_scope": [],
+  "pending_waivers": [],
+  "coverage": {
+   "status": "not_configured",
+   "files": []
+  }
+ },
+ "vectors": [
+  {
+   "id": "V-note-001",
+   "title": "A divergence note on code that is not critical is valid",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-note-002",
+   "title": "A note on code that critical_code names is refused",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/**\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:0a680a60109d84af7944be0f0009409b9735431b",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_on_critical_code"
+    ]
+   }
+  },
+  {
+   "id": "V-note-003",
+   "title": "A note needs a counterexample",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": null,
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_invalid"
+    ]
+   },
+   "receipt_valid_shape": false
+  },
+  {
+   "id": "V-note-004",
+   "title": "A note on a waived target is refused",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": true,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-note-005",
+   "title": "A note on a PASS target is refused",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "PASS",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": null,
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-note-006",
+   "title": "A note on an INCONCLUSIVE target is refused",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "INCONCLUSIVE",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": null,
+       "waived": false,
+       "note": "behavior_divergence",
+       "reason": "timeout"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-note-007",
+   "title": "When the base has no config no target can be shown not to be critical",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:189bb42bbbbecdbd14e94a44db718871ffc0cfd7",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_on_critical_code"
+    ]
+   }
+  },
+  {
+   "id": "V-note-008",
+   "title": "critical_code is read at base_ref: a config that adds it in the head does not count",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/**\"]}\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:0a680a60109d84af7944be0f0009409b9735431b",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-note-009",
+   "title": "In a glob, * does not cross a directory",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/*.py\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "src/sub/x.py": "x\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:aa94fbeb80a9149078e6cabdf4236b05e975ae79",
+     "targets": [
+      {
+       "target": "src/sub/x.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-note-010",
+   "title": "In a glob, ** crosses directories",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/**\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n",
+       "src/sub/x.py": "x\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:48510f894c4507298b09e3eb1f337bb305986089",
+     "targets": [
+      {
+       "target": "src/sub/x.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_on_critical_code"
+    ]
+   }
+  },
+  {
+   "id": "V-note-011",
+   "title": "**/ also matches no directory at all",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"**/m.py\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:aad5be008283a40490830dd738a0e8a4a056cf77",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_on_critical_code"
+    ]
+   }
+  },
+  {
+   "id": "V-note-012",
+   "title": "A glob with :: matches the symbol part: a name that matches is critical",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/m.py::g*\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:1b9e4dcec4e70b7799fa4a380ad5e9b3be23fdfd",
+     "targets": [
+      {
+       "target": "src/m.py::gx",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_on_critical_code"
+    ]
+   }
+  },
+  {
+   "id": "V-note-013",
+   "title": "A glob with :: matches the symbol part: another name is not",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/m.py::g*\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:1b9e4dcec4e70b7799fa4a380ad5e9b3be23fdfd",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-note-014",
+   "title": "A glob without :: covers every symbol of the file",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/m.py\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:ef60484bfea1bc3b0a1036984a5412d2659af29a",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_on_critical_code"
+    ]
+   }
+  },
+  {
+   "id": "V-note-015",
+   "title": "In the symbol part * does not cross a /",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/m.py::a*\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:a952c93d004f2f4267717a1203c8613a868a9b93",
+     "targets": [
+      {
+       "target": "src/m.py::a/b",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-note-016",
+   "title": "? matches one character that is not /",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/?.py\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:f23edb9a2ebeddb409c5c2890cdff952d1cd79f1",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "behavior_divergence"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_on_critical_code"
+    ]
+   }
+  },
+  {
+   "id": "V-note-017",
+   "title": "A note with an unknown value is refused",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "something_else"
+      }
+     ]
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds_any": [
+     "note_invalid",
+     "receipt_invalid"
+    ]
+   },
+   "receipt_valid_shape": false
+  }
+ ]
+}
