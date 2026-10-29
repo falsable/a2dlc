@@ -4,7 +4,7 @@ Test material for RFC-0001 v3.5 (`docs/A2-DLC_v3.5_protocol.md`), mainly §6.4, 
 passes the vectors of its class reads and writes the same receipts as the reference binary. The RFC and these files are enough
 to write a verifier without reading the Go code.
 
-    python conformance/run.py --binary <verifier or producer> [--engine-image <image>] [--strict] [--reasons a2dlc|none]
+    python conformance/run.py --binary <verifier or producer> [--engine-image <image>] [--strict] [--reasons a2dlc|none] [--implementation <name>]
 
 The runner needs Python 3.9+, git and ssh-keygen. Docker is needed for the producer vectors that run an engine and for the
 engine class. `jsonschema` (with `referencing`) is optional: when present, every receipt, approvals file and engine message is
@@ -73,7 +73,9 @@ not part of the kit.
 ## Known failures of the reference
 
 A vector with `known_failure` is expected to fail against the reference binary, and the runner reports it as `XFAIL`. It fails
-when the failure disappears, so the marker cannot rot.
+when the failure disappears, so the marker cannot rot. A marker applies only to the implementation it names: a string names the
+reference (`a2dlc`, the default of `--implementation`), and `{"<name>": "<bead>"}` names another. Run any other implementation
+with `--implementation <its name>` and it is judged on what the vectors say, so a verifier that refuses `V-receipt-007` passes it.
 
 - `V-receipt-007`: a receipt with a required field missing is accepted. `DecodeStrict` rejects unknown fields but does not
   enforce `required`, `enum` or `pattern` (bead a2dlc-5fq). RFC §6.4.11 lists this and the other places where the reference is

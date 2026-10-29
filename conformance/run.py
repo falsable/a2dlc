@@ -2,7 +2,7 @@
 """a2dlc conformance runner, v0.
 
   python conformance/run.py --binary <path to a verifier/producer> [--engine-image <image>] [--class verifier,producer,engine]
-                            [--id <prefix>] [--strict] [--reasons a2dlc|none]
+                            [--id <prefix>] [--strict] [--reasons a2dlc|none] [--implementation <name>]
 
 Every vector under conformance/vectors/<class>/ declares its class. The runner builds each repository a vector describes,
 runs the entrypoint under test and compares its behavior with what the vector (and RFC-0001 v3.5 §6.4) says.
@@ -29,6 +29,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 VECTORS = HERE / "vectors"
 CLASSES = ["verifier", "producer", "engine"]
+REFERENCE = "a2dlc"  # the implementation the known_failure markers of the vectors are about, unless they name another
 
 # What the reference binary prints, mapped to the abstract kinds of RFC §6.4.8. An implementation with other messages
 # passes --reasons none and is judged on valid or invalid only.
@@ -386,6 +387,15 @@ def check_pin(df):
     return [] if got == df["sha256"] else ["the frozen fixture %s changed or is missing (pinned %s, found %s)" % (df["fixture"], df["sha256"][:12], (got or "none")[:12])]
 
 
+def known_failure(vector, implementation):
+    """The bead a vector's known_failure marker gives for `implementation`, or None. A marker is a string (it names the
+    reference binary) or {implementation: bead}."""
+    mark = vector.get("known_failure")
+    if isinstance(mark, str):
+        mark = {REFERENCE: mark}
+    return (mark or {}).get(implementation)
+
+
 def available(req):
     if req == "docker":
         return sh(["docker", "version", "--format", "{{.Server.Version}}"], check=False).returncode == 0
@@ -403,6 +413,7 @@ def main(argv=None):
     ap.add_argument("--id", default="", help="run only vectors whose id starts with this")
     ap.add_argument("--strict", action="store_true", help="a skipped vector is a failure")
     ap.add_argument("--require-schema", action="store_true", help="a missing jsonschema is a failure")
+    ap.add_argument("--implementation", default=REFERENCE, help="name of the implementation under test; a known_failure marker applies only to the one it names (default: %s, the reference binary)" % REFERENCE)
     ap.add_argument("--reasons", choices=["a2dlc", "none"], default="a2dlc", help="how to read the entrypoint's messages")
     a = ap.parse_args(argv)
     ctx = a
@@ -432,7 +443,7 @@ def main(argv=None):
                     continue
                 except Exception as e:  # a fixture that cannot be built is a failure of the vector run, not a skip
                     problems = ["%s: %s" % (type(e).__name__, e)]
-                known = v.get("known_failure")
+                known = known_failure(v, ctx.implementation)
                 if problems and known:
                     print("XFAIL %s (%s: %s)" % (label, known, problems[0][:100]))
                     counts["XFAIL"] += 1

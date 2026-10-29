@@ -47,9 +47,8 @@ Conformance kit, verifier class:
 
     MSYS_NO_PATHCONV=1 docker run --rm --network none -v "$(cygpath -w "$PWD"):/r:ro" -w /r a2dlc-verifier-test:0.1 sh -c '
       printf "#!/bin/sh\nexec python /r/verifiers/python/a2dlc_verify.py \"\$@\"\n" > /tmp/verify && chmod +x /tmp/verify
-      python conformance/run.py --class verifier --binary /tmp/verify --reasons none'
+      python conformance/run.py --class verifier --binary /tmp/verify --implementation clean-room-python --reasons none'
 
 Run it with `--reasons a2dlc` as well: this verifier's messages contain the phrases the runner looks for, so the problem kinds are
-checked too. Both runs end with `145 ok, 1 bad`. The one bad is `V-receipt-007`: the vector says a receipt with a required field
-missing is refused, this verifier refuses it, and the runner reports that the reference's `known_failure` marker "no longer
-fails" (AMENDMENTS.md, D).
+checked too. Both runs end with `146 ok, 0 bad`. `--implementation` matters: without it the runner takes this verifier for the
+reference binary and reports `V-receipt-007`, which it correctly refuses, as a known failure that no longer fails.

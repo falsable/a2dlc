@@ -116,7 +116,7 @@ Proposed: say that a variable that is set decides, and an unreadable file means 
 
 ## D. Notes on the kit, not on the RFC
 
-- **`known_failure` is a property of the reference binary, but the runner applies it to every implementation.** A verifier that
+- **Applied** (bead a2dlc-mdv, `run.py --implementation`; this verifier now gets `146 ok, 0 bad`). **`known_failure` is a property of the reference binary, but the runner applied it to every implementation.** A verifier that
   refuses `V-receipt-007`, as the vector says, makes the runner print `BAD ... the known failure a2dlc-5fq no longer fails:
   remove known_failure from the vector`, and exit 1. Against this verifier the runner ends with `145 ok, 1 bad`, and the one bad
   is that line. Proposed: a runner option (`--implementation reference`, or `--ignore-known-failures`) so that only the
