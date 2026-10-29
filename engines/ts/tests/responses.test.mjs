@@ -6,13 +6,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { ERROR_BODIES } from '../responses.mjs';
+import { main } from '../classify.ts';
+import { tree } from './helpers.mjs';
 
 const CONTRACTS = process.env.A2DLC_CONTRACTS;
 
 // The response schema of each operation in ERROR_BODIES (golden_* share one, capture_traces writes the traces schema).
 const SCHEMA_OF = {
   mutate: 'mutate', complexity: 'complexity', lemmas: 'lemmas', golden_record: 'golden', golden_replay: 'golden',
-  capture_traces: 'traces',
+  capture_traces: 'traces', classify_lines: 'classify-lines',
 };
 
 function schemaOf(operation) {
@@ -53,6 +55,17 @@ for (const operation of Object.keys(ERROR_BODIES)) {
     assert.equal(typeof body.error, 'string');
   });
 }
+
+test('what classify_lines writes, with notes and without, is in the shape of its response schema', () => {
+  const cand = tree({ 'a.ts': "type P = 'a';\nexport const x = 1;\n", 'b.js': 'var b;\n' });
+  const io = tree({});
+  main({ changed_files: ['a.ts', 'b.js'], candidate_dir: cand, budget: { lines: { 'a.ts': [1, 2], 'b.js': [1] } } }, io);
+  const body = JSON.parse(readFileSync(path.join(io, 'response.json'), 'utf-8'));
+  const schema = schemaOf('classify_lines');
+  assert.deepEqual(shapeErrors(body, schema), []);
+  assert.deepEqual(body.files.map((f) => f.notes.length), [1, 0]);
+  assert.deepEqual(shapeErrors(body.files[0].notes[0], schema.properties.files.items.properties.notes.items), []);
+});
 
 test('the shape check itself catches a missing required field and an extra field', () => {
   const schema = { additionalProperties: false, required: ['a', 'b'], properties: { a: { type: 'array' }, b: { type: ['string', 'null'] } } };

@@ -21,6 +21,7 @@ const MODULES = {
   tier0: './tier0.ts',
   stub: './stub.ts',
   deps_graph: './deps.ts',
+  classify_lines: './classify.ts',
 };
 
 if (operation === 'diff') {
