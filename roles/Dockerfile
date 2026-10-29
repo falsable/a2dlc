@@ -2,7 +2,7 @@
 # adapter that speaks the role contract; whoever writes roles.json sets the model and the credential.
 # The network is only used at build time. At run time the core sets each role's egress from roles.json (egress, provider,
 # egress_allow); the README's security model says which of those limits are enforced today.
-#   docker build -t a2dlc-roles:0.11 roles
+#   docker build -t a2dlc-roles:0.12 roles
 FROM node:22-slim
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 ca-certificates \

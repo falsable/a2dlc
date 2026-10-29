@@ -84,7 +84,7 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		}
 	}
 	if len(idx) == 0 {
-		resp, err := a.testsTier0(ctx, resp, cfg, tree, extra, noEngine)
+		resp, err := a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, noEngine)
 		return resp, unique(unreviewed), err
 	}
 	if a.Runner == nil {
@@ -137,7 +137,7 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 	}
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = reviewed
-	resp, err = a.testsTier0(ctx, resp, cfg, tree, extra, noTests)
+	resp, err = a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, noTests)
 	return resp, unique(unreviewed), err
 }
 
@@ -151,14 +151,15 @@ const maxTestFindings = 30
 // returned to the caller: it is neither a review nor feedback, because sending it to the builder would spend paid rounds on
 // something that is not its own. The files stay in the list of what Tier 0 did not review (the caller keeps it): Stage 4
 // has its own coverage precondition. Without config.tests, with no such files, or without extra.Tests it does nothing.
-func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg contract.Config, tree string, extra Tier0Extra, files []string) (contract.Tier0Response, error) {
+func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg contract.Config, baseSha, tree string, extra Tier0Extra, files []string) (contract.Tier0Response, error) {
 	if !extra.Tests || cfg.Tests == nil || cfg.Tests.Command == "" || len(files) == 0 {
 		return resp, nil
 	}
 	if a.Tests == nil {
 		return resp, fmt.Errorf("this binary has no test runner: config.tests cannot review %s", strings.Join(unique(files), ", "))
 	}
-	c, err := a.run(ctx, gateInput{cfg: *cfg.Tests, tree: tree}, cfg.Tests.Command, tree, nil, nil, envTests(nil, unique(files)))
+	cov := &accumulated{}
+	c, err := a.run(ctx, gateInput{cfg: *cfg.Tests, tree: tree, cov: cov}, cfg.Tests.Command, tree, nil, nil, envTests(nil, unique(files)))
 	if err == nil {
 		err = c.readable()
 	}
@@ -191,9 +192,90 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 		}
 		resp.Findings = append(resp.Findings, contract.Tier0Finding{Kind: contract.Tier0Test, File: testFile(x), Message: msg})
 	}
+	if len(ids) == 0 {
+		cf, err := a.coverageFindings(ctx, cfg, baseSha, tree, files, cov)
+		if err != nil {
+			return resp, err
+		}
+		resp.Findings = append(resp.Findings, cf...)
+	}
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = true
 	return resp, nil
+}
+
+// coverageFindings are the changed source lines that the green run left unexecuted (RFC-0002, step 4): the lines Stage 4's
+// coverage precondition would list as unexamined, with the same classification (noteUncovered), one finding per file. It
+// reads the coverage the run wrote; a run that wrote none, or none that can be read, gives no finding, because there is
+// nothing to say to the builder, and Stage 4 keeps its own precondition. Only a green suite gets here: a failing run's
+// coverage is partial and its testcases come first.
+func (a App) coverageFindings(ctx context.Context, cfg contract.Config, baseSha, tree string, files []string, cov *accumulated) ([]contract.Tier0Finding, error) {
+	if cov.report == nil {
+		return nil, nil
+	}
+	_, sources := partition(cfg.Tests.Paths, unique(files))
+	pre, err := a.precondition(cfg, baseSha, tree, sources, nil, cov.report, cov.note)
+	if err != nil {
+		return nil, err
+	}
+	var baseDir, candDir string
+	defer func() {
+		os.RemoveAll(baseDir)
+		os.RemoveAll(candDir)
+	}()
+	export := func() error {
+		var err error
+		if baseDir, err = os.MkdirTemp("", "a2dlc-base-*"); err != nil {
+			return err
+		}
+		if candDir, err = os.MkdirTemp("", "a2dlc-cand-*"); err != nil {
+			return err
+		}
+		if err := a.Repo.Export(baseSha, baseDir); err != nil {
+			return err
+		}
+		return a.Repo.Export(tree, candDir)
+	}
+	a.noteUncovered(ctx, cfg, pre, export, &baseDir, &candDir)
+	out := []contract.Tier0Finding{}
+	for _, f := range pre.Files {
+		if len(f.Uncovered) == 0 {
+			continue
+		}
+		if len(out) == maxTestFindings {
+			out = append(out, contract.Tier0Finding{Kind: contract.Tier0Coverage, File: f.File,
+				Message: "more files have changed lines no test executed; cover the ones above first"})
+			break
+		}
+		first := f.Uncovered[0]
+		out = append(out, contract.Tier0Finding{Kind: contract.Tier0Coverage, File: f.File, Line: &first,
+			Message: "no test executed these changed lines: " + lineRanges(f.Uncovered) +
+				"; add a test that runs them, in a new test file (existing test files stay as they are), or remove the code they belong to"})
+	}
+	return out, nil
+}
+
+// lineRanges writes sorted line numbers as "37-38, 65", at most maxRanges ranges.
+func lineRanges(lines []int) string {
+	const maxRanges = 20
+	var parts []string
+	for i := 0; i < len(lines); {
+		j := i
+		for j+1 < len(lines) && lines[j+1] == lines[j]+1 {
+			j++
+		}
+		if len(parts) == maxRanges {
+			parts = append(parts, "…")
+			break
+		}
+		if j > i {
+			parts = append(parts, fmt.Sprintf("%d-%d", lines[i], lines[j]))
+		} else {
+			parts = append(parts, fmt.Sprint(lines[i]))
+		}
+		i = j + 1
+	}
+	return strings.Join(parts, ", ")
 }
 
 // testFile is the file a testcase's finding is about: the file the runner gives, else its classname (vitest puts the file

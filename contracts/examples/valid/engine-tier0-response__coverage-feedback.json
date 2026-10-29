@@ -1,0 +1,5 @@
+{"schema_version": 1, "ok": false,
+ "findings": [
+  {"kind": "coverage", "file": "src/url.ts", "line": 37, "message": "no test executed these changed lines: 37-38, 65; add a test that runs them in a new test file, or remove the code they belong to"}
+ ],
+ "error": null, "reviewed": true}

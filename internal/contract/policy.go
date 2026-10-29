@@ -22,4 +22,8 @@ const (
 	// Tier0Test is a failed or errored testcase of config.tests.command, which the core runs on the candidate for the changed
 	// files no engine reviewed (§5 Stage 3). The core writes it, an engine does not emit it; file is the testcase's file.
 	Tier0Test = "test"
+	// Tier0Coverage is the set of changed lines of one source file that no test of config.tests.command executed, once the
+	// lines Stage 4 notes (defensive handlers, declaration-only code) are left out. The core writes it from the coverage the
+	// same run left, only when the suite is green; an engine does not emit it. line is the first such line.
+	Tier0Coverage = "coverage"
 )

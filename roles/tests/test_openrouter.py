@@ -318,7 +318,8 @@ def check_prompts(failures: list[str]) -> None:
     """The prompt additions of this change are asserted here: deleting one of them turns this suite red."""
     prompts = ROOT / "roles" / "prompts"
     needles = {
-        "builder_primary.md": ["payload.paradigm", "payload.critical", "Postcondition:", "payload.lemmas"],
+        "builder_primary.md": ["payload.paradigm", "payload.critical", "Postcondition:", "payload.lemmas",
+                               "in a new test file", "no test executed"],
         "builder_orthogonal.md": ["payload.paradigm", "payload.critical", "Postcondition:", "payload.lemmas"],
         "propose_properties.md": ["# Role: propose_properties", "payload.properties", "under `tests/`"],
     }
