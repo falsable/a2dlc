@@ -36,9 +36,18 @@ func TestInvalidBaseFailuresExplicitListReplacesDefaults(t *testing.T) {
 	}
 }
 
-// With no engine of a known language there is nothing to default to.
-func TestInvalidBaseFailuresWithoutEngines(t *testing.T) {
-	if got := invalidBaseFailures(contract.Config{Tests: &contract.TestsConfig{}}); len(got) != 0 {
-		t.Fatalf("no engines gave %v", got)
+// With no engine of a known language (a tests-only repo) the defaults are the union of every language's: an empty list
+// would make any failed testcase on the base a valid failure, even a failed import (bead a2dlc-pef).
+func TestInvalidBaseFailuresWithoutEnginesIsTheUnionOfTheLanguages(t *testing.T) {
+	want := len(unique(append(append([]string{}, defaultInvalidBaseFailures["python"]...), defaultInvalidBaseFailures["typescript"]...)))
+	noEngines := contract.Config{Tests: &contract.TestsConfig{}}
+	unknownLanguage := contract.Config{Engines: []contract.EngineConfig{{Language: "go"}}, Tests: &contract.TestsConfig{}}
+	for _, cfg := range []contract.Config{noEngines, unknownLanguage} {
+		if got := invalidBaseFailures(cfg); len(got) != want {
+			t.Errorf("%+v gave %d patterns %v, want %d", cfg.Engines, len(got), got, want)
+		}
+	}
+	if got := invalidBaseFailures(contract.Config{Tests: &contract.TestsConfig{InvalidBaseFailures: []string{}}}); len(got) != 0 {
+		t.Fatalf("an explicit empty list still means none, got %v", got)
 	}
 }

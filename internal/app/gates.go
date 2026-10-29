@@ -79,7 +79,10 @@ var defaultInvalidBaseFailures = map[string][]string{
 }
 
 // invalidBaseFailures is the list the NOP gate classifies with: config.tests.invalid_base_failures when declared, otherwise
-// the defaults of the languages of config.engines, sorted and unique.
+// the defaults of the languages of config.engines, sorted and unique. When none of them
+// names a language the gate knows (a tests-only repo), the list is the union of every language's defaults: with an empty
+// list every failed testcase on the base would be a valid failure, and a runner that reports a failed import as a failure
+// under the test's own id would make a test that proves nothing PASS. More patterns can only turn a PASS into INCONCLUSIVE.
 func invalidBaseFailures(cfg contract.Config) []string {
 	if cfg.Tests != nil && cfg.Tests.InvalidBaseFailures != nil {
 		return cfg.Tests.InvalidBaseFailures
@@ -87,6 +90,11 @@ func invalidBaseFailures(cfg contract.Config) []string {
 	var out []string
 	for _, e := range cfg.Engines {
 		out = append(out, defaultInvalidBaseFailures[e.Language]...)
+	}
+	if len(out) == 0 {
+		for _, patterns := range defaultInvalidBaseFailures {
+			out = append(out, patterns...)
+		}
 	}
 	return unique(out)
 }
@@ -310,7 +318,10 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	if err != nil {
 		return gateError("base with stubs", err), nil
 	}
-	invalid, err := classifier(in.cfg.InvalidBaseFailures, in.unstubbed)
+	added := addedWithoutStub(in.sources, in.stubs,
+		func(f string) bool { _, err := a.Repo.Blob(in.baseSha, f); return err == nil },
+		func(f string) bool { _, err := a.Repo.Show(in.tree, f); return err == nil })
+	invalid, err := classifier(in.cfg.InvalidBaseFailures, in.unstubbed, added)
 	if err != nil {
 		return gateError("invalid_base_failures", err), nil
 	}
@@ -340,9 +351,30 @@ func gateError(where string, err error) contract.Gate {
 	return contract.Gate{Status: contract.GateError, Reason: where + ": " + err.Error()}
 }
 
+// addedWithoutStub lists the changed sources that the candidate adds (they are not on the base, they are in the
+// candidate) and that no engine stubbed. A test that imports one of them cannot load on the base, and nothing in the
+// failure's wording is reliable across runners and languages, so the failure is recognized by naming the file.
+func addedWithoutStub(sources []string, stubs map[string][]byte, onBase, inCandidate func(string) bool) []string {
+	var out []string
+	for _, f := range sources {
+		if _, stubbed := stubs[f]; !stubbed && !onBase(f) && inCandidate(f) {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// fileStem is the name of a file without its directory and extensions: how a module is named by the import that fails.
+func fileStem(path string) string {
+	name := path[strings.LastIndex(path, "/")+1:]
+	stem, _, _ := strings.Cut(name, ".")
+	return stem
+}
+
 // classifier returns whether the message of a failure on the base makes it invalid for NOP: it matches a pattern from
-// the config (import, collection) or names a new symbol without a stub.
-func classifier(patterns, unstubbed []string) (func(string) bool, error) {
+// the config (import, collection), names a new symbol without a stub, or names a file the candidate adds without a stub
+// (as a whole word, case-insensitive; stems under three characters are too common to say anything).
+func classifier(patterns, unstubbed, added []string) (func(string) bool, error) {
 	var res []*regexp.Regexp
 	for _, p := range patterns {
 		re, err := regexp.Compile(p)
@@ -354,6 +386,11 @@ func classifier(patterns, unstubbed []string) (func(string) bool, error) {
 	for _, s := range unstubbed {
 		short := s[strings.LastIndex(s, ".")+1:]
 		res = append(res, regexp.MustCompile(`\b`+regexp.QuoteMeta(short)+`\b`))
+	}
+	for _, f := range added {
+		if stem := fileStem(f); len(stem) >= 3 {
+			res = append(res, regexp.MustCompile(`(?i)\b`+regexp.QuoteMeta(stem)+`\b`))
+		}
 	}
 	return func(msg string) bool {
 		for _, re := range res {

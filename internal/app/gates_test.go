@@ -98,7 +98,9 @@ func (m *fakeEngine) Mutate(_ context.Context, _ contract.EngineConfig, req cont
 // ImportError. "nop" runs the files of $A2DLC_TESTS; "baseline", all of them. A .t with KILL leaves no JUnit. A line
 // "covers <file>:<a>-<b>" leaves LCOV coverage with those lines executed (and lines 1-99 as statements). A line
 // "imports <symbol>" is the module's import: without "IMPL" or "STUB" of that symbol in src the whole file does not
-// collect (no testcase in the JUnit), like a module ImportError in pytest.
+// collect (no testcase in the JUnit), like a module ImportError in pytest. The state "loads:<path>" passes if the tree
+// has that file and otherwise fails with a vitest-style message naming it ("Failed to load url <path>"); "asserts:<path>"
+// passes the same way and otherwise fails with a bare AssertionError.
 type fakeTests struct {
 	mu       sync.Mutex // the candidate and the NOP run are concurrent
 	runs     []string
@@ -203,6 +205,22 @@ func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command 
 					state = "failed:ImportError: cannot import name " + s
 				}
 			}
+			if p, ok := strings.CutPrefix(state, "loads:"); ok {
+				// like vitest: a missing module is reported as a failed testcase under the test's own id, in the runner's words
+				if _, err := os.Stat(filepath.Join(tree, filepath.FromSlash(p))); err != nil {
+					state = "failed:Failed to load url " + p + " (resolved id: " + p + "). Does the file exist?"
+				} else {
+					state = "passed"
+				}
+			}
+			if p, ok := strings.CutPrefix(state, "asserts:"); ok {
+				// the same dependency on a file, but the failure is an assertion that names no file
+				if _, err := os.Stat(filepath.Join(tree, filepath.FromSlash(p))); err != nil {
+					state = "failed:AssertionError"
+				} else {
+					state = "passed"
+				}
+			}
 			class := "c"
 			if f.module {
 				class = moduleOf(a)
@@ -249,7 +267,7 @@ func mapOf(cs ...junit.Case) map[string]junit.Case {
 }
 
 func TestJudgeNOP(t *testing.T) {
-	invalid, _ := classifier([]string{"ImportError"}, []string{"External.Internal.added"})
+	invalid, _ := classifier([]string{"ImportError"}, []string{"External.Internal.added"}, nil)
 	candidate := mapOf(testCase("t.py::old", "passed", ""), testCase("t.py::valid", "passed", ""), testCase("t.py::characterizes", "passed", ""),
 		testCase("t.py::import", "passed", ""), testCase("t.py::nostub", "passed", ""), testCase("t.py::absent", "passed", ""),
 		testCase("t.py::red", "failed", "assert 1 == 2"), testCase("t.py::skipped", "skipped", ""))
@@ -282,6 +300,101 @@ func TestJudgeNOP(t *testing.T) {
 		if got["characterizes"].Characterization == intent {
 			t.Errorf("intent=%v: characterization=%v", intent, got["characterizes"].Characterization)
 		}
+	}
+}
+
+// The tests-only config of RFC-0002 declares no engine: no stub, and no language to take invalid_base_failures from.
+const nopTestsOnlyConfig = `{"schema_version":1,"engines":[],"tests":{"image":"fake","paths":["tests/**"],"source_paths":["src/**"],"command":"nop","baseline_command":"baseline"}}`
+
+func testsOnlyRepo(t *testing.T, config string) (App, string) {
+	t.Helper()
+	a, _, _, dir := gatesRepo(t)
+	write(t, dir, ".a2dlc/config.json", config)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "tests-only config")
+	return a, dir
+}
+
+// A runner may report a failed import as a failed testcase under the test's own id. With no engine nothing says which
+// failures are invalid, so a test that fails on the base only because the module the candidate adds is not there would
+// be a valid failure and PASS (bead a2dlc-pef). The message names the file: that is the failure of the collection, not of
+// the test.
+func TestNOPImportFailureNamingAFileTheCandidateAddsIsInvalidWithoutAnEngine(t *testing.T) {
+	a, dir := testsOnlyRepo(t, nopTestsOnlyConfig)
+	write(t, dir, "src/lib/rateLimiter.ts", "export const limit = 10\n")
+	write(t, dir, "tests/n.t", "test_limit loads:src/lib/rateLimiter.ts\n")
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := testsOf(v)["test_limit"]
+	if got.Verdict != contract.INCONCLUSIVE || got.Base != contract.TestFailed || !strings.Contains(got.Reason, "import") {
+		t.Fatalf("%+v", got)
+	}
+}
+
+// The lock of the one above: an assertion that fails on the base for a message that names no file stays a valid failure.
+func TestNOPAssertionFailureStaysAValidFailureWithoutAnEngine(t *testing.T) {
+	a, dir := testsOnlyRepo(t, nopTestsOnlyConfig)
+	write(t, dir, "src/lib/rateLimiter.ts", "export const limit = 10\n")
+	write(t, dir, "tests/n.t", "test_limit asserts:src/lib/rateLimiter.ts\n")
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := testsOf(v)["test_limit"]; got.Verdict != contract.PASS || got.Base != contract.TestFailed {
+		t.Fatalf("%+v", got)
+	}
+}
+
+// A file the candidate adds is named by its stem, whatever the language writes around it, and a stem is a whole word.
+func TestClassifierNamesTheFilesTheCandidateAdds(t *testing.T) {
+	invalid, err := classifier(nil, nil, []string{"src/lib/rate_limiter.py", "src/lib/RateLimiter.ts", "src/a.ts"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		msg  string
+		want bool
+	}{
+		{"Failed to load url ../src/lib/RateLimiter.ts (resolved id: ../src/lib/RateLimiter.ts)", true},
+		{"ModuleNotFoundError: No module named 'lib.rate_limiter'", true},
+		{"Cannot find module '../ratelimiter'", true},
+		{"AssertionError: expected 500 to be 404", false},
+		{"expected a to equal b", false},
+		{"RateLimiterError: boom", false},
+	} {
+		if got := invalid(c.msg); got != c.want {
+			t.Errorf("%q: invalid=%v, want %v", c.msg, got, c.want)
+		}
+	}
+}
+
+// Only a file that is new, that the candidate still has and that no engine stubbed can be the cause of an import error
+// nobody can classify: a stubbed file fails inside the stub, and a modified one exists on the base.
+func TestAddedWithoutStubKeepsOnlyNewUnstubbedFiles(t *testing.T) {
+	onBase := map[string]bool{"src/old.ts": true}
+	inCandidate := func(f string) bool { return f != "src/gone.ts" }
+	got := addedWithoutStub([]string{"src/old.ts", "src/new.ts", "src/stubbed.ts", "src/gone.ts"},
+		map[string][]byte{"src/stubbed.ts": nil}, func(f string) bool { return onBase[f] }, inCandidate)
+	if strings.Join(got, ",") != "src/new.ts" {
+		t.Fatal(got)
+	}
+}
+
+// What nobody could run is not a pass: a new module with no stub (no engine names one) and a test that imports a symbol
+// of it. The failure on the base is an ImportError, which no pattern of the config names, and stays INCONCLUSIVE.
+func TestNOPWithoutAStubEngineStaysInconclusiveForANewModule(t *testing.T) {
+	a, dir := testsOnlyRepo(t, nopTestsOnlyConfig)
+	write(t, dir, "src/lib/limiter.ts", "IMPL added\n")
+	write(t, dir, "tests/n.t", "test_added uses:added\n")
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := testsOf(v)["test_added"]
+	if got.Verdict != contract.INCONCLUSIVE || len(v.TestGates.NOPOracle.Stubs) != 0 {
+		t.Fatalf("%+v %+v", got, v.TestGates.NOPOracle)
 	}
 }
 
