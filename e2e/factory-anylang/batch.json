@@ -1,5 +1,0 @@
-{"schema_version": 1, "batch_id": "anylang.1",
- "issues": [
-  {"id": "issue-1", "title": "Add truncate(text, n)", "body": "textkit has no way to shorten text. Add truncate(text, n): text longer than n is cut to n-1 characters plus an ellipsis; shorter text is returned as is. [patch:truncate]", "done_command": "python -m pytest -q tests"},
-  {"id": "issue-2", "title": "Add unique_words(text)", "body": "textkit counts words but not distinct ones. Add unique_words(text): the number of distinct words, split on any whitespace, case sensitive. [patch:unique-words]", "done_command": "python -m pytest -q tests"},
-  {"id": "issue-3", "title": "clamp must reject lo > hi", "body": "clamp(5, 10, 1) should raise ValueError. [patch:clamp-test]", "done_command": "python -m pytest -q tests"}]}

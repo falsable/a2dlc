@@ -33,7 +33,7 @@ func (r *runnerDoubles) RunTests(_ context.Context, _ contract.TestsConfig, _ st
 	return engine.TestRun{Exit: 1, JUnit: []byte(`<testsuites><testsuite><testcase classname="c" name="doubles" file="test/t.test.py"><failure message="f(2) is 2, expected 4"/></testcase></testsuite></testsuites>`)}, nil
 }
 
-// repoTestsOnly is a repo like the factory's target: no engine, config.tests as the only check, builder_primary in roles.json.
+// repoTestsOnly is a repo with no engine, config.tests as the only check, builder_primary in roles.json.
 func repoTestsOnly(t *testing.T, runner engine.TestRunner) (app.App, string) {
 	t.Helper()
 	a, dir := repoLite(t)

@@ -1,6 +1,0 @@
-{"schema_version": 1,
- "engines": [{"language": "python", "image": "a2dlc-engine-py:0.7", "paths": ["src/**"], "budget": {"per_condition_timeout_s": 10}}],
- "tests": {"image": "a2dlc-tests-pytest:0.2", "paths": ["tests/**"],
-           "command": "python -m coverage run --source=src -m pytest -q -p no:cacheprovider -o junit_family=xunit1 --junitxml=\"$A2DLC_JUNIT\" $A2DLC_TESTS; python -m coverage xml -q -o \"$A2DLC_COVERAGE\"",
-           "baseline_command": "python -m coverage run --source=src -m pytest -q -p no:cacheprovider -o junit_family=xunit1 --junitxml=\"$A2DLC_JUNIT\" tests; python -m coverage xml -q -o \"$A2DLC_COVERAGE\"",
-           "invalid_base_failures": ["ImportError", "ModuleNotFoundError", "^collection failure"], "timeout_s": 300}}

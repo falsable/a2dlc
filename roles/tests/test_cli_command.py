@@ -1,5 +1,5 @@
-"""Network-free test of cli_command in roles/adapter.py: how the claude command line that cmd/factory sets in A2DLC_LLM_CMD
-(internal/factory/claude.go, ClaudeCommand) is split, so the flags come out as separate arguments and before -p. No model runs.
+"""Network-free test of cli_command in roles/adapter.py: how a claude command line that a caller sets in A2DLC_LLM_CMD
+(the factory project builds this one) is split, so the flags come out as separate arguments and before -p. No model runs.
 
   python -I -X utf8 roles/tests/test_cli_command.py          (standard library only)
   docker run --rm --network none -v "<worktree>:/src" -w /src --entrypoint python3 a2dlc-roles:0.11 \
@@ -14,8 +14,8 @@ from pathlib import Path
 
 ADAPTER = Path(__file__).resolve().parents[1] / "adapter.py"
 
-# the string TestClaudeCommandIsExactlyTheMinimalFlagSet pins on the Go side, with a remaining budget of 0.75
-FACTORY_CMD = ("claude --setting-sources '' --strict-mcp-config --disable-slash-commands --tools Read,Edit "
+# the minimal-flag command line a caller sets, with a remaining budget of 0.75
+CALLER_CMD = ("claude --setting-sources '' --strict-mcp-config --disable-slash-commands --tools Read,Edit "
                "--exclude-dynamic-system-prompt-sections --max-budget-usd 0.7500")
 
 
@@ -32,7 +32,7 @@ adapter = load_adapter()
 class CliCommandTest(unittest.TestCase):
     def setUp(self):
         self._saved = {k: os.environ.get(k) for k in ("A2DLC_LLM_CMD", "A2DLC_MODEL")}
-        os.environ["A2DLC_LLM_CMD"], os.environ["A2DLC_MODEL"] = FACTORY_CMD, "haiku"
+        os.environ["A2DLC_LLM_CMD"], os.environ["A2DLC_MODEL"] = CALLER_CMD, "haiku"
 
     def tearDown(self):
         for k, v in self._saved.items():
@@ -40,7 +40,7 @@ class CliCommandTest(unittest.TestCase):
             if v is not None:
                 os.environ[k] = v
 
-    def test_factory_flags_are_separate_arguments_before_dash_p(self):
+    def test_caller_flags_are_separate_arguments_before_dash_p(self):
         cmd = adapter.cli_command("claude", True)
         head = ["claude", "--setting-sources", "", "--strict-mcp-config", "--disable-slash-commands", "--tools", "Read,Edit",
                 "--exclude-dynamic-system-prompt-sections", "--max-budget-usd", "0.7500"]

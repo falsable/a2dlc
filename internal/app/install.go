@@ -181,7 +181,7 @@ func pyTestFiles(dir string) bool {
 
 // testsStub is a tests section for the runner, wired to JUnit and coverage through $A2DLC_JUNIT and $A2DLC_COVERAGE and
 // to the test files through $A2DLC_TESTS. The image is a placeholder: it is the repo's toolchain with its dependencies,
-// which only the repo knows. The vitest command is the one e2e/factory/c8_junit.sh ran against the real runner; the
+// which only the repo knows. The vitest command is the one calibration C8 ran against the real runner; the
 // node --test one uses the junit and lcov reporters of Node 22 and the pytest one the coverage.py command of
 // contracts/examples/valid/config__tests-py.json; neither was run here.
 func (a App) testsStub(runner string) string {

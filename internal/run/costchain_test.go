@@ -10,7 +10,7 @@ import (
 	"github.com/falsable/a2dlc/internal/contract"
 )
 
-// The cost chain of the software factory (calibration C7): what the adapter makes of a claude -p result
+// The cost chain of a lane that a caller drives (calibration C7): what the adapter makes of a claude -p result
 // (roles/tests/golden/claude_result.cost.json, pinned to the adapter by roles/tests/test_read_claude.py) comes back from
 // every fake role call, goes into the ledger and the budget, and CB-03 cuts by tokens and by cost. No model runs.
 

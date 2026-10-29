@@ -46,7 +46,7 @@ func junitRun(exit int, cases ...string) engine.TestRun {
 
 const testsOnlyConfig = `{"schema_version":1,"engines":[],"tests":{"image":"fake","paths":["test/**"],"command":"run-all"}}`
 
-// testsRepo is a repo with no engine and config.tests only, like the factory's target: nothing reviews a changed file but
+// testsRepo is a repo with no engine and config.tests only, like a repo that declares only its tests: nothing reviews a changed file but
 // the tests.
 func testsRepo(t *testing.T, script ...engine.TestRun) (App, *scriptedTests) {
 	t.Helper()

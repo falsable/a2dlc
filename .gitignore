@@ -16,7 +16,6 @@ bin/
 __pycache__/
 .a2dlc/escalations.json
 .a2dlc/run/
-.a2dlc/factory/
 
 # Maintainer-only, kept on disk out of the public tree (a2dlc-dkv)
 CLAUDE.local.md

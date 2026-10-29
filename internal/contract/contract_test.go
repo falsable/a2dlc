@@ -90,11 +90,6 @@ func exampleTypes() map[string]func() any {
 		"engine-traces-response": func() any { return &TracesResponse{} },
 		// Code Graph Indexer (Stage 6)
 		"indexer-response": func() any { return &IndexerResponse{} },
-		// cmd/factory (ADR meta/0008)
-		"factory-config": func() any { return &FactoryConfig{} }, "factory-batch": func() any { return &FactoryBatch{} },
-		"factory-report": func() any { return &FactoryReport{} },
-		// factory integrate (bead a2dlc-3fu.4)
-		"factory-holdout": func() any { return &FactoryHoldout{} }, "factory-integration": func() any { return &FactoryIntegration{} },
 	}
 }
 
@@ -124,18 +119,6 @@ var unknownPropertyInvalid = []string{
 	"engine-signatures-response__symbol-with-body.json",
 	"run-state__by-role-unknown.json",
 	"waivers__approved-by-of-the-pilot.json",
-	"factory-config__cap-foreign.json",
-	"factory-batch__extra-field.json",
-	"factory-report__stage-extra-field.json",
-	"factory-report__usage-extra-field.json",
-	"factory-report__tests-touched-extra-field.json",
-	"factory-holdout__extra-field.json",
-	"factory-integration__rebuild-extra-field.json",
-	"factory-config__triage-extra-field.json",
-	"factory-report__triage-usage-extra-field.json",
-	"factory-report__killed-by-extra-field.json",
-	"factory-integration__lane-extra-field.json",
-	"factory-integration__usage-extra-field.json",
 }
 
 // knownLooseDecodes names invalid examples that the struct accepts although the schema rejects them. They are
