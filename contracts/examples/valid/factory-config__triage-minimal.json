@@ -1,0 +1,34 @@
+{
+ "schema_version": 1,
+ "roles_image": "a2dlc-roles:0.11",
+ "argv": [
+  "python3",
+  "/a2dlc/adapter.py"
+ ],
+ "env_file": "C:/Users/me/.config/a2dlc/claude.env",
+ "network": "provider",
+ "egress_allow": [
+  "api.anthropic.com"
+ ],
+ "model": "haiku",
+ "tools": [
+  "Read",
+  "Edit",
+  "Write",
+  "Bash",
+  "Grep",
+  "Glob"
+ ],
+ "concurrency": 3,
+ "caps": {
+  "lane_usd": 1.0,
+  "lane_seconds": 300,
+  "lane_turns": 40,
+  "run_stop_new_usd": 4.0,
+  "run_kill_usd": 6.0,
+  "total_usd": 25.0
+ },
+ "triage": {
+  "model": "haiku"
+ }
+}

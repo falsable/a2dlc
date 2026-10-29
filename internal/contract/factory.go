@@ -29,17 +29,45 @@ const (
 )
 
 type FactoryConfig struct {
-	SchemaVersion int         `json:"schema_version"`
-	RolesImage    string      `json:"roles_image"`
-	Argv          []string    `json:"argv"`
-	EnvFile       string      `json:"env_file,omitempty"`
-	Network       string      `json:"network"`
-	EgressAllow   []string    `json:"egress_allow,omitempty"`
-	Model         string      `json:"model"`
-	Tools         []string    `json:"tools"`
-	Arm           string      `json:"arm,omitempty"`
-	Concurrency   int         `json:"concurrency"`
-	Caps          FactoryCaps `json:"caps"`
+	SchemaVersion int            `json:"schema_version"`
+	RolesImage    string         `json:"roles_image"`
+	Argv          []string       `json:"argv"`
+	EnvFile       string         `json:"env_file,omitempty"`
+	Network       string         `json:"network"`
+	EgressAllow   []string       `json:"egress_allow,omitempty"`
+	Model         string         `json:"model"`
+	Tools         []string       `json:"tools"`
+	Arm           string         `json:"arm,omitempty"`
+	Triage        *FactoryTriage `json:"triage,omitempty"`
+	Concurrency   int            `json:"concurrency"`
+	Caps          FactoryCaps    `json:"caps"`
+}
+
+// FactoryTriage turns the model triage on. Model is the cheap model arm minimal pins; arm control uses the config's own
+// model and launcher, so it names none.
+type FactoryTriage struct {
+	Model string `json:"model,omitempty"`
+}
+
+// Choices of a triage call.
+const (
+	TriageBuild      = "build"
+	TriageTriagedOut = "triaged_out"
+)
+
+// TriageIssue is one triage call: what it chose for the issue and what it spent.
+type TriageIssue struct {
+	IssueID string   `json:"issue_id"`
+	Choice  string   `json:"choice"`
+	Reason  string   `json:"reason"`
+	Usage   Counters `json:"usage"`
+}
+
+// TriageReport is the triage of a run. Its Usage is part of FactoryReport.Usage.
+type TriageReport struct {
+	Model  string        `json:"model"`
+	Usage  Counters      `json:"usage"`
+	Issues []TriageIssue `json:"issues"`
 }
 
 // Validate checks what factory-config.schema.json cannot compare: the order of the caps, and that a provider network
@@ -69,6 +97,10 @@ func (c FactoryConfig) Validate() error {
 		return fmt.Errorf("caps.run_stop_new_usd %.4f is above caps.run_kill_usd %.4f", k.RunStopNewUSD, k.RunKillUSD)
 	case k.RunKillUSD > k.TotalUSD:
 		return fmt.Errorf("caps.run_kill_usd %.4f is above caps.total_usd %.4f", k.RunKillUSD, k.TotalUSD)
+	case c.Triage != nil && c.Arm == ArmControl && c.Triage.Model != "":
+		return fmt.Errorf("triage.model with arm control: the control triages with the config's model")
+	case c.Triage != nil && c.Arm != ArmControl && c.Triage.Model == "":
+		return fmt.Errorf("triage.model is required for arm minimal")
 	case k.RunWallSeconds != nil && *k.RunWallSeconds < 1:
 		return fmt.Errorf("caps.run_wall_seconds %d is not positive", *k.RunWallSeconds)
 	case c.Network == "provider" && len(c.EgressAllow) == 0:
@@ -212,6 +244,7 @@ type FactoryReport struct {
 	FinishedAt         string        `json:"finished_at"`
 	Outcome            string        `json:"outcome"`
 	KilledBy           *RunKill      `json:"killed_by,omitempty"`
+	Triage             *TriageReport `json:"triage,omitempty"`
 	PriorSpendUSD      float64       `json:"prior_spend_usd"`
 	Usage              Counters      `json:"usage"`
 	Accepted           int           `json:"accepted"`
@@ -221,7 +254,8 @@ type FactoryReport struct {
 
 var factoryRunID = regexp.MustCompile(`^run-[0-9a-f]{12}$`)
 
-// Validate checks the arithmetic that factory-report.schema.json cannot: the run total is the sum of its lanes, the
+// Validate checks the arithmetic that factory-report.schema.json cannot: the run total is the sum of its lanes plus the
+// triage, a triaged-out issue has a skipped lane, the
 // accepted count matches the lanes, and the cost per accepted change is the total over that count.
 func (r FactoryReport) Validate() error {
 	if !factoryRunID.MatchString(r.RunID) {
@@ -235,12 +269,35 @@ func (r FactoryReport) Validate() error {
 			accepted++
 		}
 	}
+	if r.Triage != nil {
+		var tsum Counters
+		lane := map[string]string{}
+		for _, l := range r.Lanes {
+			lane[l.IssueID] = l.Status
+		}
+		for _, it := range r.Triage.Issues {
+			tsum.Plus(it.Usage)
+			switch {
+			case it.Choice != TriageBuild && it.Choice != TriageTriagedOut:
+				return fmt.Errorf("triage of %s: choice %q", it.IssueID, it.Choice)
+			case it.Choice == TriageTriagedOut && lane[it.IssueID] != LaneSkipped:
+				return fmt.Errorf("triage of %s: triaged_out and its lane is %q, not skipped", it.IssueID, lane[it.IssueID])
+			}
+		}
+		const teps = 1e-9
+		if tsum.Calls != r.Triage.Usage.Calls || tsum.Turns != r.Triage.Usage.Turns || tsum.InputTokens != r.Triage.Usage.InputTokens ||
+			tsum.CacheReadInputTokens != r.Triage.Usage.CacheReadInputTokens || tsum.CacheCreationInputTokens != r.Triage.Usage.CacheCreationInputTokens ||
+			tsum.OutputTokens != r.Triage.Usage.OutputTokens || tsum.USD > r.Triage.Usage.USD+teps || tsum.USD < r.Triage.Usage.USD-teps {
+			return fmt.Errorf("triage usage is not the sum of its issues")
+		}
+		sum.Plus(r.Triage.Usage)
+	}
 	const eps = 1e-9
 	switch {
 	case sum.Calls != r.Usage.Calls || sum.InputTokens != r.Usage.InputTokens || sum.CacheReadInputTokens != r.Usage.CacheReadInputTokens ||
 		sum.CacheCreationInputTokens != r.Usage.CacheCreationInputTokens || sum.OutputTokens != r.Usage.OutputTokens || sum.Turns != r.Usage.Turns ||
 		sum.USD > r.Usage.USD+eps || sum.USD < r.Usage.USD-eps:
-		return fmt.Errorf("usage is not the sum of the lanes")
+		return fmt.Errorf("usage is not the sum of the lanes and the triage")
 	case r.KilledBy != nil && r.Outcome != RunKilled:
 		return fmt.Errorf("killed_by on a run whose outcome is %s", r.Outcome)
 	case accepted != r.Accepted:

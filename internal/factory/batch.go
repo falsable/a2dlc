@@ -75,6 +75,18 @@ func RunBatch(ctx context.Context, d Deps, cfg contract.FactoryConfig, batch con
 	defer stopWall()
 	wt := &worktrees{dir: d.Repo.Dir}
 
+	// the model triage runs before any lane; an issue it triages out gets a skipped lane and no model call after that
+	var tri *contract.TriageReport
+	triagedOut := map[string]string{}
+	if cfg.Triage != nil {
+		tri = runTriage(runCtx, d, cfg, acct, runID, batch)
+		for _, it := range tri.Issues {
+			if it.Choice == contract.TriageTriagedOut {
+				triagedOut[it.IssueID] = "triaged out by model triage"
+			}
+		}
+	}
+
 	lanes := make([]contract.FactoryLane, len(batch.Issues))
 	slots := make(chan struct{}, cfg.Concurrency)
 	var wg sync.WaitGroup
@@ -82,6 +94,10 @@ func RunBatch(ctx context.Context, d Deps, cfg contract.FactoryConfig, batch con
 admit:
 	for i, is := range batch.Issues {
 		if why := Precheck(is); why != "" {
+			lanes[i] = notRun(is.ID, contract.LaneSkipped, why)
+			continue
+		}
+		if why, out := triagedOut[is.ID]; out {
 			lanes[i] = notRun(is.ID, contract.LaneSkipped, why)
 			continue
 		}
@@ -129,6 +145,10 @@ admit:
 		Outcome: outcome, PriorSpendUSD: prior, Lanes: lanes}
 	if killed {
 		rep.KilledBy = acct.killedByCap()
+	}
+	if tri != nil {
+		rep.Triage = tri
+		rep.Usage.Plus(tri.Usage)
 	}
 	for _, l := range lanes {
 		rep.Usage.Plus(l.Usage)

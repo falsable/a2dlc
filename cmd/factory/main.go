@@ -154,6 +154,15 @@ func runBatch(args []string, e env) int {
 		capped = capped || l.Status == contract.LaneCapped || l.Status == contract.LaneKilled
 	}
 	fmt.Fprintf(e.out, "run %s: %s, %d accepted, %.4f usd; %s\n", rep.RunID, rep.Outcome, rep.Accepted, rep.Usage.USD, filepath.Join(outDir, rep.RunID, "report.json"))
+	if rep.Triage != nil {
+		out := 0
+		for _, it := range rep.Triage.Issues {
+			if it.Choice == contract.TriageTriagedOut {
+				out++
+			}
+		}
+		fmt.Fprintf(e.out, "triage (%s): %d issues, %d triaged out, %.4f usd, included in the total\n", rep.Triage.Model, len(rep.Triage.Issues), out, rep.Triage.Usage.USD)
+	}
 	if rep.CostPerAcceptedUSD != nil {
 		fmt.Fprintf(e.out, "cost per accepted change: %.4f usd\n", *rep.CostPerAcceptedUSD)
 	}

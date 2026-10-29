@@ -87,6 +87,30 @@
     },
     "prior_spend_usd": { "type": "number", "minimum": 0 },
     "usage": { "$ref": "#/$defs/counters", "unevaluatedProperties": false },
+    "triage": {
+      "type": "object",
+      "description": "Optional; present when the config turned triage on. The model calls that decided which issues reach a lane. Their spend is part of the top-level usage (usage = the lanes' sum + triage.usage), so cost per accepted change counts it. An issue with choice triaged_out has a lane with status skipped.",
+      "properties": {
+        "model": { "type": "string", "minLength": 1, "description": "The model the triage calls used." },
+        "usage": { "$ref": "#/$defs/counters", "unevaluatedProperties": false, "description": "The sum of the issues' usage." },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "issue_id": { "type": "string", "minLength": 1 },
+              "choice": { "enum": ["build", "triaged_out"] },
+              "reason": { "type": "string", "description": "Why the choice is build when the answer was not usable, or why the call failed; empty for a plain answer." },
+              "usage": { "$ref": "#/$defs/counters", "unevaluatedProperties": false }
+            },
+            "required": ["issue_id", "choice", "reason", "usage"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["model", "usage", "issues"],
+      "additionalProperties": false
+    },
     "accepted": { "type": "integer", "minimum": 0 },
     "cost_per_accepted_usd": { "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0 }] },
     "lanes": { "type": "array", "items": { "$ref": "#/$defs/lane" } }

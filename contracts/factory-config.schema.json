@@ -13,6 +13,14 @@
     "egress_allow": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" }, "uniqueItems": true, "description": "Hostnames the egress proxy lets a provider lane reach." },
     "model": { "type": "string", "minLength": 1, "description": "claude --model for every lane of the run (A2DLC_MODEL). A run never changes model midway." },
     "tools": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$" }, "minItems": 1, "uniqueItems": true, "description": "The bounded tool list passed as claude --tools." },
+    "triage": {
+      "type": "object",
+      "description": "Optional. Turns on a model triage before any lane starts: each issue with a done_command gets one call with the issue's title and body only, answering build or triaged_out; a triaged_out issue gets no lane and its call is counted in the report's triage and in cost per accepted change. Absent means no triage (precheck still skips an issue with an empty done_command). Arm minimal pins the model here (a cheap one, no tools); arm control triages with its own launcher and the config's `model`, so it must not name one.",
+      "properties": {
+        "model": { "type": "string", "minLength": 1, "description": "Model of the triage calls, required for arm minimal and forbidden for arm control (cmd/factory checks)." }
+      },
+      "additionalProperties": false
+    },
     "arm": { "enum": ["minimal", "control"], "description": "Which arm of the preregistered comparison the run is. Absent means minimal (arm 1), the claude flags of `tools` above. control (arm 0) is default `claude -p` in the same role container: none of those flags, so `tools` is read but not passed; the only flag it keeps is --max-budget-usd, which enforces the lane cap every arm shares. The hash of this file is in the report, so the arm of a run cannot be changed afterwards." },
     "concurrency": { "type": "integer", "minimum": 1, "description": "Lanes in flight at once." },
     "caps": {
