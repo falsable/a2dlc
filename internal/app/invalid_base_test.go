@@ -51,3 +51,11 @@ func TestInvalidBaseFailuresWithoutEnginesIsTheUnionOfTheLanguages(t *testing.T)
 		t.Fatalf("an explicit empty list still means none, got %v", got)
 	}
 }
+
+// The language of the stub engine picks the defaults like an engine's, and it is not widened to the union.
+func TestInvalidBaseFailuresTakeTheLanguageOfTheStubEngine(t *testing.T) {
+	cfg := contract.Config{Tests: &contract.TestsConfig{StubEngine: &contract.EngineConfig{Language: "python"}}}
+	if got := invalidBaseFailures(cfg); len(got) != len(unique(defaultInvalidBaseFailures["python"])) {
+		t.Fatalf("got %v", got)
+	}
+}

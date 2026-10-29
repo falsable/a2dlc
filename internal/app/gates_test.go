@@ -382,8 +382,31 @@ func TestAddedWithoutStubKeepsOnlyNewUnstubbedFiles(t *testing.T) {
 	}
 }
 
-// What nobody could run is not a pass: a new module with no stub (no engine names one) and a test that imports a symbol
-// of it. The failure on the base is an ImportError, which no pattern of the config names, and stays INCONCLUSIVE.
+// Bead a2dlc-35w. The same tests-only repo, with an engine that is asked for stubs only (config.tests.stub_engine).
+const stubEngineConfig = `{"schema_version":1,"engines":[],"tests":{"image":"fake","paths":["tests/**"],"source_paths":["src/**"],"command":"nop","baseline_command":"baseline",` +
+	`"stub_engine":{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}}}`
+
+// A new test of a module the candidate adds fails on the base inside the stub, so it is judged: PASS, one stub, and the
+// base failure is the stub's (NotImplementedError of the fake), not a missing import.
+func TestNOPJudgesATestOfANewModuleThroughTheStubEngine(t *testing.T) {
+	a, dir := testsOnlyRepo(t, stubEngineConfig)
+	write(t, dir, "src/lib/limiter.ts", "IMPL added\n")
+	write(t, dir, "tests/n.t", "test_added uses:added\n")
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := testsOf(v)["test_added"]
+	if got.Verdict != contract.PASS || got.Base != contract.TestFailed || !strings.Contains(got.Message, "NotImplementedError") {
+		t.Fatalf("%+v", got)
+	}
+	if g := v.TestGates.NOPOracle; g.Status != contract.GateRan || len(g.Stubs) != 1 {
+		t.Fatalf("%+v", g)
+	}
+}
+
+// The lock of the one above (rule: what nobody could run is not a pass): the same candidate in a repo that names no stub
+// engine has no stub, and the import failure stays INCONCLUSIVE.
 func TestNOPWithoutAStubEngineStaysInconclusiveForANewModule(t *testing.T) {
 	a, dir := testsOnlyRepo(t, nopTestsOnlyConfig)
 	write(t, dir, "src/lib/limiter.ts", "IMPL added\n")
@@ -395,6 +418,25 @@ func TestNOPWithoutAStubEngineStaysInconclusiveForANewModule(t *testing.T) {
 	got := testsOf(v)["test_added"]
 	if got.Verdict != contract.INCONCLUSIVE || len(v.TestGates.NOPOracle.Stubs) != 0 {
 		t.Fatalf("%+v %+v", got, v.TestGates.NOPOracle)
+	}
+}
+
+// The stub engine is no engine of config.engines: it never reviews. The fake counts its differential runs (Run), and the
+// stub operation is not one of them.
+func TestStubEngineIsAskedForStubsOnly(t *testing.T) {
+	a, dir := testsOnlyRepo(t, stubEngineConfig)
+	m := a.Runner.(*fakeEngine)
+	write(t, dir, "src/lib/limiter.ts", "IMPL added\n")
+	write(t, dir, "tests/n.t", "test_added uses:added\n")
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.calls != 0 || len(v.Targets) != 0 {
+		t.Fatalf("the stub engine reviewed: %d runs, targets %+v", m.calls, v.Targets)
+	}
+	if len(v.TestGates.NOPOracle.Stubs) != 1 {
+		t.Fatalf("it gave no stub: %+v", v.TestGates.NOPOracle)
 	}
 }
 

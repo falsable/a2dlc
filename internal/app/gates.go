@@ -79,7 +79,7 @@ var defaultInvalidBaseFailures = map[string][]string{
 }
 
 // invalidBaseFailures is the list the NOP gate classifies with: config.tests.invalid_base_failures when declared, otherwise
-// the defaults of the languages of config.engines, sorted and unique. When none of them
+// the defaults of the languages of config.engines and of config.tests.stub_engine, sorted and unique. When none of them
 // names a language the gate knows (a tests-only repo), the list is the union of every language's defaults: with an empty
 // list every failed testcase on the base would be a valid failure, and a runner that reports a failed import as a failure
 // under the test's own id would make a test that proves nothing PASS. More patterns can only turn a PASS into INCONCLUSIVE.
@@ -90,6 +90,9 @@ func invalidBaseFailures(cfg contract.Config) []string {
 	var out []string
 	for _, e := range cfg.Engines {
 		out = append(out, defaultInvalidBaseFailures[e.Language]...)
+	}
+	if cfg.Tests != nil && cfg.Tests.StubEngine != nil {
+		out = append(out, defaultInvalidBaseFailures[cfg.Tests.StubEngine.Language]...)
 	}
 	if len(out) == 0 {
 		for _, patterns := range defaultInvalidBaseFailures {
@@ -608,13 +611,18 @@ func (a App) saveCache(key string, c run) {
 }
 
 // stubs asks each engine for the base with stubs for what the candidate added in its sources. An engine that does not
-// produce them stops nothing: NOP runs without stubs and import failures remain INCONCLUSIVE.
+// produce them stops nothing: NOP runs without stubs and import failures remain INCONCLUSIVE. The stub engine of
+// config.tests comes last: it gets the sources no reviewing engine claimed, and only for stubs.
 func (a App) stubs(ctx context.Context, cfg contract.Config, in *gateInput, baseDir, candDir string) {
 	in.stubs = map[string][]byte{}
-	byEngine, _ := verdict.Assign(cfg.Engines, in.sources)
+	engines := cfg.Engines
+	if cfg.Tests != nil && cfg.Tests.StubEngine != nil {
+		engines = append(append([]contract.EngineConfig{}, cfg.Engines...), *cfg.Tests.StubEngine)
+	}
+	byEngine, _ := verdict.Assign(engines, in.sources)
 	var notes []string
 	for _, i := range sortedIndexes(byEngine) {
-		e := cfg.Engines[i]
+		e := engines[i]
 		req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseRef: in.baseSha,
 			BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: byEngine[i], Budget: json.RawMessage("{}")}
 		t0 := time.Now()

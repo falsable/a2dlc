@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "engines": [],
+ "tests": {
+  "image": "a2dlc-factory-node-cov:0.1",
+  "paths": [
+   "test/**"
+  ],
+  "source_paths": [
+   "src/**"
+  ],
+  "command": "npx vitest run --reporter=junit --outputFile.junit=\"$A2DLC_JUNIT\" $A2DLC_TESTS",
+  "stub_engine": {
+   "language": "typescript",
+   "image": "a2dlc-engine-ts:0.2",
+   "paths": [
+    "src/**"
+   ],
+   "budget": {},
+   "command": "make stubs"
+  },
+  "timeout_s": 300
+ }
+}

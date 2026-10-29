@@ -65,6 +65,7 @@
         "timeout_s": { "type": "integer", "minimum": 1, "default": 600 },
         "memory": { "type": "string", "default": "2g" },
         "cpus": { "type": "number", "default": 2 },
+        "stub_engine": { "$ref": "#/properties/engines/items", "description": "Optional. An engine that is asked for stubs only (NOP/Oracle gate: the base receives a stub of each symbol and module the candidate adds, so a new test fails on the base because of the test and not because of a missing import). It is not one of config.engines: it reviews no file, classifies no line and counts for no Tier 0 review, so a repo with \"engines\": [] stays a tests-only repo. Its language also selects the default invalid_base_failures. Absent: no stubs come from the repo's engines other than the ones in config.engines." },
         "trace_coverage": {
           "type": "object",
           "properties": {

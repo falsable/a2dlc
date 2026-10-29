@@ -133,6 +133,9 @@ type TestsConfig struct {
 	TimeoutS            int           `json:"timeout_s,omitempty"`
 	Memory              string        `json:"memory,omitempty"`
 	CPUs                float64       `json:"cpus,omitempty"`
+	// StubEngine is asked for stubs only (the NOP gate's base): it is no entry of Config.Engines, so it reviews no file and
+	// counts for no Tier 0 review. Its language also picks the default InvalidBaseFailures.
+	StubEngine *EngineConfig `json:"stub_engine,omitempty"`
 }
 
 type EngineConfig struct {

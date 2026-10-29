@@ -26,6 +26,7 @@ verdict_engine_down = read("verdict__engine-down.json")
 c = read("config__entropos.json")
 b = read("blackbox__a2dlc.json")
 ct = read("config__tests-py.json")
+cse = read("config__tests-stub-engine.json")
 rs = read("engine-request__py-stub.json")
 st = read("engine-stub-response__py.json")
 verdict_tests = read("verdict__tests.json")
@@ -73,6 +74,10 @@ cases = {
     "config__tests-missing-command.json": (ct, lambda x: x["tests"].pop("command")),
     # k = 0 would declare flaky without rerunning anything
     "config__tests-reruns-zero.json": (ct, lambda x: x["tests"].update(reruns=0)),
+    # a stub engine without its image cannot be started: the stub of the base would silently not exist
+    "config__stub-engine-missing-image.json": (cse, lambda x: x["tests"]["stub_engine"].pop("image")),
+    # it is an engine, not a command: an unknown key (the future tests.stub_command shape) is rejected, not ignored
+    "config__stub-engine-unknown-key.json": (cse, lambda x: x["tests"]["stub_engine"].update(command="make stubs")),
     # «format» is neither an escalation nor will it be an engine operation (mutate stopped being unknown in block 5)
     "engine-request__operation-unknown.json": (rs, lambda x: x.update(operation="format")),
     # without unstubbed, a failure caused by a symbol without a stub would pass as a valid failure
