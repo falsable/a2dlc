@@ -67,6 +67,13 @@ class ReadClaudeCost(unittest.TestCase):
         self.assertEqual(cost["cache_read_input_tokens"], 10)
         self.assertEqual(cost["cache_creation_input_tokens"], 30)
 
+    def test_golden_claude_result_gives_the_cost_the_go_chain_test_reads(self):
+        # internal/run/costchain_test.go reads claude_result.cost.json as the cost of every fake role call: this pins that
+        # file to what the adapter makes of a claude -p result, so the Go test starts from a real adapter output.
+        golden = Path(__file__).resolve().parent / "golden"
+        _, cost, _ = adapter.read_claude((golden / "claude_result.json").read_text(encoding="utf-8"), "", 0)
+        self.assertEqual(cost, json.loads((golden / "claude_result.cost.json").read_text(encoding="utf-8")))
+
     def test_no_cost_means_no_cost(self):
         doc = json.loads(claude_json())
         del doc["total_cost_usd"]
