@@ -19,6 +19,10 @@ type IntegrateDeps struct {
 	Deps
 	Holdout HoldoutRunner
 	MainRef string // the branch lanes would be merged into, only read: empty = HEAD
+	// Rebuild, when set, gives a lane that does not apply one fresh build on the integration head (see RebuildDeps).
+	Rebuild *RebuildDeps
+
+	rebuilder *rebuilder // made by Integrate from Rebuild
 }
 
 // Integrate is the merge queue of a run (bead a2dlc-3fu.4, ADR meta/0008). The accepted lanes of rep are tried one at a
@@ -67,6 +71,15 @@ func Integrate(ctx context.Context, d IntegrateDeps, spec contract.FactoryHoldou
 		return contract.FactoryIntegration{}, err
 	}
 	defer wts.remove(path)
+	if d.Rebuild != nil {
+		rctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		rb, err := newRebuilder(d.Rebuild, d.Deps, rep, wts, cancel)
+		if err != nil {
+			return contract.FactoryIntegration{}, err
+		}
+		ctx, d.rebuilder = rctx, rb
+	}
 	wtRepo, err := gitx.Open(path)
 	if err != nil {
 		return contract.FactoryIntegration{}, err
@@ -92,6 +105,17 @@ func Integrate(ctx context.Context, d IntegrateDeps, spec contract.FactoryHoldou
 		}
 		rec.Lanes = append(rec.Lanes, l)
 	}
+	var rebuilt contract.Counters
+	rebuilds := 0
+	for _, l := range rec.Lanes {
+		if l.Rebuild != nil {
+			rebuilds++
+			rebuilt.Plus(l.Rebuild.Usage)
+		}
+	}
+	if rebuilds > 0 {
+		rec.Usage = &rebuilt
+	}
 	if rec.HeadSha, err = gitIn(path, "rev-parse", "HEAD"); err != nil {
 		return rec, err
 	}
@@ -105,9 +129,9 @@ func Integrate(ctx context.Context, d IntegrateDeps, spec contract.FactoryHoldou
 	return rec, writeJSON(filepath.Join(out, "integration.json"), rec)
 }
 
-// integrateLane judges one queued lane on the integration worktree and fills l; whatever it does not integrate it rolls
+// judgeLane judges one queued lane on the integration worktree and fills l; whatever it does not integrate it rolls
 // back, so the next lane starts from the branch head.
-func integrateLane(ctx context.Context, d IntegrateDeps, spec contract.FactoryHoldout, wtRepo gitx.Repo, wt, out, runBase, ref string, integrated map[string]bool, l *contract.FactoryIntegrationLane) {
+func judgeLane(ctx context.Context, d IntegrateDeps, spec contract.FactoryHoldout, wtRepo gitx.Repo, wt, out, runBase, ref string, integrated map[string]bool, l *contract.FactoryIntegrationLane) {
 	stop := func(status, format string, a ...any) {
 		l.Status, l.Reason = status, fmt.Sprintf(format, a...)
 		rollback(wt)

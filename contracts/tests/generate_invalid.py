@@ -444,6 +444,12 @@ cases = {
     "factory-report__triage-issue-without-reason.json": (read("factory-report__triage.json"), lambda x: x["triage"]["issues"][0].pop("reason")),
     "factory-report__triage-counter-negative.json": (read("factory-report__triage.json"), lambda x: x["triage"]["issues"][0]["usage"].update(output_tokens=-1)),
     "factory-report__triage-usage-extra-field.json": (read("factory-report__triage.json"), lambda x: x["triage"]["usage"].update(cost_basis="list")),
+    # conflicted lanes get one rebuild (bead a2dlc-3fu.17): its outcome is a lane status, its usage the four counters
+    "factory-integration__rebuild-outcome-unknown.json": (read("factory-integration__rebuilt.json"), lambda x: x["lanes"][1]["rebuild"].update(outcome="merged")),
+    "factory-integration__rebuild-without-usage.json": (read("factory-integration__rebuilt.json"), lambda x: x["lanes"][1]["rebuild"].pop("usage")),
+    "factory-integration__rebuild-counter-negative.json": (read("factory-integration__rebuilt.json"), lambda x: x["lanes"][1]["rebuild"]["usage"].update(turns=-1)),
+    "factory-integration__rebuild-candidate-not-a-run-ref.json": (read("factory-integration__rebuilt.json"), lambda x: x["lanes"][1]["rebuild"].update(candidate_ref="refs/heads/main")),
+    "factory-integration__rebuild-extra-field.json": (read("factory-integration__rebuilt.json"), lambda x: x["lanes"][1]["rebuild"].update(attempts=2)),
     "run-state__spent-cache-read-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_read_tokens=-1)),
     "run-state__spent-cache-creation-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_creation_tokens=-1)),
     "capture__branch-coverage-over-one.json": (read("capture__traces.json"), lambda x: x.update(branch_coverage=1.5)),

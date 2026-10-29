@@ -72,6 +72,18 @@ type FactoryIntegrationLane struct {
 	CheckVerdict  *string  `json:"check_verdict"`
 	HoldoutFiles  []string `json:"holdout_files"`
 	HoldoutExit   *int     `json:"holdout_exit"`
+	// Rebuild is set when the lane did not apply and was built once more on the integration head (merge queue only).
+	Rebuild *IntegrationRebuild `json:"rebuild,omitempty"`
+}
+
+// IntegrationRebuild is the one fresh build a conflicted lane gets: what it spent, how long it took and how it ended.
+// Outcome is the lane status of the build (LaneAccepted when a candidate came out of it).
+type IntegrationRebuild struct {
+	Usage        Counters `json:"usage"`
+	WallSeconds  float64  `json:"wall_seconds"`
+	Outcome      string   `json:"outcome"`
+	Reason       string   `json:"reason"`
+	CandidateRef *string  `json:"candidate_ref"`
 }
 
 type FactoryIntegration struct {
@@ -104,13 +116,25 @@ func (r FactoryIntegration) Validate() error {
 	switch {
 	case r.Integrator != "" && r.Integrator != IntegratorQueue && r.Integrator != IntegratorReference:
 		return fmt.Errorf("integrator %q", r.Integrator)
-	case (r.Integrator == IntegratorReference) != (r.Usage != nil):
-		return fmt.Errorf("integrator %q and usage %v: only the reference integration has model usage, and always", r.Integrator, r.Usage != nil)
+	case r.Integrator == IntegratorReference && r.Usage == nil:
+		return fmt.Errorf("the reference integration always has usage")
 	case (r.Integrator == IntegratorReference) != strings.HasSuffix(r.IntegrationBranch, "-reference"):
 		return fmt.Errorf("integrator %q on branch %s", r.Integrator, r.IntegrationBranch)
 	}
 	n := 0
+	var rebuilt Counters
+	rebuilds := 0
 	for _, l := range r.Lanes {
+		if l.Rebuild != nil {
+			rebuilds++
+			rebuilt.Plus(l.Rebuild.Usage)
+			if r.Integrator == IntegratorReference {
+				return fmt.Errorf("lane %s has a rebuild: only the merge queue rebuilds", l.IssueID)
+			}
+			if (l.Rebuild.Outcome == LaneAccepted) != (l.Rebuild.CandidateRef != nil) {
+				return fmt.Errorf("lane %s: rebuild outcome %s and candidate_ref %v", l.IssueID, l.Rebuild.Outcome, l.Rebuild.CandidateRef != nil)
+			}
+		}
 		in := l.Status == IntegrationIntegrated
 		if in {
 			n++
@@ -126,6 +150,17 @@ func (r FactoryIntegration) Validate() error {
 	}
 	if n != r.Integrated {
 		return fmt.Errorf("integrated is %d and %d lanes are integrated", r.Integrated, n)
+	}
+	if r.Integrator != IntegratorReference {
+		const eps = 1e-9
+		switch {
+		case (rebuilds > 0) != (r.Usage != nil):
+			return fmt.Errorf("usage %v and %d rebuilds: the merge queue has usage exactly when a lane was rebuilt", r.Usage != nil, rebuilds)
+		case r.Usage != nil && (r.Usage.Calls != rebuilt.Calls || r.Usage.Turns != rebuilt.Turns || r.Usage.InputTokens != rebuilt.InputTokens ||
+			r.Usage.CacheReadInputTokens != rebuilt.CacheReadInputTokens || r.Usage.CacheCreationInputTokens != rebuilt.CacheCreationInputTokens ||
+			r.Usage.OutputTokens != rebuilt.OutputTokens || r.Usage.USD > rebuilt.USD+eps || r.Usage.USD < rebuilt.USD-eps):
+			return fmt.Errorf("usage is not the sum of the rebuilds")
+		}
 	}
 	return nil
 }

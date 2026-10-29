@@ -46,3 +46,31 @@ func TestFactoryIntegrationValidate(t *testing.T) {
 		}
 	}
 }
+
+// A merge queue record has usage exactly when a lane was rebuilt, and it is the sum of the rebuilds; the reference
+// integration never rebuilds.
+func TestIntegrationRebuildUsageIsTheSumOfTheRebuilds(t *testing.T) {
+	const name = "factory-integration__rebuilt.json"
+	if err := readFactory[FactoryIntegration](t, name).Validate(); err != nil {
+		t.Fatal(err)
+	}
+	cases := map[string]func(*FactoryIntegration){
+		"usage is not the sum of the rebuilds": func(r *FactoryIntegration) { r.Usage.OutputTokens++ },
+		"exactly when a lane was rebuilt":      func(r *FactoryIntegration) { r.Usage = nil },
+		"rebuild outcome":                      func(r *FactoryIntegration) { r.Lanes[1].Rebuild.CandidateRef = nil },
+		"only the merge queue rebuilds": func(r *FactoryIntegration) {
+			r.Integrator, r.IntegrationBranch = IntegratorReference, r.IntegrationBranch+"-reference"
+		},
+	}
+	for want, breaks := range cases {
+		r := readFactory[FactoryIntegration](t, name)
+		breaks(&r)
+		if err := r.Validate(); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: err = %v", want, err)
+		}
+	}
+	// a queue record with no rebuild and no usage stays valid
+	if err := readFactory[FactoryIntegration](t, "factory-integration__two-lanes.json").Validate(); err != nil {
+		t.Error(err)
+	}
+}

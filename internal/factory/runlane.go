@@ -47,11 +47,11 @@ func keepResponses(launches, to string) {
 }
 
 // runLane runs one issue to a lane record. It never panics the batch: whatever goes wrong becomes the lane's status.
-func runLane(runCtx context.Context, d Deps, cfg contract.FactoryConfig, acct *accountant, wt *worktrees, runID, base string, is contract.FactoryIssue) contract.FactoryLane {
+func runLane(runCtx context.Context, d Deps, cfg contract.FactoryConfig, acct *accountant, wt *worktrees, runID, base string, is contract.FactoryIssue) (lane contract.FactoryLane) {
 	slice := sliceID(is.ID, runID)
 	branch := "factory/" + runID + "/" + is.ID
 	dir := filepath.Join(d.Out, runID, "lanes", is.ID)
-	lane := notRun(is.ID, contract.LaneError, "")
+	lane = notRun(is.ID, contract.LaneError, "")
 	lane.SliceID, lane.Branch = &slice, &branch
 	started := time.Now()
 	defer func() { lane.WallSeconds = time.Since(started).Seconds() }()

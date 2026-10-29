@@ -130,6 +130,7 @@ var unknownPropertyInvalid = []string{
 	"factory-report__usage-extra-field.json",
 	"factory-report__tests-touched-extra-field.json",
 	"factory-holdout__extra-field.json",
+	"factory-integration__rebuild-extra-field.json",
 	"factory-config__triage-extra-field.json",
 	"factory-report__triage-usage-extra-field.json",
 	"factory-report__killed-by-extra-field.json",

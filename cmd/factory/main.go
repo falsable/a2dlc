@@ -31,10 +31,11 @@ const usage = `factory <command>
       Runs the batch in the repository of the current directory. Writes <out>/<run id>/report.json and prints
       one line per lane. Exit 0: every lane ran to a verdict (accepted or rejected) or was skipped by precheck;
       3: a cap ended the run or a lane; 1: error.
-  integrate --report <report.json> --holdout <holdout.json> [--out <dir>] [--main-ref <branch>]
+  integrate --report <report.json> --holdout <holdout.json> [--out <dir>] [--main-ref <branch>] [--config <factory.json> --batch <batch.json>]
       Merge queue: the accepted lanes of a report, one at a time and rebased, onto factory/<run id>/integration; each
       must pass a2dlc check and the sealed holdout on the integrated tree. Writes <out>/<run id>/integration.json and
-      never writes main. Exit 0: every queued lane landed; 3: some did not; 1: error.
+      never writes main. With --config and --batch a lane that does not apply is built once more on the integration head
+      through the arm's launcher (its spend is in the record). Exit 0: every queued lane landed; 3: some did not; 1: error.
   precheck --batch <batch.json>
       Says which issues would reach a model and which are skipped, without spending anything.
   version`

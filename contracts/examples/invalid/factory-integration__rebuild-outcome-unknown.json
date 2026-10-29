@@ -1,0 +1,100 @@
+{
+ "schema_version": 1,
+ "run_id": "run-0a1b2c3d4e5f",
+ "batch_id": "tinylinks-nine",
+ "base_sha": "1111111111111111111111111111111111111111",
+ "holdout_seal": "a6af6992722edaac6d5b5c2e22b97578812f9cc9c091d89da4cb26389076ed47",
+ "main_ref": "main",
+ "main_sha_before": "1111111111111111111111111111111111111111",
+ "main_sha_after": "1111111111111111111111111111111111111111",
+ "integration_branch": "factory/run-0a1b2c3d4e5f/integration",
+ "head_sha": "3333333333333333333333333333333333333333",
+ "started_at": "2026-10-30T09:00:00Z",
+ "finished_at": "2026-10-30T09:04:10Z",
+ "integrated": 2,
+ "lanes": [
+  {
+   "issue_id": "issue-1",
+   "queue_position": 0,
+   "status": "integrated",
+   "reason": "",
+   "rebased": false,
+   "commit": "2222222222222222222222222222222222222222",
+   "check_verdict": "PASS",
+   "holdout_files": [
+    "h01.test.ts"
+   ],
+   "holdout_exit": 0
+  },
+  {
+   "issue_id": "issue-2",
+   "queue_position": 1,
+   "status": "integrated",
+   "reason": "",
+   "rebased": true,
+   "conflicts": [
+    "src/server.ts"
+   ],
+   "commit": "3333333333333333333333333333333333333333",
+   "check_verdict": "PASS",
+   "holdout_files": [
+    "h01.test.ts",
+    "h02.test.ts"
+   ],
+   "holdout_exit": 0,
+   "rebuild": {
+    "usage": {
+     "usd": 0.31,
+     "calls": 1,
+     "turns": 4,
+     "input_tokens": 9000,
+     "cache_read_input_tokens": 5000,
+     "cache_creation_input_tokens": 1000,
+     "output_tokens": 400
+    },
+    "wall_seconds": 96.4,
+    "outcome": "merged",
+    "reason": "",
+    "candidate_ref": "refs/a2dlc/run/issue-2-rb.0a1b2c/builder_primary"
+   }
+  },
+  {
+   "issue_id": "issue-3",
+   "queue_position": 2,
+   "status": "conflict",
+   "reason": "the lane does not apply on the integration branch: src/server.ts; the rebuild was rejected: tests_touched",
+   "rebased": true,
+   "conflicts": [
+    "src/server.ts"
+   ],
+   "commit": null,
+   "check_verdict": null,
+   "holdout_files": [],
+   "holdout_exit": null,
+   "rebuild": {
+    "usage": {
+     "usd": 0.2,
+     "calls": 1,
+     "turns": 4,
+     "input_tokens": 9000,
+     "cache_read_input_tokens": 5000,
+     "cache_creation_input_tokens": 1000,
+     "output_tokens": 400
+    },
+    "wall_seconds": 64.0,
+    "outcome": "rejected",
+    "reason": "tests_touched",
+    "candidate_ref": null
+   }
+  }
+ ],
+ "usage": {
+  "usd": 0.51,
+  "calls": 2,
+  "turns": 8,
+  "input_tokens": 18000,
+  "cache_read_input_tokens": 10000,
+  "cache_creation_input_tokens": 2000,
+  "output_tokens": 800
+ }
+}

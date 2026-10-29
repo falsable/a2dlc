@@ -28,9 +28,13 @@ func integrate(args []string, e env) int {
 	out := fs.String("out", filepath.Join(".a2dlc", "factory"), "where the run's folder is; the record goes to <out>/<run id>/integration.json")
 	mainRef := fs.String("main-ref", "", "branch the lanes would be merged into, only read to prove it did not move (default HEAD)")
 	integrator := fs.String("integrator", "", "reference: the reference factory's integration stage as a control (needs --config); default: the merge queue")
-	cfgPath := fs.String("config", "", "factory config of the run, for the reference integrator's agent")
-	if fs.Parse(args) != nil || *reportPath == "" || *holdoutPath == "" || (*integrator != "" && *integrator != contract.IntegratorReference) ||
-		(*integrator == contract.IntegratorReference) != (*cfgPath != "") {
+	cfgPath := fs.String("config", "", "factory config of the run: the reference integrator's agent, or the rebuild of a conflicted lane")
+	batchPath := fs.String("batch", "", "batch of the run, with --config: a lane that does not apply is built once more on the integration head")
+	if fs.Parse(args) != nil || *reportPath == "" || *holdoutPath == "" || (*integrator != "" && *integrator != contract.IntegratorReference) {
+		return 64
+	}
+	if *integrator == contract.IntegratorReference && (*cfgPath == "" || *batchPath != "") ||
+		*integrator != contract.IntegratorReference && (*cfgPath == "") != (*batchPath == "") {
 		return 64
 	}
 	var rep contract.FactoryReport
@@ -67,7 +71,17 @@ func integrate(args []string, e env) int {
 			rec, err = factory.IntegrateReference(context.Background(), deps, cfg, spec, rep)
 		}
 	} else {
-		rec, err = factory.Integrate(context.Background(), deps, spec, rep)
+		if *cfgPath != "" {
+			var cfg contract.FactoryConfig
+			var batch contract.FactoryBatch
+			if _, err = readStrict(*cfgPath, &cfg); err == nil {
+				_, err = readStrict(*batchPath, &batch)
+			}
+			deps.Rebuild = &factory.RebuildDeps{Config: cfg, Batch: batch}
+		}
+		if err == nil {
+			rec, err = factory.Integrate(context.Background(), deps, spec, rep)
+		}
 	}
 	if err != nil {
 		fmt.Fprintln(e.err, "factory:", err)

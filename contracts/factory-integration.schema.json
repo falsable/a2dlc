@@ -14,7 +14,7 @@
     "main_sha_before": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "main_sha_after": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "integrator": { "enum": ["queue", "reference"], "description": "Which strategy built the branch. Absent means queue. reference is the integration stage of the reference software factory reimplemented as a control (`factory integrate --integrator reference`): the accepted lanes are merged in order, a default claude -p agent resolves a conflict, the repo's config.tests run after every merge and the loop stops at the first failure; the holdout then runs per issue on the final tree. check_verdict there is PASS when config.tests passed after that lane's merge. The record is integration-reference.json, so it does not replace a queue's." },
-    "usage": { "$ref": "factory-report.schema.json#/$defs/counters", "unevaluatedProperties": false, "description": "What the integrator's own model calls spent. Present exactly when integrator is reference. The cost per accepted change counts it: (report usage.usd + this usage.usd) / integrated." },
+    "usage": { "$ref": "factory-report.schema.json#/$defs/counters", "unevaluatedProperties": false, "description": "What the integrator's own model calls spent, which cost per accepted change counts: (report usage.usd + this usage.usd) / integrated. Present exactly when integrator is reference (its agent calls) or, for the merge queue, when at least one lane was rebuilt (the sum of the lanes' rebuild.usage; absent when none was)." },
     "integration_branch": { "type": "string", "pattern": "^factory/run-[0-9a-f]{12}/integration(-reference)?$" },
     "head_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$", "description": "The integration branch after the last lane; the base when nothing was integrated." },
     "started_at": { "type": "string", "format": "date-time" },
@@ -34,6 +34,19 @@
           "commit": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}$", "description": "The lane's commit on the integration branch; only for status integrated." },
           "check_verdict": { "type": ["string", "null"] },
           "holdout_files": { "type": "array", "items": { "type": "string" }, "description": "Holdout files that ran for this lane: its own and those of the lanes integrated before it." },
+          "rebuild": {
+            "type": "object",
+            "description": "Present when the lane did not apply on the integration branch and was built once more from the issue, through the arm's own launcher, starting from the integration head. At most one per lane. The lane's status is what the rebuild's candidate then did: integrated, or conflict again (also when the rebuild produced no candidate), check_failed or holdout_failed. Merge queue only.",
+            "properties": {
+              "usage": { "$ref": "factory-report.schema.json#/$defs/counters", "unevaluatedProperties": false, "description": "What the rebuild spent, from its ledger." },
+              "wall_seconds": { "type": "number", "minimum": 0 },
+              "outcome": { "enum": ["accepted", "rejected", "skipped", "capped", "killed", "error"], "description": "The status of the rebuild as a lane (factory-report lane status): accepted means a candidate came out of it." },
+              "reason": { "type": "string" },
+              "candidate_ref": { "type": ["string", "null"], "pattern": "^refs/a2dlc/run/", "description": "Set when outcome is accepted." }
+            },
+            "required": ["usage", "wall_seconds", "outcome", "reason", "candidate_ref"],
+            "additionalProperties": false
+          },
           "holdout_exit": { "type": ["integer", "null"], "description": "The holdout command's exit code. Its output goes to holdout-logs/<issue>.log beside the record, never into it: it carries the holdout's text and canary by design, and no builder or retry prompt may read it." }
         },
         "required": ["issue_id", "queue_position", "status", "reason", "rebased", "commit", "check_verdict", "holdout_files", "holdout_exit"],

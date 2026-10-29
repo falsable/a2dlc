@@ -172,3 +172,20 @@ func TestIntegrateReferenceWritesItsOwnRecordAndNeedsTheConfig(t *testing.T) {
 }
 
 var _ factory.HoldoutRunner = noHoldout{}
+
+// The rebuild needs the run's config and its batch together; the reference integrator needs the config and no batch.
+func TestIntegrateFlagsForTheRebuildComeInPairs(t *testing.T) {
+	e, _, _ := testEnv(t)
+	base := []string{"integrate", "--report", "r.json", "--holdout", "h.json"}
+	for name, extra := range map[string][]string{
+		"config without batch":      {"--config", "c.json"},
+		"batch without config":      {"--batch", "b.json"},
+		"reference without config":  {"--integrator", "reference"},
+		"reference with a batch":    {"--integrator", "reference", "--config", "c.json", "--batch", "b.json"},
+		"an integrator that is not": {"--integrator", "octopus"},
+	} {
+		if code := run(append(append([]string{}, base...), extra...), e); code != 64 {
+			t.Errorf("%s: exit %d", name, code)
+		}
+	}
+}
