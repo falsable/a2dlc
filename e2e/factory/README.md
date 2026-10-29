@@ -15,6 +15,7 @@ the installed vitest version with `--no-save`, because the frozen lockfile does 
 
     bash e2e/factory/p0a.sh <empty temporary folder>      C0, C4, C5, C1, C2
     bash e2e/factory/c8_junit.sh <empty temporary folder> C8 (needs dist/a2dlc.exe)
+    bash e2e/factory/c3_holdout.sh <empty temporary folder> C3 and the holdout half of C4 (bead a2dlc-3fu.2)
 
 C7 is a Go test plus a Python test, run as the rest of the suite:
 
@@ -40,3 +41,27 @@ C7 is a Go test plus a Python test, run as the rest of the suite:
   engine and the verdict is `INCONCLUSIVE`.
 - The fixtures are the committed upstream blobs (LF). A Windows checkout with `core.autocrlf=true` rewrites them to CRLF and
   `check_fixtures.sh` fails on the hash; the repo's `.gitattributes` (`* text=auto eol=lf`) keeps them LF.
+
+## Own holdout (bead a2dlc-3fu.2)
+
+Our hidden tests for #1 to #9 are in `e2e/testdata/factory-holdout/`, sealed: `SEAL` is the sha256 of its
+`MANIFEST.sha256`, checked by `check_holdout.sh`. The folder is never edited; a change is a new holdout with a new seal.
+Its README says how to mount it at validation time and what each test assumes. The lanes' origin must not hold it:
+`check_origin.sh` now also rejects any holdout blob and any blob with the canary.
+
+`check_leak.sh <path>...` is the C4 scan of what a lane produced (transcripts, diffs, worktree): the holdout canary, the
+internet strings of design v1 (`PromtEngineer`, `software-factory`, `hidden-tests`, github.com URLs) and the local folder
+names `factory-ref` and `factory-holdout`. A github.com URL that `tinylinks/` already has (the lockfile's funding links)
+does not count. Never point it at the output of a holdout run, which carries the canary.
+
+Results of `c3_holdout.sh` (2026-10-29), seal `a6af6992722edaac6d5b5c2e22b97578812f9cc9c091d89da4cb26389076ed47`:
+
+| Check | Result |
+|---|---|
+| seal | 13 files match the manifest, none with CR, canary in the 10 test files and `mutants.json`; P0a fixtures unchanged |
+| C4 | origin from `tinylinks/`: 12 files, 28 answer-key blobs (reference/, hidden-tests/, own holdout) absent, no canary; an origin with one holdout test, or with the canary line, is rejected. Leak scan: 9 planted strings found, clean on a clone of the origin |
+| score.sh | holdout as `HIDDEN_DIR`: `reference/` 9/9 PASS, untouched `tinylinks/` 9/9 FAIL, each by assertions |
+| C3 | 27 cases; `reference/` passes all and `tinylinks/` fails all nine files (21 of 27 cases), three runs each with the same result; each of the 35 mutants fails its target file; each case falls to at least one mutant of its own issue |
+
+- GNU grep 3.0 of Git for Windows aborts on `grep -iF` (exit 134); `check_leak.sh` uses `-i` without `-F`.
+- The canary is not in `reference/`, which P0a froze first; it is in the holdout and in `mutants.json` only.
