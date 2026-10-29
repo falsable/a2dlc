@@ -39,3 +39,4 @@ Go is not installed on the host, and it will not be installed. Everything runs i
 - Read `allowed_signers` from the repo: the agent would add its own key in the same diff.
 - Ask for, store or pass the passphrase of the signing key. ssh-keygen accepts it via stdin; the only thing that protects the signature is that the agent does not know it.
 - Skip the gate when the binary is missing: the pre-push uses the absolute path and, if it cannot find it, fails.
+- Put host paths (`C:/Users/...`), owner quotes or AO worker and session ids (`a2dlc-N`) in a tracked file or a commit message: the repo is public and a push publishes the whole history. Use a variable or a path relative to the repo, say "the owner approved" and not the quote, and say "a worker session" and not its id.
