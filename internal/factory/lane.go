@@ -46,6 +46,26 @@ func intentFor(is contract.FactoryIssue, slice string) contract.Intent {
 		Budget:     &contract.IntentBudget{MaxInnerIterations: run.MaxInnerDefault, MaxTier1AdversarialRounds: 1}}
 }
 
+// testRule is the one sentence the lane's goal adds to the issue (bead a2dlc-3fu.18): the acceptance condition the
+// testGuard enforces, stated to the builder because nothing else tells it, so that a builder that appends its test to
+// the repo's only test file does not lose a paid lane. It reads the same globs the guard does, and both arms get it
+// because both arms' lanes go through runLane. A repo that declares no config.tests.paths has no rule to state.
+func testRule(globs []string) string {
+	if len(globs) == 0 {
+		return ""
+	}
+	return "Existing test files matching config.tests.paths (" + strings.Join(globs, ", ") + ") must not be modified or deleted; new tests go in new files."
+}
+
+// laneIntent is intentFor with the lane's acceptance rule appended to the goal, as its own paragraph.
+func laneIntent(is contract.FactoryIssue, slice string, globs []string) contract.Intent {
+	it := intentFor(is, slice)
+	if rule := testRule(globs); rule != "" {
+		it.Goal += "\n\n" + rule
+	}
+	return it
+}
+
 func writeJSON(path string, v any) error {
 	b, err := json.MarshalIndent(v, "", " ")
 	if err != nil {

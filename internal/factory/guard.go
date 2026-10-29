@@ -26,6 +26,7 @@ const vetoPrefix = "a2dlc-factory: "
 type testGuard struct {
 	repo    gitx.Repo
 	base    string
+	globs   []string // config.tests.paths at the base; empty when the repo declares no test files
 	files   []string // base files that match the globs
 	mu      sync.Mutex
 	touched []contract.TestTouch
@@ -53,6 +54,7 @@ func newTestGuard(repo gitx.Repo, base string) (*testGuard, error) {
 	if cfg.Tests == nil || len(cfg.Tests.Paths) == 0 {
 		return g, nil
 	}
+	g.globs = cfg.Tests.Paths
 	all, err := repo.Files(base)
 	if err != nil {
 		return nil, err

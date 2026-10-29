@@ -70,11 +70,6 @@ func runLane(runCtx context.Context, d Deps, cfg contract.FactoryConfig, acct *a
 		lane.Reason = err.Error()
 		return lane
 	}
-	intent := filepath.Join(d.Out, runID, "intents", is.ID+".json")
-	if err := writeJSON(intent, intentFor(is, slice)); err != nil {
-		lane.Reason = err.Error()
-		return lane
-	}
 	repo, err := gitx.Open(dir)
 	if err != nil {
 		lane.Reason = err.Error()
@@ -83,6 +78,11 @@ func runLane(runCtx context.Context, d Deps, cfg contract.FactoryConfig, acct *a
 
 	guard, err := newTestGuard(repo, laneBase)
 	if err != nil {
+		lane.Reason = err.Error()
+		return lane
+	}
+	intent := filepath.Join(d.Out, runID, "intents", is.ID+".json")
+	if err := writeJSON(intent, laneIntent(is, slice, guard.globs)); err != nil {
 		lane.Reason = err.Error()
 		return lane
 	}
