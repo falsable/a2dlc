@@ -106,7 +106,7 @@ def main() -> int:
 
     if claude:
         doc = {"type": "result", "subtype": "success", "is_error": False, "result": text, "session_id": "s",
-               "total_cost_usd": 0.0123, "usage": {"input_tokens": 100, "cache_read_input_tokens": 10, "output_tokens": 50},
+               "total_cost_usd": 0.0123, "num_turns": 2, "usage": {"input_tokens": 100, "cache_read_input_tokens": 10, "output_tokens": 50},
                "modelUsage": {"claude-fake": {"costUSD": 0.0123}, "claude-haiku-fake": {"costUSD": 0.0001}}}
         if scenario == "claude_error":
             doc.update(subtype="error_max_turns", is_error=True, result="ran out of turns")

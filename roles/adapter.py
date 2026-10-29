@@ -528,6 +528,9 @@ def read_claude(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, 
         for key in ("cache_read_input_tokens", "cache_creation_input_tokens"):
             if key in u and _num(u[key]) == u[key] and not isinstance(u[key], bool):
                 cost[key] = u[key]
+        # model turns of the call: num_turns is in the same JSON, so no stream-json is needed
+        if _num(doc.get("num_turns")) > 0 and not isinstance(doc.get("num_turns"), bool):
+            cost["turns"] = doc["num_turns"]
         if _num(u.get("output_tokens")):
             cost["output_tokens"] = _num(u.get("output_tokens"))
     model = None

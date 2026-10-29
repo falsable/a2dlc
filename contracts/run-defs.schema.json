@@ -40,7 +40,8 @@
             "input_tokens": { "type": "integer", "minimum": 0, "description": "Total prompt tokens, cache included. When the cache counters are present, input_tokens >= cache_read_input_tokens + cache_creation_input_tokens (JSON Schema cannot compare two fields: internal/run rejects a response that breaks it as invalid_response)." },
             "cache_read_input_tokens": { "type": "integer", "minimum": 0, "description": "Part of input_tokens served from the prompt cache. Absent when the CLI did not report it." },
             "cache_creation_input_tokens": { "type": "integer", "minimum": 0, "description": "Part of input_tokens written to the prompt cache. Absent when the CLI did not report it." },
-            "output_tokens": { "type": "integer", "minimum": 0 }
+            "output_tokens": { "type": "integer", "minimum": 0 },
+            "turns": { "type": "integer", "minimum": 1, "description": "Model turns of this call (num_turns of claude -p --output-format json). Absent when the CLI did not report it." }
           },
           "required": ["usd"],
           "additionalProperties": false

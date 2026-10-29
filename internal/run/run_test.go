@@ -430,6 +430,7 @@ func TestInvokeRejectsResponsesTheSchemaDoesNotAccept(t *testing.T) {
 		"negative cache write": func(r *contract.RoleResponse) {
 			r.Cost = &contract.Cost{USD: 1, InputTokens: 10, CacheCreationInputTokens: -1}
 		},
+		"negative turns": func(r *contract.RoleResponse) { r.Cost = &contract.Cost{USD: 1, Turns: -1} },
 		"cache above input": func(r *contract.RoleResponse) {
 			r.Cost = &contract.Cost{USD: 1, InputTokens: 10, CacheReadInputTokens: 6, CacheCreationInputTokens: 5}
 		},
@@ -465,6 +466,39 @@ func TestInvokeRejectsResponsesTheSchemaDoesNotAccept(t *testing.T) {
 				t.Fatalf("the spend changed: %+v", m.state.Budget)
 			}
 		})
+	}
+}
+
+// The ledger entry carries what the role's CLI reported for that call, turns included, and a role that reported none
+// leaves the field out (so ledgers written before it keep their hash).
+func TestLedgerRecordsTurnsPerCall(t *testing.T) {
+	a, dir := repoLite(t)
+	write(t, dir, ".a2dlc/roles.json", `{"schema_version":1,"roles":{"saboteur":{"family":"gemini","image":"img:1","argv":["sh","x"],"retries":0}}}`)
+	m, err := open(a, &fakeLauncher{}, Options{Slice: "s.v1", Mode: contract.ModeRefactor})
+	if err != nil {
+		t.Fatal(err)
+	}
+	costs := []*contract.Cost{{USD: 0.1, InputTokens: 10, OutputTokens: 2, Turns: 4}, {USD: 0.1, InputTokens: 10, OutputTokens: 2}}
+	n := 0
+	m.launcher = &fakeLauncher{script: func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
+		c := costs[n]
+		n++
+		return &contract.RoleResponse{SchemaVersion: 1, RunID: m.state.RunID, Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,
+			Status: contract.RoleOK, Cost: c, Payload: json.RawMessage(`{}`)}, 0, false
+	}}
+	for i, want := range []int{4, 0} {
+		invocation, err := m.Invoke(context.Background(), contract.RoleSaboteur, "4", nil, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		e := invocation.Entries[0]
+		if e.Cost == nil || e.Cost.Turns != want {
+			t.Fatalf("call %d: ledger cost %+v, wanted turns %d", i, e.Cost, want)
+		}
+		raw, _ := json.Marshal(e)
+		if hasTurns := strings.Contains(string(raw), `"turns"`); hasTurns != (want > 0) {
+			t.Fatalf("call %d: ledger JSON %s", i, raw)
+		}
 	}
 }
 

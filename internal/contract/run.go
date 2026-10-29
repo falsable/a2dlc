@@ -81,13 +81,14 @@ type Cost struct {
 	CacheReadInputTokens     int     `json:"cache_read_input_tokens,omitempty"`
 	CacheCreationInputTokens int     `json:"cache_creation_input_tokens,omitempty"`
 	OutputTokens             int     `json:"output_tokens,omitempty"`
+	Turns                    int     `json:"turns,omitempty"` // model turns of the call; 0 = not reported
 }
 
 // Invalid says why a cost that decodes is still not a valid report, or "" if it is: a negative value, or cache counters
 // that add up to more than the input they are part of (JSON Schema cannot compare two fields).
 func (c Cost) Invalid() string {
 	switch {
-	case c.USD < 0 || c.InputTokens < 0 || c.OutputTokens < 0 || c.CacheReadInputTokens < 0 || c.CacheCreationInputTokens < 0:
+	case c.USD < 0 || c.InputTokens < 0 || c.OutputTokens < 0 || c.CacheReadInputTokens < 0 || c.CacheCreationInputTokens < 0 || c.Turns < 0:
 		return "negative cost"
 	case c.CacheReadInputTokens+c.CacheCreationInputTokens > c.InputTokens:
 		return "cache tokens exceed input_tokens"

@@ -121,7 +121,7 @@ def check(t: Path) -> int:
         # without a prompt, or with an unknown engine_language, the adapter fails before calling the CLI
         called_cli = name not in ("role-no-prompt", "specifier-rust-error")
         if llm == "claude" and called_cli and fake in ("ok", "refused", "prose", "claude_error"):
-            if r["cost"] != {"usd": 0.0123, "input_tokens": 110, "cache_read_input_tokens": 10, "output_tokens": 50}:
+            if r["cost"] != {"usd": 0.0123, "input_tokens": 110, "cache_read_input_tokens": 10, "output_tokens": 50, "turns": 2}:
                 problems.append(f"cost {r['cost']}")
             if r["status"] != "error" and r.get("model") != "claude-fake":
                 problems.append(f"model {r.get('model')}")

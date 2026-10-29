@@ -10,7 +10,8 @@
   "input_tokens": 40210,
   "cache_read_input_tokens": 31000,
   "cache_creation_input_tokens": 10.5,
-  "output_tokens": 3120
+  "output_tokens": 3120,
+  "turns": 7
  },
  "model": "claude-sonnet-4-5",
  "payload": {
