@@ -38,6 +38,15 @@ test('stub is routed to the stub module', () => {
   assert.equal(out.response.error, null);
 });
 
+test('classify_lines is routed to the classifier and notes a type alias as declaration-only', () => {
+  const candDir = tree({ 'a.ts': "type P = 'a' | 'b';\nexport const x = 1;\n" });
+  const out = run({ ...base, operation: 'classify_lines', candidate_dir: candDir, changed_files: ['a.ts'], budget: { lines: { 'a.ts': [1, 2] } } });
+  assert.equal(out.status, 0, out.stderr);
+  assert.deepEqual(out.response, {
+    schema_version: 1, files: [{ file: 'a.ts', notes: [{ category: 'declarative_only', lines: [1] }] }], error: null,
+  });
+});
+
 test('mutate routes to mutate module when present or fallback error when absent', () => {
   const out = run({ ...base, operation: 'mutate', changed_files: ['a.ts'], budget: { changed_lines: { 'a.ts': [1] }, max_mutants: 5 } });
   assert.equal(out.status, 0, out.stderr);

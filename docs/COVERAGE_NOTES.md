@@ -25,8 +25,9 @@ lines) and trusts the answer only as far as it lowers what blocks:
   leave every line unexamined, which is the behavior before this change. A language without a classifier behaves exactly
   as before.
 
-Only the Python engine classifies today (`engines/py/classify.py`). The categories are `defensive_handler` and
-`declarative_only`; adding a language adds a classifier to its engine, not code to the core.
+The Python engine (`engines/py/classify.py`) and the TypeScript engine (`engines/ts/classify.ts`, bead a2dlc-0sk) classify
+today. The categories are `defensive_handler` and `declarative_only`; adding a language adds a classifier to its engine,
+not code to the core.
 
 ## Receipt
 
@@ -60,6 +61,33 @@ decorator, a function that is not a stub method of a skeleton.
 
 An inert value is a literal, a name, an attribute chain, a unary minus or `not`, or a tuple, list, set, dict or f-string of
 inert values; a call never is, except `str()`, `repr()` and `type()` inside the arguments of a logging call.
+
+## TypeScript rules
+
+Bead a2dlc-0sk. Node's V8 coverage over tsx source maps reports the lines the compiler erases (a type alias, an interface,
+a type-only import) at zero hits, because no JavaScript was emitted for them. A changed type could never be "executed", so
+the verdict stayed `INCONCLUSIVE` because of it (seen on the Entropos candidate: `type Protocol = 'openai' | 'anthropic' |
+'mcp';`). Only `.ts`, `.tsx`, `.mts` and `.cts` are read, and a file that does not parse is not classified.
+
+**declarative_only.** A line with no executable token on it. That is every line of a type alias; an interface; a type-only
+import (`import type ...`, or a specifier list where every specifier is `type`); a type-only export (`export type { A }`,
+`export type * from`, or all specifiers `type`); anything marked `declare` (`declare const`, `declare module`, `declare
+global`, `export declare class`), also inside a function body. It is also every blank or comment-only line, because the
+tool does not only zero the erased declaration: on the Entropos candidate (`f59c55f`, `src/server/budgetGuard.ts`) lcov
+had `DA:76,16` for the alias and `DA:77,0` for the blank line after it, and that blank line was the one line left
+unexamined. A line that shares a token with executable code is not noted (`type A = number; const a: A = 1;`), and neither
+is a blank line inside a template literal. Not classified: value imports (they run at load time), `import './x'`, enums,
+namespaces with values, abstract classes, overload signatures, `.d.ts` files as a whole, and defensive `catch` blocks (the
+TypeScript engine has no `defensive_handler` yet). A changed executable line at zero hits stays unexamined.
+
+Checked on that candidate with the engine image built from this change: before, `coverage.files[].uncovered` of
+`budgetGuard.ts` was `[77]` ("149 changed lines examined and 1 not examined"); after, `uncovered` is `[]` and `noted` is
+`[{"category":"declarative_only","lines":[77]}]` ("0 not examined"). The images that run in real gates must be rebuilt from
+`engines/ts` to get this: an image built before this change answers `classify_lines` as an unknown operation, and the core
+then keeps every line unexamined.
+
+Tests: `engines/ts/tests/classify.test.mjs` (the real compiler), `internal/app/coverage_notes_test.go`
+(`TestCheckNotesTypeOnlyLinesCoverageReportsAtZero`, the verdict side with lcov `DA:n,0`).
 
 ## The five commits
 
