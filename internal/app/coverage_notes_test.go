@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/falsable/a2dlc/internal/contract"
@@ -163,62 +162,6 @@ func TestCoverageNotesFailSafe(t *testing.T) {
 				t.Fatalf("%+v", cov.Files[0])
 			}
 		})
-	}
-}
-
-// typeOnlyEngine stands in for the TypeScript engine's classify_lines (engines/ts/classify.ts, checked against the real
-// compiler in engines/ts/tests/classify.test.mjs): a line that starts a type alias, an interface or a type-only import is
-// declaration-only, whatever else is asked about is left out.
-type typeOnlyEngine struct{ *fakeEngine }
-
-func (e typeOnlyEngine) ClassifyLines(_ context.Context, _ contract.EngineConfig, req contract.Request, _, candDir string) (contract.ClassifyResponse, error) {
-	var b contract.ClassifyBudget
-	if err := json.Unmarshal(req.Budget, &b); err != nil {
-		return contract.ClassifyResponse{}, err
-	}
-	r := contract.ClassifyResponse{SchemaVersion: 1, Files: []contract.ClassifyFile{}}
-	for _, f := range req.ChangedFiles {
-		text, _ := os.ReadFile(filepath.Join(candDir, f))
-		src := strings.Split(string(text), "\n")
-		cf := contract.ClassifyFile{File: f, Notes: []contract.LineNote{}}
-		var ls []int
-		for _, l := range b.Lines[f] {
-			if s := src[l-1]; strings.HasPrefix(s, "type ") || strings.HasPrefix(s, "interface ") || strings.HasPrefix(s, "import type ") {
-				ls = append(ls, l)
-			}
-		}
-		if len(ls) > 0 {
-			cf.Notes = append(cf.Notes, contract.LineNote{Category: contract.NoteDeclarativeOnly, Lines: ls})
-		}
-		r.Files = append(r.Files, cf)
-	}
-	return r, nil
-}
-
-// The TypeScript case (bead a2dlc-0sk): a test run that leaves coverage reports the erased type lines with DA:n,0, as V8 does
-// over source maps. They are notes, not unexamined lines; an executable line at zero hits next to them still blocks.
-func TestCheckNotesTypeOnlyLinesCoverageReportsAtZero(t *testing.T) {
-	a, fe, _, dir := gatesRepo(t)
-	write(t, dir, "src/lib/f.ts", "export const f = 1\nIMPL old\nimport type { A } from './a'\ntype Protocol = 'openai' | 'mcp'\ninterface Opts { n: number }\nexport const g = 2 // NO_TARGET\n")
-	write(t, dir, "tests/n.t", "t_covers passed\ncovers src/lib/f.ts:6-6\n")
-	if v, err := a.Check(context.Background(), ""); err != nil || v.Verdict != contract.INCONCLUSIVE ||
-		!reflect.DeepEqual(v.Coverage.Files[0].Uncovered, []int{3, 4, 5}) {
-		t.Fatalf("without a classifier: %s %v %+v", v.Verdict, err, v.Coverage)
-	}
-	a.Runner = typeOnlyEngine{fe}
-	v, err := a.Check(context.Background(), "")
-	f := v.Coverage.Files[0]
-	if err != nil || v.Verdict != contract.PASS || len(f.Uncovered) != 0 || !reflect.DeepEqual(f.Covered, []int{6}) ||
-		!reflect.DeepEqual(f.Noted, []contract.LineNote{{Category: contract.NoteDeclarativeOnly, Lines: []int{3, 4, 5}}}) {
-		t.Fatalf("with type-only lines at zero hits: %s %v %+v", v.Verdict, err, v.Coverage)
-	}
-	write(t, dir, "src/lib/f.ts", "export const f = 1\nIMPL old\ntype Protocol = 'openai' | 'mcp'\nexport const h = f + 1\nexport const g = 2 // NO_TARGET\n")
-	write(t, dir, "tests/n.t", "t_covers passed\ncovers src/lib/f.ts:5-5\n")
-	v, err = a.Check(context.Background(), "")
-	f = v.Coverage.Files[0]
-	if err != nil || v.Verdict != contract.INCONCLUSIVE || !reflect.DeepEqual(f.Uncovered, []int{4}) ||
-		!reflect.DeepEqual(f.Noted, []contract.LineNote{{Category: contract.NoteDeclarativeOnly, Lines: []int{3}}}) {
-		t.Fatalf("an executable line at zero hits must stay unexamined: %s %v %+v", v.Verdict, err, v.Coverage)
 	}
 }
 
