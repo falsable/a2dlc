@@ -40,6 +40,8 @@ type LaunchResult struct {
 	EnvKeys     []string
 	TimedOut    bool
 	Network     string
+	// EgressProxy is the proxy image the launch ran behind; nil unless Network is NetworkProxyAllowlist.
+	EgressProxy *contract.EgressProxy
 }
 
 type Launcher interface {
@@ -53,9 +55,10 @@ const (
 	NetworkProxyAllowlist = "proxy-allowlist"
 )
 
-// EgressProxyImage is the allowlist proxy built from roles/egress-proxy. Its tag is the one the README documents; the
-// ledger records the label, not the image digest.
-const EgressProxyImage = "a2dlc-egress-proxy:dev"
+// EgressProxyImage is the allowlist proxy built from roles/egress-proxy. Its tag is a version, the one the README
+// documents; a change of the proxy's code raises it. The launcher resolves it to a digest before each launch and the
+// ledger records that digest, so the tag can move without a run losing track of which proxy it used.
+const EgressProxyImage = "a2dlc-egress-proxy:0.1"
 
 // egressPort is where the proxy listens, and egressProxyBin is its binary inside the image.
 const (
@@ -201,6 +204,13 @@ func runWithEgress(ctx context.Context, bin, name string, allow []string, roleAr
 	netName, outName, proxy := name+"-net", name+"-up", name+"-egress"
 	var created []string
 	proxyTried := false
+	// The proxy is identified before anything is created, and started from that reference, so what the ledger records is
+	// what ran even if the tag moves in between.
+	proxyRef, proxyDigest, err := resolveProxyImage(ctx, bin)
+	if err != nil {
+		return out, err
+	}
+	out.EgressProxy = &contract.EgressProxy{Image: EgressProxyImage, ImageDigest: proxyDigest}
 	defer func() {
 		if terr := teardownEgress(bin, proxy, proxyTried, created); terr != nil {
 			err = errors.Join(err, terr)
@@ -227,7 +237,7 @@ func runWithEgress(ctx context.Context, bin, name string, allow []string, roleAr
 	proxyTried = true
 	if err := dockerCmd(setup, bin, "run", "-d", "--name", proxy, "--network", netName, "--read-only",
 		"--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--memory", "64m",
-		"-e", "A2DLC_EGRESS_ALLOW="+strings.Join(allow, ","), EgressProxyImage); err != nil {
+		"-e", "A2DLC_EGRESS_ALLOW="+strings.Join(allow, ","), proxyRef); err != nil {
 		return out, fmt.Errorf("egress proxy: %w", err)
 	}
 	if err := dockerCmd(setup, bin, "network", "connect", outName, proxy); err != nil {
@@ -237,6 +247,30 @@ func runWithEgress(ctx context.Context, bin, name string, allow []string, roleAr
 		return out, err
 	}
 	return runRole(ctx, bin, name, roleArgs, limit, out)
+}
+
+// proxyImageID matches a bare image ID or digest, the form docker prints for a local build.
+var proxyImageID = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+
+// resolveProxyImage identifies EgressProxyImage by content: ref is what the proxy is started from (name@sha256:... for an
+// image with a repo digest, else the image ID of a local build), digest is its sha256:... part. An image that is not
+// there, or that docker does not identify, is an error: the proxy is never started from a name alone.
+func resolveProxyImage(ctx context.Context, bin string) (ref, digest string, err error) {
+	setup, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	b, err := exec.CommandContext(setup, bin, "image", "inspect", "--format",
+		"{{if .RepoDigests}}{{index .RepoDigests 0}}{{else}}{{.Id}}{{end}}", EgressProxyImage).Output()
+	if err != nil {
+		return "", "", fmt.Errorf("egress proxy image %s: not available (build it with docker build -t %s roles/egress-proxy): %w", EgressProxyImage, EgressProxyImage, err)
+	}
+	ref = strings.TrimSpace(string(b))
+	switch {
+	case proxyImageID.MatchString(ref):
+		return ref, ref, nil
+	case strings.Contains(ref, "@sha256:") && proxyImageID.MatchString(ref[strings.Index(ref, "@")+1:]):
+		return ref, ref[strings.Index(ref, "@")+1:], nil
+	}
+	return "", "", fmt.Errorf("egress proxy image %s: docker did not identify it (answered %q)", EgressProxyImage, ref)
 }
 
 // awaitProxy polls the proxy's own healthcheck until it answers or the tries run out.

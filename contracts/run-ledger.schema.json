@@ -29,8 +29,20 @@
           "env_keys": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$" }, "uniqueItems": true, "description": "Names of the variables in the env_file. Never values." },
           "exit": { "type": "integer" },
           "status": { "enum": ["ok", "refused", "error", "timeout", "invalid_response"] },
-          "cost": { "$ref": "run-defs.schema.json#/$defs/cost" }
+          "cost": { "$ref": "run-defs.schema.json#/$defs/cost" },
+          "egress_proxy": {
+            "description": "The egress proxy image that filtered this launch, present only when network is proxy-allowlist (absent in ledgers written before it). image is the tag the launcher asked for; image_digest identifies the content the proxy ran from: the repo digest when the image has one, else the image ID of a local build.",
+            "type": "object",
+            "properties": {
+              "image": { "type": "string", "minLength": 1 },
+              "image_digest": { "$ref": "run-defs.schema.json#/$defs/sha256" }
+            },
+            "required": ["image", "image_digest"],
+            "additionalProperties": false
+          }
         },
+        "if": { "properties": { "network": { "not": { "const": "proxy-allowlist" } } } },
+        "then": { "not": { "required": ["egress_proxy"] } },
         "required": ["seq", "prev_hash", "hash", "at", "stage", "role", "attempt", "family", "image", "image_digest", "argv_sha256", "inputs", "outputs", "network", "env_keys", "exit", "status", "cost"],
         "additionalProperties": false
       }

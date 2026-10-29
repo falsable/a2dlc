@@ -389,6 +389,10 @@ cases = {
     "run-ledger__cost-cache-read-negative.json": (read("run-ledger__cache-cost.json"), lambda x: x["entries"][0]["cost"].update(cache_read_input_tokens=-1)),
     "role-response__cost-turns-zero.json": (read("role-response__builder-cache.json"), lambda x: x["cost"].update(turns=0)),
     "run-ledger__cost-turns-fractional.json": (read("run-ledger__cache-cost.json"), lambda x: x["entries"][0]["cost"].update(turns=2.5)),
+    # egress proxy of a launch (bead a2dlc-4mb): only with network proxy-allowlist, and only a sha256 digest
+    "run-ledger__egress-proxy-with-network-none.json": (read("run-ledger__egress-proxy.json"), lambda x: x["entries"][0].update(network="none")),
+    "run-ledger__egress-proxy-digest-is-a-tag.json": (read("run-ledger__egress-proxy.json"), lambda x: x["entries"][0]["egress_proxy"].update(image_digest="a2dlc-egress-proxy:0.1")),
+    "run-ledger__egress-proxy-without-digest.json": (read("run-ledger__egress-proxy.json"), lambda x: x["entries"][0]["egress_proxy"].pop("image_digest")),
     "run-state__spent-cache-read-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_read_tokens=-1)),
     "run-state__spent-cache-creation-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_creation_tokens=-1)),
     "capture__branch-coverage-over-one.json": (read("capture__traces.json"), lambda x: x.update(branch_coverage=1.5)),

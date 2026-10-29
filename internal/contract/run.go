@@ -243,6 +243,13 @@ const (
 	LedgerInvalidResponse = "invalid_response"
 )
 
+// EgressProxy is the proxy image that filtered a launch's egress (run-ledger.schema.json, egress_proxy): the tag the
+// launcher asked for and the digest of the content it ran from.
+type EgressProxy struct {
+	Image       string `json:"image"`
+	ImageDigest string `json:"image_digest"`
+}
+
 // LedgerEntry is one launch of a role. Hash = sha256(prev_hash + canonical JSON of the entry without hash); it is
 // computed and verified by internal/run.
 type LedgerEntry struct {
@@ -264,4 +271,6 @@ type LedgerEntry struct {
 	Exit        int          `json:"exit"`
 	Status      string       `json:"status"`
 	Cost        *Cost        `json:"cost"`
+	// EgressProxy is set only for network proxy-allowlist.
+	EgressProxy *EgressProxy `json:"egress_proxy,omitempty"`
 }

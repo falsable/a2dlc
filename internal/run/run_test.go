@@ -63,6 +63,7 @@ func repoLite(t *testing.T) (app.App, string) {
 type fakeLauncher struct {
 	script func(s LaunchSpec) (resp *contract.RoleResponse, exit int, timeout bool)
 	seen   [][]string
+	proxy  *contract.EgressProxy // what the launch reports about its egress proxy; nil = none
 }
 
 func (l *fakeLauncher) Launch(_ context.Context, r contract.Role, s LaunchSpec) (LaunchResult, error) {
@@ -79,7 +80,7 @@ func (l *fakeLauncher) Launch(_ context.Context, r contract.Role, s LaunchSpec) 
 		b, _ := json.Marshal(resp)
 		os.WriteFile(filepath.Join(s.OutDir, "response.json"), b, 0o644)
 	}
-	return LaunchResult{Exit: exit, TimedOut: to, Argv: []string{"docker", "run", r.Image}, EnvKeys: []string{"X_KEY"}, Network: networkOf(r)}, nil
+	return LaunchResult{Exit: exit, TimedOut: to, Argv: []string{"docker", "run", r.Image}, EnvKeys: []string{"X_KEY"}, Network: networkOf(r), EgressProxy: l.proxy}, nil
 }
 
 func TestRunLiteRunsOracleAndResumes(t *testing.T) {
@@ -466,6 +467,40 @@ func TestInvokeRejectsResponsesTheSchemaDoesNotAccept(t *testing.T) {
 				t.Fatalf("the spend changed: %+v", m.state.Budget)
 			}
 		})
+	}
+}
+
+// The ledger records which proxy image filtered a launch's egress, by digest; a launch without a proxy leaves the field
+// out (so ledgers written before it keep their hash).
+func TestLedgerRecordsTheEgressProxyDigest(t *testing.T) {
+	digest := "sha256:" + strings.Repeat("b", 64)
+	for _, withProxy := range []bool{true, false} {
+		a, dir := repoLite(t)
+		write(t, dir, ".a2dlc/roles.json", `{"schema_version":1,"roles":{"saboteur":{"family":"gemini","image":"img:1","argv":["sh","x"],"retries":0}}}`)
+		fl := &fakeLauncher{}
+		m, err := open(a, fl, Options{Slice: "s.v1", Mode: contract.ModeRefactor})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if withProxy {
+			fl.proxy = &contract.EgressProxy{Image: EgressProxyImage, ImageDigest: digest}
+		}
+		fl.script = func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
+			return &contract.RoleResponse{SchemaVersion: 1, RunID: m.state.RunID, Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,
+				Status: contract.RoleOK, Payload: json.RawMessage(`{}`)}, 0, false
+		}
+		invocation, err := m.Invoke(context.Background(), contract.RoleSaboteur, "4", nil, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		e := invocation.Entries[0]
+		raw, _ := json.Marshal(e)
+		if withProxy && (e.EgressProxy == nil || e.EgressProxy.Image != EgressProxyImage || e.EgressProxy.ImageDigest != digest) {
+			t.Fatalf("ledger entry %s lacks the proxy digest", raw)
+		}
+		if !withProxy && strings.Contains(string(raw), "egress_proxy") {
+			t.Fatalf("ledger entry %s names a proxy for a launch without one", raw)
+		}
 	}
 }
 

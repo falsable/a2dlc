@@ -140,6 +140,7 @@ func (m *Machine) invokeWith(ctx context.Context, role string, r contract.Role, 
 			d := res.ImageDigest
 			entry.ImageDigest = &d
 		}
+		entry.EgressProxy = res.EgressProxy
 		var resp contract.RoleResponse
 		switch {
 		case res.TimedOut:

@@ -668,8 +668,8 @@ docker build -t a2dlc-roles:0.10 roles
 (`npm ci`: exact versions, transitive lock; `@anthropic-ai/claude-code` 2.1.302, `@google/gemini-cli` 0.64.0). The
 network is used only while building. Raising a version is an image change like any other: the ledger records the image
 digest of every launch. The egress proxy the launcher puts next to a `provider` role is a separate image,
-`a2dlc-egress-proxy:dev`, built with `docker build -t a2dlc-egress-proxy:dev roles/egress-proxy` (the launcher names that
-tag; the ledger records the launch label, not the proxy's digest). The current tags are `a2dlc-roles:0.10` and
+`a2dlc-egress-proxy:0.1`, built with `docker build -t a2dlc-egress-proxy:0.1 roles/egress-proxy` (the launcher names that
+tag, resolves it to its digest before each launch and records the digest in the ledger entry). The current tags are `a2dlc-roles:0.10` and
 `a2dlc-engine-py:0.7` (both built from this tree).
 
 **Write `.a2dlc/roles.json`.**

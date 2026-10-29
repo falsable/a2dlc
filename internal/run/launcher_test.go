@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -310,6 +311,10 @@ func TestEnvKeysRejectLinesNotNameValue(t *testing.T) {
 	}
 }
 
+// testProxyID is what the fake docker answers when asked for the egress proxy image: a local image ID, since an image
+// built with docker build has no RepoDigests.
+const testProxyID = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
 // dockerLog is a fake docker that appends every invocation as one line of its arguments. rules are shell case arms
 // (matched against the joined arguments) that run before the default, which exits 0: they inject failures and slow runs.
 func dockerLog(t *testing.T, rules string) (bin, logPath string) {
@@ -317,7 +322,8 @@ func dockerLog(t *testing.T, rules string) (bin, logPath string) {
 	dir := t.TempDir()
 	logPath = filepath.Join(dir, "calls.txt")
 	shLogPath := strings.ReplaceAll(logPath, `\`, `/`)
-	script := "#!/bin/sh\necho \"$*\" >> '" + shLogPath + "'\ncase \"$*\" in\n" + rules + "\n*) ;;\nesac\nexit 0\n"
+	proxyInspect := "*\"image inspect\"*\"" + EgressProxyImage + "\"*) echo " + testProxyID + " ;;\n"
+	script := "#!/bin/sh\necho \"$*\" >> '" + shLogPath + "'\ncase \"$*\" in\n" + rules + "\n" + proxyInspect + "*) ;;\nesac\nexit 0\n"
 	bin = writeExecutableScript(t, dir, "docker", script)
 	return bin, logPath
 }
@@ -366,6 +372,77 @@ func TestEgressNoneLaunchesWithoutProxy(t *testing.T) {
 		if res.Network != NetworkNone {
 			t.Errorf("network %q: label = %q, wanted none", network, res.Network)
 		}
+	}
+}
+
+// The proxy that filters a role's egress is identified by content, not by a tag that can move: the launcher resolves
+// EgressProxyImage to its digest (a local build has only an image ID), starts the proxy from that reference, and returns
+// both for the ledger.
+func TestEgressProxyRunsByResolvedImageAndReportsIt(t *testing.T) {
+	pushed := "a2dlc-egress-proxy@sha256:" + strings.Repeat("c", 64)
+	cases := []struct {
+		name, rules, wantRef, wantDigest string
+	}{
+		{"local build, image ID", "", testProxyID, testProxyID},
+		{"pushed image, repo digest", "*\"image inspect\"*\"" + EgressProxyImage + "\"*) echo " + pushed + " ;;", pushed, "sha256:" + strings.Repeat("c", 64)},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			bin, logPath := dockerLog(t, c.rules)
+			r := contract.Role{Family: "x", Image: "i", Argv: []string{"a"}, Network: "provider", EgressAllow: []string{"openrouter.ai"}}
+			res, err := launch(t, bin, r, LaunchSpec{Name: "a2dlc-run-1-003-1"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if res.EgressProxy == nil || res.EgressProxy.Image != EgressProxyImage || res.EgressProxy.ImageDigest != c.wantDigest {
+				t.Errorf("EgressProxy = %+v, wanted %s and %s", res.EgressProxy, EgressProxyImage, c.wantDigest)
+			}
+			if line := firstCall(dockerCalls(t, logPath), "run -d"); !strings.HasSuffix(line, " "+c.wantRef) {
+				t.Errorf("proxy run = %q, wanted it to start from %s", line, c.wantRef)
+			}
+		})
+	}
+}
+
+// A role without a provider network has no proxy, so nothing to record.
+func TestNoProxyWhenTheNetworkIsNone(t *testing.T) {
+	bin, _ := dockerLog(t, "")
+	res, err := launch(t, bin, contract.Role{Family: "x", Image: "i", Argv: []string{"a"}}, LaunchSpec{Name: "a2dlc-run-1-003-2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.EgressProxy != nil {
+		t.Errorf("EgressProxy = %+v on a role with network none", res.EgressProxy)
+	}
+}
+
+// A proxy that cannot be identified is not run: the launch fails before it creates any network, as with every other
+// failure to set the egress up.
+func TestEgressProxyThatCannotBeIdentifiedFailsClosed(t *testing.T) {
+	for name, rules := range map[string]string{
+		"image missing":     "*\"image inspect\"*) exit 1 ;;",
+		"answer is garbage": "*\"image inspect\"*) echo not-a-digest ;;",
+		"answer is empty":   "*\"image inspect\"*) ;;",
+	} {
+		t.Run(name, func(t *testing.T) {
+			bin, logPath := dockerLog(t, rules)
+			_, err := launch(t, bin, contract.Role{Family: "x", Image: "i", Argv: []string{"a"}, Network: "provider", EgressAllow: []string{"openrouter.ai"}}, LaunchSpec{Name: "a2dlc-run-1-003-3"})
+			if err == nil || !strings.Contains(err.Error(), "egress proxy image "+EgressProxyImage) {
+				t.Fatalf("err = %v, wanted an error naming the proxy image", err)
+			}
+			for _, call := range dockerCalls(t, logPath) {
+				if strings.HasPrefix(call, "network create") || strings.HasPrefix(call, "run ") {
+					t.Errorf("docker went on after the proxy could not be identified: %q", call)
+				}
+			}
+		})
+	}
+}
+
+// The tag is a version, not "dev": it names the build the README documents.
+func TestEgressProxyImageTagIsVersioned(t *testing.T) {
+	if !regexp.MustCompile(`^a2dlc-egress-proxy:[0-9]+\.[0-9]+(\.[0-9]+)?$`).MatchString(EgressProxyImage) {
+		t.Errorf("EgressProxyImage = %q, wanted a2dlc-egress-proxy:<major>.<minor>", EgressProxyImage)
 	}
 }
 
@@ -421,8 +498,8 @@ func TestEgressProviderBuildsProxyAndTearsDown(t *testing.T) {
 	if line := calls[4]; !strings.Contains(line, "--internal") {
 		t.Errorf("network is not internal: %q", line)
 	}
-	if line := calls[6]; !strings.Contains(line, "A2DLC_EGRESS_ALLOW=api.example.test,openrouter.ai ") || !strings.HasSuffix(line, " "+EgressProxyImage) {
-		t.Errorf("proxy run = %q, wanted the sorted lowercase allowlist and the proxy image", line)
+	if line := calls[6]; !strings.Contains(line, "A2DLC_EGRESS_ALLOW=api.example.test,openrouter.ai ") || !strings.HasSuffix(line, " "+testProxyID) {
+		t.Errorf("proxy run = %q, wanted the sorted lowercase allowlist and the proxy image by its ID", line)
 	}
 	if line := strings.Join(calls, "\n"); strings.Contains(line, "bridge") {
 		t.Errorf("the proxy joins a shared network, which another container could use as a relay: %q", calls)
