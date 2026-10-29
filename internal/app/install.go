@@ -109,13 +109,19 @@ func (a App) TestsHint() (TestsHint, bool) {
 	h := TestsHint{Runner: runner, Stub: a.testsStub(runner)}
 	h.Warning = fmt.Sprintf("%s was found (%s) but %s has no tests section: a2dlc runs none of the repo's tests, so every change to "+
 		"code that no engine examines stays INCONCLUSIVE, and the tests written for it do not count; nothing was written.", runner, why, pathConfig)
+	h.Warning += " " + baselineWhy
 	if h.Stub != "" {
-		h.Warning += " Add this to " + pathConfig + " and edit the image and paths:"
+		h.Warning += " Add this to " + pathConfig + ", with a baseline_command that runs the whole suite, and edit the image and paths:"
 	} else {
-		h.Warning += " a2dlc has no stub for it: declare tests with an image, paths and a command that writes $A2DLC_JUNIT and $A2DLC_COVERAGE."
+		h.Warning += " a2dlc has no stub for it: declare tests with an image, paths, a command that writes $A2DLC_JUNIT and $A2DLC_COVERAGE, and a baseline_command that runs the existing suite."
 	}
 	return h, true
 }
+
+// baselineWhy is why the tests section also carries a baseline_command (bead a2dlc-m47): Stage 4 takes line coverage
+// from the tests that changed, so without a baseline run of the existing suite nothing covers a fix that adds no test.
+const baselineWhy = "Without tests.baseline_command, a fix that adds no test but is covered by the existing suite ends INCONCLUSIVE, " +
+	"because Stage 4 takes coverage only from the tests that changed."
 
 // detectRunner finds the runner by the files at the repo root, in the order package.json then Python.
 func (a App) detectRunner() (runner, why string, ok bool) {
@@ -199,7 +205,10 @@ func (a App) testsStub(runner string) string {
 			break
 		}
 	}
-	tc := contract.TestsConfig{Image: "<image with the repo's toolchain and dependencies>", Paths: paths, Command: command}
+	// The baseline is the same run over the whole suite, so a fix with no new test still has coverage. A repo with a slow
+	// suite narrows it to the tests the change affects (`vitest related $A2DLC_CHANGED`, `go test` on the touched packages).
+	baseline := strings.ReplaceAll(command, " $A2DLC_TESTS", "")
+	tc := contract.TestsConfig{Image: "<image with the repo's toolchain and dependencies>", Paths: paths, Command: command, BaselineCommand: baseline}
 	if exists("src") { // the code whose changed lines a test must run when no engine examines them
 		tc.SourcePaths = []string{"src/**"}
 	}

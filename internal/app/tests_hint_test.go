@@ -51,7 +51,9 @@ func TestInstallHintNamesTheRunnerAndGivesAStubWithoutWritingIt(t *testing.T) {
 			if !ok || hint.Runner != c.runner {
 				t.Fatalf("runner: %+v ok=%v, want %q", hint, ok, c.runner)
 			}
-			for _, want := range []string{"INCONCLUSIVE", "tests section", ".a2dlc/config.json", "nothing was written"} {
+			// Stage 4 takes coverage from the tests that changed, so a fix that adds no test is covered only when
+			// baseline_command runs the existing suite (bead a2dlc-m47): the warning says so, with or without a stub.
+			for _, want := range []string{"INCONCLUSIVE", "tests section", ".a2dlc/config.json", "nothing was written", "baseline_command", "adds no test"} {
 				if !strings.Contains(hint.Warning, want) {
 					t.Errorf("the warning does not say %q:\n%s", want, hint.Warning)
 				}
@@ -80,6 +82,18 @@ func TestInstallHintNamesTheRunnerAndGivesAStubWithoutWritingIt(t *testing.T) {
 				if !strings.Contains(tc.Command, v) {
 					t.Errorf("the command does not use %s: %s", v, tc.Command)
 				}
+			}
+			// the baseline runs the existing suite, not only the changed test files, and writes the same outputs
+			if tc.BaselineCommand == "" {
+				t.Fatalf("the stub proposes no baseline_command:\n%s", hint.Stub)
+			}
+			for _, v := range []string{"$A2DLC_JUNIT", "$A2DLC_COVERAGE"} {
+				if !strings.Contains(tc.BaselineCommand, v) {
+					t.Errorf("the baseline_command does not use %s: %s", v, tc.BaselineCommand)
+				}
+			}
+			if strings.Contains(tc.BaselineCommand, "$A2DLC_TESTS") {
+				t.Errorf("the baseline_command is limited to the changed tests: %s", tc.BaselineCommand)
 			}
 		})
 	}
