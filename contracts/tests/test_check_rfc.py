@@ -75,6 +75,17 @@ class CheckRfc(unittest.TestCase):
         errs = run(mutate("a2dlc-approval/1\\n<target>", "a2dlc-approval/2\\n<target>"))
         self.assertTrue(any("signed text" in e for e in errs), errs)
 
+    def test_the_escape_table_as_v3_5_first_printed_it_fails(self):
+        # The right column repeated the left one: <, >, & and U+2028/U+2029 written as themselves (bead a2dlc-qhw).
+        for left, right in check_rfc.WAIVER_ESCAPES.items():
+            raw = left.replace("U+2028, U+2029", f"`{chr(0x2028)}`, `{chr(0x2029)}`")
+            errs = run(mutate(f"| {left} | {right} |", f"| {left} | {raw} |"))
+            self.assertTrue(any("escape table" in e for e in errs), errs)
+
+    def test_a_missing_escape_table_fails(self):
+        errs = run(mutate("<!-- a2dlc:waiver-escapes -->\n", ""))
+        self.assertTrue(any("waiver-escapes" in e for e in errs), errs)
+
     def test_a_changed_engine_list_fails(self):
         errs = run(mutate("`rapid`, `blackbox`)", "`rapid`)"))
         self.assertTrue(any("lists the engines" in e for e in errs), errs)

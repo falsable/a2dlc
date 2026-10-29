@@ -572,18 +572,19 @@ When two entries of `waivers` have the same `target`, the last one is the waiver
 
 The object has exactly these three keys, in this order, with no whitespace and no trailing newline. `<T>`, `<D>` and `<R>` are the three strings written as JSON strings in UTF-8 with these rules:
 
+<!-- a2dlc:waiver-escapes -->
 | Character | Written as |
 |---|---|
 | `"` | `\"` |
 | `\` | `\\` |
 | U+0008, U+000C, U+000A, U+000D, U+0009 | `\b`, `\f`, `\n`, `\r`, `\t` |
 | any other U+0000 to U+001F | `\u00` and two lowercase hexadecimal digits |
-| `<`, `>`, `&` | `<`, `>`, `&` |
-| U+2028, U+2029 | ` `, ` ` |
+| `<`, `>`, `&` | `\u003c`, `\u003e`, `\u0026` |
+| U+2028, U+2029 | `\u2028`, `\u2029` |
 | a lone surrogate in the source document (`\ud800`) | the character U+FFFD, written as its UTF-8 bytes |
 | anything else, including `/`, U+007F and characters above U+007F | itself, as UTF-8 |
 
-The strings are the values the document has after JSON decoding, so `<` and `<` in `waivers.json` give the same hash. A `waivers.json` that is not valid UTF-8 is invalid; the reference replaces each offending byte with U+FFFD, and a verifier MAY reject the file instead. The rules above are the output of Go's `encoding/json` for these three fields (`HTMLEscape` on), and they are identical in Go 1.23 and 1.25. For the waiver above the bytes are:
+The strings are the values the document has after JSON decoding, so `\u003c` and `<` in `waivers.json` give the same hash. A `waivers.json` that is not valid UTF-8 is invalid; the reference replaces each offending byte with U+FFFD, and a verifier MAY reject the file instead. The rules above are the output of Go's `encoding/json` for these three fields (`HTMLEscape` on), and they are identical in Go 1.23 and 1.25. For the waiver above the bytes are:
 
 ```text
 {"target":"src/m.py::f","decision":"enforce_new_behavior","reason":"The result now includes the offset <1> & more"}

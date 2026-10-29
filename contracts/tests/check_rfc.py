@@ -16,6 +16,13 @@ GITX = "internal/gitx/gitx.go"
 # Paths older versions of the specification used. They may be named only where the text says what changed.
 HISTORICAL = {".a2dlc/latest.json", ".a2dlc/waivers.yaml", ".a2dlc/flaky.yaml"}
 HISTORY_SECTIONS = ("#### 6.4.10", "## 13.")
+# The rows of the WaiverSHA escape table (6.4.6) that Go's encoding/json writes as \u escapes. Built from chr(92) so that no
+# tool between the editor and the file turns the escapes back into the characters they stand for.
+_BS = chr(92)
+WAIVER_ESCAPES = {
+    "`<`, `>`, `&`": ", ".join(f"`{_BS}u{h}`" for h in ("003c", "003e", "0026")),
+    "U+2028, U+2029": ", ".join(f"`{_BS}u{h}`" for h in ("2028", "2029")),
+}
 
 
 def sections(text):
@@ -201,6 +208,17 @@ def check(rfc_text, contracts, gitx_text):
     for v in schemas["defs"]["$defs"]["verdict"]["enum"]:
         if f"`{v}`" not in sec:
             errs.append(f"6.4 does not mention the verdict value '{v}'")
+
+    # 8. The WaiverSHA escape table writes the escapes out. Where the right column repeated the left one, a reader who followed
+    # the table hashed <, >, & and U+2028/U+2029 raw and got another WaiverSHA (bead a2dlc-qhw).
+    rows = table_after(sec, "a2dlc:waiver-escapes")
+    if rows is None:
+        errs.append("6.4 needs the '<!-- a2dlc:waiver-escapes -->' table")
+    else:
+        got = {r[0]: r[1] for r in rows if len(r) == 2}
+        for left, right in WAIVER_ESCAPES.items():
+            if got.get(left) != right:
+                errs.append(f"the WaiverSHA escape table writes {left} as {got.get(left)!r}, not {right!r}")
     return errs
 
 

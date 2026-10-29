@@ -11,6 +11,9 @@ vectors refuse. The other items filled a gap from outside the RFC, or are ambigu
 
 ### A1. §6.4.6, table of characters in the WaiverSHA string
 
+**Applied** (bead a2dlc-qhw): the table writes the escapes out, and `contracts/tests/check_rfc.py` fails on the old table
+(`<!-- a2dlc:waiver-escapes -->`). The text below is the finding as it was made.
+
 - **Ambiguity.** The right-hand column of the table repeats the left-hand character: `<`, `>`, `&` are "written as" `<`, `>`,
   `&`, and U+2028, U+2029 as the raw characters. The prose after the table says "`<` and `<` in `waivers.json` give the same
   hash". Only the sentence "the output of Go's `encoding/json` ... (`HTMLEscape` on)" says that these characters are escaped.
@@ -18,8 +21,8 @@ vectors refuse. The other items filled a gap from outside the RFC, or are ambigu
 - **Blocks.** Taking the table literally, 9 vectors fail: `V-waiversha-ch_lt-0`, `-ch_gt-0`, `-ch_amp-0`, `-u2028-0`, `-u2029-0`,
   `-in_escaped_lt-0`, and `V-approval-001`, `-011`, `-013` (the example reason holds `<1> &`, so the RFC's own example hash
   `b4359b1a...` does not come out).
-- **Proposed text.** In the table, write the escapes out: `<` → `<`, `>` → `>`, `&` → `&`, U+2028 → ` `,
-  U+2029 → ` ` (lowercase hexadecimal, backslash then `u` then four digits). In the prose: "so `<` and `<` in
+- **Proposed text.** In the table, write the escapes out: `<` -> `\u003c`, `>` -> `\u003e`, `&` -> `\u0026`, U+2028 -> `\u2028`,
+  U+2029 -> `\u2029` (lowercase hexadecimal, backslash then `u` then four digits). In the prose: "so `\u003c` and `<` in
   `waivers.json` give the same hash". Everything else in the table is correct as written.
 
 ## B. The RFC points outside itself (filled from outside knowledge)
