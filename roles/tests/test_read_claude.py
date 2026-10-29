@@ -1,7 +1,7 @@
 """Network-free test of read_claude in roles/adapter.py: what the claude -p JSON puts in the role's cost. No model runs.
 
   python -I -X utf8 roles/tests/test_read_claude.py          (standard library only)
-  docker run --rm --network none -v "<worktree>:/src" -w /src --entrypoint python3 a2dlc-roles:0.10 \
+  docker run --rm --network none -v "<worktree>:/src" -w /src --entrypoint python3 a2dlc-roles:0.11 \
       -I -X utf8 roles/tests/test_read_claude.py              (what the image runs; no host Python needed)
 """
 from __future__ import annotations
