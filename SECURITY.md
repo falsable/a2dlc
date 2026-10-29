@@ -14,7 +14,7 @@ Only the latest release and `main`. Fixes are not backported.
 
 ## What a verdict claims, and what it does not
 
-A `PASS` is a bounded search inside a recorded budget, not a proof (RFC-0001 §1 and §10, [docs/A2-DLC_v3.4_protocol.md](docs/A2-DLC_v3.4_protocol.md)). A wrong `PASS` from a gate that ran is a correctness bug: report it as an issue with a frozen mutant (see [CONTRIBUTING.md](CONTRIBUTING.md)). The rest of this file is about ways to get a `PASS` without the gates having run, or to run code the user did not intend.
+A `PASS` is a bounded search inside a recorded budget, not a proof (RFC-0001 §1 and §10, [docs/A2-DLC_v3.5_protocol.md](docs/A2-DLC_v3.5_protocol.md)). A wrong `PASS` from a gate that ran is a correctness bug: report it as an issue with a frozen mutant (see [CONTRIBUTING.md](CONTRIBUTING.md)). The rest of this file is about ways to get a `PASS` without the gates having run, or to run code the user did not intend.
 
 ## Threat 1: the agent writes a `PASS` verdict.json
 

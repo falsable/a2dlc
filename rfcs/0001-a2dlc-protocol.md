@@ -1,9 +1,9 @@
 # RFC 0001: Autonomous Agentic Development Lifecycle (A2-DLC)
 
-- **Status:** Consolidated draft, version v3.4. The RFC text states its own status as "pending empirical validation (see §12)".
+- **Status:** Consolidated draft, version v3.5. §6.4 (the receipt) is normative; the rest of the text is pending empirical validation (see §12).
 - **Author:** Aldemar Hernández
-- **Text:** [docs/A2-DLC_v3.4_protocol.md](../docs/A2-DLC_v3.4_protocol.md)
-- **Version history:** the table at the end of that document lists v3.0 to v3.4 and what each changed.
+- **Text:** [docs/A2-DLC_v3.5_protocol.md](../docs/A2-DLC_v3.5_protocol.md)
+- **Version history:** the table at the end of that document lists v3.0 to v3.5 and what each changed.
 - **Schemas:** [`contracts/`](../contracts), `schema_version` 1.
 - **Reference implementation:** the Go binary in this repository (release tags `v0.x`).
 
