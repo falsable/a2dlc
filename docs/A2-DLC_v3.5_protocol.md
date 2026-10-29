@@ -1,6 +1,6 @@
 # RFC-0001: Autonomous Agentic Development Lifecycle (A2-DLC) v3.5
 
-**Status:** Consolidated draft (v3.5). §6.4 (the receipt) is normative and describes what the reference implementation does; `contracts/` and `conformance/` accompany it. The rest of the document is unchanged from v3.4 and stays pending empirical validation (see §12); the Lite differential engine has a smoke run (§12, Phase 0). Of what was added in v3.4, the domain guard has a first measurement (§12); the lemmas and the back-translation are unmeasured.
+**Status:** Consolidated draft (v3.5). §6.4 (the receipt) is normative and describes what the reference implementation does; `contracts/` and `conformance/` accompany it. The rest of the document is unchanged from v3.4 and stays pending empirical validation (see §12); the Lite differential engine has a smoke run (§12, Phase 0). Of what was added in v3.4, the domain guard has a first measurement (§12); the lemmas and the back-translation are unmeasured. §5 Stage 3 step 4 and the qualification of "< 2 s" to steps 1 to 3 are proposed by RFC-0002 (Draft) and are not normative until it is accepted.
 **Target environment:** multi-agent software engineering systems
 **Design goal:** minimal human intervention through deterministic verification, adversarial testing with context isolation and differential probing of the specification.
 
@@ -209,6 +209,8 @@ The Router evaluates the depth of state mutation, the estimated complexity of th
   - The Saboteur keeps attacking the public function as a black box: it does not see the lemmas, which are Builder code.
 
 ### Stage 3: Tier 0 Inner Loop (< 2 s for steps 1 to 3)
+**Proposed by RFC-0002 (Draft), not normative until accepted:** step 4, the sentences below that mention it, and the qualification of "< 2 s" to steps 1 to 3 in the title. Until the RFC is accepted the title reads "(< 2 s)" and Tier 0 is steps 1 to 3 only. The reference implementation already behaves as proposed (see RFC-0002, "Implementation ahead of acceptance").
+
 In a hermetic sandbox per Builder:
 1. Compiler + strict type check, zero warnings (`cargo check`, `tsc --strict`, `pyright --strict`).
 2. AST policy linter: forbidden imports, unbounded loops, reflection, missing `@a2dlc` header, complexity budget.

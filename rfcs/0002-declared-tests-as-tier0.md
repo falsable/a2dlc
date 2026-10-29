@@ -25,6 +25,10 @@ Contract: `contracts/engine-tier0-response.schema.json` gets the finding kind `t
 
 Implementation notes that are not normative: the review of a working tree that no Builder wrote (probes executed on the working tree) does not run step 4; the feedback of one round carries at most 30 failed testcases and one line for the rest.
 
+## Implementation ahead of acceptance
+
+The reference implementation carries this behavior before the RFC is accepted (commit `be5dccd`), because without it `a2dlc run` could not accept any builder candidate on a repo with no engine, which blocked the factory pilot. The text in `docs/A2-DLC_v3.5_protocol.md` is marked as proposed until the 14-day comment period of [README.md](README.md) ends and the maintainer accepts the RFC. If the RFC is rejected, that commit is reverted, together with the finding kind `test` and the protocol text.
+
 ## Compatibility
 
 No existing document becomes invalid. `test` is a new enum value in a field that `lemma` was added to the same way; per [docs/COMPATIBILITY.md](../docs/COMPATIBILITY.md) an added enum value does not bump `schema_version`. A consumer with the older schema rejects a `tier0_feedback.json` that carries it, which is the pairing rule working as intended. A repo with at least one engine covering every changed file behaves as before. A repo with engines that leave some changed files uncovered (for example test files) and a `config.tests` now runs the declared command for those files, which can be slower than before and can fail on a suite that is already red on the base.
