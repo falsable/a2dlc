@@ -73,7 +73,18 @@
     "config_sha256": { "$ref": "run-defs.schema.json#/$defs/sha256", "description": "Hash of the factory.json bytes the run used." },
     "started_at": { "type": "string", "format": "date-time" },
     "finished_at": { "type": "string", "format": "date-time" },
-    "outcome": { "enum": ["completed", "stopped_new_lanes", "killed"], "description": "completed: every lane ran or was skipped by precheck. stopped_new_lanes: run_stop_new_usd or total_usd kept a lane from starting. killed: run_kill_usd or total_usd stopped the lanes in flight." },
+    "outcome": { "enum": ["completed", "stopped_new_lanes", "killed"], "description": "completed: every lane ran or was skipped by precheck. stopped_new_lanes: run_stop_new_usd or total_usd kept a lane from starting. killed: run_kill_usd, total_usd or run_wall_seconds stopped the lanes in flight (see killed_by)." },
+    "killed_by": {
+      "type": "object",
+      "description": "Optional; present when outcome is killed. Which cap killed the run and how long the run had been going.",
+      "properties": {
+        "cap": { "enum": ["run_kill_usd", "total_usd", "run_wall_seconds"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "elapsed_seconds": { "type": "number", "minimum": 0, "description": "Wall time from the start of the run to the kill." }
+      },
+      "required": ["cap", "reason", "elapsed_seconds"],
+      "additionalProperties": false
+    },
     "prior_spend_usd": { "type": "number", "minimum": 0 },
     "usage": { "$ref": "#/$defs/counters", "unevaluatedProperties": false },
     "accepted": { "type": "integer", "minimum": 0 },

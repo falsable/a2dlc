@@ -17,6 +17,8 @@ type FactoryCaps struct {
 	RunStopNewUSD float64 `json:"run_stop_new_usd"`
 	RunKillUSD    float64 `json:"run_kill_usd"`
 	TotalUSD      float64 `json:"total_usd"`
+	// RunWallSeconds is optional (an addition after the six required caps): nil means the run has no wall-time cap.
+	RunWallSeconds *int `json:"run_wall_seconds,omitempty"`
 }
 
 // Arms of the preregistered comparison: minimal is arm 1 (the factory's minimal claude flags, the default when the
@@ -67,6 +69,8 @@ func (c FactoryConfig) Validate() error {
 		return fmt.Errorf("caps.run_stop_new_usd %.4f is above caps.run_kill_usd %.4f", k.RunStopNewUSD, k.RunKillUSD)
 	case k.RunKillUSD > k.TotalUSD:
 		return fmt.Errorf("caps.run_kill_usd %.4f is above caps.total_usd %.4f", k.RunKillUSD, k.TotalUSD)
+	case k.RunWallSeconds != nil && *k.RunWallSeconds < 1:
+		return fmt.Errorf("caps.run_wall_seconds %d is not positive", *k.RunWallSeconds)
 	case c.Network == "provider" && len(c.EgressAllow) == 0:
 		return fmt.Errorf("network provider needs egress_allow")
 	}
@@ -184,6 +188,20 @@ const (
 	RunKilled          = "killed"
 )
 
+// Caps that can kill a run (FactoryReport.KilledBy.Cap).
+const (
+	KillRunUSD         = "run_kill_usd"
+	KillTotalUSD       = "total_usd"
+	KillRunWallSeconds = "run_wall_seconds"
+)
+
+// RunKill says which cap killed a run and how long the run had been going when it did.
+type RunKill struct {
+	Cap            string  `json:"cap"`
+	Reason         string  `json:"reason"`
+	ElapsedSeconds float64 `json:"elapsed_seconds"`
+}
+
 type FactoryReport struct {
 	SchemaVersion      int           `json:"schema_version"`
 	RunID              string        `json:"run_id"`
@@ -193,6 +211,7 @@ type FactoryReport struct {
 	StartedAt          string        `json:"started_at"`
 	FinishedAt         string        `json:"finished_at"`
 	Outcome            string        `json:"outcome"`
+	KilledBy           *RunKill      `json:"killed_by,omitempty"`
 	PriorSpendUSD      float64       `json:"prior_spend_usd"`
 	Usage              Counters      `json:"usage"`
 	Accepted           int           `json:"accepted"`
@@ -222,6 +241,8 @@ func (r FactoryReport) Validate() error {
 		sum.CacheCreationInputTokens != r.Usage.CacheCreationInputTokens || sum.OutputTokens != r.Usage.OutputTokens || sum.Turns != r.Usage.Turns ||
 		sum.USD > r.Usage.USD+eps || sum.USD < r.Usage.USD-eps:
 		return fmt.Errorf("usage is not the sum of the lanes")
+	case r.KilledBy != nil && r.Outcome != RunKilled:
+		return fmt.Errorf("killed_by on a run whose outcome is %s", r.Outcome)
 	case accepted != r.Accepted:
 		return fmt.Errorf("accepted is %d and %d lanes are accepted", r.Accepted, accepted)
 	case accepted == 0 && r.CostPerAcceptedUSD != nil:

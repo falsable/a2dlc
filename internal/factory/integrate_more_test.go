@@ -21,14 +21,14 @@ func TestIntegrateRefusesAHoldoutThatIsNotTheOneTheSpecNames(t *testing.T) {
 	rep := reportOf(d, acceptedLane("i1", candidate(t, d, base, "i1", map[string]string{"src/a.py": "A = 1\n"})))
 	hold := &fakeHoldout{}
 	other := strings.Repeat("9", 64)
+	// in this order: the folder is edited first, then restored so that only the spec's seal is wrong
 	write(t, dir, "tests/a.test.ts", "A, edited after the seal")
-	for name, spec := range map[string]contract.FactoryHoldout{"edited": holdoutSpec(dir, seal, "i1"), "other seal": holdoutSpec(dir, other, "i1")} {
-		if name == "other seal" {
-			write(t, dir, "tests/a.test.ts", "A")
-		}
-		if _, err := Integrate(context.Background(), integrateDeps(d, hold), spec, rep); err == nil {
-			t.Errorf("%s: integrated", name)
-		}
+	if _, err := Integrate(context.Background(), integrateDeps(d, hold), holdoutSpec(dir, seal, "i1"), rep); err == nil {
+		t.Error("edited: integrated")
+	}
+	write(t, dir, "tests/a.test.ts", "A")
+	if _, err := Integrate(context.Background(), integrateDeps(d, hold), holdoutSpec(dir, other, "i1"), rep); err == nil {
+		t.Error("other seal: integrated")
 	}
 	if b := git(t, d.Repo.Dir, "branch", "--list", "factory/*"); b != "" || len(hold.runs) != 0 {
 		t.Errorf("branches %q, holdout runs %v", b, hold.runs)

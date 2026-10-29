@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/run"
@@ -30,11 +31,13 @@ type accountant struct {
 	lanes      map[string]*contract.Counters
 	killed     bool
 	killReason string
+	killedBy   *contract.RunKill
+	start      time.Time // when the run started: the wall-time cap counts from here
 	cancel     context.CancelFunc
 }
 
 func newAccountant(caps contract.FactoryCaps, prior float64, cancel context.CancelFunc) *accountant {
-	return &accountant{caps: caps, prior: prior, lanes: map[string]*contract.Counters{}, cancel: cancel}
+	return &accountant{caps: caps, prior: prior, lanes: map[string]*contract.Counters{}, cancel: cancel, start: time.Now()}
 }
 
 func (a *accountant) lane(id string) *contract.Counters {
@@ -81,14 +84,15 @@ func (a *accountant) add(lane string, cost *contract.Cost) {
 	switch {
 	case a.killed:
 	case a.run.USD >= a.caps.RunKillUSD:
-		a.killLocked(fmt.Sprintf("run usd: %.4f spent reached run_kill_usd %.4f", a.run.USD, a.caps.RunKillUSD))
+		a.killLocked(contract.KillRunUSD, fmt.Sprintf("run usd: %.4f spent reached run_kill_usd %.4f", a.run.USD, a.caps.RunKillUSD))
 	case a.prior+a.run.USD >= a.caps.TotalUSD:
-		a.killLocked(fmt.Sprintf("total usd: %.4f spent reached total_usd %.4f", a.prior+a.run.USD, a.caps.TotalUSD))
+		a.killLocked(contract.KillTotalUSD, fmt.Sprintf("total usd: %.4f spent reached total_usd %.4f", a.prior+a.run.USD, a.caps.TotalUSD))
 	}
 }
 
-func (a *accountant) killLocked(reason string) {
+func (a *accountant) killLocked(cap, reason string) {
 	a.killed, a.killReason = true, reason
+	a.killedBy = &contract.RunKill{Cap: cap, Reason: reason, ElapsedSeconds: a.elapsedLocked()}
 	if a.cancel != nil {
 		a.cancel()
 	}
@@ -98,6 +102,7 @@ func (a *accountant) killLocked(reason string) {
 func (a *accountant) mayStartLane() (bool, string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	a.checkWallLocked()
 	switch {
 	case a.killed:
 		return false, a.killReason

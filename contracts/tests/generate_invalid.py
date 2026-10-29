@@ -430,6 +430,12 @@ cases = {
     "factory-integration__integrator-unknown.json": (read("factory-integration__reference.json"), lambda x: x.update(integrator="octopus")),
     "factory-integration__usage-extra-field.json": (read("factory-integration__reference.json"), lambda x: x["usage"].update(dollars=1)),
     "factory-integration__reference-branch-of-the-queue.json": (read("factory-integration__reference.json"), lambda x: x.update(integration_branch="factory/run-0a1b2c3d4e5f/integration-x")),
+    # run-level wall-time cap (bead a2dlc-3fu.13): a positive integer, and a kill says which cap and how long
+    "factory-config__run-wall-seconds-zero.json": (read("factory-config__run-wall-time.json"), lambda x: x["caps"].update(run_wall_seconds=0)),
+    "factory-config__run-wall-seconds-fraction.json": (read("factory-config__run-wall-time.json"), lambda x: x["caps"].update(run_wall_seconds=548.5)),
+    "factory-report__killed-by-cap-unknown.json": (read("factory-report__run-wall-killed.json"), lambda x: x["killed_by"].update(cap="lane_seconds")),
+    "factory-report__killed-by-without-elapsed.json": (read("factory-report__run-wall-killed.json"), lambda x: x["killed_by"].pop("elapsed_seconds")),
+    "factory-report__killed-by-extra-field.json": (read("factory-report__run-wall-killed.json"), lambda x: x["killed_by"].update(limit=548)),
     "run-state__spent-cache-read-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_read_tokens=-1)),
     "run-state__spent-cache-creation-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_creation_tokens=-1)),
     "capture__branch-coverage-over-one.json": (read("capture__traces.json"), lambda x: x.update(branch_coverage=1.5)),

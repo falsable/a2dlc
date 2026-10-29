@@ -71,6 +71,8 @@ func RunBatch(ctx context.Context, d Deps, cfg contract.FactoryConfig, batch con
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	acct := newAccountant(cfg.Caps, prior, cancel)
+	stopWall := acct.watchWall()
+	defer stopWall()
 	wt := &worktrees{dir: d.Repo.Dir}
 
 	lanes := make([]contract.FactoryLane, len(batch.Issues))
@@ -86,7 +88,11 @@ admit:
 		select {
 		case slots <- struct{}{}:
 		case <-runCtx.Done():
-			lanes[i] = notRun(is.ID, contract.LaneKilled, "run killed before the lane started")
+			why := "run killed before the lane started"
+			if _, reason := acct.wasKilled(); reason != "" {
+				why += ": " + reason
+			}
+			lanes[i] = notRun(is.ID, contract.LaneKilled, why)
 			continue admit
 		}
 		if ok, why := acct.mayStartLane(); !ok {
@@ -108,6 +114,7 @@ admit:
 		}()
 	}
 	wg.Wait()
+	stopWall()
 
 	killed, _ := acct.wasKilled()
 	outcome := contract.RunCompleted
@@ -120,6 +127,9 @@ admit:
 	rep := contract.FactoryReport{SchemaVersion: 1, RunID: runID, BatchID: batch.BatchID, BaseSha: base,
 		ConfigSHA256: d.ConfigSHA256, StartedAt: started.UTC().Format(time.RFC3339), FinishedAt: d.Now().UTC().Format(time.RFC3339),
 		Outcome: outcome, PriorSpendUSD: prior, Lanes: lanes}
+	if killed {
+		rep.KilledBy = acct.killedByCap()
+	}
 	for _, l := range lanes {
 		rep.Usage.Plus(l.Usage)
 		if l.Status == contract.LaneAccepted {

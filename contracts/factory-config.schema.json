@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/factory-config.schema.json",
   "title": "Software factory configuration (factory.json, versioned; read by cmd/factory, not by a2dlc)",
-  "description": "How cmd/factory runs the lanes of a batch (ADR meta/0008): which role image and which claude flags a lane uses, how many lanes run at once, and the caps. Every cap is required: there is no default, so a run states what it may spend. Constraints that JSON Schema cannot compare are checked by cmd/factory before it starts: caps.lane_usd <= caps.run_kill_usd, caps.run_stop_new_usd <= caps.run_kill_usd, caps.run_kill_usd <= caps.total_usd, network provider requires egress_allow. The lane is `a2dlc run --mode lite` over a worktree with builder_primary as the only role; the factory writes that roles.json from this file, and the model is called only through unmodified `claude -p` with the flags below.",
+  "description": "How cmd/factory runs the lanes of a batch (ADR meta/0008): which role image and which claude flags a lane uses, how many lanes run at once, and the caps. The six spend and lane caps are required: there is no default, so a run states what it may spend. caps.run_wall_seconds is optional. Constraints that JSON Schema cannot compare are checked by cmd/factory before it starts: caps.lane_usd <= caps.run_kill_usd, caps.run_stop_new_usd <= caps.run_kill_usd, caps.run_kill_usd <= caps.total_usd, network provider requires egress_allow. The lane is `a2dlc run --mode lite` over a worktree with builder_primary as the only role; the factory writes that roles.json from this file, and the model is called only through unmodified `claude -p` with the flags below.",
   "type": "object",
   "properties": {
     "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
@@ -23,7 +23,8 @@
         "lane_turns": { "type": "integer", "minimum": 1, "description": "Model turns a lane may use over all its calls, from the turns each call reports. claude has no --max-turns, so the core checks it before each launch; one call can overshoot it." },
         "run_stop_new_usd": { "type": "number", "exclusiveMinimum": 0, "description": "No new lane starts once the run has spent this much." },
         "run_kill_usd": { "type": "number", "exclusiveMinimum": 0, "description": "Every lane in flight is killed once the run has spent this much." },
-        "total_usd": { "type": "number", "exclusiveMinimum": 0, "description": "Ceiling over all runs in the output directory: earlier reports' spend plus this run's. Reaching it kills the run." }
+        "total_usd": { "type": "number", "exclusiveMinimum": 0, "description": "Ceiling over all runs in the output directory: earlier reports' spend plus this run's. Reaching it kills the run." },
+        "run_wall_seconds": { "type": "integer", "minimum": 1, "description": "Optional. Wall time of the whole run, from the first lane to the last. Once it has passed no new lane starts and every lane in flight is killed; the report records it in killed_by with the elapsed seconds. Absent means the run has no wall-time cap (the lane caps still apply). Added after the six required caps, so earlier configs stay valid." }
       },
       "required": ["lane_usd", "lane_seconds", "lane_turns", "run_stop_new_usd", "run_kill_usd", "total_usd"],
       "additionalProperties": false
