@@ -179,7 +179,7 @@ cases = {
     # block 3: Builder N=1 + Tier 0. ok with findings, or red without any, would make the loop unable to know whether to stop
     "engine-tier0-response__ok-with-findings.json": (read("engine-tier0-response__py-failures.json"), lambda x: x.update(ok=True)),
     "engine-tier0-response__fails-missing-findings.json": (read("engine-tier0-response__py-ok.json"), lambda x: x.update(ok=False)),
-    "engine-tier0-response__kind-unknown.json": (read("engine-tier0-response__py-failures.json"), lambda x: x["findings"][0].update(kind="test")),
+    "engine-tier0-response__kind-unknown.json": (read("engine-tier0-response__py-failures.json"), lambda x: x["findings"][0].update(kind="unit")),
     # with tier0 the budget is built by the core and carries only probes: CrossHair's does not apply
     "engine-request__tier0-budget-foreign.json": (read("engine-request__py-tier0.json"), lambda x: x["budget"].update(per_condition_timeout_s=10)),
     # a probe may lack expr (Tier 0 does not run it), but an empty expr does not make an assertion

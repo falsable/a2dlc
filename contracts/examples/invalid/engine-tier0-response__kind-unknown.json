@@ -3,7 +3,7 @@
  "ok": false,
  "findings": [
   {
-   "kind": "test",
+   "kind": "unit",
    "file": "src/calc.py",
    "line": 14,
    "message": "invalid syntax"

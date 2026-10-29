@@ -117,7 +117,7 @@ func (f *runnerMutant) RunTests(_ context.Context, _ contract.TestsConfig, _ str
 func repoMutation(t *testing.T, mutation string) (app.App, string, *engineMutant, *runnerMutant) {
 	t.Helper()
 	a, dir := repoLite(t)
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"python","image":"x","paths":["src/**"],"budget":{}}],`+
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"python","image":"x","paths":["src/**","tests/**"],"budget":{}}],`+
 		`"tests":{"image":"x","paths":["tests/**"],"source_paths":["src/**"],"command":"run"}`+mutation+`}`)
 	write(t, dir, "tests/test_old.t", "old passed\n")
 	git(t, dir, "add", "-A")

@@ -19,4 +19,7 @@ const (
 	// Tier0Lemma is a declared lemma whose postcondition the lemmas operation refuted (§5 Stage 2, decision 12). The core
 	// writes it into tier0_feedback from engine-lemmas-response; an engine's tier0 does not emit it. file is the lemma's name.
 	Tier0Lemma = "lemma"
+	// Tier0Test is a failed or errored testcase of config.tests.command, which the core runs on the candidate for the changed
+	// files no engine reviewed (§5 Stage 3). The core writes it, an engine does not emit it; file is the testcase's file.
+	Tier0Test = "test"
 )

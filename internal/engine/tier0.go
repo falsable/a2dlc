@@ -40,7 +40,7 @@ func (d Docker) Tier0(ctx context.Context, e contract.EngineConfig, req contract
 func kindTier0Known(k string) bool {
 	switch k {
 	case contract.Tier0Compile, contract.Tier0Typecheck, contract.Tier0Lint, contract.Tier0Probe,
-		contract.Tier0Policy, contract.Tier0Header, contract.Tier0Tool, contract.Tier0Lemma:
+		contract.Tier0Policy, contract.Tier0Header, contract.Tier0Tool, contract.Tier0Lemma, contract.Tier0Test:
 		return true
 	}
 	return false

@@ -133,7 +133,7 @@ A minimal subset, adoptable in minutes, that requires no orchestrator. Inspired 
         │  (UNSAT → CB-02a) (UNKNOWN → mark invariants as runtime-only)
 [2 Complexity & Risk Routing] ── N=1 Standard | N=2 Cross-Model Critical
         │
-[3 Tier 0 Inner Loop (<2s)]
+[3 Tier 0 Inner Loop (<2s engines; + the declared tests for files no engine covers)]
         │
 [4 Tier 1 Adversarial & Differential (15–45s)] ──(valid divergence)──► CB-01
         │
@@ -208,13 +208,16 @@ The Router evaluates the depth of state mutation, the estimated complexity of th
   - **Refactor that changes the decomposition** (lemmas renamed, merged or split): without a pair in the base there is no per-lemma differential, and that lemma gives `INCONCLUSIVE`, not `PASS`.
   - The Saboteur keeps attacking the public function as a black box: it does not see the lemmas, which are Builder code.
 
-### Stage 3: Tier 0 Inner Loop (< 2 s)
+### Stage 3: Tier 0 Inner Loop (< 2 s for steps 1 to 3)
 In a hermetic sandbox per Builder:
 1. Compiler + strict type check, zero warnings (`cargo check`, `tsc --strict`, `pyright --strict`).
 2. AST policy linter: forbidden imports, unbounded loops, reflection, missing `@a2dlc` header, complexity budget.
 3. Locked boundary assertions (Stage 1 probes).
+4. **The declared tests, for the changed files no engine reviewed** (RFC-0002). If the repo declares `config.tests`, `tests.command` runs in `tests.image` on the candidate, in the same hermetic sandbox, with the files that no engine reviewed in steps 1 to 3 in `$A2DLC_CHANGED`; the suite runs as the command defines it. The run counts as a review only if it is readable: JUnit XML is present, it has at least one testcase, and a non-zero exit comes with at least one identifiable failed or errored testcase. Each failed or errored testcase is a Tier 0 finding of kind `test` and returns to the Builder with the other findings. A run that is not readable (no JUnit, no testcase, a red exit with no identifiable failed testcase, a timeout, no runner) is an error of the tool, not a review and not feedback: the stage fails with the reason and spends no round. Step 4 does not run when the engines reviewed every changed file or when the repo declares no `config.tests`.
 
-The structured feedback (JSON) returns to the Builder; maximum `max_inner_iterations = 5`.
+The structured feedback (JSON) returns to the Builder; maximum `max_inner_iterations = 5`. A finding of step 4 spends a round like any other.
+
+A candidate on which Tier 0 reviewed nothing (no engine had a file or a probe, and step 4 did not run or was not readable) is not accepted: what nobody executed is `INCONCLUSIVE`, never `PASS`, and the stage escalates. The files that step 4 covered stay in the list of what Tier 0 did not review, because Stage 4 keeps its own coverage precondition. The 2 s target is the time of steps 1 to 3; step 4 takes the time of the repo's suite, bounded by `tests.timeout_s`.
 
 ### Stage 4: Tier 1 Adversarial & Differential (15–45 s)
 The Saboteur generates the PBT suite **in parallel** with the Builder, without seeing its code.

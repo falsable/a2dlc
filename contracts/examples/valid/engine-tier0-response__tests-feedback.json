@@ -1,0 +1,5 @@
+{"schema_version": 1, "ok": false,
+ "findings": [
+  {"kind": "test", "file": "test/stats.test.ts", "line": null, "message": "test/stats.test.ts::stats::returns 404 for an unknown slug: expected 500 to be 404"}
+ ],
+ "error": null, "reviewed": true}

@@ -278,7 +278,7 @@ func TestN2EachFailsOtherBuildersTestIsCB01(t *testing.T) {
 	withRouterN2(t)
 	a, dir := repoLite(t)
 	// an engine for Python over src/: without an engine that runs tier0, Stage 3 would escalate ("Tier 0 ran nothing")
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"python","image":"x","paths":["src/**"],"budget":{}}],"tests":{"image":"x","paths":["tests/**"],"command":"run"}}`)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"python","image":"x","paths":["src/**","tests/**"],"budget":{}}],"tests":{"image":"x","paths":["tests/**"],"command":"run"}}`)
 	git(t, dir, "add", ".a2dlc/config.json")
 	git(t, dir, "commit", "-qm", "tests")
 	write(t, dir, ".a2dlc/roles.json", rolesN2)

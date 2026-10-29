@@ -53,7 +53,7 @@
           "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true
         },
         "tier0_reviewed": {
-          "description": "Whether Tier 0 ran anything on the candidate (an engine reviewed a file or a probe). a2dlc run does not leave a candidate with false: a Tier 0 that ran nothing escalates the stage (\"Tier 0 did not run anything: …\"). Absent in candidates prior to this field.",
+          "description": "Whether Tier 0 ran anything on the candidate (an engine reviewed a file or a probe, or config.tests.command ran with readable JUnit on the files no engine covers). a2dlc run does not leave a candidate with false: a Tier 0 that ran nothing escalates the stage (\"Tier 0 did not run anything: …\"). Absent in candidates prior to this field.",
           "type": "boolean"
         },
         "lemmas": {

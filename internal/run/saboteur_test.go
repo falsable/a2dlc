@@ -180,7 +180,7 @@ func TestStage4SaboteurOnTheBuilderCommit(t *testing.T) {
 	// with a builder its commit is judged: a test that only exists there counts as existing even if the base does not have it
 	a, dir, _ := repoBuilder(t)
 	a.Runner = &engineUncovered{} // leaves the changed lines without cover
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"python","image":"x","paths":["src/**"],"budget":{}}],`+
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"python","image":"x","paths":["src/**","tests/**"],"budget":{}}],`+
 		`"tests":{"image":"x","paths":["tests/**"],"source_paths":["src/**"],"command":"run"}}`)
 	git(t, dir, "add", "-A")
 	git(t, dir, "commit", "-qm", "with tests")

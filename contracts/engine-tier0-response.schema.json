@@ -12,7 +12,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "kind": { "enum": ["compile", "typecheck", "lint", "probe", "policy", "header", "tooling", "lemma"], "description": "lemma: a declared lemma whose postcondition the lemmas operation refuted (the core writes it into tier0_feedback from engine-lemmas-response; an engine does not emit it; file is the lemma name). typecheck: mypy --strict error. policy: forbidden import, unbounded loop, reflection, or complexity over the maximum. header: the @a2dlc:slice_id is missing (only with require_header). tooling: a tool of the engine did not run (mypy missing or down): the finding is there so that it does not pass silently." },
+          "kind": { "enum": ["compile", "typecheck", "lint", "probe", "policy", "header", "tooling", "lemma", "test"], "description": "test: a failed or errored testcase of config.tests.command, which the core runs on the candidate for the changed files no engine reviewed (§5 Stage 3; the core writes it, an engine does not emit it; file is the testcase's file, or its id when the runner gives none, and message is the testcase id and its failure message). lemma: a declared lemma whose postcondition the lemmas operation refuted (the core writes it into tier0_feedback from engine-lemmas-response; an engine does not emit it; file is the lemma name). typecheck: mypy --strict error. policy: forbidden import, unbounded loop, reflection, or complexity over the maximum. header: the @a2dlc:slice_id is missing (only with require_header). tooling: a tool of the engine did not run (mypy missing or down): the finding is there so that it does not pass silently." },
           "file": { "type": "string", "minLength": 1, "description": "Candidate file; for a probe, the probe's file." },
           "line": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }] },
           "message": { "type": "string", "minLength": 1 }
@@ -22,7 +22,7 @@
       }
     },
     "error": { "type": ["string", "null"] },
-    "reviewed": { "type": "boolean", "description": "Set by the core, not the engine: true if at least one engine ran tier0 on some file or probe. False (or absent) with ok true means nothing was reviewed." }
+    "reviewed": { "type": "boolean", "description": "Set by the core, not the engine: true if at least one engine ran tier0 on some file or probe, or if config.tests.command ran with readable JUnit on the changed files no engine reviewed. False (or absent) with ok true means nothing was reviewed." }
   },
   "required": ["schema_version", "ok", "findings", "error"],
   "additionalProperties": false,
