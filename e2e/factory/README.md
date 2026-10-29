@@ -16,6 +16,7 @@ the installed vitest version with `--no-save`, because the frozen lockfile does 
     bash e2e/factory/p0a.sh <empty temporary folder>      C0, C4, C5, C1, C2
     bash e2e/factory/c8_junit.sh <empty temporary folder> C8 (needs dist/a2dlc.exe)
     bash e2e/factory/c3_holdout.sh <empty temporary folder> C3 and the holdout half of C4 (bead a2dlc-3fu.2)
+    bash e2e/factory/holdout_smoke.sh <empty temporary folder> real holdout command through factory integrate (a2dlc-3fu.12)
 
 C7 is a Go test plus a Python test, run as the rest of the suite:
 
@@ -65,3 +66,21 @@ Results of `c3_holdout.sh` (2026-10-29), seal `a6af6992722edaac6d5b5c2e22b975788
 
 - GNU grep 3.0 of Git for Windows aborts on `grep -iF` (exit 134); `check_leak.sh` uses `-i` without `-F`.
 - The canary is not in `reference/`, which P0a froze first; it is in the holdout and in `mutants.json` only.
+
+## Holdout smoke through the binary (bead a2dlc-3fu.12)
+
+`holdout_smoke.sh` runs `dist/factory.exe integrate` with the production `DockerHoldout` and the command of
+`contracts/examples/valid/factory-holdout__tinylinks.json` unchanged, extended to the nine units. No model is called:
+the lanes are commits built by hand at `refs/a2dlc/run/<slice>/builder_primary`, and `holdout_smoke_report.py` writes
+the report (all counters zero) and the spec. The target repo is `tinylinks/` plus `.a2dlc/config.json` with no engines,
+so `a2dlc check` passes with nothing in scope and the holdout is the only container. Results (2026-10-29, Windows host,
+Docker Desktop):
+
+| Run | Result |
+|---|---|
+| (a) reference | lane issue-1 carries `tinylinks/` to `reference/` (`src/`), lanes 2 to 9 add a notes file: all 9 integrated, exit 0, the n-th lane validated with the files of issues 1 to n, the last with all nine (27 tests passed); wall 48.6 s, vitest 0.6 s to 4.6 s per lane |
+| (b) tinylinks | nine notes-only lanes on the untouched app: all 9 `holdout_failed` with exit 1 and only their own file, each log with failed assertions; exit 3; wall 23.1 s, vitest 0.4 s to 0.6 s per lane |
+| (c) probe | the runner's mounts with a probe command on a copy of the holdout: `touch /src` and `touch /holdout` fail, 1.1.1.1:443 is unreachable (ENETUNREACH), the copy still matches its seal. By hand with `docker run`, outside the script: the same command exits 1 with a writable mount, and exits 1 with read-only mounts and the network on |
+| (d) tamper | a copy of the holdout with one byte added to `h01.test.ts`: exit 1 with `holdout changed: tests/h01.test.ts differs from the manifest`, before any container or record |
+
+Main of the target repo did not move in any run, and the sealed holdout still matches its seal after being mounted 18 times.
