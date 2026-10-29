@@ -86,7 +86,7 @@ func TestEveryLaunchCarriesTheMinimalClaudeFlagsAndTheRemainingBudget(t *testing
 	}
 	for i, remaining := range []string{"1.0000", "0.7500", "0.5000"} {
 		got := calls[i].Env[EnvLLMCmd]
-		want := "claude --setting-sources '' --strict-mcp-config --disable-slash-commands --tools Read,Edit --exclude-dynamic-system-prompt-sections --max-budget-usd " + remaining
+		want := "claude --setting-sources '' --strict-mcp-config --disable-slash-commands --tools Read,Edit --exclude-dynamic-system-prompt-sections --disallowedTools WebSearch,WebFetch --max-budget-usd " + remaining
 		if got != want || calls[i].Env["A2DLC_MODEL"] != "haiku" || strings.Contains(got, "--max-turns") {
 			t.Fatalf("call %d: %q", i, got)
 		}

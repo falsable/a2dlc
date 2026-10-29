@@ -208,7 +208,7 @@ func TestReferenceConflictIsResolvedByTheAgentAndEachIssueIsScoredOnTheFinalTree
 	}
 	// one agent call: default claude with the reference's USD 1.5 and none of the minimal flags, charged to the integration
 	agents := f.fake.seenAgents()
-	if len(agents) != 1 || agents[0].Env[EnvLLMCmd] != "claude --max-budget-usd 1.5000" || agents[0].Env["A2DLC_MODEL"] != "haiku" {
+	if len(agents) != 1 || agents[0].Env[EnvLLMCmd] != "claude --disallowedTools WebSearch,WebFetch --max-budget-usd 1.5000" || agents[0].Env["A2DLC_MODEL"] != "haiku" {
 		t.Fatalf("%+v", agents)
 	}
 	if *got.Usage != (contract.Counters{USD: 0.4, Calls: 1, Turns: 5, InputTokens: 200, CacheReadInputTokens: 50, CacheCreationInputTokens: 20, OutputTokens: 20}) {

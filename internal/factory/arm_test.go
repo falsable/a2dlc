@@ -18,8 +18,46 @@ func controlConfig() contract.FactoryConfig {
 	return cfg
 }
 
+// Both arms deny WebSearch and WebFetch (PREREG Q2, bead a2dlc-3fu.14) with the flag `claude --help` documents in
+// a2dlc-roles:0.11, in the argv of the roles.json env and of every launch, and the deny is the same word in both, so it
+// is not a difference between arms.
+func TestBothArmsDisallowWebSearchAndWebFetch(t *testing.T) {
+	const deny = "--disallowedTools WebSearch,WebFetch"
+	one, zero := testConfig(), controlConfig()
+	for name, got := range map[string]string{
+		"arm 1":         ClaudeCommand(one, 0.75),
+		"arm 0":         ControlCommand(0.75),
+		"arm 1 roles":   LaneRoles(one).Roles[Role].Env[EnvLLMCmd],
+		"arm 0 roles":   LaneRoles(zero).Roles[Role].Env[EnvLLMCmd],
+		"arm 1 command": Command(one, 0.75),
+		"arm 0 command": Command(zero, 0.75),
+	} {
+		if strings.Count(got, deny) != 1 || !strings.HasPrefix(got, "claude ") || !strings.Contains(got, " --max-budget-usd ") {
+			t.Errorf("%s: %q", name, got)
+		}
+	}
+	if got, want := ControlCommand(0.75), "claude "+deny+" --max-budget-usd 0.7500"; got != want {
+		t.Errorf("arm 0 argv: %q, want %q", got, want)
+	}
+	if got, want := ClaudeCommand(one, 0.75), "claude --setting-sources '' --strict-mcp-config --disable-slash-commands --tools Read,Edit --exclude-dynamic-system-prompt-sections "+deny+" --max-budget-usd 0.7500"; got != want {
+		t.Errorf("arm 1 argv: %q, want %q", got, want)
+	}
+	// every launch of a run carries it, whichever arm made it
+	for _, arm := range []string{"", contract.ArmControl} {
+		r := runUnderArm(t, arm, target(t), 1, nil, issue("issue-1"), issue("issue-2"))
+		if len(r.cmds) == 0 {
+			t.Fatalf("arm %q launched nothing", arm)
+		}
+		for _, c := range r.cmds {
+			if strings.Count(c, deny) != 1 {
+				t.Errorf("arm %q launched %q", arm, c)
+			}
+		}
+	}
+}
+
 func TestControlCommandIsDefaultClaudeWithOnlyTheSharedBudgetCap(t *testing.T) {
-	if got := ControlCommand(0.75); got != "claude --max-budget-usd 0.7500" {
+	if got := ControlCommand(0.75); got != "claude --disallowedTools WebSearch,WebFetch --max-budget-usd 0.7500" {
 		t.Fatalf("%q", got)
 	}
 	for _, flag := range []string{"--setting-sources", "--strict-mcp-config", "--disable-slash-commands", "--tools", "--exclude-dynamic-system-prompt-sections", "--max-turns"} {
@@ -50,7 +88,7 @@ func TestNoArmIsArm1ByteForByte(t *testing.T) {
 // which replaces it.
 func TestArm0SetsTheCommandInRolesAndInEveryLaunch(t *testing.T) {
 	cfg := controlConfig()
-	if got := LaneRoles(cfg).Roles[Role].Env[EnvLLMCmd]; got != "claude --max-budget-usd 1.0000" {
+	if got := LaneRoles(cfg).Roles[Role].Env[EnvLLMCmd]; got != "claude --disallowedTools WebSearch,WebFetch --max-budget-usd 1.0000" {
 		t.Fatalf("roles.json: %q", got)
 	}
 	d := target(t)
@@ -67,7 +105,7 @@ func TestArm0SetsTheCommandInRolesAndInEveryLaunch(t *testing.T) {
 	}
 	for i, remaining := range []string{"1.0000", "0.7500", "0.5000"} {
 		got := claude.seen()[i].Env[EnvLLMCmd]
-		if got != "claude --max-budget-usd "+remaining || claude.seen()[i].Env["A2DLC_MODEL"] != "haiku" {
+		if got != "claude --disallowedTools WebSearch,WebFetch --max-budget-usd "+remaining || claude.seen()[i].Env["A2DLC_MODEL"] != "haiku" {
 			t.Fatalf("call %d: %q", i, got)
 		}
 	}
@@ -162,7 +200,7 @@ func sameLanePath(t *testing.T, one, zero armRun, launches int) {
 		}
 	}
 	for _, c := range zero.cmds {
-		if !strings.HasPrefix(c, "claude --max-budget-usd ") || strings.Contains(c, "--tools") {
+		if !strings.HasPrefix(c, "claude --disallowedTools WebSearch,WebFetch --max-budget-usd ") || strings.Contains(c, "--tools") {
 			t.Fatalf("arm 0 launched %q", c)
 		}
 	}

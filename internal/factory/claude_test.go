@@ -13,7 +13,7 @@ import (
 
 func TestClaudeCommandIsExactlyTheMinimalFlagSet(t *testing.T) {
 	got := ClaudeCommand(testConfig(), 0.75)
-	want := "claude --setting-sources '' --strict-mcp-config --disable-slash-commands --tools Read,Edit --exclude-dynamic-system-prompt-sections --max-budget-usd 0.7500"
+	want := "claude --setting-sources '' --strict-mcp-config --disable-slash-commands --tools Read,Edit --exclude-dynamic-system-prompt-sections --disallowedTools WebSearch,WebFetch --max-budget-usd 0.7500"
 	if got != want {
 		t.Fatalf("%q", got)
 	}

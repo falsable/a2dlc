@@ -91,7 +91,7 @@ Arm 1 is the factory as built. The two controls run under `cmd/factory` and are 
 PASS, the holdout on the integrated tree, no base test edited or deleted; waivers never count). The test config
 (`config.tests`, no differential engine) is the same in every arm.
 
-- Arm 0: `"arm": "control"` in the factory config. `A2DLC_LLM_CMD` is `claude --max-budget-usd N`, with no `--setting-sources`,
+- Arm 0: `"arm": "control"` in the factory config. `A2DLC_LLM_CMD` is `claude --disallowedTools WebSearch,WebFetch --max-budget-usd N` (the deny is on both arms, flag from `claude --help` of a2dlc-roles:0.11, claude 2.1.302), with no `--setting-sources`,
   `--strict-mcp-config`, `--disable-slash-commands`, `--tools` or `--exclude-dynamic-system-prompt-sections`; same model, same role
   container, same caps. `arm_test.go` runs both arms through one lane path and checks that only the command differs.
 - Reference integration: `factory integrate --integrator reference --config <factory-config.json> ...`, from

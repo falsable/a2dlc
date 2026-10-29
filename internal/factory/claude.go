@@ -21,12 +21,24 @@ const Role = contract.RoleBuilderPrimary
 // go before `-p`, so the adapter needs no knob for them and the CLI stays unmodified.
 const EnvLLMCmd = "A2DLC_LLM_CMD"
 
+// DisallowWebFlag and DisallowedWebTools are the web deny both arms pass (owner decision 2026-10-29, PREREG Q2, bead
+// a2dlc-3fu.14): the upstream demo is public on github.com and WebSearch runs on Anthropic's side, out of reach of the
+// egress proxy, so a run that could use them could be invalidated by the leak scan after it was paid. The flag is the
+// one `claude --help` documents in a2dlc-roles:0.11 (claude 2.1.302): "--disallowedTools, --disallowed-tools <tools...>
+// Comma or space-separated list of tool names to deny". The list is one comma-separated word, so the variadic flag ends
+// at the next flag, and roles/adapter.py still appends its own after it.
+const (
+	DisallowWebFlag    = "--disallowedTools"
+	DisallowedWebTools = "WebSearch,WebFetch"
+)
+
 // ClaudeCommand is the A2DLC_LLM_CMD of a launch: claude with minimal flags (no user settings, no MCP servers, no
 // skills, a bounded tool list, the per-machine sections of the system prompt moved out of the cached prefix) and the
 // spend the launch may still use as --max-budget-usd. claude has no --max-turns, so the turn cap is the core's.
 func ClaudeCommand(cfg contract.FactoryConfig, remainingUSD float64) string {
 	args := []string{"claude", "--setting-sources", "", "--strict-mcp-config", "--disable-slash-commands",
 		"--tools", strings.Join(cfg.Tools, ","), "--exclude-dynamic-system-prompt-sections",
+		DisallowWebFlag, DisallowedWebTools,
 		"--max-budget-usd", strconv.FormatFloat(remainingUSD, 'f', 4, 64)}
 	quoted := make([]string, len(args))
 	for i, a := range args {
