@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/factory-batch.schema.json",
+  "title": "Batch of issues for cmd/factory (batch.json)",
+  "description": "The issues one factory run works on. An issue is a ticket only if it carries the command that decides whether it is done: precheck marks one without it `skipped` and spends nothing, so an empty done_command is a valid document and an invalid ticket. Issue ids must be unique within the batch (checked by cmd/factory).",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "batch_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,63}$" },
+    "issues": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{0,39}$", "description": "Becomes part of the lane's slice id and branch." },
+          "title": { "type": "string", "minLength": 1 },
+          "body": { "type": "string", "description": "The issue text, passed to the builder as the goal." },
+          "done_command": { "type": "string", "description": "The command that decides the issue is done. Empty = not a ticket." }
+        },
+        "required": ["id", "title", "body", "done_command"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "batch_id", "issues"],
+  "additionalProperties": false
+}

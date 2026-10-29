@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/factory-config.schema.json",
+  "title": "Software factory configuration (factory.json, versioned; read by cmd/factory, not by a2dlc)",
+  "description": "How cmd/factory runs the lanes of a batch (ADR meta/0008): which role image and which claude flags a lane uses, how many lanes run at once, and the caps. Every cap is required: there is no default, so a run states what it may spend. Constraints that JSON Schema cannot compare are checked by cmd/factory before it starts: caps.lane_usd <= caps.run_kill_usd, caps.run_stop_new_usd <= caps.run_kill_usd, caps.run_kill_usd <= caps.total_usd, network provider requires egress_allow. The lane is `a2dlc run --mode lite` over a worktree with builder_primary as the only role; the factory writes that roles.json from this file, and the model is called only through unmodified `claude -p` with the flags below.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "roles_image": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/:@-]*$", "description": "Image with the claude CLI and roles/adapter.py (a2dlc-roles:<tag>). Same pattern as roles.schema.json." },
+    "argv": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Command inside the image, e.g. [\"python3\", \"/a2dlc/adapter.py\"]." },
+    "env_file": { "type": "string", "minLength": 1, "description": "Local path outside the repo with the credential, passed to docker with --env-file. The factory never reads it." },
+    "network": { "enum": ["none", "provider"], "description": "roles.schema.json network. A lane that calls claude needs provider." },
+    "egress_allow": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" }, "uniqueItems": true, "description": "Hostnames the egress proxy lets a provider lane reach." },
+    "model": { "type": "string", "minLength": 1, "description": "claude --model for every lane of the run (A2DLC_MODEL). A run never changes model midway." },
+    "tools": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$" }, "minItems": 1, "uniqueItems": true, "description": "The bounded tool list passed as claude --tools." },
+    "concurrency": { "type": "integer", "minimum": 1, "description": "Lanes in flight at once." },
+    "caps": {
+      "type": "object",
+      "properties": {
+        "lane_usd": { "type": "number", "exclusiveMinimum": 0, "description": "A lane launches no model call once it has spent this much; each call also gets the lane's remaining budget as claude --max-budget-usd." },
+        "lane_seconds": { "type": "integer", "minimum": 1, "description": "Wall time of a lane; the role container is killed when it runs out." },
+        "lane_turns": { "type": "integer", "minimum": 1, "description": "Model turns a lane may use over all its calls, from the turns each call reports. claude has no --max-turns, so the core checks it before each launch; one call can overshoot it." },
+        "run_stop_new_usd": { "type": "number", "exclusiveMinimum": 0, "description": "No new lane starts once the run has spent this much." },
+        "run_kill_usd": { "type": "number", "exclusiveMinimum": 0, "description": "Every lane in flight is killed once the run has spent this much." },
+        "total_usd": { "type": "number", "exclusiveMinimum": 0, "description": "Ceiling over all runs in the output directory: earlier reports' spend plus this run's. Reaching it kills the run." }
+      },
+      "required": ["lane_usd", "lane_seconds", "lane_turns", "run_stop_new_usd", "run_kill_usd", "total_usd"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["schema_version", "roles_image", "argv", "network", "model", "tools", "concurrency", "caps"],
+  "additionalProperties": false
+}
