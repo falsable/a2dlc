@@ -83,6 +83,136 @@ func (a App) initialConfig() contract.Config {
 	return c
 }
 
+// TestsHint is what install says when the repo has a test runner and its config has no tests section (a2dlc-6fj): without
+// the section a2dlc runs none of the repo's tests, so every change to code that no engine examines stays INCONCLUSIVE.
+// It never writes the section: Stub is a tests section to paste into the config and edit, and is empty for a runner
+// a2dlc has no stub for.
+type TestsHint struct {
+	Runner  string
+	Warning string
+	Stub    string
+}
+
+// TestsHint reports a hint when the config has no tests section and a runner is found by the files the repo already
+// has, the way initialConfig picks engines: by what exists, never by reading a language.
+func (a App) TestsHint() (TestsHint, bool) {
+	var cfg struct {
+		Tests json.RawMessage `json:"tests"`
+	}
+	if b, err := os.ReadFile(a.path(pathConfig)); err != nil || json.Unmarshal(b, &cfg) != nil || len(cfg.Tests) > 0 {
+		return TestsHint{}, false
+	}
+	runner, why, ok := a.detectRunner()
+	if !ok {
+		return TestsHint{}, false
+	}
+	h := TestsHint{Runner: runner, Stub: a.testsStub(runner)}
+	h.Warning = fmt.Sprintf("%s was found (%s) but %s has no tests section: a2dlc runs none of the repo's tests, so every change to "+
+		"code that no engine examines stays INCONCLUSIVE, and the tests written for it do not count; nothing was written.", runner, why, pathConfig)
+	if h.Stub != "" {
+		h.Warning += " Add this to " + pathConfig + " and edit the image and paths:"
+	} else {
+		h.Warning += " a2dlc has no stub for it: declare tests with an image, paths and a command that writes $A2DLC_JUNIT and $A2DLC_COVERAGE."
+	}
+	return h, true
+}
+
+// detectRunner finds the runner by the files at the repo root, in the order package.json then Python.
+func (a App) detectRunner() (runner, why string, ok bool) {
+	exists := func(rel string) bool { _, err := os.Stat(a.path(rel)); return err == nil }
+	read := func(rel string) string { b, _ := os.ReadFile(a.path(rel)); return string(b) }
+	if exists("package.json") {
+		var pkg struct {
+			Scripts         map[string]string `json:"scripts"`
+			Dependencies    map[string]string `json:"dependencies"`
+			DevDependencies map[string]string `json:"devDependencies"`
+		}
+		if json.Unmarshal([]byte(read("package.json")), &pkg) == nil {
+			script := pkg.Scripts["test"]
+			_, vitestDep := pkg.DevDependencies["vitest"]
+			_, vitestRuntimeDep := pkg.Dependencies["vitest"]
+			switch {
+			case strings.Contains(script, "vitest"):
+				return "vitest", `package.json "test" script`, true
+			case strings.Contains(script, "node --test"):
+				return "node --test", `package.json "test" script`, true
+			case vitestDep || vitestRuntimeDep:
+				return "vitest", "package.json dependency", true
+			case strings.TrimSpace(script) != "" && !strings.Contains(script, "no test specified"): // npm init's placeholder
+				return "npm test", `package.json "test" script`, true
+			}
+		}
+	}
+	switch {
+	case strings.Contains(read("pyproject.toml"), "[tool.pytest"):
+		return "pytest", "[tool.pytest] in pyproject.toml", true
+	case exists("pytest.ini"):
+		return "pytest", "pytest.ini", true
+	case strings.Contains(read("tox.ini"), "[pytest]") || strings.Contains(read("setup.cfg"), "[tool:pytest]"):
+		return "pytest", "pytest section in tox.ini or setup.cfg", true
+	case (exists("pyproject.toml") || exists("setup.py")) && pyTestFiles(a.path("tests")):
+		return "pytest", "test files under tests/", true
+	}
+	return "", "", false
+}
+
+// pyTestFiles says whether dir holds a pytest-named file (test_*.py or *_test.py) at any depth.
+func pyTestFiles(dir string) bool {
+	found := false
+	filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		name := d.Name()
+		if !d.IsDir() && strings.HasSuffix(name, ".py") && (strings.HasPrefix(name, "test_") || strings.HasSuffix(name, "_test.py")) {
+			found = true
+			return filepath.SkipAll
+		}
+		return nil
+	})
+	return found
+}
+
+// testsStub is a tests section for the runner, wired to JUnit and coverage through $A2DLC_JUNIT and $A2DLC_COVERAGE and
+// to the test files through $A2DLC_TESTS. The image is a placeholder: it is the repo's toolchain with its dependencies,
+// which only the repo knows. The vitest command is the one e2e/factory/c8_junit.sh ran against the real runner; the
+// node --test one uses the junit and lcov reporters of Node 22 and the pytest one the coverage.py command of
+// contracts/examples/valid/config__tests-py.json; neither was run here.
+func (a App) testsStub(runner string) string {
+	exists := func(rel string) bool { _, err := os.Stat(a.path(rel)); return err == nil }
+	var command string
+	paths := []string{"**/*.test.*"}
+	switch runner {
+	case "vitest":
+		command = `vitest run --reporter=junit --outputFile.junit="$A2DLC_JUNIT" --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcovonly --coverage.reportsDirectory=/tmp/cov --coverage.include="src/**" $A2DLC_TESTS; rc=$?; cp /tmp/cov/lcov.info "$A2DLC_COVERAGE" 2>/dev/null; exit $rc`
+	case "node --test":
+		command = `node --test --experimental-test-coverage --test-reporter=junit --test-reporter-destination="$A2DLC_JUNIT" --test-reporter=lcov --test-reporter-destination="$A2DLC_COVERAGE" $A2DLC_TESTS`
+	case "pytest":
+		command = `python -m coverage run -m pytest -q -p no:cacheprovider -o junit_family=xunit1 --junitxml="$A2DLC_JUNIT" $A2DLC_TESTS; python -m coverage xml -o "$A2DLC_COVERAGE"`
+		paths = []string{"tests/**"}
+	default:
+		return ""
+	}
+	for _, dir := range []string{"test", "tests"} {
+		if exists(dir) {
+			paths = []string{dir + "/**"}
+			break
+		}
+	}
+	tc := contract.TestsConfig{Image: "<image with the repo's toolchain and dependencies>", Paths: paths, Command: command}
+	if exists("src") { // the code whose changed lines a test must run when no engine examines them
+		tc.SourcePaths = []string{"src/**"}
+	}
+	var out strings.Builder
+	enc := json.NewEncoder(&out)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if enc.Encode(map[string]contract.TestsConfig{"tests": tc}) != nil {
+		return ""
+	}
+	return strings.TrimRight(out.String(), "\n")
+}
+
 func (a App) gitignore() (int, error) {
 	path := a.path(".gitignore")
 	b, _ := os.ReadFile(path)

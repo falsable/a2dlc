@@ -111,6 +111,8 @@ func run(args []string) int {
 			v.Verdict, len(v.Targets), len(v.Tests), len(v.OutOfScope), covered, without, len(v.PendingWaivers), len(v.EngineErrors))
 		if c := v.Coverage; c != nil && c.Status == contract.CoverageNotConfigured && c.Reason != "" {
 			fmt.Printf("note: no test ran: %s\n", c.Reason)
+		} else if n := app.NoTestsSectionNote(v); n != "" {
+			fmt.Printf("note: %s\n", n)
 		}
 		if noted > 0 {
 			fmt.Printf("note: %d changed lines were not examined and do not block (defensive exception handlers or declaration-only code): see coverage.files[].noted in .a2dlc/verdict.json\n", noted)
@@ -274,6 +276,12 @@ func run(args []string) int {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "a2dlc install:", err)
 			return 1
+		}
+		if hint, ok := a.TestsHint(); ok {
+			fmt.Fprintln(os.Stderr, "a2dlc install: warning:", hint.Warning)
+			if hint.Stub != "" {
+				fmt.Println(hint.Stub)
+			}
 		}
 		return 0
 	case "mcp":

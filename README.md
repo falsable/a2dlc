@@ -159,7 +159,7 @@ Stage-by-stage against classic SDLC and ADLC: [`docs/VS_SDLC_AND_ADLC.md`](docs/
 
 | Command | Purpose |
 |---|---|
-| `a2dlc install [--agent claude] [--agent gemini]` | Config, `pre-push` hook, agent lifecycle hooks |
+| `a2dlc install [--agent claude] [--agent gemini]` | Config, `pre-push` hook, agent lifecycle hooks; when it finds a test runner (vitest, `node --test`, pytest, or a `test` script) and the config has no `tests` section, it warns that changes to code no engine examines stay INCONCLUSIVE and prints a `tests` section to edit, without writing it |
 | `a2dlc check [--base <ref>] [--peer <ref>]` | Differential + test gates → `.a2dlc/verdict.json` |
 | `a2dlc verify [--commit HEAD]` | <50 ms: receipt is `PASS`, matches `tree_hash`, waivers signed |
 | `a2dlc approve <file>::<symbol> --key <key>` | Sign an intentional behavior change (`ssh-keygen -Y`) |

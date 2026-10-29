@@ -153,6 +153,18 @@ func (a App) noteUncovered(ctx context.Context, cfg contract.Config, cov *contra
 	}
 }
 
+// NoTestsSectionNote is the line check prints, after its summary, when the lines no engine examined stay unexamined
+// because the config has no tests section (a2dlc-6fj): the verdict says INCONCLUSIVE and, without it, nothing says why.
+// It is "" when tests are configured, when nothing was left unexamined or when the receipt already gave another reason
+// (a tests block the base lacks). It is a line of the CLI and not a field of the verdict: the receipt is unchanged.
+func NoTestsSectionNote(v contract.Verdict) string {
+	c := v.Coverage
+	if c == nil || c.Status != contract.CoverageNotConfigured || c.Reason != "" || !hasUncovered(c) {
+		return ""
+	}
+	return "no tests section configured: the changed lines no engine examined stay INCONCLUSIVE; `a2dlc install` prints a tests section for the repo's runner"
+}
+
 // hasUncovered says whether some changed line in scope was left unexamined.
 func hasUncovered(c *contract.Coverage) bool {
 	if c == nil {
