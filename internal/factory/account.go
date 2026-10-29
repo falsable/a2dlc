@@ -131,7 +131,7 @@ func (l capLauncher) Launch(ctx context.Context, r contract.Role, s run.LaunchSp
 	}
 	env := make(map[string]string, len(r.Env)+1)
 	maps.Copy(env, r.Env)
-	env[EnvLLMCmd] = ClaudeCommand(l.cfg, l.acct.remaining(l.lane))
+	env[EnvLLMCmd] = Command(l.cfg, l.acct.remaining(l.lane))
 	r.Env = env
 	res, err := l.inner.Launch(ctx, r, s)
 	if err == nil && l.guard != nil && s.WorkDir != "" {

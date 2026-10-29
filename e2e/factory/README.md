@@ -84,3 +84,20 @@ Docker Desktop):
 | (d) tamper | a copy of the holdout with one byte added to `h01.test.ts`: exit 1 with `holdout changed: tests/h01.test.ts differs from the manifest`, before any container or record |
 
 Main of the target repo did not move in any run, and the sealed holdout still matches its seal after being mounted 18 times.
+
+## Control arms (bead a2dlc-3fu.5)
+
+Arm 1 is the factory as built. The two controls run under `cmd/factory` and are scored by the same path (the lane's `a2dlc run`
+PASS, the holdout on the integrated tree, no base test edited or deleted; waivers never count). The test config
+(`config.tests`, no differential engine) is the same in every arm.
+
+- Arm 0: `"arm": "control"` in the factory config. `A2DLC_LLM_CMD` is `claude --max-budget-usd N`, with no `--setting-sources`,
+  `--strict-mcp-config`, `--disable-slash-commands`, `--tools` or `--exclude-dynamic-system-prompt-sections`; same model, same role
+  container, same caps. `arm_test.go` runs both arms through one lane path and checks that only the command differs.
+- Reference integration: `factory integrate --integrator reference --config <factory-config.json> ...`, from
+  `src/integrate.ts` of PromtEngineer/software-factory at f73ad8ab455410f0b0ace8e3e3d873b2b01c556d. Record:
+  `integration-reference.json`, branch `factory/<run>/integration-reference`, with `usage` for the conflict agent's calls.
+  The cost per accepted change of an arm with this integrator is `(lanes usd + integration usd) / accepted`.
+
+Only a fake `claude` has run so far. The paid comparison is bead a2dlc-3fu.7; the conflict agent has not been exercised against the
+real adapter prompt.

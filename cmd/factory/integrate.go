@@ -18,6 +18,8 @@ var holdoutRunner factory.HoldoutRunner = factory.DockerHoldout{}
 
 // integrate is the merge queue of a run: the accepted lanes of a report go onto an integration branch one at a time,
 // each judged by a2dlc check and by the sealed holdout on the integrated tree. It never writes the main branch.
+// With --integrator reference the same lanes go through the reference factory's integration stage instead, a control
+// whose record is integration-reference.json.
 func integrate(args []string, e env) int {
 	fs := flag.NewFlagSet("integrate", flag.ContinueOnError)
 	fs.SetOutput(e.err)
@@ -25,7 +27,10 @@ func integrate(args []string, e env) int {
 	holdoutPath := fs.String("holdout", "", "holdout spec (holdout.json); its dir is read relative to the spec's folder")
 	out := fs.String("out", filepath.Join(".a2dlc", "factory"), "where the run's folder is; the record goes to <out>/<run id>/integration.json")
 	mainRef := fs.String("main-ref", "", "branch the lanes would be merged into, only read to prove it did not move (default HEAD)")
-	if fs.Parse(args) != nil || *reportPath == "" || *holdoutPath == "" {
+	integrator := fs.String("integrator", "", "reference: the reference factory's integration stage as a control (needs --config); default: the merge queue")
+	cfgPath := fs.String("config", "", "factory config of the run, for the reference integrator's agent")
+	if fs.Parse(args) != nil || *reportPath == "" || *holdoutPath == "" || (*integrator != "" && *integrator != contract.IntegratorReference) ||
+		(*integrator == contract.IntegratorReference) != (*cfgPath != "") {
 		return 64
 	}
 	var rep contract.FactoryReport
@@ -53,9 +58,17 @@ func integrate(args []string, e env) int {
 	if !filepath.IsAbs(outDir) {
 		outDir = filepath.Join(repo.Dir, outDir)
 	}
-	rec, err := factory.Integrate(context.Background(), factory.IntegrateDeps{
-		Deps:    factory.Deps{Repo: repo, NewApp: e.newApp, Now: time.Now, Out: outDir},
-		Holdout: holdoutRunner, MainRef: *mainRef}, spec, rep)
+	deps := factory.IntegrateDeps{Deps: factory.Deps{Repo: repo, Launcher: e.launcher, NewApp: e.newApp, Now: time.Now, Out: outDir},
+		Holdout: holdoutRunner, MainRef: *mainRef}
+	var rec contract.FactoryIntegration
+	if *integrator == contract.IntegratorReference {
+		var cfg contract.FactoryConfig
+		if _, err = readStrict(*cfgPath, &cfg); err == nil {
+			rec, err = factory.IntegrateReference(context.Background(), deps, cfg, spec, rep)
+		}
+	} else {
+		rec, err = factory.Integrate(context.Background(), deps, spec, rep)
+	}
 	if err != nil {
 		fmt.Fprintln(e.err, "factory:", err)
 		return 1
@@ -68,6 +81,12 @@ func integrate(args []string, e env) int {
 		}
 	}
 	fmt.Fprintf(e.out, "integrated %d on %s at %s; main %s unchanged\n", rec.Integrated, rec.IntegrationBranch, rec.HeadSha, rec.MainShaAfter)
+	if rec.Usage != nil {
+		fmt.Fprintf(e.out, "the integration's own calls: %d, %.4f usd\n", rec.Usage.Calls, rec.Usage.USD)
+	}
+	if c := factory.CostPerAccepted(rep, rec); c != nil {
+		fmt.Fprintf(e.out, "cost per accepted change, lanes plus integration: %.4f usd\n", *c)
+	}
 	if pending > 0 {
 		return 3
 	}

@@ -1,6 +1,9 @@
 package contract
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Types of `factory integrate` (bead a2dlc-3fu.4): the sealed holdout's spec and the record of an integration. They
 // mirror factory-holdout and factory-integration of contracts/; the strict decoding test fails if they drift apart.
@@ -41,6 +44,12 @@ func (h FactoryHoldout) Validate() error {
 	return nil
 }
 
+// Integrators that write an integration record; the merge queue writes none of them (the field is absent).
+const (
+	IntegratorQueue     = "queue"
+	IntegratorReference = "reference"
+)
+
 // Outcomes of one lane in an integration.
 const (
 	IntegrationIntegrated    = "integrated"
@@ -66,14 +75,18 @@ type FactoryIntegrationLane struct {
 }
 
 type FactoryIntegration struct {
-	SchemaVersion     int                      `json:"schema_version"`
-	RunID             string                   `json:"run_id"`
-	BatchID           string                   `json:"batch_id"`
-	BaseSha           string                   `json:"base_sha"`
-	HoldoutSeal       string                   `json:"holdout_seal"`
-	MainRef           string                   `json:"main_ref"`
-	MainShaBefore     string                   `json:"main_sha_before"`
-	MainShaAfter      string                   `json:"main_sha_after"`
+	SchemaVersion int    `json:"schema_version"`
+	RunID         string `json:"run_id"`
+	BatchID       string `json:"batch_id"`
+	BaseSha       string `json:"base_sha"`
+	HoldoutSeal   string `json:"holdout_seal"`
+	MainRef       string `json:"main_ref"`
+	MainShaBefore string `json:"main_sha_before"`
+	MainShaAfter  string `json:"main_sha_after"`
+	// Integrator is empty for the merge queue and IntegratorReference for the reference integration stage, the only one
+	// that spends model tokens: Usage is then what its agent calls spent (always present, zero if it never ran).
+	Integrator        string                   `json:"integrator,omitempty"`
+	Usage             *Counters                `json:"usage,omitempty"`
 	IntegrationBranch string                   `json:"integration_branch"`
 	HeadSha           string                   `json:"head_sha"`
 	StartedAt         string                   `json:"started_at"`
@@ -87,6 +100,14 @@ type FactoryIntegration struct {
 func (r FactoryIntegration) Validate() error {
 	if r.MainShaBefore != r.MainShaAfter {
 		return fmt.Errorf("main moved from %s to %s: an integration never writes main", r.MainShaBefore, r.MainShaAfter)
+	}
+	switch {
+	case r.Integrator != "" && r.Integrator != IntegratorQueue && r.Integrator != IntegratorReference:
+		return fmt.Errorf("integrator %q", r.Integrator)
+	case (r.Integrator == IntegratorReference) != (r.Usage != nil):
+		return fmt.Errorf("integrator %q and usage %v: only the reference integration has model usage, and always", r.Integrator, r.Usage != nil)
+	case (r.Integrator == IntegratorReference) != strings.HasSuffix(r.IntegrationBranch, "-reference"):
+		return fmt.Errorf("integrator %q on branch %s", r.Integrator, r.IntegrationBranch)
 	}
 	n := 0
 	for _, l := range r.Lanes {

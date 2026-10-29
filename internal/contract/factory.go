@@ -19,6 +19,13 @@ type FactoryCaps struct {
 	TotalUSD      float64 `json:"total_usd"`
 }
 
+// Arms of the preregistered comparison: minimal is arm 1 (the factory's minimal claude flags, the default when the
+// config does not say), control is arm 0 (default claude -p in the same role container).
+const (
+	ArmMinimal = "minimal"
+	ArmControl = "control"
+)
+
 type FactoryConfig struct {
 	SchemaVersion int         `json:"schema_version"`
 	RolesImage    string      `json:"roles_image"`
@@ -28,6 +35,7 @@ type FactoryConfig struct {
 	EgressAllow   []string    `json:"egress_allow,omitempty"`
 	Model         string      `json:"model"`
 	Tools         []string    `json:"tools"`
+	Arm           string      `json:"arm,omitempty"`
 	Concurrency   int         `json:"concurrency"`
 	Caps          FactoryCaps `json:"caps"`
 }
@@ -51,6 +59,8 @@ func (c FactoryConfig) Validate() error {
 		return fmt.Errorf("roles_image, argv, model and tools are required")
 	case c.Network != "none" && c.Network != "provider":
 		return fmt.Errorf("network %q", c.Network)
+	case c.Arm != "" && c.Arm != ArmMinimal && c.Arm != ArmControl:
+		return fmt.Errorf("arm %q", c.Arm)
 	case k.LaneUSD > k.RunKillUSD:
 		return fmt.Errorf("caps.lane_usd %.4f is above caps.run_kill_usd %.4f", k.LaneUSD, k.RunKillUSD)
 	case k.RunStopNewUSD > k.RunKillUSD:

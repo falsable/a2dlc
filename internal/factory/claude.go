@@ -55,6 +55,6 @@ func LaneRoles(cfg contract.FactoryConfig) contract.Roles {
 	return contract.Roles{SchemaVersion: 1, Roles: map[string]contract.Role{Role: {
 		Family: "claude", Image: cfg.RolesImage, Argv: cfg.Argv, EnvFile: cfg.EnvFile, Network: cfg.Network,
 		EgressAllow: cfg.EgressAllow, TimeoutS: cfg.Caps.LaneSeconds, Retries: &retries,
-		Env: map[string]string{"A2DLC_LLM": "claude", "A2DLC_MODEL": cfg.Model, EnvLLMCmd: ClaudeCommand(cfg, cfg.Caps.LaneUSD)},
+		Env: map[string]string{"A2DLC_LLM": "claude", "A2DLC_MODEL": cfg.Model, EnvLLMCmd: Command(cfg, cfg.Caps.LaneUSD)},
 	}}}
 }

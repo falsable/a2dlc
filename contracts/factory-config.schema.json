@@ -13,6 +13,7 @@
     "egress_allow": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z0-9.-]+$" }, "uniqueItems": true, "description": "Hostnames the egress proxy lets a provider lane reach." },
     "model": { "type": "string", "minLength": 1, "description": "claude --model for every lane of the run (A2DLC_MODEL). A run never changes model midway." },
     "tools": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$" }, "minItems": 1, "uniqueItems": true, "description": "The bounded tool list passed as claude --tools." },
+    "arm": { "enum": ["minimal", "control"], "description": "Which arm of the preregistered comparison the run is. Absent means minimal (arm 1), the claude flags of `tools` above. control (arm 0) is default `claude -p` in the same role container: none of those flags, so `tools` is read but not passed; the only flag it keeps is --max-budget-usd, which enforces the lane cap every arm shares. The hash of this file is in the report, so the arm of a run cannot be changed afterwards." },
     "concurrency": { "type": "integer", "minimum": 1, "description": "Lanes in flight at once." },
     "caps": {
       "type": "object",

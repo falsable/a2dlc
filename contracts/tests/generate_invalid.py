@@ -425,6 +425,11 @@ cases = {
     "factory-integration__missing-main-sha-after.json": (read("factory-integration__two-lanes.json"), lambda x: x.pop("main_sha_after")),
     "factory-integration__branch-not-a-run-branch.json": (read("factory-integration__two-lanes.json"), lambda x: x.update(integration_branch="main")),
     "factory-integration__lane-extra-field.json": (read("factory-integration__two-lanes.json"), lambda x: x["lanes"][1].update(holdout_log="FAIL h02")),
+    # control arms (bead a2dlc-3fu.5): the arm is a closed set; the reference integration's usage is the shared counters
+    "factory-config__arm-unknown.json": (read("factory-config__arm-control.json"), lambda x: x.update(arm="maximal")),
+    "factory-integration__integrator-unknown.json": (read("factory-integration__reference.json"), lambda x: x.update(integrator="octopus")),
+    "factory-integration__usage-extra-field.json": (read("factory-integration__reference.json"), lambda x: x["usage"].update(dollars=1)),
+    "factory-integration__reference-branch-of-the-queue.json": (read("factory-integration__reference.json"), lambda x: x.update(integration_branch="factory/run-0a1b2c3d4e5f/integration-x")),
     "run-state__spent-cache-read-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_read_tokens=-1)),
     "run-state__spent-cache-creation-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_creation_tokens=-1)),
     "capture__branch-coverage-over-one.json": (read("capture__traces.json"), lambda x: x.update(branch_coverage=1.5)),
