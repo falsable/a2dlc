@@ -625,3 +625,25 @@ func TestProtectedPathSignedPasses(t *testing.T) {
 		t.Fatalf("the glob was dropped from the working tree: v=%+v err=%v", v, err)
 	}
 }
+
+// An untracked, not ignored nested git worktree (what a Claude Code session leaves in .claude/worktrees/) is not in any
+// commit: check followed by verify --commit HEAD on a clean HEAD must pass (a2dlc-3hd). An untracked regular file, which
+// would change the commit, still makes the verdict stale.
+func TestVerifyPassesWithAnUntrackedNestedWorktree(t *testing.T) {
+	a, _, dir := newRepo(t)
+	git(t, dir, "worktree", "add", "-q", "-b", "session", filepath.Join(dir, ".claude", "worktrees", "session"))
+	if _, err := a.Check(context.Background(), "HEAD"); err != nil {
+		t.Fatal(err)
+	}
+	if probs, err := a.Verify("HEAD"); err != nil || len(probs) != 0 {
+		t.Fatalf("a nested worktree made the verdict stale: %v %v", probs, err)
+	}
+	write(t, dir, "notes.txt", "not committed\n")
+	if _, err := a.Check(context.Background(), "HEAD"); err != nil {
+		t.Fatal(err)
+	}
+	probs, err := a.Verify("HEAD")
+	if err != nil || len(probs) != 1 || !strings.Contains(probs[0], "stale") || !strings.Contains(probs[0], "notes.txt") {
+		t.Fatalf("an untracked regular file must still make the verdict stale: %v %v", probs, err)
+	}
+}

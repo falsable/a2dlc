@@ -43,3 +43,65 @@ func TestChangedLines(t *testing.T) {
 		t.Fatalf("b.py: %v", got)
 	}
 }
+
+// A nested git worktree that nobody tracked (a Claude Code session's .claude/worktrees/<name>) is an embedded repository
+// to git: `add -A` would stage it as a gitlink the commit never has, so the tree of a clean HEAD would differ from the
+// tree of the working tree (a2dlc-3hd). It is not part of the tree, and neither is a nested clone.
+func TestWorktreeTreeIgnoresUntrackedNestedRepositories(t *testing.T) {
+	dir := t.TempDir()
+	git(t, dir, "init", "-q")
+	os.WriteFile(filepath.Join(dir, "a.py"), []byte("l1\n"), 0o644)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "base")
+	r, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := r.CommitTree("HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	git(t, dir, "worktree", "add", "-q", "-b", "nested", filepath.Join(dir, ".claude", "worktrees", "nested"))
+	clone := filepath.Join(dir, "vendor", "clone")
+	os.MkdirAll(filepath.Dir(clone), 0o755)
+	git(t, dir, "clone", "-q", dir, clone)
+	got, err := r.WorktreeTree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("an untracked nested repository changed the tree: %s, the commit's is %s", got, want)
+	}
+	// regular untracked files still count
+	os.WriteFile(filepath.Join(dir, "new.py"), []byte("x\n"), 0o644)
+	if got, _ = r.WorktreeTree(); got == want {
+		t.Fatal("an untracked regular file must change the tree")
+	}
+}
+
+// A repository that the commit does track as a gitlink (a submodule) stays in the tree, so a clean HEAD has the same tree
+// as its working tree.
+func TestWorktreeTreeKeepsTrackedGitlinks(t *testing.T) {
+	dir := t.TempDir()
+	git(t, dir, "init", "-q")
+	sub := filepath.Join(dir, "sub")
+	os.MkdirAll(sub, 0o755)
+	git(t, sub, "init", "-q")
+	os.WriteFile(filepath.Join(sub, "s.py"), []byte("s\n"), 0o644)
+	git(t, sub, "add", "-A")
+	git(t, sub, "commit", "-qm", "sub")
+	os.WriteFile(filepath.Join(dir, "a.py"), []byte("l1\n"), 0o644)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "base with a gitlink")
+	r, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := r.CommitTree("HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := r.WorktreeTree(); err != nil || got != want {
+		t.Fatalf("%v: tracked gitlink dropped from the tree: %s vs %s", err, got, want)
+	}
+}

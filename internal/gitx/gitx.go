@@ -90,7 +90,7 @@ func (r Repo) writeTree(env []string) (string, error) {
 }
 
 // WorktreeTree is the git tree of the working tree as it is (with the uncommitted and untracked files, without the
-// ignored ones), without the gate outputs. It does not touch the real index.
+// ignored ones), without the gate outputs and without the untracked nested repositories. It does not touch the real index.
 func (r Repo) WorktreeTree() (string, error) {
 	idx, cleanup, err := r.tempIndex(true)
 	if err != nil {
@@ -98,10 +98,47 @@ func (r Repo) WorktreeTree() (string, error) {
 	}
 	defer cleanup()
 	env := []string{"GIT_INDEX_FILE=" + idx}
+	tracked, err := r.gitlinks(env)
+	if err != nil {
+		return "", err
+	}
 	if _, err := r.git(env, "add", "-A"); err != nil {
 		return "", err
 	}
+	// A nested repository that nobody tracked (a session's .claude/worktrees/<name>, a clone) is staged by `add -A` as a
+	// gitlink that no commit can carry: verify, which hashes the commit, would call the verdict stale (a2dlc-3hd). A gitlink
+	// the index already had is a submodule: it stays.
+	added, err := r.gitlinks(env)
+	if err != nil {
+		return "", err
+	}
+	var untracked []string
+	for p := range added {
+		if !tracked[p] {
+			untracked = append(untracked, p)
+		}
+	}
+	if len(untracked) > 0 {
+		if _, err := r.git(env, append([]string{"rm", "--cached", "-f", "-q", "--"}, untracked...)...); err != nil {
+			return "", err
+		}
+	}
 	return r.writeTree(env)
+}
+
+// gitlinks are the paths the index holds as a gitlink (mode 160000: a submodule or a nested repository).
+func (r Repo) gitlinks(env []string) (map[string]bool, error) {
+	out, err := r.git(env, "ls-files", "-s", "-z")
+	if err != nil {
+		return nil, err
+	}
+	links := map[string]bool{}
+	for _, entry := range strings.Split(out, "\x00") {
+		if meta, path, ok := strings.Cut(entry, "\t"); ok && strings.HasPrefix(meta, "160000 ") {
+			links[path] = true
+		}
+	}
+	return links, nil
 }
 
 // CommitTree is the tree of a commit without the gate outputs: what verify compares with the receipt.
