@@ -520,10 +520,14 @@ def read_claude(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, 
     if isinstance(usd, (int, float)) and not isinstance(usd, bool) and usd >= 0:
         cost = {"usd": float(usd)}
         u = doc.get("usage") if isinstance(doc.get("usage"), dict) else {}
-        # input = what the CLI counts as input, including the cache; if it says nothing, the field is not written
+        # input_tokens = what the CLI counts as input, including the cache; if it says nothing, the field is not written.
+        # The cache counters travel apart (they are part of input_tokens), only when the CLI reported them.
         input_total = _num(u.get("input_tokens")) + _num(u.get("cache_creation_input_tokens")) + _num(u.get("cache_read_input_tokens"))
         if input_total:
             cost["input_tokens"] = input_total
+        for key in ("cache_read_input_tokens", "cache_creation_input_tokens"):
+            if key in u and _num(u[key]) == u[key] and not isinstance(u[key], bool):
+                cost[key] = u[key]
         if _num(u.get("output_tokens")):
             cost["output_tokens"] = _num(u.get("output_tokens"))
     model = None

@@ -16,7 +16,9 @@
       "type": "object",
       "properties": {
         "max_cost_usd": { "oneOf": [{ "type": "null" }, { "type": "number", "exclusiveMinimum": 0 }] },
-        "spent_tokens": { "type": "integer", "minimum": 0, "description": "Sum of the tokens the CLIs reported. Roles without a report do not add." },
+        "spent_tokens": { "type": "integer", "minimum": 0, "description": "Sum of the tokens the CLIs reported (input_tokens, cache included, plus output_tokens). Roles without a report do not add." },
+        "spent_cache_read_tokens": { "type": "integer", "minimum": 0, "description": "Sum of cache_read_input_tokens the CLIs reported. Already inside spent_tokens: it is a breakdown, not an addition." },
+        "spent_cache_creation_tokens": { "type": "integer", "minimum": 0, "description": "Sum of cache_creation_input_tokens the CLIs reported. Already inside spent_tokens: it is a breakdown, not an addition." },
         "spent_usd": { "type": "number", "minimum": 0, "description": "Sum of what the CLIs reported. Roles without a report do not add: unreported_roles lists them." },
         "unreported_roles": { "type": "integer", "minimum": 0 },
         "by_role": {

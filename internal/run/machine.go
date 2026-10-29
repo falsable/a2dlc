@@ -219,6 +219,7 @@ func open(a app.App, l Launcher, opts Options) (*Machine, error) {
 			return nil, fmt.Errorf("%s: %s; the ledger was deleted or truncated", filepath.Join(m.dir, "ledger.json"), missing)
 		}
 		m.state.Budget.SpentUSD, m.state.Budget.UnreportedRoles, m.state.Budget.SpentTokens = onDisk.SpentUSD, onDisk.UnreportedRoles, onDisk.SpentTokens
+		m.state.Budget.SpentCacheReadTokens, m.state.Budget.SpentCacheCreationTokens = onDisk.SpentCacheReadTokens, onDisk.SpentCacheCreationTokens
 		if len(onDisk.ByRole) > 0 {
 			m.state.Budget.ByRole = onDisk.ByRole
 		}

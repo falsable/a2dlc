@@ -73,11 +73,26 @@ type HashedFile struct {
 	SHA256 string `json:"sha256"`
 }
 
-// Cost is what the role's CLI reported; nil if it did not report.
+// Cost is what the role's CLI reported; nil if it did not report. InputTokens is the total prompt, cache included; the
+// two cache counters are the part of it that was read from or written to the prompt cache (run-defs.schema.json#/$defs/cost).
 type Cost struct {
-	USD          float64 `json:"usd"`
-	InputTokens  int     `json:"input_tokens,omitempty"`
-	OutputTokens int     `json:"output_tokens,omitempty"`
+	USD                      float64 `json:"usd"`
+	InputTokens              int     `json:"input_tokens,omitempty"`
+	CacheReadInputTokens     int     `json:"cache_read_input_tokens,omitempty"`
+	CacheCreationInputTokens int     `json:"cache_creation_input_tokens,omitempty"`
+	OutputTokens             int     `json:"output_tokens,omitempty"`
+}
+
+// Invalid says why a cost that decodes is still not a valid report, or "" if it is: a negative value, or cache counters
+// that add up to more than the input they are part of (JSON Schema cannot compare two fields).
+func (c Cost) Invalid() string {
+	switch {
+	case c.USD < 0 || c.InputTokens < 0 || c.OutputTokens < 0 || c.CacheReadInputTokens < 0 || c.CacheCreationInputTokens < 0:
+		return "negative cost"
+	case c.CacheReadInputTokens+c.CacheCreationInputTokens > c.InputTokens:
+		return "cache tokens exceed input_tokens"
+	}
+	return ""
 }
 
 type RoleRequest struct {
@@ -159,11 +174,14 @@ type RunState struct {
 
 type Budget struct {
 	// SpentTokens is the sum of the tokens the CLIs reported; roles without a report do not add.
-	SpentTokens     *int      `json:"spent_tokens,omitempty"`
-	MaxCostUSD      *float64  `json:"max_cost_usd"`
-	SpentUSD        float64   `json:"spent_usd"`
-	UnreportedRoles int       `json:"unreported_roles"`
-	ByRole          RoleSpend `json:"by_role,omitempty"`
+	SpentTokens *int `json:"spent_tokens,omitempty"`
+	// SpentCacheReadTokens and SpentCacheCreationTokens break SpentTokens down: they are part of it, not added to it.
+	SpentCacheReadTokens     *int      `json:"spent_cache_read_tokens,omitempty"`
+	SpentCacheCreationTokens *int      `json:"spent_cache_creation_tokens,omitempty"`
+	MaxCostUSD               *float64  `json:"max_cost_usd"`
+	SpentUSD                 float64   `json:"spent_usd"`
+	UnreportedRoles          int       `json:"unreported_roles"`
+	ByRole                   RoleSpend `json:"by_role,omitempty"`
 }
 
 // RoleSpend is budget.by_role: the USD spent per role. Its keys are the roles of run-defs.schema.json (propertyNames),

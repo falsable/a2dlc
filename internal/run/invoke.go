@@ -181,8 +181,10 @@ func invalidResponse(r contract.RoleResponse) string {
 	default:
 		return fmt.Sprintf("status %q is not ok|refused|error", r.Status)
 	}
-	if c := r.Cost; c != nil && (c.USD < 0 || c.InputTokens < 0 || c.OutputTokens < 0) {
-		return "negative cost"
+	if c := r.Cost; c != nil {
+		if why := c.Invalid(); why != "" {
+			return why
+		}
 	}
 	return ""
 }
@@ -210,17 +212,14 @@ func (m *Machine) account(e contract.LedgerEntry) {
 
 // sumSpend is the only place that writes SpentUSD, SpentTokens, ByRole and UnreportedRoles: account uses it at launch and
 // spendOfLedger when rebuilding, and both sums give the same result because they add in the same order. The tokens are
-// input plus output as the role's CLI reported them; a role that reported none adds nothing to SpentTokens.
+// input plus output as the role's CLI reported them; a role that reported none adds nothing to SpentTokens. The input
+// already includes the cache, so the cache counters are summed apart and never added to SpentTokens.
 func sumSpend(b *contract.Budget, e contract.LedgerEntry) {
 	if e.Cost != nil {
 		b.SpentUSD += e.Cost.USD
-		if t := e.Cost.InputTokens + e.Cost.OutputTokens; t > 0 {
-			if b.SpentTokens == nil {
-				zero := 0
-				b.SpentTokens = &zero
-			}
-			*b.SpentTokens += t
-		}
+		addTokens(&b.SpentTokens, e.Cost.InputTokens+e.Cost.OutputTokens)
+		addTokens(&b.SpentCacheReadTokens, e.Cost.CacheReadInputTokens)
+		addTokens(&b.SpentCacheCreationTokens, e.Cost.CacheCreationInputTokens)
 		if b.ByRole == nil {
 			b.ByRole = map[string]float64{}
 		}
@@ -228,6 +227,18 @@ func sumSpend(b *contract.Budget, e contract.LedgerEntry) {
 	} else {
 		b.UnreportedRoles++
 	}
+}
+
+// addTokens adds n to a counter that stays nil until some role reports tokens for it.
+func addTokens(sum **int, n int) {
+	if n <= 0 {
+		return
+	}
+	if *sum == nil {
+		zero := 0
+		*sum = &zero
+	}
+	**sum += n
 }
 
 // tokensOf is the budget's spent tokens, 0 when none was reported.

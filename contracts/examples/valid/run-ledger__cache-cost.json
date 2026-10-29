@@ -1,0 +1,79 @@
+{
+ "schema_version": 1,
+ "run_id": "run-3f9a1c2b7d4e",
+ "entries": [
+  {
+   "seq": 1,
+   "prev_hash": null,
+   "hash": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+   "at": "2026-10-17T18:02:15Z",
+   "stage": "4",
+   "role": "saboteur",
+   "attempt": 1,
+   "family": "gemini",
+   "image": "a2dlc-role-gemini:0.1",
+   "image_digest": "sha256:d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+   "argv_sha256": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+   "inputs": [
+    {
+     "path": "/in/request.json",
+     "sha256": "sha256:9c1185a5c5e9fc54612808977ee8f548b2258d31f9e3b7a8a1b1c2d3e4f50617"
+    },
+    {
+     "path": "/in/signatures.json",
+     "sha256": "sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    }
+   ],
+   "outputs": [
+    {
+     "path": "/out/response.json",
+     "sha256": "sha256:4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a"
+    },
+    {
+     "path": "/out/tests/sympy/core/tests/test_relational_saboteur.py",
+     "sha256": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+    }
+   ],
+   "network": "provider",
+   "env_keys": [
+    "GEMINI_API_KEY"
+   ],
+   "exit": 0,
+   "status": "ok",
+   "cost": {
+    "usd": 0.0412,
+    "input_tokens": 18422,
+    "cache_read_input_tokens": 12000,
+    "cache_creation_input_tokens": 5000,
+    "output_tokens": 1210
+   }
+  },
+  {
+   "seq": 2,
+   "prev_hash": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+   "hash": "sha256:e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683",
+   "at": "2026-10-17T18:06:02Z",
+   "stage": "4",
+   "role": "saboteur",
+   "attempt": 2,
+   "family": "gemini",
+   "image": "a2dlc-role-gemini:0.1",
+   "image_digest": null,
+   "argv_sha256": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+   "inputs": [
+    {
+     "path": "/in/request.json",
+     "sha256": "sha256:7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+    }
+   ],
+   "outputs": [],
+   "network": "provider",
+   "env_keys": [
+    "GEMINI_API_KEY"
+   ],
+   "exit": 124,
+   "status": "timeout",
+   "cost": null
+  }
+ ]
+}

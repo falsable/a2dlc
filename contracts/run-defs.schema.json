@@ -37,7 +37,9 @@
           "type": "object",
           "properties": {
             "usd": { "type": "number", "minimum": 0 },
-            "input_tokens": { "type": "integer", "minimum": 0 },
+            "input_tokens": { "type": "integer", "minimum": 0, "description": "Total prompt tokens, cache included. When the cache counters are present, input_tokens >= cache_read_input_tokens + cache_creation_input_tokens (JSON Schema cannot compare two fields: internal/run rejects a response that breaks it as invalid_response)." },
+            "cache_read_input_tokens": { "type": "integer", "minimum": 0, "description": "Part of input_tokens served from the prompt cache. Absent when the CLI did not report it." },
+            "cache_creation_input_tokens": { "type": "integer", "minimum": 0, "description": "Part of input_tokens written to the prompt cache. Absent when the CLI did not report it." },
             "output_tokens": { "type": "integer", "minimum": 0 }
           },
           "required": ["usd"],

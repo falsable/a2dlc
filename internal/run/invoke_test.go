@@ -75,6 +75,36 @@ func TestTokensAccumulateFromReportsOnly(t *testing.T) {
 	}
 }
 
+// input_tokens is the total, cache included: the cache counters are a breakdown of it, so they do not add to
+// spent_tokens (that would tighten max_tokens for nothing) and are summed apart. A report without them adds none, and the
+// rebuild from the ledger gives the same sums.
+func TestCacheCountersAreSummedApartAndNotDoubleCounted(t *testing.T) {
+	entries := []contract.LedgerEntry{
+		{Role: contract.RoleBuilderPrimary, Cost: &contract.Cost{USD: 0.5, InputTokens: 100, CacheReadInputTokens: 60, CacheCreationInputTokens: 30, OutputTokens: 5}},
+		{Role: contract.RoleSaboteur, Cost: &contract.Cost{USD: 0.25, InputTokens: 20, CacheReadInputTokens: 12, OutputTokens: 4}},
+		{Role: contract.RoleSaboteur, Cost: &contract.Cost{USD: 0.1, InputTokens: 7, OutputTokens: 1}},
+	}
+	var b contract.Budget
+	for _, e := range entries {
+		sumSpend(&b, e)
+	}
+	if got := tokensOf(b); got != 100+5+20+4+7+1 {
+		t.Fatalf("spent_tokens = %d, wanted input plus output only (cache is inside input)", got)
+	}
+	if b.SpentCacheReadTokens == nil || *b.SpentCacheReadTokens != 72 || b.SpentCacheCreationTokens == nil || *b.SpentCacheCreationTokens != 30 {
+		t.Fatalf("cache sums: read %v, write %v; wanted 72 and 30", b.SpentCacheReadTokens, b.SpentCacheCreationTokens)
+	}
+	var none contract.Budget
+	sumSpend(&none, contract.LedgerEntry{Role: contract.RoleSaboteur, Cost: &contract.Cost{USD: 1, InputTokens: 7, OutputTokens: 1}})
+	if none.SpentCacheReadTokens != nil || none.SpentCacheCreationTokens != nil {
+		t.Fatal("a report without cache counters sets the cache sums")
+	}
+	rebuilt := spendOfLedger(entries)
+	if tokensOf(rebuilt) != tokensOf(b) || *rebuilt.SpentCacheReadTokens != 72 || *rebuilt.SpentCacheCreationTokens != 30 {
+		t.Fatalf("rebuild %+v differs from the live sum %+v", rebuilt, b)
+	}
+}
+
 // A ledger that records fewer tokens than state.json was truncated, the same as one with less cost.
 func TestLedgerWithLessTokensIsReported(t *testing.T) {
 	twenty, ten := 20, 10

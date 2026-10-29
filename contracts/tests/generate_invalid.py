@@ -382,6 +382,13 @@ cases = {
     "delivery__parity-paths-empty.json": (read("delivery__cb06-refactor.json"), lambda x: x["parity"].update(paths=[])),
     "run-ledger__network-unknown.json": (read("run-ledger__bridge.json"), lambda x: x["entries"][1].update(network="host")),
     "run-state__spent-tokens-negative.json": (read("run-state__spent-tokens.json"), lambda x: x["budget"].update(spent_tokens=-1)),
+    # cost with the cache counters apart (bead a2dlc-po5): a negative or fractional count, and an unknown counter, are not a report
+    "role-response__cost-cache-read-negative.json": (read("role-response__builder-cache.json"), lambda x: x["cost"].update(cache_read_input_tokens=-1)),
+    "role-response__cost-cache-creation-fractional.json": (read("role-response__builder-cache.json"), lambda x: x["cost"].update(cache_creation_input_tokens=10.5)),
+    "role-response__cost-cache-counter-unknown.json": (read("role-response__builder-cache.json"), lambda x: x["cost"].update(cache_write_tokens=5)),
+    "run-ledger__cost-cache-read-negative.json": (read("run-ledger__cache-cost.json"), lambda x: x["entries"][0]["cost"].update(cache_read_input_tokens=-1)),
+    "run-state__spent-cache-read-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_read_tokens=-1)),
+    "run-state__spent-cache-creation-negative.json": (read("run-state__spent-cache.json"), lambda x: x["budget"].update(spent_cache_creation_tokens=-1)),
     "capture__branch-coverage-over-one.json": (read("capture__traces.json"), lambda x: x.update(branch_coverage=1.5)),
     "capture__trace-missing-branch-ids.json": (read("capture__traces.json"), lambda x: x["traces"][0].pop("branch_ids")),
     "baseline__digest-not-sha256.json": (read("baseline__run-real.json"), lambda x: x.update(image_digest="md5:abc")),

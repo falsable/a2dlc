@@ -422,8 +422,18 @@ func TestStage4DoesNotRewriteATestTheSaboteurAlreadyDelivered(t *testing.T) {
 // enum does not enter the ledger, and refused/error require a reason. Each response counts as invalid_response and adds nothing.
 func TestInvokeRejectsResponsesTheSchemaDoesNotAccept(t *testing.T) {
 	cases := map[string]func(r *contract.RoleResponse){
-		"negative cost":          func(r *contract.RoleResponse) { r.Cost = &contract.Cost{USD: -100} },
-		"negative tokens":        func(r *contract.RoleResponse) { r.Cost = &contract.Cost{USD: 1, InputTokens: -1} },
+		"negative cost":   func(r *contract.RoleResponse) { r.Cost = &contract.Cost{USD: -100} },
+		"negative tokens": func(r *contract.RoleResponse) { r.Cost = &contract.Cost{USD: 1, InputTokens: -1} },
+		"negative cache read": func(r *contract.RoleResponse) {
+			r.Cost = &contract.Cost{USD: 1, InputTokens: 10, CacheReadInputTokens: -1}
+		},
+		"negative cache write": func(r *contract.RoleResponse) {
+			r.Cost = &contract.Cost{USD: 1, InputTokens: 10, CacheCreationInputTokens: -1}
+		},
+		"cache above input": func(r *contract.RoleResponse) {
+			r.Cost = &contract.Cost{USD: 1, InputTokens: 10, CacheReadInputTokens: 6, CacheCreationInputTokens: 5}
+		},
+		"cache without input":    func(r *contract.RoleResponse) { r.Cost = &contract.Cost{USD: 1, CacheReadInputTokens: 5} },
 		"unknown status":         func(r *contract.RoleResponse) { r.Status = "banana" },
 		"empty status":           func(r *contract.RoleResponse) { r.Status = "" },
 		"refused without reason": func(r *contract.RoleResponse) { r.Status = contract.RoleRefused },
