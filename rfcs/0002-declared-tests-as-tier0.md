@@ -1,6 +1,6 @@
 # RFC 0002: Declared tests as the Tier 0 of files no engine covers
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** Aldemar Hernández, falsable (decision of 2026-10-29, bead a2dlc-eve)
 - **Amends:** RFC-0001 §5 Stage 3, and `contracts/engine-tier0-response.schema.json`
 - **Changes `schema_version`:** no
