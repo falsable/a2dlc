@@ -86,7 +86,7 @@ a2dlc check                      # exit 0 PASS · 1 FAIL · 2 INCONCLUSIVE
 
 Plus test gates: *no-op test* detection (passes on the base tree), coverage precondition on changed lines, dependency allowlist. Output is `.a2dlc/verdict.json`, hash-bound to the Git tree it judged.
 
-**2. Agent lifecycle hooks** — `PreToolUse` blocks edits to `protected_paths` and `git push --no-verify` *before* they run; the `Stop` / `AfterAgent` hook runs the gate at end of turn and feeds `args / old / new` back to the agent until it passes. `pre-push` runs `a2dlc verify` (<50 ms) so a stale or forged receipt never reaches the remote.
+**2. Agent lifecycle hooks** — `PreToolUse` blocks edits to `protected_paths` and `git push --no-verify` *before* they run; the `Stop` / `AfterAgent` hook runs the gate at end of turn and feeds `args / old / new` back to the agent until it passes. `pre-push` runs `a2dlc verify` (<50 ms) and blocks a push whose receipt is missing, stale (its `tree_hash` is not the commit's tree), not `PASS`, based on commits that were not pushed, or carrying a waiver without a valid signed approval. It does not check who wrote `verdict.json`: a hand-written `PASS` with the right `tree_hash` passes. Closing that gap takes `a2dlc check --require-signatures` in CI over the same commit, not the verifier ([RFC-0001 §6.4.9](docs/A2-DLC_v3.5_protocol.md#649-what-a-receipt-does-not-claim), [SECURITY.md](SECURITY.md)).
 
 **3. Intentional changes are signed, not argued** — the agent declares the change in `.a2dlc/waivers.json`; a human signs it with `a2dlc approve src/pricing.py::apply_discount --key ~/.ssh/id_ed25519`. Agents never hold the key. A behavior change the engines find in code your `.a2dlc/config.json` does not list under `critical_code` is only a note in the receipt, with its counterexample; on critical code it fails until signed ([docs/DIVERGENCE_NOTES.md](docs/DIVERGENCE_NOTES.md)).
 
@@ -232,7 +232,7 @@ A2-DLC needs only the `a2dlc` binary, Git and Docker, and works with your existi
 
 ## Contributing
 
-Bug reports with a frozen mutant are the most valuable thing you can send: see [`e2e/testdata/`](e2e/testdata) for the format. Engines for new languages implement the contract in [`contracts/`](contracts) — Rust and Java are the most requested. Open a Discussion if you want to add one.
+Bug reports with a frozen mutant are the most valuable thing you can send: see [`e2e/testdata/`](e2e/testdata) for the format. Engines for new languages implement the contract in [`contracts/`](contracts) — Rust and Java are the most requested. Open an issue if you want to add one.
 
 Project policies: [CONTRIBUTING](CONTRIBUTING.md) · [GOVERNANCE](GOVERNANCE.md) · [SECURITY](SECURITY.md) · [Compatibility](docs/COMPATIBILITY.md) · [Name and conformance](docs/NAME_AND_CONFORMANCE.md) · [Conformance kit](conformance/README.md) · [RFCs](rfcs/README.md)
 

@@ -4,7 +4,7 @@
 
 Use GitHub private vulnerability reporting: open the **Security** tab of [falsable/a2dlc](https://github.com/falsable/a2dlc/security) and choose **Report a vulnerability**. There is no security email address and none is published here.
 
-Private reporting is a repository setting. If the button is not shown, the setting is off and the channel does not exist yet. In that case open a public issue that says only "security report, private reporting is off" and put no details in it. The maintainer will answer there.
+Private reporting has been enabled on this repository since 2026-10-29. If the button is ever not shown, the setting has been switched off: open a public issue that says only "security report, private reporting is off" and put no details in it. The maintainer will answer there.
 
 There is one maintainer ([GOVERNANCE.md](GOVERNANCE.md)), so there is no response-time guarantee. Reports are handled in the order they arrive. A reporter who wants credit is named in the fix's release notes.
 
@@ -30,7 +30,7 @@ A `PASS` is a bounded search inside a recorded budget, not a proof (RFC-0001 §1
 
 **What it does not check.** Who wrote the file. The receipt carries no signature and no MAC, and `verify` does not recompute `targets`, `tests` or `coverage`. `.a2dlc/verdict.json` is excluded from the `tree_hash` (`internal/gitx/gitx.go:20`), and the tree hash of a commit can be computed by anyone with `git`. A hand-written receipt with the right `tree_hash`, a `PASS` and an ancestor base passes `verify`.
 
-**Status: not mitigated on the machine that runs the pre-push hook.** Any process that can write to the working directory can produce a receipt `verify` accepts. The protection is against stale receipts, receipts for another tree, unsigned waivers and an agent that does not try to forge. The README line "a stale or forged receipt never reaches the remote" (`README.md:89`) holds for a forged receipt with a wrong `tree_hash` or base, not for one with correct values.
+**Status: not mitigated on the machine that runs the pre-push hook.** Any process that can write to the working directory can produce a receipt `verify` accepts. The protection is against stale receipts, receipts for another tree, unsigned waivers and an agent that does not try to forge. The README states the same limit, and RFC-0001 §6.4.9 (`docs/A2-DLC_v3.5_protocol.md:662`) says what closes it: running the producer in CI with `--require-signatures` over the same commit.
 
 **Partial controls, none of which prevents the forgery:**
 

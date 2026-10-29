@@ -8,6 +8,8 @@ The consequence for an adopter: the project has a bus factor of one, and a revie
 
 The license is Apache-2.0. Anyone may fork, and the license does not depend on this governance staying as it is.
 
+The maintainer confirmed on 2026-10-29 the rules in this file, in [rfcs/README.md](rfcs/README.md) (14-day comment period), in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) (optional fields in `0.x` minor releases without a `schema_version` bump) and in [docs/NAME_AND_CONFORMANCE.md](docs/NAME_AND_CONFORMANCE.md) (forks that keep the verdict semantics may keep the name).
+
 ## What is governed
 
 - The protocol: [RFC-0001](rfcs/0001-a2dlc-protocol.md) and later RFCs under [`rfcs/`](rfcs).
