@@ -59,7 +59,7 @@ jobs:
         run: |
           python3 -m venv /tmp/v
           /tmp/v/bin/pip install --quiet jsonschema==4.23.0 referencing==0.35.1 rfc3339-validator==0.1.4
-          /tmp/v/bin/python conformance/run.py --binary dist/a2dlc --engine-image a2dlc-engine-fake:0.1 --strict --require-schema
+          /tmp/v/bin/python conformance/run.py --binary dist/a2dlc --engine-image a2dlc-engine-fake:0.1 --verify-arg=--strict --strict --require-schema
   verifier-python:
     # verifiers/python is written from the RFC alone: the kit is its acceptance test. Everything runs with the network off;
     # only the image build needs it. The script is its own entrypoint (shebang, mode 100755).

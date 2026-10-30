@@ -2,12 +2,12 @@
 """a2dlc conformance runner, v0.
 
   python conformance/run.py --binary <path to a verifier/producer> [--engine-image <image>] [--class verifier,producer,engine]
-                            [--id <prefix>] [--strict] [--reasons a2dlc|none] [--implementation <name>]
+                            [--id <prefix>] [--strict] [--reasons a2dlc|none] [--implementation <name>] [--verify-arg <arg>]
 
 Every vector under conformance/vectors/<class>/ declares its class. The runner builds each repository a vector describes,
 runs the entrypoint under test and compares its behavior with what the vector (and RFC-0001 v3.5 §6.4) says.
 
-  verifier  `<binary> verify --commit HEAD` in the repository. Exit status 0 means the receipt is valid for the commit.
+  verifier  `<binary> verify [--verify-arg ...] --commit HEAD` in the repository. Exit status 0 means the receipt is valid for the commit.
             Whether it is valid, and (with --reasons a2dlc) why not, is compared with the vector.
   producer  `<binary> check --base <sha>` and `<binary> approve <target> --key <key> --principal <p>` in the repository.
   engine    A Docker image, run the way the core runs an engine (--engine-image).
@@ -233,7 +233,7 @@ def t_verifier(ctx, group, v):
                     problems.append("jsonschema is not installed and --require-schema was given")
                 elif errs is not None and bool(errs) == shape_ok:
                     problems.append("the vector's receipt %s the schema: %s" % ("does not validate against" if shape_ok else "validates against", errs))
-        rc, out = run_bin(ctx, ["verify", "--commit", "HEAD"], d, allowed_env(ctx, d, v))
+        rc, out = run_bin(ctx, ["verify", *ctx.verify_arg, "--commit", "HEAD"], d, allowed_env(ctx, d, v))
         exp = v["expect"]
         if (rc == 0) != exp["valid"]:
             problems.append("expected the receipt to be %s, the entrypoint exited %d: %s" % ("valid" if exp["valid"] else "invalid", rc, out.strip()[:300]))
@@ -274,7 +274,7 @@ def t_producer_check(ctx, group, v):
         if "engine_errors" in want and len(doc.get("engine_errors", [])) != want["engine_errors"]:
             problems.append("engine_errors: expected %d, got %d" % (want["engine_errors"], len(doc.get("engine_errors", []))))
         if "verify" in v:
-            vrc, vout = run_bin(ctx, ["verify", "--commit", "HEAD"], d, allowed_env(ctx, d, v))
+            vrc, vout = run_bin(ctx, ["verify", *ctx.verify_arg, "--commit", "HEAD"], d, allowed_env(ctx, d, v))
             if (vrc == 0) != v["verify"]["valid"]:
                 problems.append("verify after check: expected %s, exit %d: %s" % ("valid" if v["verify"]["valid"] else "invalid", vrc, vout.strip()[:200]))
             elif not v["verify"]["valid"]:
@@ -415,6 +415,7 @@ def main(argv=None):
     ap.add_argument("--require-schema", action="store_true", help="a missing jsonschema is a failure")
     ap.add_argument("--implementation", default=REFERENCE, help="name of the implementation under test; a known_failure marker applies only to the one it names (default: %s, the reference binary)" % REFERENCE)
     ap.add_argument("--reasons", choices=["a2dlc", "none"], default="a2dlc", help="how to read the entrypoint's messages")
+    ap.add_argument("--verify-arg", action="append", default=[], help="extra argument for the entrypoint's verify call, repeatable; the reference binary needs --verify-arg=--strict because its default verify is the pre-push policy, which only warns about a missing or stale receipt")
     a = ap.parse_args(argv)
     ctx = a
     ctx.binary = os.path.abspath(a.binary) if a.binary else None

@@ -4,12 +4,12 @@ Test material for RFC-0001 v3.5 (`docs/A2-DLC_v3.5_protocol.md`), mainly §6.4, 
 passes the vectors of its class reads and writes the same receipts as the reference binary. The RFC and these files are enough
 to write a verifier without reading the Go code.
 
-    python conformance/run.py --binary <verifier or producer> [--engine-image <image>] [--strict] [--reasons a2dlc|none] [--implementation <name>]
+    python conformance/run.py --binary <verifier or producer> [--engine-image <image>] [--strict] [--reasons a2dlc|none] [--implementation <name>] [--verify-arg <arg>]
 
 The runner needs Python 3.9+, git and ssh-keygen. Docker is needed for the producer vectors that run an engine and for the
 engine class. `jsonschema` (with `referencing`) is optional: when present, every receipt, approvals file and engine message is
 also validated against `contracts/`; `--require-schema` makes its absence a failure. Exit status 0 means no vector failed.
-`--strict` also fails on a skipped vector; CI uses it.
+`--strict` also fails on a skipped vector; CI uses it. `--verify-arg` adds an argument to the entrypoint's `verify` call (repeatable). The reference binary needs `--verify-arg=--strict`: its plain `verify` is the pre-push policy, which blocks only on evidence and only warns about a missing or stale receipt, while `verify --strict` decides whether the receipt is valid for the commit, which is what the verifier vectors ask.
 
 ## Classes
 

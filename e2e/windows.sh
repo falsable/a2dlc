@@ -26,8 +26,10 @@ git add -A && git commit -qm base
 expect "install" 0 $?
 grep -q "a2dlc.exe\" verify --commit HEAD" "$(git rev-parse --git-path hooks)/pre-push"
 expect "pre-push with the binary's absolute path" 0 $?
-git add -A && git commit -qm install && git remote add origin "$T/remote" && git push -q -u origin HEAD 2>/dev/null
-expect "first push without a verdict is stopped by the pre-push" 1 $?
+git add -A && git commit -qm install && git remote add origin "$T/remote" && git push -q -u origin HEAD 2>"$T/push-first.txt"
+expect "first push without a verdict only warns when nothing is declared critical" 0 $?
+grep -q "no verdict for this tree" "$T/push-first.txt"
+expect "and says there is no verdict" 0 $?
 "$A2" check >/dev/null
 expect "check without changes = PASS" 0 $?
 save no-changes
@@ -60,8 +62,12 @@ expect "push with an unsigned waiver is stopped by the pre-push" 1 $?
 grep -q "unsigned" "$T/push.txt"
 expect "the pre-push says why" 0 $?
 "$A2" check --base HEAD >/dev/null
-git push -q 2>/dev/null
-expect "check against HEAD after committing does not launder the waiver" 1 $?
+"$A2" verify --strict --commit HEAD >/dev/null 2>&1
+expect "verify --strict: check against HEAD after committing does not launder the waiver" 1 $?
+git push -q 2>"$T/push-head.txt"
+expect "the default pre-push only warns about a verdict that does not cover the unpushed commits" 0 $?
+grep -q "does not cover the unpushed commits" "$T/push-head.txt"
+expect "and says the verdict does not cover them" 0 $?
 "$A2" check >/dev/null
 
 # Opposite case for the signature: key with a passphrase and no TTY, approve cannot sign.
