@@ -5,7 +5,7 @@ An RFC is a written proposal to change what the protocol requires or what a cont
 | RFC | Title | Status |
 |---|---|---|
 | [0001](0001-a2dlc-protocol.md) | A2-DLC protocol | Consolidated draft (v3.5); §6.4, the receipt, is normative |
-| [0002](0002-declared-tests-as-tier0.md) | Declared tests as the Tier 0 of files no engine covers | Draft |
+| [0002](0002-declared-tests-as-tier0.md) | Declared tests as the Tier 0 of files no engine covers | Accepted |
 
 ## What needs an RFC
 

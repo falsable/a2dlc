@@ -1,6 +1,6 @@
 # RFC 0002: Declared tests as the Tier 0 of files no engine covers
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** Aldemar Hernández, falsable (decision of 2026-10-29, bead a2dlc-eve)
 - **Amends:** RFC-0001 §5 Stage 3, and `contracts/engine-tier0-response.schema.json`
 - **Changes `schema_version`:** no
@@ -33,7 +33,7 @@ Implementation notes that are not normative: the review of a working tree that n
 
 ## Implementation ahead of acceptance
 
-The reference implementation carries this behavior before the RFC is accepted (commit `be5dccd`), because without it `a2dlc run` could not accept any builder candidate on a repo with no engine, which blocked the factory pilot. The text in `docs/A2-DLC_v3.5_protocol.md` is marked as proposed until the 14-day comment period of [README.md](README.md) ends and the maintainer accepts the RFC. If the RFC is rejected, that commit is reverted, together with the finding kind `test` and the protocol text.
+The reference implementation carries this behavior before the RFC is accepted (commit `7f77772`), because without it `a2dlc run` could not accept any builder candidate on a repo with no engine, which blocked the factory pilot. The text in `docs/A2-DLC_v3.5_protocol.md` is marked as proposed until the 14-day comment period of [README.md](README.md) ends and the maintainer accepts the RFC. If the RFC is rejected, that commit is reverted, together with the finding kind `test` and the protocol text.
 
 ## Compatibility
 
