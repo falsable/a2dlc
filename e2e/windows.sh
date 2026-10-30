@@ -19,6 +19,7 @@ cd "$T/repo" || exit 1
 git init -q && git config user.email e2e@a2dlc && git config user.name e2e
 mkdir -p src/lib .a2dlc
 printf 'export const f = 1\n' >src/lib/f.ts
+printf 'export const n = 1\n' >src/lib/n.ts
 printf 'hello\n' >README.md
 printf '{"schema_version":1,"engines":[{"language":"typescript","image":"a2dlc-engine-fake:0.1","paths":["src/lib/**"],"budget":{}}],"agent_hook":{"max_blocks":2}}\n' >.a2dlc/config.json
 git add -A && git commit -qm base
@@ -36,6 +37,23 @@ save no-changes
 git push -q -u origin HEAD 2>/dev/null
 expect "push with a PASS verdict" 0 $?
 
+# From here on src/lib/f.ts is critical code and src/lib/n.ts is not. critical_code is read from the base, so the change
+# that declares it goes upstream first.
+printf '{"schema_version":1,"engines":[{"language":"typescript","image":"a2dlc-engine-fake:0.1","paths":["src/lib/**"],"budget":{}}],"critical_code":["src/lib/f.ts::*"],"agent_hook":{"max_blocks":2}}\n' >.a2dlc/config.json
+git commit -qam "declare critical_code"
+"$A2" check >/dev/null
+expect "check of the config that declares critical_code = PASS" 0 $?
+git push -q 2>/dev/null
+expect "push of the config that declares critical_code" 0 $?
+
+printf 'export const n = 2\n' >src/lib/n.ts
+"$A2" check >"$T/note.txt"
+expect "a divergence in code that is not critical does not fail check" 0 $?
+grep -q "behavior divergence on src/lib/n.ts::f does not fail the verdict (not critical code)" "$T/note.txt"
+expect "and it is reported as a note" 0 $?
+save note
+git checkout -q -- src/lib/n.ts
+
 printf 'export const f = 2\n' >src/lib/f.ts
 printf 'bye\n' >README.md
 "$A2" check >/dev/null
@@ -43,10 +61,16 @@ expect "check with a change = FAIL" 1 $?
 save fail
 grep -q '"reason": "no_engine"' .a2dlc/verdict.json
 expect "README is out of scope with no_engine" 0 $?
-echo '{"session_id":"e2e"}' | "$A2" hook claude 2>"$T/hook.txt" >/dev/null
-expect "claude hook blocks" 2 $?
-grep -q "before export const f = 1" "$T/hook.txt"
-expect "the hook returns the counterexample" 0 $?
+# The end-of-turn hook is level 0: it informs through systemMessage and never blocks; the counterexample is in the
+# level 1 verdict that check just wrote.
+echo '{"session_id":"e2e"}' | "$A2" hook claude 2>"$T/hook.txt" >"$T/hook-out.txt"
+expect "claude hook never blocks" 0 $?
+grep -q '"systemMessage":"a2dlc level 0 (informs, does not block' "$T/hook-out.txt" && grep -q "1 changed lines need tests" "$T/hook-out.txt"
+expect "the hook informs the person through systemMessage" 0 $?
+grep -q '"verdict": "INCONCLUSIVE"' .a2dlc/reports/level0.json && ! grep -q counterexample .a2dlc/reports/level0.json
+expect "the level 0 report is INCONCLUSIVE and carries no counterexample" 0 $?
+grep -q "export const f = 1" .a2dlc/verdict.json
+expect "the level 1 verdict carries the counterexample" 0 $?
 
 printf '{"schema_version":1,"waivers":[{"target":"src/lib/f.ts::f","decision":"enforce_new_behavior","reason":"e2e"}]}\n' >.a2dlc/waivers.json
 "$A2" check >/dev/null
@@ -65,9 +89,11 @@ expect "the pre-push says why" 0 $?
 "$A2" verify --strict --commit HEAD >/dev/null 2>&1
 expect "verify --strict: check against HEAD after committing does not launder the waiver" 1 $?
 git push -q 2>"$T/push-head.txt"
-expect "the default pre-push only warns about a verdict that does not cover the unpushed commits" 0 $?
+expect "the default pre-push stops critical code that no verdict covers" 1 $?
 grep -q "does not cover the unpushed commits" "$T/push-head.txt"
 expect "and says the verdict does not cover them" 0 $?
+grep -q "changes critical or protected code" "$T/push-head.txt"
+expect "and says the range changes critical code" 0 $?
 "$A2" check >/dev/null
 
 # Opposite case for the signature: key with a passphrase and no TTY, approve cannot sign.
