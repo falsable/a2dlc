@@ -472,6 +472,9 @@ sub/.a2dlc/verdict.json
 | `coverage` | no | Which changed lines something examined. |
 | `tests` | no | Test cases the gates judged. |
 | `checks` | no | Pluggable checks (§5, Checks). |
+| `level` | no | `0` for the static receipt (`a2dlc check --level 0`, never a pass); absent means `1`. |
+| `static` | no | Level 0 only: what the diff shows without running anything of the repo. |
+| `timings` | no | Milliseconds the check spent per step, measured by the core. |
 
 Each entry of `targets` is an engine's result (`engine`, `engine_version`, `verdict`, `search_budget`, `generators`, `typed`, `domain_guard`, `equivalence`, `counterexample`, and `reason` when `INCONCLUSIVE`) plus `waived` and, rarely, `note` (§6.4.5). A `PASS` target with no recorded `search_budget` is not valid: "no difference found" is a bounded search (§10.8), and the receipt carries the bound.
 
