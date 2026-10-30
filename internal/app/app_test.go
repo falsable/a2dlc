@@ -335,6 +335,27 @@ func TestInstallWritesTheEngineImagesOfTheBuild(t *testing.T) {
 	}
 }
 
+// A dev build keeps the local tag of the Python engine built from this tree (the one with async judging, 0.10): a repo
+// installed with an older tag would not get it. Bump the tag here and in CLAUDE.md when engines/py is rebuilt.
+func TestInstallDevBuildWritesTheCurrentPythonEngineTag(t *testing.T) {
+	const current = "a2dlc-engine-py:0.10"
+	if enginePyImage != current {
+		t.Fatalf("enginePyImage = %q, want %q", enginePyImage, current)
+	}
+	a, _, dir := newRepo(t)
+	if err := os.Remove(filepath.Join(dir, ".a2dlc/config.json")); err != nil {
+		t.Fatal(err)
+	}
+	write(t, dir, "pyproject.toml", "[project]\nname = \"x\"\n")
+	if _, err := a.Install("/opt/a2dlc", nil); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, ".a2dlc/config.json"))
+	if !strings.Contains(string(b), `"image": "`+current+`"`) && !strings.Contains(string(b), `"image":"`+current+`"`) {
+		t.Fatalf("config does not name %s:\n%s", current, b)
+	}
+}
+
 // A src layout keeps the tests out of the engine's paths: the CrossHair engine cannot judge pytest functions (fixtures
 // are untyped, so INCONCLUSIVE; a changed fixed test is a FAIL by design), and they belong to config.tests.
 func TestInstallPythonEnginePathsFollowTheLayout(t *testing.T) {

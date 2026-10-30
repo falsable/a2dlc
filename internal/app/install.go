@@ -22,7 +22,7 @@ const (
 // ghcr.io name@digest built from the same commit as the binary: a local tag does not exist outside the machine
 // that built it, and the engine would fail with "pull access denied". Dev builds keep the local tags.
 var (
-	enginePyImage = "a2dlc-engine-py:0.6"
+	enginePyImage = "a2dlc-engine-py:0.10"
 	engineTSImage = "a2dlc-engine-ts:0.1"
 )
 
