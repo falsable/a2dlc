@@ -1,0 +1,29 @@
+{
+ "schema_version": 1,
+ "files": [
+  {
+   "file": "tests/test_orders.py",
+   "listable": true,
+   "tests": [
+    {
+     "name": "test_total"
+    },
+    {
+     "class": "TestOrder",
+     "name": "test_create"
+    },
+    {
+     "class": "TestOrder.TestLines",
+     "name": "test_add"
+    }
+   ]
+  },
+  {
+   "file": "tests/test_dynamic.py",
+   "listable": false,
+   "reason": "uses setattr: tests may be created dynamically",
+   "tests": []
+  }
+ ],
+ "error": null
+}
