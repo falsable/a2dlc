@@ -74,6 +74,36 @@ class ReadClaudeCost(unittest.TestCase):
         _, cost, _ = adapter.read_claude((golden / "claude_result.json").read_text(encoding="utf-8"), "", 0)
         self.assertEqual(cost, json.loads((golden / "claude_result.cost.json").read_text(encoding="utf-8")))
 
+    def test_stream_json_reads_the_last_result_event_and_gives_the_same_cost(self):
+        events = [{"type": "system", "subtype": "init"},
+                  {"type": "assistant", "message": {"content": [{"type": "text", "text": "x"}], "usage": {"input_tokens": 1}}},
+                  json.loads(claude_json())]
+        text, cost, _ = adapter.read_claude("\n".join(json.dumps(e) for e in events) + "\n", "", 0)
+        self.assertEqual(text, "done")
+        self.assertEqual(cost, adapter.read_claude(claude_json(), "", 0)[1])
+
+    def test_stream_without_a_result_event_is_an_error_that_points_at_the_kept_stream(self):
+        stream = json.dumps({"type": "system", "subtype": "init"}) + "\n" + json.dumps({"type": "assistant", "message": {}}) + "\n"
+        with self.assertRaises(adapter.Failure) as caught:
+            adapter.read_claude(stream, "boom", 1)
+        self.assertIn("without a result event", caught.exception.reason)
+        self.assertIn("stream.jsonl", caught.exception.reason)
+
+    def test_stream_cost_of_a_cut_call_is_the_result_event_if_there_is_one_and_nothing_otherwise(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "stream.jsonl"
+            path.write_text(json.dumps({"type": "system"}) + "\n" + '{"type": "assistant", "mess', encoding="utf-8")  # cut mid-line
+            self.assertIsNone(adapter.stream_cost(path))
+            self.assertIn("1 events, 0 assistant messages", adapter.stream_note(path))
+            path.write_text(path.read_text(encoding="utf-8") + "\n" + claude_json() + "\n", encoding="utf-8")
+            self.assertEqual(adapter.stream_cost(path)["usd"], 0.5)
+
+    def test_the_command_asks_for_stream_json_with_verbose(self):
+        cmd = adapter.cli_command("claude", True)
+        self.assertEqual(cmd[cmd.index("--output-format") + 1], "stream-json")
+        self.assertIn("--verbose", cmd)
+
     def test_no_cost_means_no_cost(self):
         doc = json.loads(claude_json())
         del doc["total_cost_usd"]

@@ -679,15 +679,17 @@ that `roles.json` can name a real image instead of a placeholder.
 **Build it.**
 
 ```sh
-docker build -t a2dlc-roles:0.12 roles
+docker build -t a2dlc-roles:0.13 roles
 ```
 
 `roles/Dockerfile` starts from `node:22-slim`, adds `python3`, and installs two CLIs from `roles/cli/package-lock.json`
 (`npm ci`: exact versions, transitive lock; `@anthropic-ai/claude-code` 2.1.302, `@google/gemini-cli` 0.64.0). The
 network is used only while building. Raising a version is an image change like any other: the ledger records the image
-digest of every launch. The egress proxy the launcher puts next to a `provider` role is a separate image,
+digest of every launch. The image sets `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` for every role, and the adapter runs `claude`
+with `--output-format stream-json --verbose` and keeps its event stream in `/out/stream.jsonl` (also when the call is cut
+at its cap). The egress proxy the launcher puts next to a `provider` role is a separate image,
 `a2dlc-egress-proxy:0.1`, built with `docker build -t a2dlc-egress-proxy:0.1 roles/egress-proxy` (the launcher names that
-tag, resolves it to its digest before each launch and records the digest in the ledger entry). The current tags are `a2dlc-roles:0.12` and
+tag, resolves it to its digest before each launch and records the digest in the ledger entry). The current tags are `a2dlc-roles:0.13` and
 `a2dlc-engine-py:0.7` (both built from this tree).
 
 **Write `.a2dlc/roles.json`.**

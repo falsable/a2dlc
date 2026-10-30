@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fake CLI to test roles/adapter.py without network or credentials (A2DLC_LLM_CMD="python3 /fake/fake_cli.py").
 
-It poses as `claude -p --output-format json` or as `gemini -p --output-format json` depending on its arguments
+It poses as `claude -p --output-format stream-json --verbose` or as `gemini -p --output-format json` depending on its arguments
 (claude carries --no-session-persistence; gemini, --skip-trust), reads the prompt from stdin and answers what the adapter
 expects. Before answering it checks what the adapter should have passed to it: if something does not add up, it exits
 with 2 and says so on stderr, and the integration test fails.
@@ -15,6 +15,8 @@ FAKE_SCENARIO chooses the answer:
   bad_path      a file with a path that escapes /out
   claude_error  claude reports is_error with a cost
   outside_tests propose_properties delivers its test under src/ (the adapter must refuse it)
+  sleep_cut     (claude) streams its first events, flushes them and sleeps far past A2DLC_TIMEOUT_S, so the adapter has to
+                cut it off; FAKE_SLEEP_COST=1 makes the stream already carry a result event with a cost before it sleeps
 """
 from __future__ import annotations
 
@@ -22,6 +24,7 @@ import json
 import os
 import re
 import sys
+import time
 
 
 def fail(msg: str) -> None:
@@ -31,6 +34,22 @@ def fail(msg: str) -> None:
 
 def follows(argv: list[str], flag: str) -> str | None:
     return argv[argv.index(flag) + 1] if flag in argv and argv.index(flag) + 1 < len(argv) else None
+
+
+def result_event(text: str) -> dict:
+    return {"type": "result", "subtype": "success", "is_error": False, "result": text, "session_id": "s",
+            "total_cost_usd": 0.0123, "num_turns": 2, "usage": {"input_tokens": 100, "cache_read_input_tokens": 10, "output_tokens": 50},
+            "modelUsage": {"claude-fake": {"costUSD": 0.0123}, "claude-haiku-fake": {"costUSD": 0.0001}}}
+
+
+def stream_start() -> None:
+    """The events stream-json prints before the result: init, one assistant message with a tool call, its tool result."""
+    for event in ({"type": "system", "subtype": "init", "session_id": "s", "model": "claude-fake"},
+                  {"type": "assistant", "message": {"role": "assistant", "content": [
+                      {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "npm test"}}],
+                      "usage": {"input_tokens": 90, "output_tokens": 10}}},
+                  {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "ok"}]}}):
+        print(json.dumps(event), flush=True)
 
 
 def main() -> int:
@@ -45,9 +64,14 @@ def main() -> int:
     scenario = os.environ.get("FAKE_SCENARIO", "ok")
 
     # what the adapter must have assembled
-    if "-p" not in argv or follows(argv, "--output-format") != "json":
-        fail("missing -p or --output-format json")
+    if "-p" not in argv or follows(argv, "--output-format") != ("stream-json" if claude else "json"):
+        fail("missing -p or --output-format (stream-json for claude, json for gemini)")
     if claude:
+        if "--verbose" not in argv:
+            fail("claude's stream-json needs --verbose")
+        # the image sets it for every role; the adapter passes its environment on to the CLI
+        if os.environ.get("CLAUDE_CODE_DISABLE_BACKGROUND_TASKS") != "1":
+            fail("CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 did not reach the CLI")
         if builder:
             if follows(argv, "--permission-mode") != "acceptEdits" or not (follows(argv, "--allowedTools") or "").startswith("Read"):
                 fail("the claude builder needs --permission-mode acceptEdits and --allowedTools")
@@ -99,19 +123,23 @@ def main() -> int:
             response["files"][0]["path"] = "../outside.py"
 
     text = json.dumps(response, ensure_ascii=False)
+    if claude and scenario == "sleep_cut":
+        stream_start()
+        if os.environ.get("FAKE_SLEEP_COST") == "1":
+            print(json.dumps(result_event(text)), flush=True)
+        time.sleep(3600)
     if scenario == "prose":
         text = "Here is my delivery:\n```json\n" + text + "\n```\nI hope it helps."
     elif scenario == "garbage":
         text = "I could not generate the JSON, sorry."
 
     if claude:
-        doc = {"type": "result", "subtype": "success", "is_error": False, "result": text, "session_id": "s",
-               "total_cost_usd": 0.0123, "num_turns": 2, "usage": {"input_tokens": 100, "cache_read_input_tokens": 10, "output_tokens": 50},
-               "modelUsage": {"claude-fake": {"costUSD": 0.0123}, "claude-haiku-fake": {"costUSD": 0.0001}}}
+        doc = result_event(text)
         if scenario == "claude_error":
             doc.update(subtype="error_max_turns", is_error=True, result="ran out of turns")
             del doc["result"]
-        print(json.dumps(doc))
+        stream_start()
+        print(json.dumps(doc), flush=True)
     else:
         print("Loaded cached credentials.", file=sys.stderr)
         print(json.dumps({"response": text, "stats": {"models": {"gemini-fake": {"tokens": {"prompt": 90, "candidates": 40}}}}}))

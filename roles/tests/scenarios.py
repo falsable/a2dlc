@@ -31,6 +31,8 @@ SCENARIOS = {
     "builder-claude-ok": ("builder_primary", "3", "claude", "ok", 0),
     "builder-gemini-ok": ("builder_primary", "3", "gemini", "ok", 0),
     "builder-no-files-changed": ("builder_primary", "3", "claude", "no_files_changed", 1),
+    # the CLI streams its first events and then sleeps past A2DLC_TIMEOUT_S: the adapter cuts it off and the stream stays
+    "builder-claude-cut": ("builder_primary", "3", "claude", "sleep_cut", 1),
     "role-no-prompt": ("specifier_alpha", "0", "claude", "ok", 1),
     # probe syntax: the fake CLI checks that the TypeScript override is in the prompt exactly when engine_language is
     # typescript, then answers refused (a valid answer that needs no contract payload)
@@ -78,7 +80,8 @@ def prepare(t: Path) -> None:
         (d / "in" / "request.json").write_text(json.dumps(request(role, stage, PAYLOADS.get(name)), indent=1) + "\n", encoding="utf-8")
         for a in ("signatures.json", "escalations.json"):
             shutil.copy(SAMPLE / a, d / "in" / a)
-        (d / "env").write_text(f"A2DLC_ROLE={role}\nA2DLC_STAGE={stage}\nA2DLC_LLM={llm}\nFAKE_SCENARIO={fake}\n", encoding="utf-8")
+        extra = "A2DLC_TIMEOUT_S=3\n" if fake == "sleep_cut" else ""
+        (d / "env").write_text(f"A2DLC_ROLE={role}\nA2DLC_STAGE={stage}\nA2DLC_LLM={llm}\nFAKE_SCENARIO={fake}\n{extra}", encoding="utf-8")
 
 
 def check(t: Path) -> int:
@@ -108,6 +111,9 @@ def check(t: Path) -> int:
             if r.get(k) != req[k]:
                 problems.append(f"{k} was not copied from the request")
         files_out = sorted(p.relative_to(d / "out").as_posix() for p in (d / "out").rglob("*") if p.is_file())
+        # claude's event stream is kept for every call that reached the CLI, and only for claude
+        has_stream = "stream.jsonl" in files_out
+        files_out = [f for f in files_out if f != "stream.jsonl"]
         expected_status = {0: "ok", 1: "error"}[exit_expected]
         if fake == "refused":
             expected_status = "refused"
@@ -120,6 +126,16 @@ def check(t: Path) -> int:
         # cost and model: what the CLI said, nothing made up
         # without a prompt, or with an unknown engine_language, the adapter fails before calling the CLI
         called_cli = name not in ("role-no-prompt", "specifier-rust-error")
+        if has_stream != (llm == "claude" and called_cli):
+            problems.append(f"stream.jsonl kept: {has_stream} (claude calls keep it; gemini and calls that never reached the CLI do not)")
+        if has_stream:
+            events = [json.loads(x) for x in (d / "out" / "stream.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
+            kinds = [e.get("type") for e in events]
+            want = [] if fake == "cli_fails" else ["system", "assistant", "user"] + ([] if fake == "sleep_cut" else ["result"])  # cli_fails prints no event
+            if kinds != want:
+                problems.append(f"stream events {kinds}, expected {want}")
+        if fake == "sleep_cut" and (r["status"] != "error" or "exceeded the cap" not in r.get("reason", "") or "3 events" not in r.get("reason", "")):
+            problems.append(f"cut-off reason {r.get('reason')}")
         if llm == "claude" and called_cli and fake in ("ok", "refused", "prose", "claude_error"):
             if r["cost"] != {"usd": 0.0123, "input_tokens": 110, "cache_read_input_tokens": 10, "output_tokens": 50, "turns": 2}:
                 problems.append(f"cost {r['cost']}")

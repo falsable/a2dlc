@@ -3,7 +3,8 @@
 
 The core launches this script inside the role's container (image a2dlc-roles) with:
   /in          read-only: request.json (role-request) and the artifacts the policy lets this role see
-  /out         empty and writable: response.json (role-response) and the files the role delivers go here
+  /out         empty and writable: response.json (role-response) and the files the role delivers go here, and with claude
+               stream.jsonl, the CLI's event stream (also when the call is cut off at the cap)
   /work        only for builders: writable copy of the tree (cwd)
   A2DLC_REQUEST, A2DLC_RESPONSE, A2DLC_ROLE, A2DLC_STAGE   set by the core
   A2DLC_TIMEOUT_S   role cap in seconds (roles.<role>.timeout_s): the CLI is cut a little earlier, with an error
@@ -265,7 +266,10 @@ def cli_command(llm: str, builder: bool) -> list[str]:
     override = os.environ.get("A2DLC_LLM_CMD", "").strip()
     if llm == "claude":
         # -p reads the prompt from stdin (an argument cannot exceed 128 KB on Linux); --no-session-persistence: nothing on disk.
-        cmd = [*(shlex.split(override) if override else ["claude"]), "-p", "--output-format", "json", "--no-session-persistence"]
+        # stream-json (it needs --verbose) writes one event per line as the call goes: a call that is cut off still leaves
+        # its turns and tool calls, and the final "result" event carries the same cost fields as --output-format json.
+        cmd = [*(shlex.split(override) if override else ["claude"]), "-p", "--output-format", "stream-json", "--verbose",
+               "--no-session-persistence"]
         if model:
             cmd += ["--model", model]
         if builder:
@@ -494,45 +498,129 @@ def cli_cap() -> float | None:
     return max(1.0, total - min(30.0, total * 0.1)) if total > 0 else None
 
 
-def call_cli(cmd: list[str], prompt: str, cwd: str) -> tuple[str, str, int]:
+STREAM_FILE = "stream.jsonl"
+
+
+def call_cli(cmd: list[str], prompt: str, cwd: str, stream: Path | None = None) -> tuple[str, str, int]:
+    """Runs the CLI under the cap. With stream, its stdout goes straight to that file as the CLI writes it (the file is
+    the CLI's own event stream, untouched), so a call that is cut off, or a container that is killed, leaves what was
+    streamed so far."""
     limit = cli_cap()
+    out = stream.open("wb") if stream else None
     try:
-        r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", cwd=cwd, env=os.environ.copy(), timeout=limit)
+        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=out or subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                encoding="utf-8", cwd=cwd, env=os.environ.copy(), start_new_session=hasattr(os, "killpg"))
+        try:
+            stdout, stderr = proc.communicate(input=prompt, timeout=limit)
+        except subprocess.TimeoutExpired:
+            # the CLI's children (a test run, an install) die with it; the stream stays on disk
+            try:
+                os.killpg(proc.pid, 9) if hasattr(os, "killpg") else proc.kill()
+            except OSError:
+                pass
+            try:
+                proc.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+            cost = stream_cost(stream) if stream else None
+            raise Failure(f"the CLI {cmd[0]!r} exceeded the cap of {limit:g} s and was cut off" + stream_note(stream), cost)
     except FileNotFoundError:
         raise Failure(f"cannot find the CLI {cmd[0]!r} in the image")
-    except subprocess.TimeoutExpired:
-        # the CLI prints its cost when it finishes: cut off, there is nothing to report
-        raise Failure(f"the CLI {cmd[0]!r} exceeded the cap of {limit:g} s and was cut off")
-    return r.stdout, r.stderr, r.returncode
+    finally:
+        if out:
+            out.close()
+    if stream:
+        stdout = stream.read_text(encoding="utf-8", errors="replace")
+    return stdout, stderr, proc.returncode
+
+
+def stream_events(text: str) -> list[dict]:
+    """The JSON objects of a stream-json text, one per line; a line cut in half by the kill is skipped."""
+    events = []
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("{"):
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(obj, dict):
+                events.append(obj)
+    return events
+
+
+def stream_cost(stream: Path) -> dict | None:
+    """The cost a cut-off call reported: the "result" event, if the CLI got as far as printing it. Otherwise nothing: the
+    per-message usage of a partial stream has tokens but no USD, and the contract's cost is USD."""
+    try:
+        events = stream_events(stream.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return None
+    results = [e for e in events if e.get("type") == "result"]
+    return claude_cost(results[-1]) if results else None
+
+
+def stream_note(stream: Path | None) -> str:
+    """What the kept stream holds, for the reason of a call that was cut off: counts only, never the model's text."""
+    if not stream:
+        return ""
+    try:
+        events = stream_events(stream.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return ""
+    turns = [e for e in events if e.get("type") == "assistant"]
+    tools = sum(1 for e in turns for b in (e.get("message") or {}).get("content", []) if isinstance(b, dict) and b.get("type") == "tool_use")
+    return f" (partial stream kept in /out/{STREAM_FILE}: {len(events)} events, {len(turns)} assistant messages, {tools} tool calls)"
 
 
 def _num(x) -> int:
     return x if isinstance(x, int) and not isinstance(x, bool) and x >= 0 else 0
 
 
-def read_claude(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, str | None]:
-    """claude -p --output-format json: {type: result, subtype, is_error, result, total_cost_usd, usage, modelUsage}."""
-    doc = first_object(stdout)
-    if doc is None:
-        raise Failure(f"claude exited with {code} and its output is not JSON: {clean(stderr or stdout)}")
-    cost = None
+def claude_cost(doc: dict) -> dict | None:
+    """The role's cost from claude's result object (the --output-format json document, or the final "result" event of
+    stream-json, which has the same fields). None if it carries no valid total_cost_usd."""
     usd = doc.get("total_cost_usd")
-    if isinstance(usd, (int, float)) and not isinstance(usd, bool) and usd >= 0:
-        cost = {"usd": float(usd)}
-        u = doc.get("usage") if isinstance(doc.get("usage"), dict) else {}
-        # input_tokens = what the CLI counts as input, including the cache; if it says nothing, the field is not written.
-        # The cache counters travel apart (they are part of input_tokens), only when the CLI reported them.
-        input_total = _num(u.get("input_tokens")) + _num(u.get("cache_creation_input_tokens")) + _num(u.get("cache_read_input_tokens"))
-        if input_total:
-            cost["input_tokens"] = input_total
-        for key in ("cache_read_input_tokens", "cache_creation_input_tokens"):
-            if key in u and _num(u[key]) == u[key] and not isinstance(u[key], bool):
-                cost[key] = u[key]
-        # model turns of the call: num_turns is in the same JSON, so no stream-json is needed
-        if _num(doc.get("num_turns")) > 0 and not isinstance(doc.get("num_turns"), bool):
-            cost["turns"] = doc["num_turns"]
-        if _num(u.get("output_tokens")):
-            cost["output_tokens"] = _num(u.get("output_tokens"))
+    if not (isinstance(usd, (int, float)) and not isinstance(usd, bool) and usd >= 0):
+        return None
+    cost = {"usd": float(usd)}
+    u = doc.get("usage") if isinstance(doc.get("usage"), dict) else {}
+    # input_tokens = what the CLI counts as input, including the cache; if it says nothing, the field is not written.
+    # The cache counters travel apart (they are part of input_tokens), only when the CLI reported them.
+    input_total = _num(u.get("input_tokens")) + _num(u.get("cache_creation_input_tokens")) + _num(u.get("cache_read_input_tokens"))
+    if input_total:
+        cost["input_tokens"] = input_total
+    for key in ("cache_read_input_tokens", "cache_creation_input_tokens"):
+        if key in u and _num(u[key]) == u[key] and not isinstance(u[key], bool):
+            cost[key] = u[key]
+    # model turns of the call: num_turns is in the same result object
+    if _num(doc.get("num_turns")) > 0 and not isinstance(doc.get("num_turns"), bool):
+        cost["turns"] = doc["num_turns"]
+    if _num(u.get("output_tokens")):
+        cost["output_tokens"] = _num(u.get("output_tokens"))
+    return cost
+
+
+def claude_result(stdout: str) -> dict | None:
+    """The result object of a claude -p call: the last "result" event of a stream-json output, else the single document of
+    --output-format json. A stream with events but no result (the CLI died or was cut off) has none."""
+    events = stream_events(stdout)
+    results = [e for e in events if e.get("type") == "result"]
+    if results:
+        return results[-1]
+    if any(e.get("type") in ("system", "assistant", "user", "stream_event") for e in events):
+        return None
+    return first_object(stdout)
+
+
+def read_claude(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, str | None]:
+    """claude -p --output-format stream-json (or json): {type: result, subtype, is_error, result, total_cost_usd, usage, modelUsage}."""
+    doc = claude_result(stdout)
+    if doc is None:
+        if stream_events(stdout):
+            raise Failure(f"claude exited with {code} without a result event; the stream is kept in /out/{STREAM_FILE}: {clean(stderr)}")
+        raise Failure(f"claude exited with {code} and its output is not JSON: {clean(stderr or stdout)}")
+    cost = claude_cost(doc)
     model = None
     mu = doc.get("modelUsage")
     if isinstance(mu, dict) and mu:
@@ -723,12 +811,14 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
     elif llm == "entropos":
         text, cost, model = call_entropos(prompt)
     else:
+        # claude's event stream stays in /out for every call, cut off or not; gemini has none
+        stream = out_dir / STREAM_FILE if llm == "claude" else None
         if builder and work.is_dir():
-            stdout, stderr, code = call_cli(cmd, prompt, str(work))
+            stdout, stderr, code = call_cli(cmd, prompt, str(work), stream)
         else:
             # the other roles touch nothing: ephemeral cwd, so /out only carries what the role delivers
             with tempfile.TemporaryDirectory() as tmp:
-                stdout, stderr, code = call_cli(cmd, prompt, tmp)
+                stdout, stderr, code = call_cli(cmd, prompt, tmp, stream)
         text, cost, model = (read_claude if llm == "claude" else read_gemini)(stdout, stderr, code)
     try:
         status, reason, files, payload = validate_model(model_object(text), builder, without_tools)
