@@ -3,8 +3,8 @@
 
 Its bin/claude is not in git (the repo's .gitignore has `bin/`): e2e/stage3_tests_tier0.sh copies this file there.
 The issue's body carries a marker [patch:<name>]; the builder prompt includes it, and this copies
-/fake/patches/<name>/ over the working directory (/work), then answers in the shape `claude -p --output-format json`
-does, with a cost, so the ledger has a cost to count. Flags are accepted and ignored.
+/fake/patches/<name>/ over the working directory (/work), then answers in the shape `claude -p --output-format stream-json
+--verbose` does (an init event, one assistant message, the result event), with a cost, so the ledger has a cost to count. Flags are accepted and ignored.
 A second marker [on-coverage-finding:<name>] names the patch to apply instead once the request carries a Tier 0 finding of
 kind coverage (a changed line no test executed): the builder's second round, after the first left such a line.
 """
@@ -35,6 +35,8 @@ if changed:
                 "payload": {"summary": "Applied the canned patch " + patch, "files_changed": sorted(changed)}}
 else:
     response = {"status": "refused", "reason": "no canned patch for this issue", "files": [], "payload": {}}
+print(json.dumps({"type": "system", "subtype": "init", "session_id": "fake", "model": "claude-fake"}), flush=True)
+print(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "applied"}]}}), flush=True)
 print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": json.dumps(response), "session_id": "fake",
                   "total_cost_usd": 0.02, "num_turns": 3,
                   "usage": {"input_tokens": 400, "cache_creation_input_tokens": 300, "cache_read_input_tokens": 800, "output_tokens": 90}}))

@@ -13,7 +13,7 @@
 # <folder>/out/verdicts/.
 # The target is a git checkout of tinylinks with a tests-only config (no engine, config.tests with a coverage command). Needs
 # dist/a2dlc.exe (A2DLC_BIN overrides it; build: GOOS=windows go build -o dist/a2dlc.exe ./cmd/a2dlc) and the local images
-# a2dlc-factory-roles-node:0.2 (a2dlc-roles:0.12 plus the target's node_modules) and a2dlc-factory-node-cov:0.1 (the test
+# a2dlc-factory-roles-node:0.3 (a2dlc-roles:0.13 plus the target's node_modules) and a2dlc-factory-node-cov:0.1 (the test
 # image); both are built from Dockerfiles of the separate factory project, which owns the tinylinks target. One run at a time.
 R=$(cd "$(dirname "$0")/.." && pwd)
 A2="${A2DLC_BIN:-$R/dist/a2dlc.exe}"
@@ -58,12 +58,12 @@ cp "$F/patches/stats-404/test/stats-not-found.test.ts" "$F/patches/stats-404-dea
 # the reference fix plus an exported function no test calls: its body is a changed line the whole suite never executes
 { cat "$F/patches/stats-404/src/server.ts"; printf '\nexport function unusedHelper(n: number): number {\n  return n + 1;\n}\n'; } >"$F/patches/stats-404-dead/src/server.ts"
 cat >"$F/Dockerfile" <<'EOF'
-FROM a2dlc-factory-roles-node:0.2
+FROM a2dlc-factory-roles-node:0.3
 COPY --chmod=755 bin/claude /fake/bin/claude
 COPY patches /fake/patches
 ENV PATH=/fake/bin:$PATH
 EOF
-MSYS_NO_PATHCONV=1 docker build -q -t a2dlc-roles-node-fake:0.2 "$(cygpath -w "$F")" >/dev/null || exit 1
+MSYS_NO_PATHCONV=1 docker build -q -t a2dlc-roles-node-fake:0.3 "$(cygpath -w "$F")" >/dev/null || exit 1
 
 # 3. the runs, one issue at a time, each in its own worktree on its own branch
 NOHOOKS=$(mktemp -d)
@@ -81,10 +81,12 @@ lane() { # <issue id> <title> <body> <done command>
 	echo "$id: a2dlc run exit $?"
 	# the worktree stays until the end; what the checks read is copied out of it
 	cp "$wt/.a2dlc/run/$slice/state.json" "$T/out/lanes/$id.state.json" 2>/dev/null
+	cp "$wt/.a2dlc/run/$slice/ledger.json" "$T/out/lanes/$id.ledger.json" 2>/dev/null
 	cp "$wt/.a2dlc/verdict.json" "$T/out/verdicts/$id.json" 2>/dev/null
 	mkdir -p "$T/out/launches/$id"
 	for d in "$wt"/.a2dlc/run/"$slice"/launches/*/; do
 		[ -f "${d}out/response.json" ] && cp "${d}out/response.json" "$T/out/launches/$id/$(basename "$d").json"
+		[ -f "${d}out/stream.jsonl" ] && cp "${d}out/stream.jsonl" "$T/out/launches/$id/$(basename "$d").stream.jsonl"
 	done
 	return 0
 }

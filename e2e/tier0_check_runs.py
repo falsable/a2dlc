@@ -56,5 +56,17 @@ for issue in ("issue-3", "issue-31"):
     unexamined = [f["file"] for f in (v.get("coverage") or {}).get("files", []) if f.get("uncovered")]
     if v.get("verdict") != "PASS" or unexamined:
         bad.append("verdict of %s: %s, uncovered in %s" % (issue, v.get("verdict"), unexamined))
+# every builder launch kept its event stream next to response.json, and the run's ledger hashed it under outputs
+for issue in ("issue-3", "issue-31"):
+    ledger = os.path.join(out, "lanes", issue + ".ledger.json")
+    entries = json.load(open(ledger, encoding="utf-8")).get("entries", []) if os.path.isfile(ledger) else []
+    streams = sorted(glob.glob(os.path.join(out, "launches", issue, "*builder_primary*.stream.jsonl")))
+    hashed = [e for e in entries if e.get("role") == "builder_primary" and any(o.get("path") == "/out/stream.jsonl" for o in e.get("outputs", []))]
+    if not streams or len(hashed) != len(launches(issue)) or len(streams) != len(launches(issue)):
+        bad.append("%s: %d launches, %d kept streams, %d ledger entries that hash /out/stream.jsonl" % (issue, len(launches(issue)), len(streams), len(hashed)))
+    for s in streams:
+        kinds = [json.loads(x).get("type") for x in open(s, encoding="utf-8") if x.strip()]
+        if kinds != ["system", "assistant", "result"]:
+            bad.append("%s: the stream has events %s" % (os.path.basename(s), kinds))
 print("\n".join("FAIL: " + b for b in bad) or "OK: the fix ends PASS through Tier 0 of config.tests; the red candidate does not; changed lines no test executed cost one feedback round")
 sys.exit(1 if bad else 0)

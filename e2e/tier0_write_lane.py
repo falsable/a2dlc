@@ -11,7 +11,7 @@ import sys
 wt, slice_id, intent_path, title, body, done = sys.argv[1:7]
 cmd = "claude --disallowedTools WebSearch,WebFetch --max-budget-usd 1.0000"
 roles = {"schema_version": 1, "roles": {"builder_primary": {
-    "family": "claude", "image": "a2dlc-roles-node-fake:0.2", "argv": ["python3", "/a2dlc/adapter.py"], "network": "none",
+    "family": "claude", "image": "a2dlc-roles-node-fake:0.3", "argv": ["python3", "/a2dlc/adapter.py"], "network": "none",
     "timeout_s": 300, "retries": 0, "env": {"A2DLC_LLM": "claude", "A2DLC_MODEL": "haiku", "A2DLC_LLM_CMD": cmd}}}}
 os.makedirs(os.path.join(wt, ".a2dlc"), exist_ok=True)
 with open(os.path.join(wt, ".a2dlc", "roles.json"), "w", encoding="utf-8", newline="\n") as f:
