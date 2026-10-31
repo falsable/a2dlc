@@ -155,6 +155,25 @@ func (r Repo) CommitTree(commit string) (string, error) {
 	return r.writeTree(env)
 }
 
+// TreeID is the id of the tree of treeish (a commit or a tree) as git stores it: what Export writes, with nothing removed.
+// Equal ids are equal content, whatever commit holds it.
+func (r Repo) TreeID(treeish string) (string, error) {
+	out, err := r.git(nil, "rev-parse", "--verify", "-q", treeish+"^{tree}")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
+}
+
+// CommonDir is the git directory that every worktree of the repository shares, as an absolute path.
+func (r Repo) CommonDir() (string, error) {
+	out, err := r.git(nil, "rev-parse", "--path-format=absolute", "--git-common-dir")
+	if err != nil {
+		return "", err
+	}
+	return filepath.FromSlash(strings.TrimSpace(out)), nil
+}
+
 // Upstream is the commit of the remote branch that HEAD follows, or "" if there is none.
 func (r Repo) Upstream() string {
 	sha, err := r.ResolveCommit("@{upstream}")

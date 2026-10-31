@@ -25,9 +25,10 @@ import (
 // worsen" against the base, with re-runs to tell flakies apart. The core knows no languages: it runs the repo's
 // commands in its image and reads JUnit XML.
 
-// cacheDir is the baseline cache, OUTSIDE the tree: the key is computable, and a cache inside the repo could be
+// cacheDir is the suite cache, OUTSIDE the tree: the key is computable, and a cache inside the repo could be
 // planted by the agent (a regression set as "red before") or pushed with git add -f for CI to read. A2DLC_CACHE_DIR
-// changes it (tests); otherwise it is the user's cache, per repo.
+// changes it (tests); otherwise it is the user's cache, per repository: every worktree of one repository shares it, so a
+// run in one worktree answers the same tree in another.
 func (a App) cacheDir() string {
 	if d := os.Getenv("A2DLC_CACHE_DIR"); d != "" {
 		return d
@@ -36,7 +37,10 @@ func (a App) cacheDir() string {
 	if err != nil {
 		return ""
 	}
-	abs, _ := filepath.Abs(a.Repo.Dir)
+	abs, err := a.Repo.CommonDir()
+	if err != nil {
+		abs, _ = filepath.Abs(a.Repo.Dir)
+	}
 	h := sha256.Sum256([]byte(abs))
 	return filepath.Join(base, "a2dlc", hex.EncodeToString(h[:])[:16])
 }
@@ -48,6 +52,10 @@ type run struct {
 	log   string
 	junit bool
 	raw   []byte
+	// coverage is the raw report the command left, kept so that a cached run can give it again.
+	coverage []byte
+	// reproduced is set on a cached run that two runs of the base agreed on (Stage -1).
+	reproduced bool
 }
 
 // readable says why a run cannot be judged; nil if it can. A red run without any identifiable failed test is
@@ -191,18 +199,27 @@ func (a App) run(ctx context.Context, in gateInput, command, treeish string, ove
 		}
 		c.cases, c.junit, c.raw = cases, true, r.JUnit
 	}
-	if r.Coverage != nil && treeish == in.tree && in.cov != nil {
-		report, err := coverage.Parse(r.Coverage)
-		if err != nil {
-			in.cov.note = "unreadable coverage: " + err.Error()
-		} else {
-			if in.cov.report == nil {
-				in.cov.report = coverage.New()
-			}
-			in.cov.report.Merge(report)
-		}
+	c.coverage = r.Coverage
+	if treeish == in.tree {
+		in.mergeCoverage(r.Coverage)
 	}
 	return c, nil
+}
+
+// mergeCoverage adds the coverage report a run of the candidate left to the coverage the check accumulates.
+func (in gateInput) mergeCoverage(raw []byte) {
+	if raw == nil || in.cov == nil {
+		return
+	}
+	report, err := coverage.Parse(raw)
+	if err != nil {
+		in.cov.note = "unreadable coverage: " + err.Error()
+		return
+	}
+	if in.cov.report == nil {
+		in.cov.report = coverage.New()
+	}
+	in.cov.report.Merge(report)
 }
 
 // runName names a test run for verdict.timings: the label the caller set, else candidate or base by the tree it ran.
@@ -469,28 +486,16 @@ func (a App) gateBaseline(ctx context.Context, in gateInput, alreadyJudged map[s
 	if digest == "" {
 		return gateError("image digest", fmt.Errorf("tests.image %q has no RepoDigests (a local build that was never pushed): the baseline cannot be keyed to it", in.cfg.Image)), nil
 	}
-	key := cacheKey(in, cmd, digest)
-	base, cached := a.readCache(key)
-	if cached {
-		g.Cached = true
-	} else {
-		var err error
-		base, err = a.run(ctx, in, cmd, in.baseSha, nil, nil, env)
-		if err == nil {
-			err = base.readable()
-		}
-		if err != nil {
-			return gateError("base", err), nil
-		}
-		a.saveCache(key, base)
+	base, cached, err := a.suite(ctx, in, cmd, in.baseSha, digest, env)
+	if err != nil {
+		return gateError("base", err), nil
 	}
-	candidate, err := a.run(ctx, in, cmd, in.tree, nil, nil, env)
-	if err == nil {
-		err = candidate.readable()
-	}
+	g.Cached = cached
+	candidate, cached, err := a.suite(ctx, in, cmd, in.tree, digest, env)
 	if err != nil {
 		return gateError("candidate", err), nil
 	}
+	g.CandidateCached = cached
 	newOnes := newReds(base.cases, candidate.cases, alreadyJudged)
 	if len(newOnes) == 0 {
 		return g, nil
@@ -566,17 +571,52 @@ func keys(m map[string]junit.Case) []string {
 	return out
 }
 
-// cacheKey identifies a baseline run. The image digest is part of it: a tag that moved to another image is another
-// environment, and a cached result from the old one must not stand for the new one.
-func cacheKey(in gateInput, cmd, digest string) string {
+// suiteKey identifies a run of the baseline command by the content of the tree it ran on, not by the commit that holds it:
+// the tree the previous step's candidate left is the base of the next step whatever commits carry it. The image digest is
+// part of it: a tag that moved to another image is another environment, and a cached result from the old one must not stand
+// for the new one. The selection ($A2DLC_TESTS, $A2DLC_CHANGED) is part of it only when the command names one of them: a
+// baseline that runs the whole suite gives the same answer whichever files changed.
+func suiteKey(tree string, in gateInput, cmd, digest string) string {
 	h := sha256.New()
-	fmt.Fprintf(h, "%s\x00%s\x00%s\x00%s\x00%s\x00%s", in.baseSha, in.cfg.Image, digest, cmd, strings.Join(in.tests, " "), strings.Join(in.sources, " "))
+	fmt.Fprintf(h, "%s\x00%s\x00%s\x00%s", tree, in.cfg.Image, digest, cmd)
+	if strings.Contains(cmd, "A2DLC_TESTS") || strings.Contains(cmd, "A2DLC_CHANGED") {
+		fmt.Fprintf(h, "\x00%s\x00%s", strings.Join(in.tests, " "), strings.Join(in.sources, " "))
+	}
 	return hex.EncodeToString(h.Sum(nil))[:24]
 }
 
+// suite is the run of the baseline command on treeish (a commit or a tree): from the cache when the same tree content already
+// answered it with the same command and image, else by running it and keeping the answer. A hit on the candidate's tree gives
+// its coverage again, so the check judges the same lines it would have judged after running. The re-runs that tell a flaky
+// test apart do not come here: each of those must run.
+func (a App) suite(ctx context.Context, in gateInput, cmd, treeish, digest string, env map[string]string) (run, bool, error) {
+	tree, err := a.Repo.TreeID(treeish)
+	if err != nil {
+		return run{}, false, err
+	}
+	key := suiteKey(tree, in, cmd, digest)
+	if c, ok := a.readCache(key); ok {
+		if treeish == in.tree {
+			in.mergeCoverage(c.coverage)
+		}
+		return c, true, nil
+	}
+	r, err := a.run(ctx, in, cmd, treeish, nil, nil, env)
+	if err == nil {
+		err = r.readable()
+	}
+	if err != nil {
+		return r, false, err
+	}
+	a.saveCache(key, r)
+	return r, false, nil
+}
+
 type cacheBaseline struct {
-	Exit  int    `json:"exit"`
-	JUnit string `json:"junit"`
+	Exit       int    `json:"exit"`
+	JUnit      string `json:"junit"`
+	Coverage   []byte `json:"coverage,omitempty"`
+	Reproduced bool   `json:"reproduced,omitempty"`
 }
 
 func (a App) readCache(key string) (run, bool) {
@@ -584,7 +624,7 @@ func (a App) readCache(key string) (run, bool) {
 	if dir == "" {
 		return run{}, false
 	}
-	b, err := os.ReadFile(filepath.Join(dir, "baseline-"+key+".json"))
+	b, err := os.ReadFile(filepath.Join(dir, "suite-"+key+".json"))
 	if err != nil {
 		return run{}, false
 	}
@@ -596,7 +636,7 @@ func (a App) readCache(key string) (run, bool) {
 	if err != nil {
 		return run{}, false
 	}
-	return run{cases: cases, exit: c.Exit, junit: true, raw: []byte(c.JUnit)}, true
+	return run{cases: cases, exit: c.Exit, junit: true, raw: []byte(c.JUnit), coverage: c.Coverage, reproduced: c.Reproduced}, true
 }
 
 func (a App) saveCache(key string, c run) {
@@ -606,8 +646,16 @@ func (a App) saveCache(key string, c run) {
 	if c.raw == nil || dir == "" || os.MkdirAll(dir, 0o755) != nil {
 		return
 	}
-	b, _ := json.Marshal(cacheBaseline{Exit: c.exit, JUnit: string(c.raw)})
-	os.WriteFile(filepath.Join(dir, "baseline-"+key+".json"), b, 0o644)
+	b, _ := json.Marshal(cacheBaseline{Exit: c.exit, JUnit: string(c.raw), Coverage: c.coverage, Reproduced: c.reproduced})
+	// written whole or not at all: another worktree of the repository may be reading the same key
+	tmp, err := os.CreateTemp(dir, "suite-*.tmp")
+	if err != nil {
+		return
+	}
+	_, werr := tmp.Write(b)
+	if cerr := tmp.Close(); werr != nil || cerr != nil || os.Rename(tmp.Name(), filepath.Join(dir, "suite-"+key+".json")) != nil {
+		os.Remove(tmp.Name())
+	}
 }
 
 // stubs asks each engine for the base with stubs for what the candidate added in its sources. An engine that does not

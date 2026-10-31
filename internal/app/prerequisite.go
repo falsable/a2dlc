@@ -91,27 +91,38 @@ func (a App) SetBaseline(ctx context.Context, base string) (Baseline, error) {
 	}
 	in := gateInput{cfg: *cfg.Tests, baseSha: baseSha, tree: baseSha, tests: tests}
 	cmd := cfg.Tests.BaselineCommand
-	key := cacheKey(in, cmd, digest)
+	tree, err := a.Repo.TreeID(baseSha)
+	if err != nil {
+		out.Reason = err.Error()
+		return out, nil
+	}
+	key := suiteKey(tree, in, cmd, digest)
 	c, cached := a.readCache(key)
-	if cached {
+	if cached && c.reproduced {
 		out.Cached, out.Reruns, out.Stable = true, 1, true
 	} else {
-		first, err := a.runReadable(ctx, in, cmd, baseSha)
-		if err != nil {
-			out.Reason = err.Error()
-			return out, nil
+		// A cached run that nobody reproduced (the candidate run of an earlier check left it) is one of the two runs: one
+		// more run on the base settles whether it is stable. Without one, both runs are made here.
+		first := c
+		if !cached {
+			var err error
+			if first, err = a.runReadable(ctx, in, cmd, baseSha); err != nil {
+				out.Reason = err.Error()
+				return out, nil
+			}
 		}
 		second, err := a.runReadable(ctx, in, cmd, baseSha)
 		if err != nil {
 			out.Reason = err.Error()
 			return out, nil
 		}
-		out.Reruns = 2
+		out.Cached, out.Reruns = cached, 2
 		if diff := unreproducible(first.cases, second.cases); diff != "" {
 			out.Reason = "baseline not reproducible: " + diff
 			return out, nil
 		}
 		out.Stable = true
+		first.reproduced = true
 		a.saveCache(key, first)
 		c = first
 	}

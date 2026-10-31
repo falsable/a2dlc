@@ -606,7 +606,8 @@ func TestCheckRegressionBlocks(t *testing.T) {
 		t.Fatal(tf.runs)
 	}
 	v, _ = a.Check(context.Background(), "")
-	if !v.TestGates.Baseline.Cached || len(tf.runs) != 15 {
+	// the second time the candidate comes from the cache too: only the 3×2 re-runs of the new red remain
+	if !v.TestGates.Baseline.Cached || !v.TestGates.Baseline.CandidateCached || len(tf.runs) != 14 {
 		t.Fatalf("%+v %d", v.TestGates.Baseline, len(tf.runs))
 	}
 }
@@ -618,10 +619,14 @@ func TestPlantedCacheInTreeIsIgnored(t *testing.T) {
 	write(t, dir, "src/lib/f.ts", "export const f = 1\n")
 	base := strings.TrimSpace(git(t, dir, "rev-parse", "HEAD"))
 	cfg, _ := a.config()
-	key := cacheKey(gateInput{cfg: *cfg.Tests, baseSha: base, sources: []string{"src/lib/f.ts"}}, "baseline", fakeTestsDigest)
+	tree, err := a.Repo.TreeID(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := suiteKey(tree, gateInput{cfg: *cfg.Tests}, "baseline", fakeTestsDigest)
 	fake := `{"exit":1,"junit":"<testsuite><testcase classname=\"c\" name=\"old\" file=\"tests/a.t\"><failure message=\"m\"/></testcase></testsuite>"}`
 	for _, d := range []string{filepath.Join(dir, ".a2dlc", "cache"), filepath.Join(dir, ".a2dlc")} {
-		write(t, d, "baseline-"+key+".json", fake)
+		write(t, d, "suite-"+key+".json", fake)
 	}
 	v, _ := a.Check(context.Background(), "")
 	if v.Verdict != contract.FAIL || v.TestGates.Baseline.Cached {
@@ -708,12 +713,30 @@ func TestGateNOPJudgesAPassingNewTestByChangeKind(t *testing.T) {
 	}
 }
 
-// The baseline cache key carries the image digest: a moved tag is another environment.
+// The suite cache key carries the image digest: a moved tag is another environment.
 func TestCacheKeyCarriesTheImageDigest(t *testing.T) {
-	in := gateInput{baseSha: "b", cfg: contract.TestsConfig{Image: "tests:1"}}
-	a, b, none := cacheKey(in, "base", "sha256:a"), cacheKey(in, "base", "sha256:b"), cacheKey(in, "base", "")
+	in := gateInput{cfg: contract.TestsConfig{Image: "tests:1"}}
+	a, b, none := suiteKey("t", in, "base", "sha256:a"), suiteKey("t", in, "base", "sha256:b"), suiteKey("t", in, "base", "")
 	if a == b || a == none || b == none {
 		t.Fatalf("digests do not separate the keys: %s %s %s", a, b, none)
+	}
+}
+
+// The key names the content of the tree, not a commit, and the selection only when the command reads it: a baseline that
+// runs the whole suite is the same run whichever files changed, and one that names $A2DLC_TESTS is not.
+func TestSuiteKeyFollowsTheTreeAndOnlyTheSelectionTheCommandNames(t *testing.T) {
+	one := gateInput{cfg: contract.TestsConfig{Image: "i"}, baseSha: "c1", tests: []string{"tests/a.t"}, sources: []string{"src/a.ts"}}
+	two := gateInput{cfg: contract.TestsConfig{Image: "i"}, baseSha: "c2", tests: []string{"tests/b.t"}, sources: []string{"src/b.ts"}}
+	if suiteKey("t", one, "vitest run", "d") != suiteKey("t", two, "vitest run", "d") {
+		t.Fatal("a whole-suite command keyed by the files that changed: the previous step's candidate run could not serve as the next base")
+	}
+	if suiteKey("t", one, "vitest run", "d") == suiteKey("u", one, "vitest run", "d") {
+		t.Fatal("another tree has the same key")
+	}
+	for _, cmd := range []string{"vitest run $A2DLC_TESTS", "run ${A2DLC_CHANGED}"} {
+		if suiteKey("t", one, cmd, "d") == suiteKey("t", two, cmd, "d") {
+			t.Fatalf("%q reads the selection and two selections share a key", cmd)
+		}
 	}
 }
 

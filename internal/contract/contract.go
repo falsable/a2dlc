@@ -474,6 +474,10 @@ type Gate struct {
 	Stubs  []string `json:"stubs,omitempty"`
 	Trees  []string `json:"trees,omitempty"`
 	Tests  []string `json:"tests,omitempty"`
+
+	// CandidateCached is baseline only: the candidate's run came from the cache too, because the same tree had already
+	// answered the same command in the same image.
+	CandidateCached bool `json:"candidate_cached,omitempty"`
 }
 
 type TestResult struct {
