@@ -368,6 +368,20 @@ def group_notes():
     vs.append(n("V-note-016", "? matches one character that is not /", note_commits(["src/?.py"]), invalid("note_on_critical_code")))
     vs.append(n("V-note-017", "A note with an unknown value is refused", note_commits(), invalid(any_of=["note_invalid", "receipt_invalid"]),
                 tgt=dict(note, note="something_else"), receipt_valid_shape=False))
+    covered_note = target("src/m.py::f", "INCONCLUSIVE", note="inconclusive_covered_by_tests", reason="the function returns a server")
+
+    def c(id, title, commits, expect, tgt=covered_note, uncovered=(), status="ran"):
+        cov = {"status": status, "files": [{"file": "src/m.py", "by_engine": [], "covered": [2], "uncovered": list(uncovered)}]}
+        return vec(id, title, "6.4.5", commits, expect, set_={"targets": [tgt], "coverage": cov})
+
+    vs.append(c("V-note-018", "An INCONCLUSIVE target whose changed lines the tests executed may carry the inconclusive_covered_by_tests note", note_commits(), VALID))
+    vs.append(c("V-note-019", "The inconclusive_covered_by_tests note is refused when a changed line of the file is unexamined", note_commits(), invalid("note_invalid"), uncovered=[3]))
+    vs.append(c("V-note-020", "The inconclusive_covered_by_tests note is refused when no test ran", note_commits(), invalid("note_invalid"), status="not_configured"))
+    vs.append(c("V-note-021", "The inconclusive_covered_by_tests note is refused on code that critical_code names", note_commits(["src/**"]), invalid("note_on_critical_code")))
+    vs.append(c("V-note-022", "The inconclusive_covered_by_tests note is refused on a FAIL target", note_commits(), invalid("note_invalid"),
+                tgt=target("src/m.py::f", note="inconclusive_covered_by_tests")))
+    vs.append(c("V-note-023", "The inconclusive_covered_by_tests note is refused on a target the receipt has no coverage for", note_commits(), invalid("note_invalid"),
+                tgt=target("src/other.py::f", "INCONCLUSIVE", note="inconclusive_covered_by_tests", reason="flagged")))
     return vs
 
 

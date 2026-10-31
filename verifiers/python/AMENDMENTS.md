@@ -124,3 +124,13 @@ Proposed: say that a variable that is set decides, and an unreadable file means 
 - **`--reasons a2dlc` reads the reference's wording.** The patterns in `conformance/run.py` (`REASONS`, `WHY`) are phrases of the
   binary's messages, not of the RFC. This verifier's messages contain them so that the kinds are checked too; an independent
   implementation that does not copy them has to use `--reasons none` and is judged on valid or invalid only.
+
+## C. RFC changes made after the verifier was written
+
+### C1. §6.4.4 and §6.4.5, the `inconclusive_covered_by_tests` note (bead a2dlc-38t)
+
+An `INCONCLUSIVE` target on code that is not critical, whose changed lines the tests executed, carries
+`note: "inconclusive_covered_by_tests"` and does not count toward the `INCONCLUSIVE` aggregate. The verifier follows the new text of
+§6.4.5 alone (`_lines_executed` in `a2dlc_verify.py`): it refuses the note unless the target is `INCONCLUSIVE` with `waived: false`
+and the receipt's own coverage ran and has no unexamined line of the target's file (within the target's `lines` when it has them),
+and refuses any other note value. Vectors `V-note-018` to `V-note-023`.

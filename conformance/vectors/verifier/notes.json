@@ -947,6 +947,404 @@
     ]
    },
    "receipt_valid_shape": false
+  },
+  {
+   "id": "V-note-018",
+   "title": "An INCONCLUSIVE target whose changed lines the tests executed may carry the inconclusive_covered_by_tests note",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "INCONCLUSIVE",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": null,
+       "waived": false,
+       "note": "inconclusive_covered_by_tests",
+       "reason": "the function returns a server"
+      }
+     ],
+     "coverage": {
+      "status": "ran",
+      "files": [
+       {
+        "file": "src/m.py",
+        "by_engine": [],
+        "covered": [
+         2
+        ],
+        "uncovered": []
+       }
+      ]
+     }
+    }
+   },
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-note-019",
+   "title": "The inconclusive_covered_by_tests note is refused when a changed line of the file is unexamined",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "INCONCLUSIVE",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": null,
+       "waived": false,
+       "note": "inconclusive_covered_by_tests",
+       "reason": "the function returns a server"
+      }
+     ],
+     "coverage": {
+      "status": "ran",
+      "files": [
+       {
+        "file": "src/m.py",
+        "by_engine": [],
+        "covered": [
+         2
+        ],
+        "uncovered": [
+         3
+        ]
+       }
+      ]
+     }
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-note-020",
+   "title": "The inconclusive_covered_by_tests note is refused when no test ran",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "INCONCLUSIVE",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": null,
+       "waived": false,
+       "note": "inconclusive_covered_by_tests",
+       "reason": "the function returns a server"
+      }
+     ],
+     "coverage": {
+      "status": "not_configured",
+      "files": [
+       {
+        "file": "src/m.py",
+        "by_engine": [],
+        "covered": [
+         2
+        ],
+        "uncovered": []
+       }
+      ]
+     }
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-note-021",
+   "title": "The inconclusive_covered_by_tests note is refused on code that critical_code names",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": [], \"critical_code\": [\"src/**\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:0a680a60109d84af7944be0f0009409b9735431b",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "INCONCLUSIVE",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": null,
+       "waived": false,
+       "note": "inconclusive_covered_by_tests",
+       "reason": "the function returns a server"
+      }
+     ],
+     "coverage": {
+      "status": "ran",
+      "files": [
+       {
+        "file": "src/m.py",
+        "by_engine": [],
+        "covered": [
+         2
+        ],
+        "uncovered": []
+       }
+      ]
+     }
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_on_critical_code"
+    ]
+   }
+  },
+  {
+   "id": "V-note-022",
+   "title": "The inconclusive_covered_by_tests note is refused on a FAIL target",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/m.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "FAIL",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": {
+        "args": "{\"x\": 0}",
+        "old": "0",
+        "new": "1"
+       },
+       "waived": false,
+       "note": "inconclusive_covered_by_tests"
+      }
+     ],
+     "coverage": {
+      "status": "ran",
+      "files": [
+       {
+        "file": "src/m.py",
+        "by_engine": [],
+        "covered": [
+         2
+        ],
+        "uncovered": []
+       }
+      ]
+     }
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-note-023",
+   "title": "The inconclusive_covered_by_tests note is refused on a target the receipt has no coverage for",
+   "rfc": "6.4.5",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\": 1, \"engines\": []}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:87768e8344af8709d562d4b5bdcc46fef4e73732",
+     "targets": [
+      {
+       "target": "src/other.py::f",
+       "engine": "crosshair-diffbehavior",
+       "engine_version": "0.0.111",
+       "verdict": "INCONCLUSIVE",
+       "search_budget": {
+        "iterations": 12,
+        "per_condition_timeout_s": 10
+       },
+       "generators": "typed_default",
+       "typed": true,
+       "domain_guard": null,
+       "equivalence": "strict",
+       "counterexample": null,
+       "waived": false,
+       "note": "inconclusive_covered_by_tests",
+       "reason": "flagged"
+      }
+     ],
+     "coverage": {
+      "status": "ran",
+      "files": [
+       {
+        "file": "src/m.py",
+        "by_engine": [],
+        "covered": [
+         2
+        ],
+        "uncovered": []
+       }
+      ]
+     }
+    }
+   },
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "note_invalid"
+    ]
+   }
   }
  ]
 }

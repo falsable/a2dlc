@@ -412,7 +412,7 @@ func rank(v string) int {
 func divergenceNotes(v contract.Verdict) int {
 	n := 0
 	for _, t := range v.Targets {
-		if t.Note != "" {
+		if t.Note == contract.NoteBehaviorDivergence {
 			n++
 		}
 	}

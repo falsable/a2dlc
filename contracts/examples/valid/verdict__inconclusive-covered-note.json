@@ -1,0 +1,45 @@
+{
+ "schema_version": 1,
+ "a2dlc_version": "0.5.0",
+ "verdict": "PASS",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-31T12:00:00Z",
+ "targets": [
+  {
+   "target": "src/server.ts::createApp",
+   "engine": "fast-check",
+   "engine_version": "3.23.2",
+   "verdict": "INCONCLUSIVE",
+   "reason": "the function returns a server or a socket (network, which cannot be sandboxed): its result is not comparable data",
+   "search_budget": {
+    "examples": 300,
+    "seed": 1
+   },
+   "generators": "typed_default",
+   "typed": false,
+   "domain_guard": null,
+   "equivalence": "strict",
+   "counterexample": null,
+   "waived": false,
+   "note": "inconclusive_covered_by_tests"
+  }
+ ],
+ "out_of_scope": [],
+ "pending_waivers": [],
+ "coverage": {
+  "status": "ran",
+  "files": [
+   {
+    "file": "src/server.ts",
+    "by_engine": [],
+    "covered": [
+     12,
+     13,
+     14
+    ],
+    "uncovered": []
+   }
+  ]
+ }
+}

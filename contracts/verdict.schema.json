@@ -31,8 +31,8 @@
         "properties": {
           "waived": { "type": "boolean" },
           "note": {
-            "enum": ["behavior_divergence"],
-            "description": "A FAIL target with a counterexample, no waiver, on code that config.critical_code does not name: it stays in the receipt with its counterexample and does not count toward the verdict. Absent otherwise and in receipts from before it existed. Its own category, apart from coverage.files[].noted. verify refuses a note on critical code."
+            "enum": ["behavior_divergence", "inconclusive_covered_by_tests"],
+            "description": "behavior_divergence: a FAIL target with a counterexample, no waiver, on code that config.critical_code does not name: it stays in the receipt with its counterexample and does not count toward the verdict. inconclusive_covered_by_tests: an INCONCLUSIVE target, on code that critical_code does not name, whose changed lines the candidate's tests executed (coverage.status ran and none of them in coverage.files[].uncovered): it stays INCONCLUSIVE with its reason and does not count toward the verdict. Absent otherwise and in receipts from before it existed. Its own category, apart from coverage.files[].noted. verify refuses a note on critical code, and a note the receipt's verdict and coverage do not support."
           }
         },
         "required": ["waived"],

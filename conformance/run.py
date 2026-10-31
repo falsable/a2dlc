@@ -39,7 +39,7 @@ REASONS = {
     "stale": r"the verdict is stale",
     "not_pass": r"the verdict is (?!stale)\S+",
     "base_unpushed": r"is not in what was pushed",
-    "note_invalid": r"note on .* is not a behavior divergence",
+    "note_invalid": r"note on .* is not (a behavior divergence|an INCONCLUSIVE target)",
     "note_on_critical_code": r"behavior divergence on critical code",
     "unsigned_waiver": r"waiver for .+: ",
 }

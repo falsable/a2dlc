@@ -103,6 +103,7 @@ cases = {
     # divergence notes: one category, and no free text beside it
     "verdict__target-note-unknown.json": (verdict_divergence, lambda x: x["targets"][0].update(note="defensive_handler")),
     "verdict__target-note-empty.json": (verdict_divergence, lambda x: x["targets"][0].update(note="")),
+    "verdict__target-note-inconclusive-wrong-case.json": (verdict_divergence, lambda x: x["targets"][0].update(note="INCONCLUSIVE_COVERED_BY_TESTS")),
     "config__critical-code-empty-glob.json": (c, lambda x: x.update(critical_code=[""])),
     "config__critical-code-repeated.json": (c, lambda x: x.update(critical_code=["a.py", "a.py"])),
     "config__run-divergence-unknown.json": (c, lambda x: x.update(run_divergence="everything")),

@@ -350,13 +350,19 @@ type VerdictTarget struct {
 	TargetResult
 	Waived bool `json:"waived"`
 	// Note is set on a FAIL target with a counterexample that is not critical code (config.critical_code) and has no
-	// waiver: it stays in the receipt and does not fail the verdict. Absent in receipts before the notes existed. It is
-	// a category of its own, apart from coverage.files[].noted.
+	// waiver (behavior_divergence), or on an INCONCLUSIVE target with no waiver, on code that is not critical, whose changed
+	// lines the candidate's tests executed (inconclusive_covered_by_tests): it stays in the receipt and does not count
+	// toward the verdict. Absent in receipts before the notes existed. It is a category of its own, apart from
+	// coverage.files[].noted.
 	Note string `json:"note,omitempty"`
 }
 
-// NoteBehaviorDivergence is the value of VerdictTarget.Note: the engines found a counterexample on code not declared critical.
+// NoteBehaviorDivergence is a value of VerdictTarget.Note: the engines found a counterexample on code not declared critical.
 const NoteBehaviorDivergence = "behavior_divergence"
+
+// NoteInconclusiveCoveredByTests is a value of VerdictTarget.Note: the engine could not judge the target, and the tests of
+// the candidate executed every changed line of it, so the engine's silence does not make the diff INCONCLUSIVE.
+const NoteInconclusiveCoveredByTests = "inconclusive_covered_by_tests"
 
 type EngineError struct {
 	Language string   `json:"language"`

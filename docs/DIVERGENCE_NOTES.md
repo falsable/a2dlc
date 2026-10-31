@@ -83,3 +83,18 @@ returns the engines' divergences, once per function and input), so a note is a d
 selection, candidates with the same verdict are ranked by their number of divergence notes, fewer first, before complexity.
 The field only sets the severity of an engine divergence; a `FAIL` without a counterexample, a failing test and every other
 gate are judged as before.
+
+## An engine that gave no information
+
+`targets[].note` has a second value, `"inconclusive_covered_by_tests"`. An engine target that is `INCONCLUSIVE` (a function it
+cannot build inputs for, a server it cannot compare, a call it cannot sandbox) used to make the whole diff `INCONCLUSIVE`, so
+adding an engine for a file made the verdict worse than leaving the file with no engine, where the tests that executed its changed
+lines were enough. Now the target keeps `verdict: INCONCLUSIVE` and its `reason`, and carries the note, when:
+
+- `config.tests` is declared and coverage ran, and none of the changed lines of the target (its `lines`, else the file) is left
+  unexamined (lines classified as defensive handlers or declaration-only code do not count, as in the coverage);
+- the target does not match `config.critical_code`, and the check is not a strict run (`a2dlc run` with `run_divergence`
+  `strict`, where everything is critical).
+
+A changed line that no engine examined and no test executed still makes the diff `INCONCLUSIVE`. With no tests block there is no
+coverage, so nothing changes. `verify` refuses the note unless the receipt's own coverage supports it (protocol §6.4.5).

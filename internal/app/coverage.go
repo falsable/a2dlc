@@ -85,6 +85,43 @@ func (a App) precondition(cfg contract.Config, baseSha, tree string, sources []s
 	return out, nil
 }
 
+// testCovered says, for an engine target, whether the candidate's tests executed every changed line of it: coverage ran
+// and none of the lines the target covers is left unexamined (lines the engine classified as defensive or declaration-only
+// do not count, as in the verdict's coverage). It is nil when there is no tests block or no coverage report, so the
+// aggregate never uses it. The lines an engine examined with a PASS or a FAIL are not unexamined either.
+func (a App) testCovered(cfg contract.Config, baseSha, tree string, sources []string, targets []contract.TargetResult, cov *accumulated, classified lineNotes) func(contract.TargetResult) bool {
+	if cfg.Tests == nil || cov.report == nil {
+		return nil
+	}
+	vts := make([]contract.VerdictTarget, len(targets))
+	for i, t := range targets {
+		vts[i] = contract.VerdictTarget{TargetResult: t}
+	}
+	pre, err := a.precondition(cfg, baseSha, tree, sources, vts, cov.report, cov.note)
+	if err != nil || pre.Status != contract.CoverageRan {
+		return nil
+	}
+	if classified != nil {
+		applyNotes(pre, classified)
+	}
+	uncovered := map[string][]int{}
+	for _, f := range pre.Files {
+		uncovered[f.File] = f.Uncovered
+	}
+	return func(t contract.TargetResult) bool {
+		lines, known := uncovered[contract.TargetFile(t.Target)]
+		if !known {
+			return false
+		}
+		for _, l := range lines {
+			if t.Covers(l) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 func examined(ts []contract.VerdictTarget, l int) bool {
 	for _, t := range ts {
 		if t.Covers(l) {

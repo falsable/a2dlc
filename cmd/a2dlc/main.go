@@ -145,6 +145,11 @@ func run(args []string) int {
 					t.Target, t.Counterexample.Args, t.Counterexample.Old, t.Counterexample.New)
 			}
 		}
+		for _, t := range v.Targets {
+			if t.Note == contract.NoteInconclusiveCoveredByTests {
+				fmt.Printf("note: %s is INCONCLUSIVE (%s) and does not make the verdict INCONCLUSIVE: the tests executed its changed lines\n", t.Target, t.Reason)
+			}
+		}
 		for _, e := range v.EngineErrors {
 			fmt.Fprintf(os.Stderr, "a2dlc check: engine %s (%s): %s\n", e.Language, strings.Join(e.Files, ", "), e.Error)
 		}

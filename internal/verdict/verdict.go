@@ -15,6 +15,14 @@ import (
 // approval it goes to pending. A FAIL with a counterexample, no waiver, on code that critical (config.critical_code) does
 // not name is a note on its target (Note) and does not count either; with no critical globs nothing is critical.
 func Aggregate(targets []contract.TargetResult, waived, approved map[string]bool, engineErrors int, critical []string) (string, []contract.VerdictTarget, []string) {
+	return AggregateCovered(targets, waived, approved, engineErrors, critical, nil)
+}
+
+// AggregateCovered is Aggregate with one more rule: an INCONCLUSIVE target (a waiver never covers it) on code that critical does not
+// name, for which covered says that the candidate's tests executed all its changed lines, is a note on its target
+// (inconclusive_covered_by_tests) and does not make the diff INCONCLUSIVE: an engine that gave no information is not worse
+// than no engine for the file. It keeps its INCONCLUSIVE verdict and reason. A nil covered never applies the rule.
+func AggregateCovered(targets []contract.TargetResult, waived, approved map[string]bool, engineErrors int, critical []string, covered func(contract.TargetResult) bool) (string, []contract.VerdictTarget, []string) {
 	out := make([]contract.VerdictTarget, 0, len(targets))
 	pending := []string{}
 	fail, inc := false, engineErrors > 0
@@ -26,6 +34,8 @@ func Aggregate(targets []contract.TargetResult, waived, approved map[string]bool
 			note = contract.NoteBehaviorDivergence
 		case t.Verdict == contract.FAIL && !w:
 			fail = true
+		case t.Verdict == contract.INCONCLUSIVE && covered != nil && !IsCritical(critical, t.Target) && covered(t):
+			note = contract.NoteInconclusiveCoveredByTests
 		case t.Verdict == contract.INCONCLUSIVE:
 			inc = true
 		}

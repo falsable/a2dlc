@@ -50,5 +50,5 @@ Conformance kit, verifier class:
       python conformance/run.py --class verifier --binary /tmp/verify --implementation clean-room-python --reasons none'
 
 Run it with `--reasons a2dlc` as well: this verifier's messages contain the phrases the runner looks for, so the problem kinds are
-checked too. Both runs end with `146 ok, 0 bad`. `--implementation` matters: without it the runner takes this verifier for the
+checked too. Both runs end with `152 ok, 0 bad`. `--implementation` matters: without it the runner takes this verifier for the
 reference binary and reports `V-receipt-007`, which it correctly refuses, as a known failure that no longer fails.

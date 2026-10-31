@@ -696,11 +696,31 @@ def _check_notes(repo, receipt, base):
     problems = []
     for t in noted:
         name = t.get("target")
-        if t.get("verdict") != "FAIL" or not isinstance(t.get("counterexample"), dict) or t.get("waived") is not False:
+        if t.get("note") == "inconclusive_covered_by_tests":
+            if t.get("verdict") != "INCONCLUSIVE" or t.get("waived") is not False or not _lines_executed(receipt, t):
+                problems.append(Problem("note_invalid", "note on %s is not an INCONCLUSIVE target whose changed lines the tests executed: it needs verdict INCONCLUSIVE, no waiver, coverage that ran and no unexamined line of its file" % name))
+        elif t.get("note") != "behavior_divergence" or t.get("verdict") != "FAIL" or not isinstance(t.get("counterexample"), dict) or t.get("waived") is not False:
             problems.append(Problem("note_invalid", "note on %s is not a behavior divergence: it needs verdict FAIL, a counterexample and no waiver" % name))
         if isinstance(name, str) and (critical is None or any(matches_critical(g, name) for g in critical)):
             problems.append(Problem("note_on_critical_code", "behavior divergence on critical code: %s" % name))
     return problems
+
+
+def _lines_executed(receipt, target):
+    """RFC 6.4.5: coverage ran and no line the target covers (its lines, else its whole file) is in the file's uncovered."""
+    coverage = receipt.get("coverage")
+    name = target.get("target")
+    if not isinstance(coverage, dict) or coverage.get("status") != "ran" or not isinstance(name, str):
+        return False
+    path = name.split("::", 1)[0]
+    lines = target.get("lines")
+    for entry in coverage.get("files") or []:
+        if isinstance(entry, dict) and entry.get("file") == path:
+            uncovered = [n for n in entry.get("uncovered") or [] if isinstance(n, int)]
+            if isinstance(lines, list) and len(lines) == 2:
+                return not any(lines[0] <= n <= lines[1] for n in uncovered)
+            return not uncovered
+    return False
 
 
 def _critical_code(repo, base):

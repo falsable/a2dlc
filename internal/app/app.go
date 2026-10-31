@@ -497,7 +497,10 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	if opts.StrictDivergence && cfg.RunDivergence != contract.RunDivergenceCriticalCode {
 		critical = allCritical
 	}
-	v.Verdict, v.Targets, v.PendingWaivers = verdict.Aggregate(targets, waived, approved, len(errs), critical)
+	// An engine target that could not judge a file the candidate's tests executed completely does not make the diff
+	// INCONCLUSIVE (note inconclusive_covered_by_tests); without a tests block, coverage or a clean run nothing changes.
+	coveredByTests := a.testCovered(cfg, baseSha, tree, sources, targets, cov, classified)
+	v.Verdict, v.Targets, v.PendingWaivers = verdict.AggregateCovered(targets, waived, approved, len(errs), critical, coveredByTests)
 	v.BaseRef, v.TreeHash, v.OutOfScope, v.EngineErrors = baseSha, treePrefix+tree, oos, errs
 	v.DiffBudget = diffBudget
 	if cfg.Tests != nil {
@@ -789,9 +792,11 @@ func (a App) Verify(commit string) ([]string, error) {
 	return probs, nil
 }
 
-// noteProblems are the reasons verify refuses the divergence notes of a receipt: a note is only valid on a FAIL target with
-// a counterexample, no waiver, and code that the base's config.critical_code does not name. The receipt is a file the
-// agent could edit, so verify decides again with the config of the receipt's base, the one check read.
+// noteProblems are the reasons verify refuses the notes of a receipt. behavior_divergence is only valid on a FAIL target
+// with a counterexample and no waiver; inconclusive_covered_by_tests only on an INCONCLUSIVE target whose changed lines
+// the receipt's coverage says were all executed (coverage ran, none of them unexamined); both on code that the base's
+// config.critical_code does not name. The receipt is a file the agent could edit, so verify decides again with the config
+// of the receipt's base, the one check read.
 func (a App) noteProblems(v contract.Verdict) []string {
 	var probs []string
 	var critical []string
@@ -800,7 +805,13 @@ func (a App) noteProblems(v contract.Verdict) []string {
 		if t.Note == "" {
 			continue
 		}
-		if t.Note != contract.NoteBehaviorDivergence || t.Verdict != contract.FAIL || t.Counterexample == nil || t.Waived {
+		switch {
+		case t.Note == contract.NoteBehaviorDivergence && t.Verdict == contract.FAIL && t.Counterexample != nil && !t.Waived:
+		case t.Note == contract.NoteInconclusiveCoveredByTests && t.Verdict == contract.INCONCLUSIVE && !t.Waived && receiptCovers(v.Coverage, t.TargetResult):
+		case t.Note == contract.NoteInconclusiveCoveredByTests:
+			probs = append(probs, "note on "+t.Target+" is not an INCONCLUSIVE target whose changed lines the tests executed (coverage ran, no unexamined line)")
+			continue
+		default:
 			probs = append(probs, "note on "+t.Target+" is not a behavior divergence with a counterexample and no waiver")
 			continue
 		}
@@ -819,6 +830,26 @@ func (a App) noteProblems(v contract.Verdict) []string {
 		}
 	}
 	return probs
+}
+
+// receiptCovers says whether the coverage of a receipt shows every changed line of the target executed: coverage ran, the
+// target's file is in it, and none of the lines the target covers is unexamined.
+func receiptCovers(cov *contract.Coverage, t contract.TargetResult) bool {
+	if cov == nil || cov.Status != contract.CoverageRan {
+		return false
+	}
+	for _, f := range cov.Files {
+		if f.File != contract.TargetFile(t.Target) {
+			continue
+		}
+		for _, l := range f.Uncovered {
+			if t.Covers(l) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 func sortedIndexes(byEngine map[int][]string) []int {
