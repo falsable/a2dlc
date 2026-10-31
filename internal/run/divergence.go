@@ -15,8 +15,8 @@ import (
 // old behavior if the intent does not ask for the change, or adds a test that pins the new behavior if it does.
 // A divergence the builder keeps on purpose does not go away, and the differential cannot tell a wanted change from an
 // accident, so each function and input is returned once and never on the last round: after that the run goes on, Stage 4
-// judges the divergence as usual (a receipt note, FAIL only on config.critical_code) and the stage reason says the builder
-// was told. It only adds feedback; nothing here raises or lowers a verdict, and an engine that cannot run is a note.
+// judges the divergence as it always does (strictly in a run, so it is still a FAIL there) and the stage reason says the
+// builder was told. It only adds feedback; nothing here raises or lowers a verdict, and an engine that cannot run is a note.
 
 // divergenceReview is what the differential left: the feedback that sends the builder back (nil if none) and the notes.
 type divergenceReview struct {
@@ -46,7 +46,7 @@ func (m *Machine) checkDivergences(ctx context.Context, tree string, returned ma
 		if returned[key] {
 			why = "returned to the builder, which kept it"
 		}
-		r.notes = append(r.notes, fmt.Sprintf("divergence %s (args: %s; old: %s; new: %s): %s; Stage 4 records it as a receipt note, a failure only in config.critical_code", d.Target, d.Args, d.Old, d.New, why))
+		r.notes = append(r.notes, fmt.Sprintf("divergence %s (args: %s; old: %s; new: %s): %s; Stage 4 judges it as it always does", d.Target, d.Args, d.Old, d.New, why))
 	}
 	return r, nil
 }
