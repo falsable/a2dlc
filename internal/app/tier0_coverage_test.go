@@ -150,3 +150,49 @@ func TestTier0CoverageUsesTheClassificationOfStage4(t *testing.T) {
 		t.Fatalf("declaration-only lines are not findings: %v %+v", err, r)
 	}
 }
+
+// A file an engine covers gets the coverage finding too (a recorded run: Stage 4 rejected "changed lines no test
+// executed: src/server.ts" while Tier 0 had said nothing, because the tests only ran for files no engine reviewed). The
+// engine here is the shape of the TypeScript engine on src/server.ts: it reviews the file in Tier 0 and cannot judge its
+// target at Stage 4, so the tests are the only thing that examines the changed lines.
+const engineAndCoverageConfig = `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/**"],"budget":{}}],` +
+	`"tests":{"image":"fake","paths":["test/**"],"source_paths":["src/**"],"command":"run-all"}}`
+
+func TestTier0CoverageFindsUnexecutedLinesOfAnEngineCoveredFile(t *testing.T) {
+	green := junitRun(0, "test/a.test.ts ok")
+	a, st := coverageRepo(t, engineAndCoverageConfig,
+		withCoverage(green, "src/server.ts:1,0,0"),
+		withCoverage(green, "src/server.ts:1,1,1"))
+	c := candidateOf(t, a, map[string]string{"src/server.ts": "a\nb\nc\n"})
+	r, unreviewed, err := a.Tier0With(context.Background(), "HEAD", c, nil, withTests)
+	if err != nil || r.OK || !r.Reviewed || len(r.Findings) != 1 || len(unreviewed) != 0 {
+		t.Fatalf("%v %+v %v", err, r, unreviewed)
+	}
+	f := r.Findings[0]
+	if f.Kind != contract.Tier0Coverage || f.File != "src/server.ts" || f.Line == nil || *f.Line != 2 || !strings.Contains(f.Message, "2-3") {
+		t.Errorf("%+v", f)
+	}
+	// The same lines executed by a test: no finding, and still one test run per Tier 0.
+	if r, _, err = a.Tier0With(context.Background(), "HEAD", c, nil, withTests); err != nil || !r.OK || len(r.Findings) != 0 {
+		t.Fatalf("round 2: %v %+v", err, r)
+	}
+	if len(st.cmds) != 2 {
+		t.Errorf("one test run per Tier 0: %v", st.cmds)
+	}
+}
+
+// Two engine-covered files and one with no engine are one test run, and each file with unexecuted lines has its finding.
+func TestTier0CoverageIsOneRunForEveryChangedSource(t *testing.T) {
+	config := `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],` +
+		`"tests":{"image":"fake","paths":["test/**"],"source_paths":["src/**"],"command":"run-all"}}`
+	green := junitRun(0, "test/a.test.ts ok")
+	a, st := coverageRepo(t, config, withCoverage(green, "src/lib/f.ts:1,0", "src/lib/g.ts:1,1", "src/main.ts:1,0"))
+	c := candidateOf(t, a, map[string]string{"src/lib/f.ts": "a\nb\n", "src/lib/g.ts": "a\nb\n", "src/main.ts": "a\nb\n"})
+	r, _, err := a.Tier0With(context.Background(), "HEAD", c, nil, withTests)
+	if err != nil || r.OK || len(r.Findings) != 2 || r.Findings[0].File != "src/lib/f.ts" || r.Findings[1].File != "src/main.ts" {
+		t.Fatalf("%v %+v", err, r)
+	}
+	if len(st.cmds) != 1 || st.envs[0]["A2DLC_CHANGED"] != "src/lib/f.ts src/lib/g.ts src/main.ts" {
+		t.Errorf("runs %v envs %v", st.cmds, st.envs)
+	}
+}

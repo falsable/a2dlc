@@ -21,7 +21,7 @@ type Tier0Response struct {
 	Findings      []Tier0Finding `json:"findings"`
 	Error         *string        `json:"error"`
 	// Reviewed is set by the core (app.Tier0): true if any engine ran tier0 on anything, or the repo's tests ran with readable
-	// JUnit on the files no engine covers. An engine does not write it.
+	// JUnit on the changed files. An engine does not write it.
 	Reviewed bool `json:"reviewed,omitempty"`
 }
 

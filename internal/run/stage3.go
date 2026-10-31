@@ -341,7 +341,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			return buildResult{status: contract.StageEscalated, boundary: deps,
 				reason: "dependency_not_allowed: the builder added or changed dependencies that " + allowFile + " does not allow (" + strings.Join(where, ", ") + "); see " + ArtEscalations}, nil
 		}
-		// the builder's loop is the one place where config.tests is the Tier 0 of the files no engine covers
+		// the builder's loop is the one place where config.tests is part of Tier 0, over every changed file
 		extra := in.extra
 		extra.Tests = true
 		res, unreviewed, err := m.app.Tier0With(ctx, m.baseSha, tree, in.probes, extra)

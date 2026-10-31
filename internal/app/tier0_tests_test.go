@@ -126,20 +126,22 @@ func TestTier0TestsWithoutReadableJUnitAreAToolError(t *testing.T) {
 	}
 }
 
-// When the engines cover every changed file the tests do not run: the behavior of a repo with an engine is unchanged.
-func TestTier0RunsNoTestsWhenEnginesCoverEveryChangedFile(t *testing.T) {
+// The tests run once per Tier 0 over every changed file, the ones an engine covers included (their changed lines no test
+// executes are a coverage finding, tier0_coverage_test.go); the engine's findings and the tests' add up.
+func TestTier0RunsTheTestsOnceOverEngineCoveredFilesToo(t *testing.T) {
 	a, _, dir := newRepo(t)
 	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],
  "tests":{"image":"fake","paths":["tests/**"],"command":"run-all"}}`)
 	git(t, dir, "add", "-A")
 	git(t, dir, "commit", "-qm", "engine and tests")
-	st := &scriptedTests{}
+	st := &scriptedTests{script: []engine.TestRun{junitRun(0, "tests/a.t fine")}}
 	a.Tests = st
 	c := candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 2\n"})
 	r, unreviewed, err := a.Tier0With(context.Background(), "HEAD", c, nil, withTests)
-	if err != nil || !r.OK || !r.Reviewed || len(unreviewed) != 0 || len(st.cmds) != 0 {
-		t.Fatalf("%v %+v %v ran %v", err, r, unreviewed, st.cmds)
+	if err != nil || !r.OK || !r.Reviewed || len(unreviewed) != 0 || len(st.cmds) != 1 || st.envs[0]["A2DLC_CHANGED"] != "src/lib/f.ts" {
+		t.Fatalf("%v %+v %v ran %v %v", err, r, unreviewed, st.cmds, st.envs)
 	}
+	st.cmds, st.envs = nil, nil
 	// a file the engine does not cover brings the tests in, and the engine's findings and the tests' add up
 	st.script = []engine.TestRun{junitRun(1, "tests/a.t broke:boom")}
 	c = candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 2\nBROKEN\n", "README.md": "bye\n"})

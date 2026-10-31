@@ -84,7 +84,7 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		}
 	}
 	if len(idx) == 0 {
-		resp, err := a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, noEngine)
+		resp, err := a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, changed)
 		return resp, unique(unreviewed), err
 	}
 	if a.Runner == nil {
@@ -107,7 +107,6 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		return resp, nil, err
 	}
 	reviewed := false
-	noTests := append([]string{}, noEngine...) // what config.tests is left to review: the files no engine reviewed
 	for _, i := range idx {
 		e, files := cfg.Engines[i], byEngine[i]
 		if files == nil {
@@ -122,7 +121,6 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		r, err := a.Runner.Tier0(ctx, e, req, baseDir, candDir)
 		if errors.Is(err, engine.ErrWithoutTier0) {
 			unreviewed = append(unreviewed, files...)
-			noTests = append(noTests, files...)
 			for _, p := range probesByEngine[i] {
 				unreviewed = append(unreviewed, "probe:"+p.ID)
 			}
@@ -137,20 +135,22 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 	}
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = reviewed
-	resp, err = a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, noTests)
+	resp, err = a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, changed)
 	return resp, unique(unreviewed), err
 }
 
 // maxTestFindings bounds the testcases one Tier 0 round sends back to the builder: the feedback is paid input.
 const maxTestFindings = 30
 
-// testsTier0 is the Tier 0 of the files no engine reviewed (§5 Stage 3): config.tests.command runs in config.tests.image
-// on the candidate, and a failed or errored testcase is a finding (kind test) that goes back to the builder like an
-// engine's. The run counts as a review only if it is readable: JUnit present, at least one testcase, and a red exit with an
+// testsTier0 is the Tier 0 of the declared tests (§5 Stage 3): config.tests.command runs once in config.tests.image on the
+// candidate, over every changed file, and a failed or errored testcase is a finding (kind test) that goes back to the
+// builder like an engine's. Engine-covered files are in the list too: Tier 0 runs no diff, so it does not know which of
+// their lines an engine will examine as PASS or FAIL at Stage 4, and it reports a changed line no test executed wherever
+// the tests have the file in scope; it can say more than Stage 4 about a line an engine will judge, never less. The run counts as a review only if it is readable: JUnit present, at least one testcase, and a red exit with an
 // identifiable failed testcase. Anything else (no runner, a command that left no JUnit, a timeout) is an error of the tool,
 // returned to the caller: it is neither a review nor feedback, because sending it to the builder would spend paid rounds on
 // something that is not its own. The files stay in the list of what Tier 0 did not review (the caller keeps it): Stage 4
-// has its own coverage precondition. Without config.tests, with no such files, or without extra.Tests it does nothing.
+// has its own coverage precondition. Without config.tests, with no changed files, or without extra.Tests it does nothing.
 func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg contract.Config, baseSha, tree string, extra Tier0Extra, files []string) (contract.Tier0Response, error) {
 	if !extra.Tests || cfg.Tests == nil || cfg.Tests.Command == "" || len(files) == 0 {
 		return resp, nil
