@@ -393,6 +393,8 @@ delivery:
 
 When the slice is modified, the orchestrator injects `rejected_alternatives` and `do_not_refactor` as constraints on the agent.
 
+Stage 3 checks the header of each file the Builder changed: a `slice_id`, `mode` or `contract_hash` that differs from the run's fails the stage, because the file was written against another contract. The exception is a header identical to the header of the same file in the run's base: an earlier slice wrote it (in chain mode the base carries what earlier steps integrated) and this run did not update it, so it is recorded as a note naming that slice and the stage does not fail. A header the Builder added, or changed from the base's, is checked as above.
+
 ### 6.4 The receipt: verdict, waivers and approvals (common to Lite and full)
 
 This section is normative. MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119. It describes what the reference implementation (the `a2dlc` binary) does as of v3.5, byte for byte where bytes matter, so that a verifier or a producer written from this text and `contracts/` agrees with it. The JSON Schemas in `contracts/` govern the shape of every document named here; this section governs what the values mean and how the hashes and signatures are computed. `contracts/tests/check_rfc.py` fails if this section contradicts a schema, and `conformance/` holds the test vectors.

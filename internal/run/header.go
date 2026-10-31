@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -116,7 +117,8 @@ func withoutNil(l []string) []string {
 }
 
 // headerReview is what Stage 3 reports about the headers of the changed files: mismatch are the files that declare
-// another run (they fail the stage), faltan (missing) are those with no slice_id line (they do not fail), notes the rest.
+// another run (they fail the stage), faltan (missing) are those with no slice_id line (they do not fail), notes the rest,
+// among them the files whose header is the base's own (inherited from an earlier slice).
 type headerReview struct {
 	mismatch []string
 	faltan   []string
@@ -124,8 +126,11 @@ type headerReview struct {
 }
 
 // reviewHeaders reads each changed file of a builder's /work. A file with slice_id, mode or contract_hash different
-// from the run's was written against another contract.json. Deleted files and binaries have no header to check.
-func reviewHeaders(work string, files []string, request contract.BuilderHeader) (headerReview, error) {
+// from the run's was written against another contract.json, unless its header is identical to the header of the same file
+// in the run's base: then an earlier slice wrote it (in chain mode the base carries what earlier steps integrated), this run
+// did not update it, and it is a note. base returns the content of a file at the run's base and whether it exists; nil
+// means no file has a base. Deleted files and binaries have no header to check.
+func reviewHeaders(work string, files []string, request contract.BuilderHeader, base func(rel string) (string, bool)) (headerReview, error) {
 	var r headerReview
 	for _, rel := range files {
 		b, err := os.ReadFile(filepath.Join(work, filepath.FromSlash(rel)))
@@ -155,6 +160,15 @@ func reviewHeaders(work string, files []string, request contract.BuilderHeader) 
 				expected = fmt.Sprintf("%q", *request.ContractHash)
 			}
 			diffs = append(diffs, fmt.Sprintf("contract_hash %q (the run has %s)", s, expected))
+		}
+		if len(diffs) > 0 && base != nil {
+			if text, ok := base(rel); ok {
+				if bvals, _ := readHeaders(text); reflect.DeepEqual(vals, bvals) {
+					from, _ := vals["slice_id"].(string)
+					r.notes = append(r.notes, fmt.Sprintf("@a2dlc header of %s is inherited from slice %q: this run did not update it (%s)", rel, from, strings.Join(diffs, ", ")))
+					diffs = nil
+				}
+			}
 		}
 		if len(diffs) > 0 {
 			r.mismatch = append(r.mismatch, fmt.Sprintf("@a2dlc header of %s does not match: %s", rel, strings.Join(diffs, ", ")))

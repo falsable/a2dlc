@@ -387,8 +387,11 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			feedback = div.feedback
 			continue
 		}
-		// @a2dlc headers (§6.3): one declared for another run fails the stage; the missing ones go to candidate.json and the reason
-		rev, err := reviewHeaders(work, diffs, header)
+		// @a2dlc headers (§6.3): one declared for another run fails the stage (unless it is the base's own, inherited from an earlier slice); the missing ones go to candidate.json and the reason
+		rev, err := reviewHeaders(work, diffs, header, func(rel string) (string, bool) {
+			b, err := m.app.Repo.Show(m.baseSha, rel)
+			return string(b), err == nil
+		})
 		if err != nil {
 			return buildResult{}, err
 		}

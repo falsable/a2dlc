@@ -78,7 +78,7 @@ func TestReviewHeadersMismatchAndMissing(t *testing.T) {
 	write(t, dir, "plain.py", "x = 1\n")
 	write(t, dir, "bin.dat", "\x00\x01")
 	request := contract.BuilderHeader{SliceID: "s.v1", Mode: "lite"}
-	rev, err := reviewHeaders(dir, []string{"ok.py", "other.py", "plain.py", "bin.dat", "deleted.py"}, request)
+	rev, err := reviewHeaders(dir, []string{"ok.py", "other.py", "plain.py", "bin.dat", "deleted.py"}, request, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,5 +152,79 @@ func TestStage3WithoutHeaderIsDoneWithHeadersMissing(t *testing.T) {
 	b, _ := os.ReadFile(filepath.Join(dir, ".a2dlc/run/h.v1", ArtCandidate))
 	if err := contract.DecodeStrictBytes(b, &c); err != nil || !reflect.DeepEqual(c.HeadersMissing, []string{"src/f.py"}) {
 		t.Fatalf("%v %+v", err, c)
+	}
+}
+
+// In chain mode the base carries the headers of the slices integrated before: a file whose header is the base's own was not
+// written against another contract.json by this builder, so it is a note and the stage does not fail.
+func TestReviewHeadersInheritedFromTheBaseIsANoteNotAMismatch(t *testing.T) {
+	earlier := "# @a2dlc:slice_id = \"issue-1.9510fd\"\n# @a2dlc:mode = \"lite\"\n"
+	dir := t.TempDir()
+	write(t, dir, "inherited.py", earlier+"x = 2\n")
+	write(t, dir, "rewritten.py", "# @a2dlc:slice_id = \"issue-3.9510fd\"\n# @a2dlc:mode = \"lite\"\nx = 2\n")
+	write(t, dir, "moved.py", "# @a2dlc:slice_id = \"issue-3.9510fd\"\n# @a2dlc:mode = \"lite\"\nx = 2\n")
+	write(t, dir, "new.py", "# @a2dlc:slice_id = \"issue-1.9510fd\"\n# @a2dlc:mode = \"lite\"\nx = 2\n")
+	bases := map[string]string{
+		"inherited.py": earlier + "x = 1\n",
+		"rewritten.py": earlier + "x = 1\n", // the builder changed the header the base had to another slice
+		"moved.py":     "x = 1\n",           // the base had no header: the builder wrote this one
+	}
+	base := func(rel string) (string, bool) { s, ok := bases[rel]; return s, ok }
+	request := contract.BuilderHeader{SliceID: "issue-6.9510fd", Mode: "lite"}
+	rev, err := reviewHeaders(dir, []string{"inherited.py", "rewritten.py", "moved.py", "new.py"}, request, base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rev.notes) != 1 || !strings.Contains(rev.notes[0], "inherited.py is inherited from slice \"issue-1.9510fd\"") || !strings.Contains(rev.notes[0], "did not update it") {
+		t.Fatalf("notes = %v", rev.notes)
+	}
+	var files []string
+	for _, m := range rev.mismatch {
+		files = append(files, strings.Fields(strings.TrimPrefix(m, "@a2dlc header of "))[0])
+	}
+	if !reflect.DeepEqual(files, []string{"rewritten.py", "moved.py", "new.py"}) {
+		t.Fatalf("mismatch = %v", rev.mismatch)
+	}
+}
+
+// A step that never wrote a header, on a file an earlier step headed, is Done with the note (the failure this fixes: step 6 of
+// a chain run failed on the header of step 1).
+func TestStage3InheritedHeaderIsDoneWithANote(t *testing.T) {
+	a, dir, _ := repoBuilder(t)
+	earlier := "# @a2dlc:slice_id = \"issue-1.abc123\"\n# @a2dlc:mode = \"lite\"\n"
+	write(t, dir, "src/f.py", earlier+baseFile)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "an earlier step headed f.py")
+	var requests []contract.BuilderRequest
+	launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, func(contract.BuilderRequest) map[string]string {
+		return map[string]string{"src/f.py": earlier + "def f(x):\n    return x * 2\n"}
+	})}
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "h.v1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s3 := st.Stages[5]
+	if s3.Status != contract.StageDone || !strings.Contains(s3.Reason, `src/f.py is inherited from slice "issue-1.abc123"`) {
+		t.Fatalf("%+v", s3)
+	}
+}
+
+// The builder moving the header the base had to another slice is not inheritance: it still fails.
+func TestStage3ChangingTheBasesHeaderToAnotherSliceFails(t *testing.T) {
+	a, dir, _ := repoBuilder(t)
+	write(t, dir, "src/f.py", "# @a2dlc:slice_id = \"issue-1.abc123\"\n# @a2dlc:mode = \"lite\"\n"+baseFile)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "an earlier step headed f.py")
+	var requests []contract.BuilderRequest
+	launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, func(contract.BuilderRequest) map[string]string {
+		return map[string]string{"src/f.py": "# @a2dlc:slice_id = \"issue-2.abc123\"\n# @a2dlc:mode = \"lite\"\n" + baseFile}
+	})}
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "h.v1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s3 := st.Stages[5]
+	if s3.Status != contract.StageFailed || !strings.Contains(s3.Reason, `slice_id "issue-2.abc123" (the run has "h.v1")`) {
+		t.Fatalf("%+v", s3)
 	}
 }
