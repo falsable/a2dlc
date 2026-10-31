@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/falsable/a2dlc/internal/app"
@@ -49,10 +50,15 @@ func (m *engineMutant) Mutate(_ context.Context, _ contract.EngineConfig, req co
 
 // runnerMutant is the fake runner with one more state: 'detecta:<marca>' fails if any file under src/ of the tree has
 // the mark (the test detects that mutant) and passes if not.
-type runnerMutant struct{ runs int }
+type runnerMutant struct {
+	mu   sync.Mutex // the NOP gate runs the candidate and the base at once
+	runs int
+}
 
 func (f *runnerMutant) RunTests(_ context.Context, _ contract.TestsConfig, _ string, env map[string]string, tree string) (engine.TestRun, error) {
+	f.mu.Lock()
 	f.runs++
+	f.mu.Unlock()
 	src := ""
 	filepath.WalkDir(filepath.Join(tree, "src"), func(p string, d os.DirEntry, err error) error {
 		if err == nil && !d.IsDir() {
@@ -530,7 +536,9 @@ type runnerTreeMutant struct {
 
 func (f *runnerTreeMutant) RunTests(ctx context.Context, tc contract.TestsConfig, image string, env map[string]string, tree string) (engine.TestRun, error) {
 	b, _ := os.ReadFile(filepath.Join(tree, "src", "f.py"))
+	f.mu.Lock()
 	f.sources = append(f.sources, string(b))
+	f.mu.Unlock()
 	return f.runnerMutant.RunTests(ctx, tc, image, env, tree)
 }
 

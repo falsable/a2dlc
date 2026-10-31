@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -210,10 +211,15 @@ func suiteFiles(env map[string]string, tree string) []string {
 
 // fakeRunner runs the files of suiteFiles: each line "name passed|failed" is a testcase, and a line
 // "cubre <file>:<a>-<b>" leaves LCOV coverage with those lines executed (1-99 as statements).
-type fakeRunner struct{ runs int }
+type fakeRunner struct {
+	mu   sync.Mutex // the NOP gate runs the candidate and the base at once
+	runs int
+}
 
 func (f *fakeRunner) RunTests(_ context.Context, _ contract.TestsConfig, _ string, env map[string]string, tree string) (engine.TestRun, error) {
+	f.mu.Lock()
 	f.runs++
+	f.mu.Unlock()
 	var x, cov strings.Builder
 	x.WriteString("<testsuites><testsuite>")
 	exit := 0
