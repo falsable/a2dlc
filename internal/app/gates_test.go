@@ -349,7 +349,7 @@ func TestNOPAssertionFailureStaysAValidFailureWithoutAnEngine(t *testing.T) {
 
 // A file the candidate adds is named by its stem, whatever the language writes around it, and a stem is a whole word.
 func TestClassifierNamesTheFilesTheCandidateAdds(t *testing.T) {
-	invalid, err := classifier(nil, nil, []string{"src/lib/rate_limiter.py", "src/lib/RateLimiter.ts", "src/a.ts"})
+	invalid, err := classifier(nil, nil, []string{"src/lib/rate_limiter.py", "src/lib/RateLimiter.ts", "src/a.ts", "src/added.ts"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -358,6 +358,8 @@ func TestClassifierNamesTheFilesTheCandidateAdds(t *testing.T) {
 		want bool
 	}{
 		{"Failed to load url ../src/lib/RateLimiter.ts (resolved id: ../src/lib/RateLimiter.ts)", true},
+		// measured with vitest 2026-10-31 (a2dlc-factory-node-cov:0.1): the <failure> of a test file whose import is missing
+		{"Failed to load url ../src/added (resolved id: ../src/added) in /w/test/a.test.ts. Does the file exist?", true},
 		{"ModuleNotFoundError: No module named 'lib.rate_limiter'", true},
 		{"Cannot find module '../ratelimiter'", true},
 		{"AssertionError: expected 500 to be 404", false},
