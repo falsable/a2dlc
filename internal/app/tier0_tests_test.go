@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/engine"
@@ -12,13 +13,22 @@ import (
 
 // scriptedTests answers each RunTests with the next run of its script and records what it was asked.
 type scriptedTests struct {
-	script []engine.TestRun
-	errs   []error
-	envs   []map[string]string
-	cmds   []string
+	script   []engine.TestRun
+	errs     []error
+	envs     []map[string]string
+	cmds     []string
+	started  chan struct{} // closed when the first run starts
+	delay    time.Duration // each run takes at least this long
+	finished int           // runs that returned
 }
 
 func (s *scriptedTests) RunTests(_ context.Context, _ contract.TestsConfig, command string, env map[string]string, _ string) (engine.TestRun, error) {
+	if s.started != nil {
+		close(s.started)
+		s.started = nil
+	}
+	time.Sleep(s.delay)
+	defer func() { s.finished++ }()
 	i := len(s.cmds)
 	s.cmds, s.envs = append(s.cmds, command), append(s.envs, env)
 	if i < len(s.errs) && s.errs[i] != nil {
@@ -156,6 +166,57 @@ func TestTier0RunsTheTestsOnceOverEngineCoveredFilesToo(t *testing.T) {
 	r, _, err = a.Tier0With(context.Background(), "HEAD", c, nil, withTests)
 	if err != nil || !r.OK || len(st.cmds) != 1 || st.envs[0]["A2DLC_CHANGED"] != "src/lib/f.ts src/lib/g.ts" {
 		t.Fatalf("%v %+v ran %v %v", err, r, st.cmds, st.envs)
+	}
+}
+
+// waitingEngine reviews only after the tests started (or 2 s went by), and says whether they had.
+type waitingEngine struct {
+	*fakeEngine
+	testsStarted chan struct{}
+	overlapped   bool
+	err          error
+}
+
+func (w *waitingEngine) Tier0(ctx context.Context, e contract.EngineConfig, req contract.Request, baseDir, candDir string) (contract.Tier0Response, error) {
+	select {
+	case <-w.testsStarted:
+		w.overlapped = true
+	case <-time.After(2 * time.Second):
+	}
+	if w.err != nil {
+		return contract.Tier0Response{}, w.err
+	}
+	return w.fakeEngine.Tier0(ctx, e, req, baseDir, candDir)
+}
+
+// The tests run while the engines review: neither waits for the other, and the findings keep their order (the engines'
+// first). An engine's error is still the answer, and Tier0 returns only once the tests have stopped.
+func TestTier0RunsTheTestsWhileTheEnginesReview(t *testing.T) {
+	a, _, dir := newRepo(t)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],
+ "tests":{"image":"fake","paths":["tests/**"],"command":"run-all"}}`)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "engine and tests")
+	c := candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 2\nBROKEN\n"})
+	started := make(chan struct{})
+	st := &scriptedTests{script: []engine.TestRun{junitRun(1, "tests/a.t broke:boom")}, started: started}
+	we := &waitingEngine{fakeEngine: &fakeEngine{}, testsStarted: started}
+	a.Tests, a.Runner = st, we
+	r, _, err := a.Tier0With(context.Background(), "HEAD", c, nil, withTests)
+	if err != nil || r.OK || !r.Reviewed || len(r.Findings) != 2 || r.Findings[0].Kind != contract.Tier0Compile || r.Findings[1].Kind != contract.Tier0Test {
+		t.Fatalf("%v %+v", err, r)
+	}
+	if !we.overlapped {
+		t.Fatal("the engine reviewed before the tests started: they ran one after the other")
+	}
+	started = make(chan struct{})
+	st = &scriptedTests{script: []engine.TestRun{junitRun(0, "tests/a.t fine")}, started: started, delay: 200 * time.Millisecond}
+	a.Tests, a.Runner = st, &waitingEngine{fakeEngine: &fakeEngine{}, testsStarted: started, err: fmt.Errorf("engine down")}
+	if _, _, err := a.Tier0With(context.Background(), "HEAD", c, nil, withTests); err == nil || !strings.Contains(err.Error(), "engine down") {
+		t.Fatalf("the engine's error must be the answer: %v", err)
+	}
+	if st.finished != len(st.cmds) || len(st.cmds) != 1 {
+		t.Fatalf("Tier0 returned with the tests still running: %d started, %d finished", len(st.cmds), st.finished)
 	}
 }
 

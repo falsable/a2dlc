@@ -90,6 +90,20 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 	if a.Runner == nil {
 		return resp, nil, fmt.Errorf("this binary has no engines for Tier 0")
 	}
+	// The declared tests do not depend on what the engines answer, so they run while the engines review; their findings
+	// still come after the engines'. An engine's error still wins, and nothing returns before the tests have stopped.
+	testsCtx, cancelTests := context.WithCancel(ctx)
+	testsDone := make(chan struct{})
+	var tests contract.Tier0Response
+	var testsErr error
+	go func() {
+		defer close(testsDone)
+		tests, testsErr = a.testsTier0(testsCtx, contract.Tier0Response{Findings: []contract.Tier0Finding{}}, cfg, baseSha, tree, extra, changed)
+	}()
+	defer func() {
+		cancelTests()
+		<-testsDone
+	}()
 	baseDir, err := os.MkdirTemp("", "a2dlc-base-*")
 	if err != nil {
 		return resp, nil, err
@@ -135,8 +149,14 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 	}
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = reviewed
-	resp, err = a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, changed)
-	return resp, unique(unreviewed), err
+	<-testsDone
+	if testsErr != nil {
+		return resp, unique(unreviewed), testsErr
+	}
+	resp.Findings = append(resp.Findings, tests.Findings...)
+	resp.OK = len(resp.Findings) == 0
+	resp.Reviewed = reviewed || tests.Reviewed
+	return resp, unique(unreviewed), nil
 }
 
 // maxTestFindings bounds the testcases one Tier 0 round sends back to the builder: the feedback is paid input.
