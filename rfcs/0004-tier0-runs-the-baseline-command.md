@@ -64,4 +64,7 @@ No existing document becomes invalid: the field is optional and an absent field 
   - Stage 4 per lane: 11 to 13 s without the field (median 12 s), 4 to 7 s with it (median 5 s); Stage 3 stays within the same range (11 to 16 s);
   - the whole chain: median 76.7 s without the field, 61.9 s with it (19 % less);
   - the verdicts are the same in both arms.
-- Not measured yet: a factory run at the scale of the sixth freeze with the field on.
+- A model at the scale of the sixth freeze (15 lanes on two repos), not a measurement. It takes the run timings that each receipt records (`timings.test_runs`, `stubs_ms`, the engines' `diff` operations) and applies the Stage 4 schedule of the reference implementation: two test slots, the baseline holding one, the base from the cache. Taking the candidate run from the cache cuts Stage 4 from 288 s to 255 s, 34 s in all. The candidate runs themselves add up to 168 s, but on most lanes they are not the critical path:
+  - on the repo whose suite takes 4 to 5 s, the stubs and the two NOP runs (about 9 to 12 s) end later, so the saving is 0 to 1 s per lane;
+  - on the repo whose suite takes 19 to 25 s, the engine's `diff` (30 to 60 s) is the critical path on 3 of 6 lanes; the other 3 save about 9 to 10 s each.
+- Not measured yet: a factory run at that scale with the field on.
