@@ -29,6 +29,8 @@ Everything Stage 4 does with an engine answer applies to a taken one unchanged: 
 
 The answers are held in memory by the run: a run resumed between Stage 3 and Stage 4 runs the differential again. Nothing is written to a cache that could be planted.
 
+Scope: only the single-candidate judgment of Stage 4 takes an answer. The N=2 cross judgment runs the differential itself, with each candidate as the other's peer, and `a2dlc check` has no Stage 3, so neither changes. The generators the request carries are read from the candidate tree in both stages, so a Builder cannot make Stage 3's request differ from Stage 4's without changing the tree, and a changed tree is not the candidate the answer belongs to.
+
 The field is read from the base's config, like the rest, so a diff cannot turn it on for itself. Any other value is refused when the config is read, as `run_divergence` is.
 
 Why it is opt-in: the engines' search is bounded by time (`per_condition_timeout_s`, `total_s`), so two runs of the same request can explore a different number of inputs. Today a divergence that Stage 3's search missed can still be found by Stage 4's. With `stage3`, the verdict rests on one search with the configured budget, which is what `a2dlc check` gives every verdict today. Over the recorded run and up to three replays of the Python repo's lanes, 7 of 8 targets got the same verdict in every run; one got PASS in two runs and FAIL with a counterexample in the third, on code that is not critical, so it was a note and no lane's verdict changed.
