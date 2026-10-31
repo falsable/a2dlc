@@ -105,3 +105,36 @@ test('an absent operation is the diff engine: with no changed files it answers w
   assert.deepEqual(out.response.out_of_scope, []);
   assert.equal(out.response.error, null);
 });
+
+// diff on an exported sync function: the engine imports both versions and compares them on generated inputs. A function
+// that differs on one input is a FAIL with a counterexample that carries the arguments, the old and the new result; the
+// same function rewritten without changing any output is a PASS. (This ran into a ReferenceError for every exported function until the loop-local
+// generator stopped shadowing the module-level override map.)
+const labelBase = 'export function label(n: number): string {\n  return n === 0 ? "zero" : String(n);\n}\n';
+
+test('diff: an exported function that changes one input is a FAIL with old and new', () => {
+  const baseDir = tree({ 'src/lib/label.ts': labelBase });
+  const candDir = tree({ 'src/lib/label.ts': labelBase.replace('"zero"', '"none"') });
+  const out = run({ ...base, operation: 'diff', language: 'typescript', base_dir: baseDir, candidate_dir: candDir,
+    changed_files: ['src/lib/label.ts'], budget: { examples: 2000, seed: 1 } });
+  assert.equal(out.status, 0, out.stderr);
+  assert.equal(out.response.error, null);
+  assert.equal(out.response.targets.length, 1);
+  const t = out.response.targets[0];
+  assert.equal(t.target, 'src/lib/label.ts::label');
+  assert.equal(t.verdict, 'FAIL');
+  assert.equal(t.generators, 'typed_default');
+  assert.deepEqual(Object.keys(t.counterexample).sort(), ['args', 'new', 'old']);
+  assert.match(t.counterexample.old, /zero/);
+  assert.match(t.counterexample.new, /none/);
+});
+
+test('diff: an equivalent rewrite of the exported function is a PASS', () => {
+  const baseDir = tree({ 'src/lib/label.ts': labelBase });
+  const candDir = tree({ 'src/lib/label.ts': labelBase.replace('String(n)', '`${n}`') });
+  const out = run({ ...base, operation: 'diff', language: 'typescript', base_dir: baseDir, candidate_dir: candDir,
+    changed_files: ['src/lib/label.ts'], budget: { examples: 200, seed: 1 } });
+  assert.equal(out.status, 0, out.stderr);
+  assert.equal(out.response.targets[0].verdict, 'PASS');
+  assert.equal(out.response.targets[0].counterexample, null);
+});

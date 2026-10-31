@@ -263,23 +263,23 @@ for (const file of req.changed_files as string[]) {
     importErr = `could not import: ${(e as Error).message}`.slice(0, 200);
   }
   for (const name of names) {
-    const override = override[name] ?? override[`${file}::${name}`];
+    const ov = override[name] ?? override[`${file}::${name}`];
     const typed = { ok: true };
     const t: Json = {
       target: `${file}::${name}`, engine: 'fast-check', engine_version: FC_VERSION, verdict: 'PASS',
-      search_budget: { examples: EXAMPLES, seed: SEED }, generators: override ? 'repo_override' : 'typed_default',
+      search_budget: { examples: EXAMPLES, seed: SEED }, generators: ov ? 'repo_override' : 'typed_default',
       typed: true, domain_guard: null, equivalence: 'strict', counterexample: null,
     };
     targets.push(t);
     const inconclusive = (reason: string) => Object.assign(t, { verdict: 'INCONCLUSIVE', reason });
-    if (overrideError && !override) inconclusive(overrideError);
+    if (overrideError && !ov) inconclusive(overrideError);
     if (importErr) { inconclusive(importErr); continue; }
     const old = oldMod![name] as (...a: unknown[]) => unknown;
     const fresh = newMod![name] as (...a: unknown[]) => unknown;
     if (typeof old !== 'function' || typeof fresh !== 'function') { inconclusive('the export is not a function in one of the versions'); continue; }
     let args: fc.Arbitrary<unknown[]>;
     try {
-      args = override ?? argsArb(name, candSf, ch, literals, typed);
+      args = ov ?? argsArb(name, candSf, ch, literals, typed);
     } catch (e) {
       inconclusive((e as Error).message.slice(0, 200));
       t.typed = false;
