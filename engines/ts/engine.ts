@@ -6,12 +6,20 @@
 // Generators (typed_default): derived from the parameter types, plus the literals of both versions of the file
 // and their boundaries (n±1, n/100, strings of length n). Override: .a2dlc/arbs.ts with
 // `export default (fc) => ({ "<function>": fc.tuple(...) })`, without importing fast-check (the repo does not have it).
+// Async: a promise result is awaited. Network, filesystem writes and timers are trapped while a target runs; a target that
+// touches one, returns a server or a function, or has a call that never settles is INCONCLUSIVE with that reason (each target
+// has its own status).
 import fc from 'fast-check';
 import ts from 'typescript';
 import { isDeepStrictEqual } from 'node:util';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import fs, { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import net from 'node:net';
+import timers from 'node:timers';
+import timersPromises from 'node:timers/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { createRequire } from 'node:module';
+import { createRequire, syncBuiltinESMExports } from 'node:module';
 
 type Json = Record<string, unknown>;
 const IO = process.env.A2DLC_IO ?? '/io';
@@ -207,17 +215,191 @@ function argsArb(name: string, sf: ts.SourceFile, ch: ts.TypeChecker, literals: 
 
 // ---------- comparison ----------
 
-type Result = { ok: unknown } | { lanza: string } | { async: true };
-const run = (fn: (...a: unknown[]) => unknown, a: unknown[]): Result => {
+// A promise (or async iterable) result is awaited, so a function is judged by what it resolves to. What a call must not
+// do for real is replaced by traps while a target runs (network, filesystem writes, timers): the first one that fires
+// makes the target INCONCLUSIVE with its name, since what the code does there cannot be compared between two runs. A call
+// that does not settle within STEP_TIMEOUT_MS is not a result either (same rule as the Python engine's asyncdrive).
+type Result = { ok: unknown } | { lanza: string } | { suspended: string } | { effect: string } | { opaque: string };
+
+const STEP_TIMEOUT_MS = 1000;
+const MAX_ITEMS = 1000; // an async iterable that yields more than this is treated as unbounded
+const realSetTimeout = globalThis.setTimeout;
+const realClearTimeout = globalThis.clearTimeout;
+const FS_WRITES = ['writeFile', 'appendFile', 'mkdir', 'mkdtemp', 'rm', 'rmdir', 'unlink', 'rename', 'copyFile', 'cp', 'truncate',
+  'symlink', 'link', 'write', 'createWriteStream'];
+
+class Unbounded extends Error {}
+class SideEffect extends Error {}
+
+let effect = ''; // the first side effect a trap saw in the current target; empty if none
+let sawAsync = false; // a call of the current target returned a promise or an async iterable
+const trap = (label: string, real?: (...a: unknown[]) => unknown, self?: unknown) => (...a: unknown[]) => {
+  // tsx caches what it transforms under <tmpdir>/tsx-<uid>: that is the engine's own loader, not the code under test.
+  if (real && typeof a[0] === 'string' && path.resolve(a[0]).startsWith(path.join(tmpdir(), 'tsx-'))) return real.apply(self, a);
+  effect ||= label;
+  throw new SideEffect(label);
+};
+const openWrites = (...a: unknown[]) => {
+  const flags = a[1];
+  if (typeof flags === 'string' ? /[wa+]/.test(flags) : typeof flags === 'number' && (flags & 3) !== 0) throw new SideEffect('filesystem write (open)');
+  return undefined;
+};
+
+type Holder = Record<string, unknown>;
+function trapList(): [Holder, string, string][] {
+  const out: [Holder, string, string][] = [
+    [globalThis as unknown as Holder, 'fetch', 'network (fetch)'],
+    [net.Socket.prototype as unknown as Holder, 'connect', 'network (socket connect)'],
+    [net.Server.prototype as unknown as Holder, 'listen', 'network (server listen)'],
+    [globalThis as unknown as Holder, 'setTimeout', 'timers (setTimeout)'],
+    [globalThis as unknown as Holder, 'setInterval', 'timers (setInterval)'],
+    [timers as unknown as Holder, 'setTimeout', 'timers (setTimeout)'],
+    [timers as unknown as Holder, 'setInterval', 'timers (setInterval)'],
+    [timersPromises as unknown as Holder, 'setTimeout', 'timers (setTimeout)'],
+    [timersPromises as unknown as Holder, 'setInterval', 'timers (setInterval)'],
+  ];
+  for (const n of FS_WRITES) {
+    out.push([fs as unknown as Holder, n, `filesystem write (${n})`], [fs as unknown as Holder, `${n}Sync`, `filesystem write (${n}Sync)`]);
+    out.push([fs.promises as unknown as Holder, n, `filesystem write (${n})`]);
+  }
+  return out;
+}
+
+// Runs body with the traps installed and restores every original after, so the engine's own writes (response.json) are not
+// trapped. syncBuiltinESMExports makes `import { writeFileSync } from 'node:fs'` in the loaded modules see the traps.
+async function sandboxed<T>(body: () => Promise<T>): Promise<T> {
+  const saved: [Holder, string, unknown][] = [];
+  for (const [holder, key, label] of trapList()) {
+    if (typeof holder[key] !== 'function') continue;
+    saved.push([holder, key, holder[key]]);
+    holder[key] = trap(label, label.startsWith('filesystem') ? holder[key] as (...a: unknown[]) => unknown : undefined, holder);
+  }
+  for (const k of ['open', 'openSync']) {
+    saved.push([fs as unknown as Holder, k, (fs as unknown as Holder)[k]]);
+    const real = (fs as unknown as Holder)[k] as (...a: unknown[]) => unknown;
+    (fs as unknown as Holder)[k] = (...a: unknown[]) => {
+      try { openWrites(...a); } catch (e) { effect ||= (e as Error).message; throw e; }
+      return real(...a);
+    };
+  }
+  syncBuiltinESMExports();
   try {
-    const r = fn(...structuredClone(a));
-    if (r && typeof (r as { then?: unknown }).then === 'function') return { async: true };
-    return { ok: r };
+    return await body();
+  } finally {
+    for (const [holder, key, orig] of saved.reverse()) holder[key] = orig;
+    syncBuiltinESMExports();
+  }
+}
+
+const LATE = Symbol('late');
+const settle = <T>(p: PromiseLike<T>) => new Promise<T | typeof LATE>((res, rej) => {
+  const t = realSetTimeout(() => res(LATE), STEP_TIMEOUT_MS);
+  p.then((v) => { realClearTimeout(t); res(v); }, (e) => { realClearTimeout(t); rej(e); });
+});
+
+async function collect(it: AsyncIterable<unknown>): Promise<unknown[]> {
+  const items: unknown[] = [];
+  for await (const x of it) {
+    items.push(x);
+    if (items.length > MAX_ITEMS) throw new Unbounded();
+  }
+  return items;
+}
+
+// What in a result is not data to compare: a function (isDeepStrictEqual compares it by reference, so two equal versions
+// would differ), or a server or socket (a network resource: the call opened one).
+function opaqueOf(v: unknown, depth = 0, seen = new Set<object>()): string | null {
+  if (typeof v === 'function') return 'function';
+  if (v === null || typeof v !== 'object' || depth > 4 || seen.has(v)) return null;
+  seen.add(v);
+  if (v instanceof net.Server || v instanceof net.Socket) return 'network';
+  const inner = v instanceof Map ? [...v.keys(), ...v.values()] : v instanceof Set ? [...v] : Object.values(v);
+  for (const x of inner) {
+    const o = opaqueOf(x, depth + 1, seen);
+    if (o) return o;
+  }
+  return null;
+}
+
+const drive = async (fn: (...a: unknown[]) => unknown, a: unknown[]): Promise<Result> => {
+  try {
+    let r = fn(...structuredClone(a));
+    if (r && typeof (r as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator] === 'function') r = collect(r as AsyncIterable<unknown>);
+    if (r && typeof (r as { then?: unknown }).then === 'function') {
+      sawAsync = true;
+      const v = await settle(r as PromiseLike<unknown>);
+      if (v === LATE) return { suspended: 'did not settle' };
+      r = v;
+    }
+    if (effect) return { effect };
+    const o = opaqueOf(r);
+    return o ? { opaque: o } : { ok: r };
   } catch (e) {
+    if (effect) return { effect };
+    if (e instanceof Unbounded) return { suspended: `yielded more than ${MAX_ITEMS} items` };
     return { lanza: `${(e as Error)?.constructor?.name}: ${(e as Error)?.message}` };
   }
 };
 const text = (v: unknown) => (JSON.stringify(v, (_k, x) => (x === undefined ? '<undefined>' : typeof x === 'bigint' ? `${x}n` : x)) ?? 'undefined').slice(0, 300);
+
+// Compares the two versions of one target and writes the verdict into t. A FAIL needs a counterexample from calls that both
+// returned or both raised. A call that touched the network, the filesystem or a timer, returned a server or a function, or
+// did not settle is no evidence for a PASS, so the target is INCONCLUSIVE with that reason (a FAIL found elsewhere stays FAIL).
+async function judge(
+  t: Json, old: (...a: unknown[]) => unknown, fresh: (...a: unknown[]) => unknown,
+  args: fc.Arbitrary<unknown[]>, inconclusive: (reason: string) => unknown,
+): Promise<void> {
+  const seen = { old: { ok: 0, raised: 0 }, new: { ok: 0, raised: 0 } };
+  const unjudged = { suspended: 0, opaque: '', stray: '' };
+  sawAsync = false;
+  effect = '';
+  const onStray = (e: unknown) => { unjudged.stray ||= `${(e as Error)?.message ?? e}`.slice(0, 120); };
+  process.on('unhandledRejection', onStray);
+  process.on('uncaughtException', onStray);
+  try {
+    const r = await sandboxed(() => fc.check(
+      fc.asyncProperty(args, async (a) => {
+        if (effect || unjudged.opaque || unjudged.stray || unjudged.suspended) return true; // already not judgeable: stop spending the budget
+        const x = await drive(old, a), y = await drive(fresh, a);
+        for (const [side, res] of [['old', x], ['new', y]] as const) {
+          if ('ok' in res) seen[side].ok++;
+          else if ('lanza' in res) seen[side].raised++;
+          else if ('suspended' in res) unjudged.suspended++;
+          else if ('opaque' in res) unjudged.opaque ||= res.opaque;
+        }
+        if (effect || unjudged.opaque || unjudged.stray || unjudged.suspended) return true;
+        if (!('ok' in x || 'lanza' in x) || !('ok' in y || 'lanza' in y)) return true;
+        return isDeepStrictEqual(x, y);
+      }),
+      { numRuns: EXAMPLES, seed: SEED },
+    ));
+    if (r.failed && r.counterexample) {
+      const ce = r.counterexample[0] as unknown[];
+      const hit = effect;
+      effect = '';
+      const [x, y] = await sandboxed(async () => [await drive(old, ce), await drive(fresh, ce)] as const);
+      effect = hit;
+      Object.assign(t, { verdict: 'FAIL', counterexample: { args: text(ce), old: text(x), new: text(y) } });
+    } else if (r.failed) {
+      inconclusive(`fast-check failed without a counterexample: ${String(r.errorInstance ?? '').slice(0, 150)}`);
+    } else if (effect) {
+      inconclusive(`the function does ${effect}, which cannot be sandboxed: it was not judged`);
+    } else if (unjudged.opaque) {
+      inconclusive(unjudged.opaque === 'network'
+        ? 'the function returns a server or a socket (network, which cannot be sandboxed): its result is not comparable data'
+        : 'the result contains a function: it is not comparable data');
+    } else if (unjudged.stray) {
+      inconclusive(`an error escaped the call (${unjudged.stray}): the function was not judged`);
+    } else if (unjudged.suspended) {
+      inconclusive(`${unjudged.suspended} call(s) did not finish within ${STEP_TIMEOUT_MS / 1000} s (real I/O, a long wait, a promise nobody settles): those paths were not judged`);
+    } else if (sawAsync && (!seen.old.ok || !seen.new.ok)) {
+      inconclusive(`no call of the ${seen.old.ok ? 'new' : 'old'} version returned a value (every one raised): nothing was compared`);
+    }
+  } finally {
+    process.off('unhandledRejection', onStray);
+    process.off('uncaughtException', onStray);
+  }
+}
 
 // ---------- main ----------
 
@@ -256,11 +438,15 @@ for (const file of req.changed_files as string[]) {
   }
   const literals = harvest([baseSf, candSf]);
   let oldMod: Json | undefined, newMod: Json | undefined, importErr = '';
+  effect = '';
   try {
-    oldMod = await import(pathToFileURL(basePath).href);
-    newMod = await import(pathToFileURL(candPath).href);
+    // Loading a module can itself open a socket or arm a timer: the traps are on here too, and say so.
+    await sandboxed(async () => {
+      oldMod = await import(pathToFileURL(basePath).href);
+      newMod = await import(pathToFileURL(candPath).href);
+    });
   } catch (e) {
-    importErr = `could not import: ${(e as Error).message}`.slice(0, 200);
+    importErr = (effect ? `could not import: loading the module does ${effect}, which cannot be sandboxed` : `could not import: ${(e as Error).message}`).slice(0, 200);
   }
   for (const name of names) {
     const ov = override[name] ?? override[`${file}::${name}`];
@@ -286,23 +472,15 @@ for (const file of req.changed_files as string[]) {
       continue;
     }
     t.typed = typed.ok;
-    let isAsync = false;
-    const r = fc.check(
-      fc.property(args, (a) => {
-        const x = run(old, a), y = run(fresh, a);
-        if ('async' in x || 'async' in y) { isAsync = true; return true; }
-        return isDeepStrictEqual(x, y);
-      }),
-      { numRuns: EXAMPLES, seed: SEED },
-    );
-    if (isAsync) { inconclusive('async function: not supported yet'); continue; }
-    if (r.failed && r.counterexample) {
-      const ce = r.counterexample[0] as unknown[];
-      Object.assign(t, { verdict: 'FAIL', counterexample: { args: text(ce), old: text(run(old, ce)), new: text(run(fresh, ce)) } });
-    } else if (r.failed) {
-      inconclusive(`fast-check failed without a counterexample: ${String(r.errorInstance ?? '').slice(0, 150)}`);
+    // One target never drops the file: whatever its judgment throws is that target's INCONCLUSIVE.
+    try {
+      await judge(t, old, fresh, args, inconclusive);
+    } catch (e) {
+      inconclusive(`the engine could not judge this function: ${(e as Error).message}`.slice(0, 200));
     }
   }
 }
 
 writeFileSync(`${IO}/response.json`, JSON.stringify({ schema_version: 1, targets, out_of_scope: outOfScope, error: null }, null, 1));
+// Promises that never settle or handles a target left open must not keep the container alive until the core's timeout.
+process.exit(0);
