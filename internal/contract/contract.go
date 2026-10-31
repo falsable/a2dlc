@@ -18,12 +18,21 @@ const (
 	INCONCLUSIVE = "INCONCLUSIVE"
 )
 
+// Values of Config.RunDivergence.
+const (
+	RunDivergenceStrict       = "strict"
+	RunDivergenceCriticalCode = "critical_code"
+)
+
 type Config struct {
 	// ProtectedPaths are globs an agent cannot change without a signed approval (protected_path).
 	ProtectedPaths []string `json:"protected_paths,omitempty"`
 	// CriticalCode are globs over "file" or "file::symbol" naming the code where a behavior divergence stays FAIL until a
 	// signed waiver. Absent means nothing is critical: every divergence is a note in the receipt (VerdictTarget.Note).
 	CriticalCode []string `json:"critical_code,omitempty"`
+	// RunDivergence is how a2dlc run judges a behavior divergence in Stage 4: RunDivergenceStrict (also when absent) keeps
+	// every one a FAIL; RunDivergenceCriticalCode applies CriticalCode as a2dlc check does.
+	RunDivergence string `json:"run_divergence,omitempty"`
 	// SupplyChain names the dependency allowlist file (config.supply_chain).
 	SupplyChain   *SupplyChain    `json:"supply_chain,omitempty"`
 	SchemaVersion int             `json:"schema_version"`

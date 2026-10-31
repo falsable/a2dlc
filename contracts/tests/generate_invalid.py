@@ -105,6 +105,8 @@ cases = {
     "verdict__target-note-empty.json": (verdict_divergence, lambda x: x["targets"][0].update(note="")),
     "config__critical-code-empty-glob.json": (c, lambda x: x.update(critical_code=[""])),
     "config__critical-code-repeated.json": (c, lambda x: x.update(critical_code=["a.py", "a.py"])),
+    "config__run-divergence-unknown.json": (c, lambda x: x.update(run_divergence="everything")),
+    "config__run-divergence-not-a-string.json": (c, lambda x: x.update(run_divergence=True)),
     "config__critical-code-not-a-list.json": (c, lambda x: x.update(critical_code="app/domain/valor.py")),
     # list_tests: a file that cannot be listed says why and lists nothing; a test has a class path and a name
     "engine-list-tests-response__unlistable-without-reason.json": (read("engine-list-tests-response__py.json"), lambda x: x["files"][1].pop("reason")),

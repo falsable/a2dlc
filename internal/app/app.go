@@ -162,6 +162,11 @@ func (a App) configAt(commit string) (contract.Config, error) {
 	if c.SchemaVersion != contract.SchemaVersion {
 		return c, fmt.Errorf("%s: schema_version %d", pathConfig, c.SchemaVersion)
 	}
+	switch c.RunDivergence {
+	case "", contract.RunDivergenceStrict, contract.RunDivergenceCriticalCode:
+	default:
+		return c, fmt.Errorf("%s: run_divergence %q is not %s or %s", pathConfig, c.RunDivergence, contract.RunDivergenceStrict, contract.RunDivergenceCriticalCode)
+	}
 	if c.Integration != nil {
 		if err := c.Integration.Validate(); err != nil {
 			return c, fmt.Errorf("%s: %v", pathConfig, err)
@@ -282,7 +287,8 @@ type CheckOptions struct {
 	FireOn string
 	// StrictDivergence keeps a divergence on any code a FAIL, as if everything were critical. a2dlc run sets it: the
 	// Stage 4 oracle ranks candidates by their verdict, and a note would let a candidate that changes the base's behavior
-	// pass. a2dlc check leaves it off, and config.critical_code decides there.
+	// pass. a2dlc check leaves it off, and config.critical_code decides there. A base config with
+	// run_divergence "critical_code" turns it off for a run too (an autonomous consumer signs no waivers).
 	StrictDivergence bool
 }
 
@@ -488,7 +494,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 		return v, engErr
 	}
 	critical := cfg.CriticalCode
-	if opts.StrictDivergence {
+	if opts.StrictDivergence && cfg.RunDivergence != contract.RunDivergenceCriticalCode {
 		critical = allCritical
 	}
 	v.Verdict, v.Targets, v.PendingWaivers = verdict.Aggregate(targets, waived, approved, len(errs), critical)

@@ -68,9 +68,18 @@ the target is a `FAIL` with a counterexample and no waiver, and decides again wh
 `critical_code` of the config at the receipt's `base_ref`. A note on critical code is a problem ("has no waiver"); so is a
 note it cannot confirm because that config cannot be read.
 
-## `a2dlc run` is not affected
+## `a2dlc run` is strict unless the config says otherwise
 
 Stage 4 of `a2dlc run` ranks the candidates by their verdict, and a divergence from the base is how a candidate that
 changes behavior is told apart from one that does not. It runs `check` with `StrictDivergence`, which treats every target as
-critical, so it keeps today's behavior. Without that, `TestN2OnlyOnePassesIsChosen` and `TestN2NonePassesWorstRemains`
-fail: both candidates would pass.
+critical, so by default it keeps today's behavior. Without that, `TestN2OnlyOnePassesIsChosen` and
+`TestN2NonePassesWorstRemains` fail: both candidates would pass.
+
+A consumer that signs no waivers (an autonomous pipeline) cannot live with that: every intended behavior change on
+engine-covered code would be rejected. `config.run_divergence` (`strict`, the default, or `critical_code`, read from the
+base's config) lets it choose. With `critical_code`, a run judges a divergence as `check` does: a `FAIL` only on
+`config.critical_code`, a note on its target elsewhere. The builder has been sent each divergence once by then (Stage 3
+returns the engines' divergences, once per function and input), so a note is a divergence it saw and kept. In the N=2
+selection, candidates with the same verdict are ranked by their number of divergence notes, fewer first, before complexity.
+The field only sets the severity of an engine divergence; a `FAIL` without a counterexample, a failing test and every other
+gate are judged as before.

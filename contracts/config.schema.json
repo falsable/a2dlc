@@ -39,6 +39,11 @@
       "uniqueItems": true,
       "description": "Globs over \"file\" or \"file::symbol\" naming the code where a behavior divergence stays FAIL until a signed waiver (the file part uses the syntax of paths; in the symbol part * does not cross a \"/\"). A glob without \"::\" covers every symbol of the matching files. Absent: nothing is critical, and a divergence the engines found with a counterexample is a note on its target in the verdict (targets[].note) that does not fail it. Read from the base's config, like the rest, so a diff cannot drop its own critical code."
     },
+    "run_divergence": {
+      "enum": ["strict", "critical_code"],
+      "default": "strict",
+      "description": "How a2dlc run judges a behavior divergence (a target the engines FAIL with a counterexample) in Stage 4, which a2dlc check settles with critical_code alone. strict (the default, and what an absent field means): every divergence is a FAIL until a signed waiver, because the oracle ranks candidates by their verdict. critical_code: a divergence is a FAIL only on the code critical_code names, as in check; elsewhere it is a note on its target in the verdict (targets[].note), after the builder has been sent it once (Stage 3 returns each divergence of the engines to the builder, once per function and input). N=2 ranks candidates with the same verdict by their number of divergence notes, fewer first. It only chooses the severity of an engine divergence; it never turns a FAIL without a counterexample, a test, a waiver check or any other gate into a pass. Read from the base's config, like the rest."
+    },
     "supply_chain": {
       "type": "object",
       "properties": {

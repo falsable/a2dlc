@@ -540,7 +540,7 @@ A behavior divergence (a differential engine found an input where the old and th
 - `config.critical_code` is a list of globs naming code where any divergence blocks. It is read from `.a2dlc/config.json` at the receipt's `base_ref`.
 - A target with `verdict: FAIL`, a non-null `counterexample`, no waiver, whose id does not match `critical_code`, is recorded with `note: "behavior_divergence"`. It keeps `verdict: FAIL` and its counterexample, and it does not count toward the aggregate (§6.4.4).
 - A `FAIL` target on critical code, or without a counterexample, has no note and makes the receipt `FAIL` until a signed waiver covers it.
-- With no `critical_code`, nothing is critical. `a2dlc run` treats everything as critical.
+- With no `critical_code`, nothing is critical. `a2dlc run` treats everything as critical unless `config.run_divergence` is `critical_code` (default `strict`), in which case it applies `critical_code` as `a2dlc check` does.
 - A verifier MUST refuse a note unless the target is `FAIL` with a counterexample and `waived: false`, and MUST refuse it when the target matches `critical_code` of the config at `base_ref`. If that config cannot be read, every target is critical.
 
 A glob is matched against a target `<file>::<symbol>`, split at its first `::`. A glob without `::` matches the file part and covers every symbol in the file. A glob with `::` is split the same way, and its two halves match the file part and the symbol part separately. In a half, `**/` matches any number of leading directories including none, `**` matches any characters including `/`, `*` matches any run of characters except `/`, `?` matches one character except `/`, and every other character matches itself. The whole half must match.

@@ -1,0 +1,4 @@
+{"schema_version": 1,
+ "engines": [{"language": "typescript", "image": "a2dlc-engine-ts:0.2", "paths": ["src/**"], "budget": {"examples": 300, "seed": 1}}],
+ "critical_code": ["src/billing/**"],
+ "run_divergence": "critical_code"}

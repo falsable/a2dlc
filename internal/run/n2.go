@@ -284,6 +284,15 @@ func (m *Machine) judgmentN2(ctx context.Context, p, o contract.CandidateEntry) 
 		}
 		winner, why = occam(complexities)
 		why = "both PASS; " + why
+		// with config.run_divergence critical_code a PASS can carry divergence notes: the one with fewer ranks higher, and
+		// the complexity only decides between candidates with as many
+		if np, no := divergenceNotes(verdictP), divergenceNotes(verdictO); np != no {
+			winner = 0
+			if no < np {
+				winner = 1
+			}
+			why = fmt.Sprintf("both PASS; %s has fewer divergence notes (%s: %d, %s: %d)", judgments[winner].c.Builder, p.Builder, np, o.Builder, no)
+		}
 		if len(unmeasured) > 0 {
 			why += " (complexity unmeasured: " + strings.Join(unmeasured, "; ") + ")"
 		}
@@ -397,6 +406,17 @@ func rank(v string) int {
 		return 1
 	}
 	return 0
+}
+
+// divergenceNotes counts the targets of a verdict that carry a behavior_divergence note.
+func divergenceNotes(v contract.Verdict) int {
+	n := 0
+	for _, t := range v.Targets {
+		if t.Note != "" {
+			n++
+		}
+	}
+	return n
 }
 
 // occam chooses between two candidates with PASS the one with lower complexity, lexicographically (§5 Stage 5): sum of
