@@ -120,3 +120,37 @@ func TestSetBaselineUsesAnUnreproducedCachedRunAsTheFirstOfTwo(t *testing.T) {
 		t.Fatalf("a reproduced cached run must cost nothing: %v %+v, %d runs", err, out, len(tf.runs)-n)
 	}
 }
+
+// A consumer that commits another roles file before the next step (the factory writes one per lane) keeps the cached run of
+// the previous candidate: the roles file is not in the key. Any other file is.
+func TestSetBaselineIgnoresACommittedRolesFile(t *testing.T) {
+	a, tf, dir := suiteRepo(t)
+	write(t, dir, "src/lib/f.ts", "export const f = 2\nIMPL old\n")
+	if _, err := a.Check(context.Background(), ""); err != nil { // leaves the candidate's run in the cache, unreproduced
+		t.Fatal(err)
+	}
+	git(t, dir, "add", "src", "tests")
+	git(t, dir, "commit", "-qm", "step 1")
+	write(t, dir, ".a2dlc/roles.json", `{"schema_version":1,"roles":{}}`)
+	git(t, dir, "add", ".a2dlc/roles.json")
+	git(t, dir, "commit", "-qm", "roles for step 2")
+	n := len(tf.runs)
+	out, err := a.SetBaseline(context.Background(), "HEAD")
+	if err != nil || !out.Stable || out.Reason != "" {
+		t.Fatalf("%v %+v", err, out)
+	}
+	if got := len(tf.runs) - n; got != 1 || !out.Cached {
+		t.Fatalf("the candidate's cached run was due as the first of two, got %d runs (cached %v)", got, out.Cached)
+	}
+	write(t, dir, "README.md", "x\n")
+	git(t, dir, "add", "README.md")
+	git(t, dir, "commit", "-qm", "another file")
+	n = len(tf.runs)
+	out, err = a.SetBaseline(context.Background(), "HEAD")
+	if err != nil || !out.Stable {
+		t.Fatalf("%v %+v", err, out)
+	}
+	if got := len(tf.runs) - n; got != 2 || out.Cached {
+		t.Fatalf("a change outside the roles file must miss the cache, got %d runs (cached %v)", got, out.Cached)
+	}
+}

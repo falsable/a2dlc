@@ -165,6 +165,30 @@ func (r Repo) TreeID(treeish string) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
+// TreeWithout is the id of the tree of treeish (a commit or a tree) with paths removed and nothing else: TreeID when none of
+// them is in it.
+func (r Repo) TreeWithout(treeish string, paths ...string) (string, error) {
+	idx, cleanup, err := r.tempIndex(false)
+	if err != nil {
+		return "", err
+	}
+	defer cleanup()
+	env := []string{"GIT_INDEX_FILE=" + idx}
+	if _, err := r.git(env, "read-tree", treeish); err != nil {
+		return "", err
+	}
+	// -f: the temporary index holds treeish, which may differ from both HEAD and the working tree in these paths
+	args := []string{"rm", "--cached", "-r", "-f", "-q", "--ignore-unmatch", "--"}
+	for _, p := range paths {
+		args = append(args, ":(literal)"+p)
+	}
+	if _, err := r.git(env, args...); err != nil {
+		return "", err
+	}
+	out, err := r.git(env, "write-tree")
+	return strings.TrimSpace(out), err
+}
+
 // CommonDir is the git directory that every worktree of the repository shares, as an absolute path.
 func (r Repo) CommonDir() (string, error) {
 	out, err := r.git(nil, "rev-parse", "--path-format=absolute", "--git-common-dir")

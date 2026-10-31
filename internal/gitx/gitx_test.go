@@ -81,6 +81,43 @@ func TestWorktreeTreeIgnoresUntrackedNestedRepositories(t *testing.T) {
 	}
 }
 
+// TreeWithout gives TreeID when the paths are not in the tree, the same id for two trees that differ only in them, from a
+// commit or a tree alike, and another id when anything else differs.
+func TestTreeWithout(t *testing.T) {
+	dir := t.TempDir()
+	git(t, dir, "init", "-q")
+	os.WriteFile(filepath.Join(dir, "a.py"), []byte("l1\n"), 0o644)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "base")
+	r, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plain, _ := r.TreeID("HEAD")
+	if got, err := r.TreeWithout("HEAD", ".a2dlc/roles.json"); err != nil || got != plain {
+		t.Fatalf("without the path in the tree: %s %v, TreeID %s", got, err, plain)
+	}
+	os.MkdirAll(filepath.Join(dir, ".a2dlc"), 0o755)
+	os.WriteFile(filepath.Join(dir, ".a2dlc", "roles.json"), []byte(`{"a":1}`), 0o644)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "roles 1")
+	os.WriteFile(filepath.Join(dir, ".a2dlc", "roles.json"), []byte(`{"a":2}`), 0o644)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "roles 2")
+	tree2, _ := r.TreeID("HEAD")
+	for _, treeish := range []string{"HEAD~1", "HEAD", tree2} {
+		if got, err := r.TreeWithout(treeish, ".a2dlc/roles.json"); err != nil || got != plain {
+			t.Fatalf("%s: %s %v, want %s", treeish, got, err, plain)
+		}
+	}
+	os.WriteFile(filepath.Join(dir, "a.py"), []byte("l2\n"), 0o644)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "code")
+	if got, _ := r.TreeWithout("HEAD", ".a2dlc/roles.json"); got == plain {
+		t.Fatal("a change outside the removed paths must change the id")
+	}
+}
+
 // A repository that the commit does track as a gitlink (a submodule) stays in the tree, so a clean HEAD has the same tree
 // as its working tree.
 func TestWorktreeTreeKeepsTrackedGitlinks(t *testing.T) {

@@ -586,8 +586,8 @@ func keys(m map[string]junit.Case) []string {
 	return out
 }
 
-// suiteKey identifies a run of the baseline command by the content of the tree it ran on, not by the commit that holds it:
-// the tree the previous step's candidate left is the base of the next step whatever commits carry it. The image digest is
+// suiteKey identifies a run of the baseline command by the content of the tree it ran on (suiteTree), not by the commit that
+// holds it: the tree the previous step's candidate left is the base of the next step whatever commits carry it. The image digest is
 // part of it: a tag that moved to another image is another environment, and a cached result from the old one must not stand
 // for the new one. The selection ($A2DLC_TESTS, $A2DLC_CHANGED) is part of it only when the command names one of them: a
 // baseline that runs the whole suite gives the same answer whichever files changed.
@@ -600,12 +600,24 @@ func suiteKey(tree string, in gateInput, cmd, digest string) string {
 	return hex.EncodeToString(h.Sum(nil))[:24]
 }
 
+// rolesPath is the roles file that internal/run reads from the working directory.
+const rolesPath = ".a2dlc/roles.json"
+
+// suiteTree is the tree suiteKey takes: the tree of treeish without the roles file. The roles file configures who builds and who
+// writes tests, it is read from the working directory and not from a commit, and a consumer may commit another one before each
+// step (the factory writes one per lane, with that lane's budget and test hashes). With it in the key, a base that changed
+// only that file would run the whole suite twice again. The run still sees the file: a suite that read .a2dlc/roles.json would
+// get the cached answer of a tree with another roles file.
+func (a App) suiteTree(treeish string) (string, error) {
+	return a.Repo.TreeWithout(treeish, rolesPath)
+}
+
 // suite is the run of the baseline command on treeish (a commit or a tree): from the cache when the same tree content already
 // answered it with the same command and image, else by running it and keeping the answer. A hit on the candidate's tree gives
 // its coverage again, so the check judges the same lines it would have judged after running. The re-runs that tell a flaky
 // test apart do not come here: each of those must run.
 func (a App) suite(ctx context.Context, in gateInput, cmd, treeish, digest string, env map[string]string) (run, bool, error) {
-	tree, err := a.Repo.TreeID(treeish)
+	tree, err := a.suiteTree(treeish)
 	if err != nil {
 		return run{}, false, err
 	}

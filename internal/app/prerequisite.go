@@ -91,7 +91,7 @@ func (a App) SetBaseline(ctx context.Context, base string) (Baseline, error) {
 	}
 	in := gateInput{cfg: *cfg.Tests, baseSha: baseSha, tree: baseSha, tests: tests}
 	cmd := cfg.Tests.BaselineCommand
-	tree, err := a.Repo.TreeID(baseSha)
+	tree, err := a.suiteTree(baseSha)
 	if err != nil {
 		out.Reason = err.Error()
 		return out, nil
