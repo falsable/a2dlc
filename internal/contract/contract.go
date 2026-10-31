@@ -24,6 +24,12 @@ const (
 	RunDivergenceCriticalCode = "critical_code"
 )
 
+// Values of Config.RunDifferential (RFC-0005): where Stage 4 of a2dlc run takes the engines' diff from.
+const (
+	RunDifferentialFresh  = "fresh"
+	RunDifferentialStage3 = "stage3"
+)
+
 // Values of Config.Rung, the Lite escalation rung a2dlc run climbs to (protocol section 4.4).
 const (
 	RungGates    = "gates"
@@ -54,6 +60,10 @@ type Config struct {
 	// RunDivergence is how a2dlc run judges a behavior divergence in Stage 4: RunDivergenceStrict (also when absent) keeps
 	// every one a FAIL; RunDivergenceCriticalCode applies CriticalCode as a2dlc check does.
 	RunDivergence string `json:"run_divergence,omitempty"`
+	// RunDifferential is RunDifferentialFresh (also when absent) or RunDifferentialStage3: Stage 4 of a2dlc run takes, for each
+	// engine, the diff answer that Stage 3 got on the builder's last round when the candidate is that round's tree and the
+	// request is the same, instead of running the engine again (RFC-0005).
+	RunDifferential string `json:"run_differential,omitempty"`
 	// Rung is how far a2dlc run climbs: RungMutation (also when absent) runs Stage 5 after Stage 4; RungGates stops after the
 	// oracle, the tests and their gates, skips Stage 5 and records that mutation was not run.
 	Rung string `json:"rung,omitempty"`

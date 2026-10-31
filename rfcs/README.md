@@ -8,6 +8,7 @@ An RFC is a written proposal to change what the protocol requires or what a cont
 | [0002](0002-declared-tests-as-tier0.md) | Declared tests as the Tier 0 of files no engine covers | Accepted |
 | [0003](0003-nop-regression-guards.md) | A new test that passes on the base, next to one that proves the change, is a regression guard | Accepted |
 | [0004](0004-tier0-runs-the-baseline-command.md) | Tier 0 can run the baseline command, so Stage 4 does not run it again on the same tree | Draft |
+| [0005](0005-stage4-takes-the-differential-of-stage3.md) | Stage 4 can take the differential Stage 3 already ran on the same tree | Draft |
 
 ## What needs an RFC
 

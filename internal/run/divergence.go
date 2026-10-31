@@ -22,16 +22,17 @@ import (
 type divergenceReview struct {
 	feedback *contract.Tier0Response
 	notes    []string
+	answers  app.DiffAnswers // the engines' answers on tree, for Stage 4 with config.run_differential "stage3" (RFC-0005)
 }
 
 // checkDivergences runs the differential on tree. returned holds the divergences the builder has already been told about
 // (it is updated); nextRound is whether there is a round left to act on one.
 func (m *Machine) checkDivergences(ctx context.Context, tree string, returned map[string]bool, nextRound bool) (divergenceReview, error) {
-	found, notes, err := m.app.Divergences(ctx, m.baseSha, tree)
+	found, notes, answers, err := m.app.Divergences(ctx, m.baseSha, tree)
 	if err != nil {
 		return divergenceReview{}, err
 	}
-	r := divergenceReview{notes: notes}
+	r := divergenceReview{notes: notes, answers: answers}
 	for _, d := range found {
 		key := "divergence|" + d.Target + "|" + d.Args
 		if nextRound && !returned[key] {

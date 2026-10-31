@@ -44,6 +44,11 @@
       "default": "strict",
       "description": "How a2dlc run judges a behavior divergence (a target the engines FAIL with a counterexample) in Stage 4, which a2dlc check settles with critical_code alone. strict (the default, and what an absent field means): every divergence is a FAIL until a signed waiver, because the oracle ranks candidates by their verdict. critical_code: a divergence is a FAIL only on the code critical_code names, as in check; elsewhere it is a note on its target in the verdict (targets[].note), after the builder has been sent it once (Stage 3 returns each divergence of the engines to the builder, once per function and input). N=2 ranks candidates with the same verdict by their number of divergence notes, fewer first. It only chooses the severity of an engine divergence; it never turns a FAIL without a counterexample, a test, a waiver check or any other gate into a pass. Read from the base's config, like the rest."
     },
+    "run_differential": {
+      "enum": ["fresh", "stage3"],
+      "default": "fresh",
+      "description": "Proposed by RFC-0005 (Draft). Where Stage 4 of a2dlc run takes the engines' diff from. fresh (the default, and what an absent field means): Stage 4 runs it. stage3: for each engine, Stage 4 takes the diff answer that Stage 3 got on the builder's last round, when the candidate is that round's tree and the request to the engine is the same (engine entry, base, files, budget, generators, and no equivalence relaxation); an engine without such an answer runs as with fresh. The receipt lists a taken answer as the engine operation diff_from_stage3. Opt-in because the verdict then rests on the one search Stage 3 made instead of a second independent one: the engines' search is bounded by time, so two searches can differ. Read from the base's config, like the rest."
+    },
     "rung": {
       "enum": ["gates", "mutation"],
       "default": "mutation",

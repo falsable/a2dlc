@@ -245,6 +245,7 @@ The Saboteur generates the PBT suite **in parallel** with the Builder, without s
    - Refactor: `legacy(x) ≡_S refactor(x)`.
    - If a candidate crashes or violates `S*`, it is discarded.
    - If both satisfy `S*` but are not `≡_S`, the spec is under-specified and **CB-01** fires with the minimal (shrunk) counterexample. In refactor a *bug-or-feature probe* fires, grouped by root cause.
+   - *Proposed by [RFC-0005](../rfcs/0005-stage4-takes-the-differential-of-stage3.md) (Draft), not normative until it is accepted:* with `config.run_differential: "stage3"`, a2dlc run's Stage 4 takes, for each engine, the differential answer that Stage 3 got on the Builder's last round, when the candidate is that round's tree and the request to the engine is the same, instead of running the engine again; the receipt lists it as the engine operation `diff_from_stage3`.
 
 ### Stage 5: Tier 2 Diff-Mutation and selection (1–3 min, async)
 1. **Mutation testing scoped to the diff** (`cargo-mutants --in-diff`, `Stryker --since`, `mutmut` over the diff lines).

@@ -114,6 +114,8 @@ cases = {
     "config__critical-code-repeated.json": (c, lambda x: x.update(critical_code=["a.py", "a.py"])),
     "config__run-divergence-unknown.json": (c, lambda x: x.update(run_divergence="everything")),
     "config__run-divergence-not-a-string.json": (c, lambda x: x.update(run_divergence=True)),
+    # RFC-0005: run_differential is fresh or stage3, not a switch
+    "config__run-differential-unknown.json": (c, lambda x: x.update(run_differential=True)),
     "config__rung-unknown.json": (c, lambda x: x.update(rung="sandbox")),
     "config__rung-not-a-string.json": (c, lambda x: x.update(rung=2)),
     "verdict__baseline-candidate-cached-not-a-boolean.json": (read("verdict__candidate-cached.json"), lambda x: x["test_gates"]["baseline"].update(candidate_cached="yes")),

@@ -59,6 +59,9 @@ type Machine struct {
 	maxSpec     int // round limit of Stage 1 (stage1.go)
 	maxMutants  int // mutant limit of Stage 5 if the intent sets it (budget.max_mutants), otherwise 0: config.mutation wins, then the default (stage5.go)
 	z3          Solver
+	// differential are the engines' diff answers on the tree Stage 3 accepted, which Stage 4 may take (RFC-0005). Kept in
+	// memory only: a resumed run judges Stage 4 with a fresh diff.
+	differential app.DiffAnswers
 }
 
 // Stage is one step of the machine: it returns the final state (done, skipped, escalated, failed), the reason and the

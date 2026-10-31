@@ -177,7 +177,7 @@ func stageTier1(ctx context.Context, m *Machine) (string, string, string, error)
 	if err != nil {
 		return "", "", "", err
 	}
-	v, reason, _, err := m.judge(ctx, app.CheckOptions{CandidateTree: candidate}, ArtVerdict)
+	v, reason, _, err := m.judge(ctx, app.CheckOptions{CandidateTree: candidate, Differential: m.differential}, ArtVerdict)
 	if err != nil {
 		return "", "", "", err
 	}

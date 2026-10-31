@@ -436,6 +436,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		if err != nil {
 			return buildResult{}, err
 		}
+		m.differential = div.answers
 		var notes []string
 		if len(unreviewed) > 0 {
 			notes = append(notes, "Tier 0 did not review: "+strings.Join(unreviewed, ", "))

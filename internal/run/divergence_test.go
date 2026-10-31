@@ -163,6 +163,42 @@ func TestRunDivergenceCriticalCodeInsideIsAFail(t *testing.T) {
 	}
 }
 
+// RFC-0005: with run_differential "stage3", Stage 4 judges the tree of the builder's last round with the diff answer Stage 3
+// got on it: the engine is not asked again (sawCand stays empty), and the verdict is the strict FAIL of the test above, with
+// the counterexample the builder was told about. Without the field that test shows Stage 4 asking once.
+func TestRunDifferentialStage3JudgesWithTheLastRoundsAnswer(t *testing.T) {
+	a, dir, eng := repoBuilder(t)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"run_differential":"stage3","engines":[{"language":"python","image":"x","paths":["src/**"],"budget":{}}]}`)
+	git(t, dir, "add", ".a2dlc/config.json")
+	git(t, dir, "commit", "-qm", "run_differential stage3")
+	eng.diverge = divergesWhenDoubledPlusOne
+	var requests []contract.BuilderRequest
+	launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, keepsTheDivergence)}
+	path := intentFile(t, func(in *contract.Intent) { in.SliceID, in.Mode, in.Goal = "div", contract.ModeLite, "f" })
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "div", Intent: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(requests) != 2 || eng.probes != 2 || len(eng.sawCand) != 0 {
+		t.Fatalf("requests %d, probes %d, Stage 4 asked %d times", len(requests), eng.probes, len(eng.sawCand))
+	}
+	var v contract.Verdict
+	readJSONTest(t, filepath.Join(dir, ".a2dlc/run/div", ArtVerdict), &v)
+	if v.Verdict != contract.FAIL || len(v.Targets) != 1 || v.Targets[0].Counterexample == nil || v.Targets[0].Counterexample.New != "5" || st.Outcome == nil || *st.Outcome != contract.FAIL {
+		t.Fatalf("%s %+v %v", v.Verdict, v.Targets, st.Outcome)
+	}
+	if v.Timings == nil {
+		t.Fatal("the verdict has no timings")
+	}
+	reused := false
+	for _, op := range v.Timings.EngineOps {
+		reused = reused || op.Name == "diff_from_stage3"
+	}
+	if !reused {
+		t.Fatalf("%+v", v.Timings)
+	}
+}
+
 // A value the schema does not know is an error, not a silent strict.
 func TestRunDivergenceUnknownValueIsRefused(t *testing.T) {
 	a, dir, _ := repoBuilder(t)

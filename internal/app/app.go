@@ -172,6 +172,11 @@ func (a App) configAt(commit string) (contract.Config, error) {
 	default:
 		return c, fmt.Errorf("%s: run_divergence %q is not %s or %s", pathConfig, c.RunDivergence, contract.RunDivergenceStrict, contract.RunDivergenceCriticalCode)
 	}
+	switch c.RunDifferential {
+	case "", contract.RunDifferentialFresh, contract.RunDifferentialStage3:
+	default:
+		return c, fmt.Errorf("%s: run_differential %q is not %s or %s", pathConfig, c.RunDifferential, contract.RunDifferentialFresh, contract.RunDifferentialStage3)
+	}
 	if c.Tests != nil {
 		switch c.Tests.Tier0Command {
 		case "", contract.Tier0CommandTests, contract.Tier0CommandBaseline:
@@ -302,6 +307,10 @@ type CheckOptions struct {
 	// pass. a2dlc check leaves it off, and config.critical_code decides there. A base config with
 	// run_divergence "critical_code" turns it off for a run too (an autonomous consumer signs no waivers).
 	StrictDivergence bool
+	// Differential are the diff answers Stage 3 of a2dlc run got on the builder's last round (Divergences). Check takes one
+	// instead of running the engine only when the base config sets run_differential "stage3" and its request is the same on
+	// the same tree (RFC-0005); otherwise they are ignored.
+	Differential DiffAnswers
 }
 
 // allCritical makes every target critical (CheckOptions.StrictDivergence).
@@ -445,9 +454,18 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 				if len(req.Budget) == 0 {
 					req.Budget = json.RawMessage("{}")
 				}
-				t0 := time.Now()
-				resp, err := a.Runner.Run(ctx, e, req, baseDir, candDir)
-				timerOf(ctx).engineOp("diff", time.Since(t0))
+				resp, reused := contract.Response{}, false
+				if cfg.RunDifferential == contract.RunDifferentialStage3 {
+					resp, reused = opts.Differential.answer(tree, e, req)
+				}
+				var err error
+				if reused {
+					timerOf(ctx).engineOp("diff_from_stage3", 0)
+				} else {
+					t0 := time.Now()
+					resp, err = a.Runner.Run(ctx, e, req, baseDir, candDir)
+					timerOf(ctx).engineOp("diff", time.Since(t0))
+				}
 				if err != nil {
 					errs = append(errs, contract.EngineError{Language: e.Language, Files: files, Error: err.Error()})
 					continue
