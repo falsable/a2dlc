@@ -24,6 +24,14 @@ const (
 	RunDivergenceCriticalCode = "critical_code"
 )
 
+// Values of Config.Rung, the Lite escalation rung a2dlc run climbs to (protocol section 4.4).
+const (
+	RungGates    = "gates"
+	RungMutation = "mutation"
+	// RungGatesNoMutation is the reason recorded for mutation (verdict test_gates.mutation, Stage 5 of the run) at RungGates.
+	RungGatesNoMutation = "config.rung is gates: mutation is not part of this rung, so no mutant was generated and no kill rate was measured"
+)
+
 type Config struct {
 	// ProtectedPaths are globs an agent cannot change without a signed approval (protected_path).
 	ProtectedPaths []string `json:"protected_paths,omitempty"`
@@ -33,6 +41,9 @@ type Config struct {
 	// RunDivergence is how a2dlc run judges a behavior divergence in Stage 4: RunDivergenceStrict (also when absent) keeps
 	// every one a FAIL; RunDivergenceCriticalCode applies CriticalCode as a2dlc check does.
 	RunDivergence string `json:"run_divergence,omitempty"`
+	// Rung is how far a2dlc run climbs: RungMutation (also when absent) runs Stage 5 after Stage 4; RungGates stops after the
+	// oracle, the tests and their gates, skips Stage 5 and records that mutation was not run.
+	Rung string `json:"rung,omitempty"`
 	// SupplyChain names the dependency allowlist file (config.supply_chain).
 	SupplyChain   *SupplyChain    `json:"supply_chain,omitempty"`
 	SchemaVersion int             `json:"schema_version"`
@@ -452,6 +463,8 @@ type TestGates struct {
 	NOPOracle    Gate  `json:"nop_oracle"`
 	Baseline     Gate  `json:"baseline"`
 	TestsDiff    *Gate `json:"tests_diff,omitempty"`
+	// Mutation is set only at RungGates: not_applicable, with the rung as the reason.
+	Mutation *Gate `json:"mutation,omitempty"`
 }
 
 type Gate struct {

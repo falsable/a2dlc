@@ -108,6 +108,9 @@ cases = {
     "config__critical-code-repeated.json": (c, lambda x: x.update(critical_code=["a.py", "a.py"])),
     "config__run-divergence-unknown.json": (c, lambda x: x.update(run_divergence="everything")),
     "config__run-divergence-not-a-string.json": (c, lambda x: x.update(run_divergence=True)),
+    "config__rung-unknown.json": (c, lambda x: x.update(rung="sandbox")),
+    "config__rung-not-a-string.json": (c, lambda x: x.update(rung=2)),
+    "verdict__mutation-gate-unknown-status.json": (read("verdict__rung-gates.json"), lambda x: x["test_gates"]["mutation"].update(status="skipped")),
     "config__critical-code-not-a-list.json": (c, lambda x: x.update(critical_code="app/domain/valor.py")),
     # list_tests: a file that cannot be listed says why and lists nothing; a test has a class path and a name
     "engine-list-tests-response__unlistable-without-reason.json": (read("engine-list-tests-response__py.json"), lambda x: x["files"][1].pop("reason")),

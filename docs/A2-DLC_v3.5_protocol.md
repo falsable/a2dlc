@@ -118,6 +118,8 @@ A minimal subset, adoptable in minutes, that requires no orchestrator. Inspired 
 
 **Lite → full escalation path:** Lite (diff-test) → + NOP gate and baseline (§5, Stage 4) → + mutation scoped to the diff → + hermetic sandbox → + Stage −1 (seams) → + `π_S` and probes → + multi-language and blast radius across services → + delivery (Stages 6–7).
 
+`config.rung` chooses how far `a2dlc run` climbs on the part of that path the binary implements: `mutation` (the default, and what an absent field means) runs Stage 5 after Stage 4; `gates` stops after Stage 4 (the oracle, the NOP gate and the baseline), skips Stage 5 with the rung as its reason and records `test_gates.mutation` as `not_applicable` in the verdict. That records what was measured: no mutant is generated, no kill rate exists, and a PASS at the `gates` rung says nothing about mutation.
+
 ---
 
 ## 5. State machine

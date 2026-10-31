@@ -1,0 +1,3 @@
+{"schema_version": 1,
+ "engines": [{"language": "python", "image": "a2dlc-engine-py:0.11", "paths": ["src/**"], "budget": {"total_s": 240}}],
+ "rung": "gates"}

@@ -44,6 +44,11 @@
       "default": "strict",
       "description": "How a2dlc run judges a behavior divergence (a target the engines FAIL with a counterexample) in Stage 4, which a2dlc check settles with critical_code alone. strict (the default, and what an absent field means): every divergence is a FAIL until a signed waiver, because the oracle ranks candidates by their verdict. critical_code: a divergence is a FAIL only on the code critical_code names, as in check; elsewhere it is a note on its target in the verdict (targets[].note), after the builder has been sent it once (Stage 3 returns each divergence of the engines to the builder, once per function and input). N=2 ranks candidates with the same verdict by their number of divergence notes, fewer first. It only chooses the severity of an engine divergence; it never turns a FAIL without a counterexample, a test, a waiver check or any other gate into a pass. Read from the base's config, like the rest."
     },
+    "rung": {
+      "enum": ["gates", "mutation"],
+      "default": "mutation",
+      "description": "The Lite escalation rung (protocol section 4.4) that a2dlc run climbs to. mutation (the default, and what an absent field means): Stage 4 with the NOP gate and the baseline, then Stage 5, mutation bounded to the diff with its kill gate. gates: Stage 4 with the NOP gate and the baseline, and Stage 5 is skipped, so a candidate is judged by the oracle, the tests and their gates alone. A skipped mutation is a statement of what was measured: the verdict records test_gates.mutation as not_applicable with the rung as the reason, and the run's Stage 5 is skipped with the same reason; it is never a PASS for mutation, and no kill rate is reported. Read from the base's config, like the rest."
+    },
     "supply_chain": {
       "type": "object",
       "properties": {

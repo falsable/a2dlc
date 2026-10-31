@@ -162,6 +162,11 @@ func (a App) configAt(commit string) (contract.Config, error) {
 	if c.SchemaVersion != contract.SchemaVersion {
 		return c, fmt.Errorf("%s: schema_version %d", pathConfig, c.SchemaVersion)
 	}
+	switch c.Rung {
+	case "", contract.RungMutation, contract.RungGates:
+	default:
+		return c, fmt.Errorf("%s: rung %q is not %s or %s", pathConfig, c.Rung, contract.RungGates, contract.RungMutation)
+	}
 	switch c.RunDivergence {
 	case "", contract.RunDivergenceStrict, contract.RunDivergenceCriticalCode:
 	default:
@@ -505,6 +510,9 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	v.DiffBudget = diffBudget
 	if cfg.Tests != nil {
 		v.TestGates, v.Tests = testGates, testResults
+		if cfg.Rung == contract.RungGates && v.TestGates != nil {
+			v.TestGates.Mutation = &contract.Gate{Status: contract.GateNotApplicable, Reason: contract.RungGatesNoMutation}
+		}
 		addTests(&v, waivers, approved)
 	}
 	// Pluggable checks (protocol §5 Checks): they lower the verdict, never raise it; what did not run stays in view.

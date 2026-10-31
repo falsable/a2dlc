@@ -1,0 +1,26 @@
+{
+ "schema_version": 1,
+ "a2dlc_version": "0.2.0",
+ "verdict": "PASS",
+ "base_ref": "9d45962efcf863c3befa0b39d5748ede2ae5870e",
+ "tree_hash": "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+ "created_at": "2026-10-31T12:00:00Z",
+ "targets": [],
+ "out_of_scope": [],
+ "pending_waivers": [],
+ "test_gates": {
+  "nop_oracle": {
+   "status": "ran",
+   "stubs": [
+    "src/calc.py::media"
+   ]
+  },
+  "baseline": {
+   "status": "ran"
+  },
+  "mutation": {
+   "status": "skipped",
+   "reason": "config.rung is gates: mutation is not part of this rung, so no mutant was generated and no kill rate was measured"
+  }
+ }
+}

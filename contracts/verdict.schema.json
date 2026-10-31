@@ -154,7 +154,8 @@
         "nop_oracle": { "$ref": "#/$defs/gate" },
         "baseline": { "$ref": "#/$defs/gate" },
         "tests_diff": { "$ref": "#/$defs/gate", "description": "N trees: the same T over the base, the candidate and each --peer. not_applicable without --peer or --tests-overlay, or with an empty T." },
-        "equivalence_s": { "$ref": "#/$defs/gate", "description": "N=2 differential: candidate against candidate on the same inputs (Stage 4 with two builders). not_applicable with one candidate." }
+        "equivalence_s": { "$ref": "#/$defs/gate", "description": "N=2 differential: candidate against candidate on the same inputs (Stage 4 with two builders). not_applicable with one candidate." },
+        "mutation": { "$ref": "#/$defs/gate", "description": "Present only when config.rung is gates: not_applicable, with the rung as the reason. Mutation (Stage 5 of a2dlc run) was not part of what was measured; a verdict without this entry says nothing about it either way, because a2dlc check never runs mutation." }
       },
       "required": ["nop_oracle", "baseline"],
       "additionalProperties": false
@@ -302,7 +303,7 @@
       "type": "object",
       "properties": {
         "status": {
-          "description": "ran: it ran. not_applicable: nothing to judge (no changed tests, or no changed sources or tests). not_configured: config.tests or baseline_command is missing. error: it could not run (counts as INCONCLUSIVE).",
+          "description": "ran: it ran. not_applicable: nothing to judge (no changed tests, or no changed sources or tests), or, for mutation, a rung that does not include it. not_configured: config.tests or baseline_command is missing. error: it could not run (counts as INCONCLUSIVE).",
           "enum": ["ran", "not_applicable", "not_configured", "error"]
         },
         "reason": { "type": "string", "minLength": 1 },

@@ -40,6 +40,9 @@ func stageMutation(ctx context.Context, m *Machine) (string, string, string, err
 	if err != nil {
 		return "", "", "", err
 	}
+	if cfg.Rung == contract.RungGates {
+		return contract.StageSkipped, contract.RungGatesNoMutation, "", nil
+	}
 	if cfg.Tests == nil {
 		return contract.StageSkipped, "no config.tests: there is no command to run T against the mutants", "", nil
 	}
