@@ -404,10 +404,11 @@ func TestInstallWritesTheEngineImagesOfTheBuild(t *testing.T) {
 	}
 }
 
-// A dev build keeps the local tag of the Python engine built from this tree (the one with async judging, 0.10): a repo
-// installed with an older tag would not get it. Bump the tag here and in CLAUDE.md when engines/py is rebuilt.
+// A dev build keeps the local tag of the Python engine built from this tree (the one that judges the public methods of
+// public classes, 0.11): a repo installed with an older tag would not get it. Bump the tag here and in CLAUDE.md when
+// engines/py is rebuilt.
 func TestInstallDevBuildWritesTheCurrentPythonEngineTag(t *testing.T) {
-	const current = "a2dlc-engine-py:0.10"
+	const current = "a2dlc-engine-py:0.11"
 	if enginePyImage != current {
 		t.Fatalf("enginePyImage = %q, want %q", enginePyImage, current)
 	}

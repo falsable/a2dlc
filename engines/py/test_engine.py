@@ -933,5 +933,112 @@ class ProcessGlobalRegistries(unittest.TestCase):
         self.assertNotIn("Duplicated timeseries", out)
 
 
+def code(*lines):
+    return "\n".join(lines) + "\n"
+
+
+def source(get="1", hidden="1", size="1", later="1", make="n", private="1", get_sig="key: str", make_sig="n: int"):
+    """A module with a public class (a plain method, a private one, a property, an async one, a staticmethod) and a private class."""
+    return code(
+        "class Context:",
+        f"    def get(self, {get_sig}) -> int:",
+        f"        return {get}",
+        "",
+        "    def _hidden(self, key: str) -> int:",
+        f"        return {hidden}",
+        "",
+        "    @property",
+        "    def size(self) -> int:",
+        f"        return {size}",
+        "",
+        "    async def later(self, key: str) -> int:",
+        f"        return {later}",
+        "",
+        "    @staticmethod",
+        f"    def make({make_sig}) -> int:",
+        f"        return {make}",
+        "",
+        "",
+        "class _Private:",
+        "    def get(self, key: str) -> int:",
+        f"        return {private}",
+    )
+
+
+class ClassMethods(Directory):
+    """The public methods of the public classes of a changed file are targets, named Class.method, like its functions. CrossHair
+    is faked and the commands it was given are kept, so the test says what the engine asked it to compare."""
+
+    def setUp(self):
+        super().setUp()
+        self.commands = []
+        for name, value in (("WORK", self.io.parent / "work"), ("run", mock.Mock(side_effect=self.fake_run))):
+            patcher = mock.patch.object(engine, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def fake_run(self, cmd, timeout):
+        self.commands.append(cmd)
+        return (0, "") if cmd[1] == "-c" else (0, "No differences found. (attempted 3 iterations)")
+
+    def diff(self, cand, base=None):
+        (self.base / "m.py").write_text(base or source(), encoding="utf-8")
+        (self.cand / "m.py").write_text(cand, encoding="utf-8")
+        engine.diff(self.req(["m.py"], budget={}))
+        return self.response()
+
+    def test_functions_lists_the_public_plain_methods_of_public_classes_only(self):
+        self.assertEqual(sorted(engine.functions(source())), ["Context.get", "Context.make"])
+
+    def test_a_name_defined_twice_in_a_class_is_left_out(self):
+        text = code(
+            "class C:",
+            "    def x(self, v: int) -> int:",
+            "        return v",
+            "",
+            "    def x(self, v: int, w: int) -> int:",
+            "        return v",
+            "",
+            "    def y(self) -> int:",
+            "        return 1",
+        )
+        self.assertEqual(sorted(engine.functions(text)), ["C.y"])
+
+    def test_a_changed_public_method_is_compared_by_its_qualified_name(self):
+        r = self.diff(source(get="1 + 0"))
+        (t,) = r["targets"]
+        self.assertEqual((t["target"], t["verdict"]), ("m.py::Context.get", "PASS"))
+        self.assertEqual(r["out_of_scope"], [])
+        compared = [c for c in self.commands if c[1:3] == ["-m", "crosshair"]]
+        self.assertEqual([c[-2:] for c in compared], [["a2dlc_base.m.Context.get", "a2dlc_cand.m.Context.get"]])
+
+    def test_a_staticmethod_is_compared_too_and_needs_all_its_parameters_typed(self):
+        r = self.diff(source(make="n + 0"))
+        self.assertEqual([(t["target"], t["verdict"]) for t in r["targets"]], [("m.py::Context.make", "PASS")])
+        r = self.diff(source(make_sig="n", make="n + 0"), base=source(make_sig="n"))
+        (t,) = r["targets"]
+        self.assertEqual((t["target"], t["verdict"], t["typed"]), ("m.py::Context.make", "INCONCLUSIVE", False))
+
+    def test_a_method_without_the_annotation_of_a_parameter_other_than_self_is_inconclusive(self):
+        r = self.diff(source(get_sig="key", get="2"), base=source(get_sig="key"))
+        (t,) = r["targets"]
+        self.assertEqual((t["target"], t["verdict"], t["typed"]), ("m.py::Context.get", "INCONCLUSIVE", False))
+
+    def test_only_private_property_async_or_private_class_changes_stay_out_of_scope(self):
+        r = self.diff(source(hidden="2", size="2", later="2", private="2"))
+        self.assertEqual(r["targets"], [])
+        self.assertEqual(r["out_of_scope"], [{"file": "m.py", "reason": "not_exported"}])
+
+    def test_typed_skips_only_the_receiver_of_a_method(self):
+        def fn(src):
+            return ast.parse(src).body[0]
+        self.assertTrue(engine.typed(fn("def f(self, x: int) -> int: ..."), True))
+        self.assertFalse(engine.typed(fn("def f(self, x) -> int: ..."), True))
+        self.assertFalse(engine.typed(fn("def f(self, x: int) -> int: ...")))
+        self.assertTrue(engine.typed(fn("@classmethod\ndef f(cls, x: int) -> int: ..."), True))
+        self.assertFalse(engine.typed(fn("@staticmethod\ndef f(x, y: int) -> int: ..."), True))
+
+
+
 if __name__ == "__main__":
     unittest.main()

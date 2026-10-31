@@ -133,8 +133,42 @@ def rewrite_imports(tree: Path, package: str) -> None:
             p.write_text("".join(lines), encoding="utf-8")
 
 
+# Decorators that make a method something CrossHair cannot call as Class.method: a property is not a function, and an
+# overload or a setter shares its name with the definition that runs.
+NOT_A_PLAIN_METHOD = {"property", "cached_property", "overload", "setter", "getter", "deleter"}
+
+
+def _decorator_names(fn: ast.AST) -> set[str]:
+    out = set()
+    for d in getattr(fn, "decorator_list", []):
+        d = d.func if isinstance(d, ast.Call) else d
+        out.add(d.attr if isinstance(d, ast.Attribute) else d.id if isinstance(d, ast.Name) else "")
+    return out
+
+
+def methods_of(cls: ast.ClassDef) -> dict[str, ast.AST]:
+    """The public synchronous methods of a class that can be named as Class.method, keyed by that name. A name defined
+    more than once in the class body is left out (overloads, a property and its setter): which definition runs is not
+    what the name says. Underscore-private methods are out, like private functions of the module signatures list;
+    async methods stay out of scope for now (the async driver compares coroutine functions by their module name)."""
+    defs = [m for m in cls.body if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    seen: dict[str, int] = {}
+    for m in defs:
+        seen[m.name] = seen.get(m.name, 0) + 1
+    return {f"{cls.name}.{m.name}": m for m in defs
+            if isinstance(m, ast.FunctionDef) and _public(m.name) and seen[m.name] == 1
+            and not _decorator_names(m) & NOT_A_PLAIN_METHOD}
+
+
 def functions(text: str) -> dict[str, ast.AST]:
-    return {n.name: n for n in ast.parse(text).body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    """The top-level functions by name, and the public methods of the public top-level classes as Class.method."""
+    out: dict[str, ast.AST] = {}
+    for n in ast.parse(text).body:
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            out[n.name] = n
+        elif isinstance(n, ast.ClassDef) and _public(n.name):
+            out.update(methods_of(n))
+    return out
 
 
 def targets_of(base_txt: str, cand_txt: str) -> tuple[list[str], list[str]]:
@@ -214,9 +248,13 @@ def identical_of(base_txt: str, cand_txt: str) -> list[str]:
     return out
 
 
-def typed(fn: ast.AST) -> bool:
+def typed(fn: ast.AST, method: bool = False) -> bool:
+    """Every parameter is annotated. For a method, the receiver (self, or cls of a classmethod) is not: CrossHair types it as
+    the class; a staticmethod has no receiver."""
     a = fn.args
     params = [*a.posonlyargs, *a.args, *a.kwonlyargs]
+    if method and "staticmethod" not in _decorator_names(fn) and (a.posonlyargs or a.args):
+        params.pop(0)
     return all(p.annotation is not None for p in params) and (a.vararg is None or a.vararg.annotation is not None) \
         and (a.kwarg is None or a.kwarg.annotation is not None)
 
@@ -362,7 +400,7 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
     if rc_imp != 0:
         last = (out_imp or "").strip().splitlines()[-1:] or ["no output"]
         return inconclusive(f"could not import: {last[0]}")
-    if not typed(fn):
+    if not typed(fn, "." in n):
         t["typed"] = False
         return inconclusive("no type annotations on the parameters: CrossHair has no domain")
     is_async = isinstance(fn, ast.AsyncFunctionDef)
