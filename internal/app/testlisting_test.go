@@ -210,6 +210,32 @@ func TestCandidateAndNOPRunConcurrentlyWithTheSameResult(t *testing.T) {
 	}
 }
 
+// The baseline's runs start with the stubs and NOP instead of after them, the verdict does not change, and no more than
+// maxTestRuns test containers run at once.
+func TestBaselineOverlapsNOPWithinTheRunLimit(t *testing.T) {
+	a, fe, ft := staticRepo(t)
+	a.Runner = &lister{fakeEngine: fe, listed: map[string][]contract.ListedTest{
+		"tests/a.t": {{Name: "old"}, {Name: "previous"}}, "tests/b.t": {{Name: "oldb"}}}}
+	sequential := judged(t, a)
+	ft.delay = 300 * time.Millisecond // longer than the export of either tree, so the overlap does not depend on scheduling
+	for i := 0; i < 3; i++ {
+		ft.runs, ft.selected, ft.peak, ft.mixed = nil, nil, 0, false
+		t.Setenv("A2DLC_CACHE_DIR", t.TempDir()) // the baseline runs on both trees every round
+		t0 := time.Now()
+		got := judged(t, a)
+		t.Logf("round %d: check took %v with %d test runs of %v", i, time.Since(t0).Round(time.Millisecond), len(ft.runs), ft.delay)
+		if !reflect.DeepEqual(got, sequential) {
+			t.Fatalf("round %d: the overlap changed the result:\n%+v\n%+v", i, got, sequential)
+		}
+		if !ft.mixed {
+			t.Fatalf("round %d: no baseline run overlapped a NOP run: %v", i, ft.runs)
+		}
+		if ft.peak > maxTestRuns {
+			t.Fatalf("round %d: %d test runs at once, the limit is %d", i, ft.peak, maxTestRuns)
+		}
+	}
+}
+
 // slowEngine is an engine whose differential takes d, counted in the same in-flight tally as the test runs.
 type slowEngine struct {
 	*lister

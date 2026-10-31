@@ -108,7 +108,9 @@ type fakeTests struct {
 	module   bool          // classname is the module of the file, as pytest writes it, instead of "c"
 	delay    time.Duration // each run takes at least this long
 	inflight int
-	peak     int // most runs in flight at once
+	peak     int            // most runs in flight at once
+	byCmd    map[string]int // runs in flight by command
+	mixed    bool           // a baseline run and a NOP run were in flight at once
 }
 
 // fakeTestsDigest is the digest the fake tests image resolves to; the baseline gate keys its cache by it.
@@ -123,10 +125,16 @@ func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command 
 	f.selected = append(f.selected, env["A2DLC_TESTS"])
 	f.inflight++
 	f.peak = max(f.peak, f.inflight)
+	if f.byCmd == nil {
+		f.byCmd = map[string]int{}
+	}
+	f.byCmd[command]++
+	f.mixed = f.mixed || f.byCmd["baseline"] > 0 && f.byCmd["nop"] > 0
 	f.mu.Unlock()
 	defer func() {
 		f.mu.Lock()
 		f.inflight--
+		f.byCmd[command]--
 		f.mu.Unlock()
 	}()
 	time.Sleep(f.delay)

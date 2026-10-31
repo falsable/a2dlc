@@ -126,10 +126,16 @@ type gateInput struct {
 	cov        *accumulated            // coverage from the runs overlaid on the candidate (all that leave it)
 	engines    []contract.EngineConfig // config.engines: the static listing of the base's tests asks them
 	warm       *warmTree               // the warm volume holding the base tree; nil runs export the whole tree
+	slots      chan struct{}           // the test runs of one check that may be in flight at once; nil does not limit
 }
+
+// maxTestRuns is how many test containers a check runs at once: two, the most it ran before the baseline overlapped NOP, so
+// overlapping them does not raise the memory a check needs.
+const maxTestRuns = 2
 
 // accumulated gathers the coverage left by the runs overlaid on the candidate, from any gate.
 type accumulated struct {
+	mu     sync.Mutex // the NOP candidate run and the baseline candidate run merge concurrently
 	report *coverage.Report
 	note   string
 }
@@ -138,6 +144,15 @@ type accumulated struct {
 // and runs command. Each run, and each re-run too, starts from a clean tree.
 func (a App) run(ctx context.Context, in gateInput, command, treeish string, overlay map[string][]byte, fromCandidate []string, env map[string]string) (run, error) {
 	var c run
+	// the slot is taken before the timer starts: verdict.timings gives the run, not the wait for it
+	if in.slots != nil {
+		select {
+		case in.slots <- struct{}{}:
+		case <-ctx.Done():
+			return c, ctx.Err()
+		}
+		defer func() { <-in.slots }()
+	}
 	defer func(t0 time.Time) {
 		timerOf(ctx).testRun(runName(ctx, in, treeish, overlay, fromCandidate), time.Since(t0))
 	}(time.Now())
@@ -211,6 +226,8 @@ func (in gateInput) mergeCoverage(raw []byte) {
 	if raw == nil || in.cov == nil {
 		return
 	}
+	in.cov.mu.Lock()
+	defer in.cov.mu.Unlock()
 	report, err := coverage.Parse(raw)
 	if err != nil {
 		in.cov.note = "unreadable coverage: " + err.Error()
@@ -480,58 +497,98 @@ func judgeNOP(candidate, own, nop map[string]junit.Case, intent, guard bool, inv
 	return out
 }
 
-// gateBaseline runs baseline_command on the base (cache keyed by base and selection) and on the candidate; each new
-// red is re-run k times on both sides before blocking.
-func (a App) gateBaseline(ctx context.Context, in gateInput, alreadyJudged map[string]bool) (contract.Gate, []contract.TestResult) {
+// baselineJudge judges the baseline once NOP has judged its own tests.
+type baselineJudge func(alreadyJudged map[string]bool) (contract.Gate, []contract.TestResult)
+
+// gateBaseline starts baseline_command on the base (cache keyed by base and selection) and on the candidate, and returns
+// their judgement: each new red is re-run k times on both sides before blocking. The two runs need nothing from the stubs or
+// from NOP, so they start now and overlap them; the judgement waits for them and for the ids NOP judged, and re-runs in
+// sequence as before.
+func (a App) gateBaseline(ctx context.Context, in gateInput) baselineJudge {
+	done := func(g contract.Gate) baselineJudge {
+		return func(map[string]bool) (contract.Gate, []contract.TestResult) { return g, nil }
+	}
 	cmd := in.cfg.BaselineCommand
 	if cmd == "" {
-		return contract.Gate{Status: contract.GateNotConfigured, Reason: "tests.baseline_command is missing: the baseline does not run"}, nil
+		return done(contract.Gate{Status: contract.GateNotConfigured, Reason: "tests.baseline_command is missing: the baseline does not run"})
 	}
 	if len(in.tests)+len(in.sources) == 0 {
-		return contract.Gate{Status: contract.GateNotApplicable, Reason: "nothing changed"}, nil
+		return done(contract.Gate{Status: contract.GateNotApplicable, Reason: "nothing changed"})
 	}
 	env := envTests(in.tests, in.sources)
-	g := contract.Gate{Status: contract.GateRan}
 	digest, err := a.imageDigest(ctx, in.cfg.Image)
 	if err != nil {
-		return gateError("image digest", err), nil
+		return done(gateError("image digest", err))
 	}
 	// Without a digest the cache key would not name the image: a moved local tag could hand back an old result. Stage −1
 	// refuses the same case (CB-05); a run that skips Stage −1 gets the same refusal here.
 	if digest == "" {
-		return gateError("image digest", fmt.Errorf("tests.image %q has no RepoDigests (a local build that was never pushed): the baseline cannot be keyed to it", in.cfg.Image)), nil
+		return done(gateError("image digest", fmt.Errorf("tests.image %q has no RepoDigests (a local build that was never pushed): the baseline cannot be keyed to it", in.cfg.Image)))
 	}
-	base, cached, err := a.suite(ctx, in, cmd, in.baseSha, digest, env)
-	if err != nil {
-		return gateError("base", err), nil
-	}
-	g.Cached = cached
-	candidate, cached, err := a.suite(ctx, in, cmd, in.tree, digest, env)
-	if err != nil {
-		return gateError("candidate", err), nil
-	}
-	g.CandidateCached = cached
-	newOnes := newReds(base.cases, candidate.cases, alreadyJudged)
-	if len(newOnes) == 0 {
-		return g, nil
-	}
-	k := in.cfg.Reruns
-	if k == 0 {
-		k = 3
-	}
-	var baseRuns, candRuns []map[string]junit.Case
-	for i := 0; i < k; i++ {
-		x, err := a.run(ctx, in, cmd, in.baseSha, nil, nil, env)
-		if err != nil {
-			return gateError(fmt.Sprintf("re-run %d on the base", i+1), err), nil
+	// The baseline holds one test slot for both its runs, taken now, before NOP asks for any: the whole suite is usually the
+	// longest run of a check, so it starts first and the NOP runs share the other slot until it ends. Its re-runs come after NOP
+	// and run one at a time, so they need no slot.
+	slots := in.slots
+	if slots != nil {
+		select {
+		case slots <- struct{}{}:
+		case <-ctx.Done():
+			return done(gateError("base", ctx.Err()))
 		}
-		y, err := a.run(ctx, in, cmd, in.tree, nil, nil, env)
-		if err != nil {
-			return gateError(fmt.Sprintf("re-run %d on the candidate", i+1), err), nil
-		}
-		baseRuns, candRuns = append(baseRuns, x.cases), append(candRuns, y.cases)
 	}
-	return g, judgeReds(newOnes, base.cases, candidate.cases, baseRuns, candRuns)
+	in.slots = nil
+	type ran struct {
+		g               contract.Gate
+		base, candidate run
+	}
+	ch := make(chan ran, 1)
+	go func() {
+		if slots != nil {
+			defer func() { <-slots }()
+		}
+		g := contract.Gate{Status: contract.GateRan}
+		base, cached, err := a.suite(ctx, in, cmd, in.baseSha, digest, env)
+		if err != nil {
+			ch <- ran{g: gateError("base", err)}
+			return
+		}
+		g.Cached = cached
+		candidate, cached, err := a.suite(ctx, in, cmd, in.tree, digest, env)
+		if err != nil {
+			ch <- ran{g: gateError("candidate", err)}
+			return
+		}
+		g.CandidateCached = cached
+		ch <- ran{g, base, candidate}
+	}()
+	return func(alreadyJudged map[string]bool) (contract.Gate, []contract.TestResult) {
+		r := <-ch
+		g, base, candidate := r.g, r.base, r.candidate
+		if g.Status != contract.GateRan {
+			return g, nil
+		}
+		newOnes := newReds(base.cases, candidate.cases, alreadyJudged)
+		if len(newOnes) == 0 {
+			return g, nil
+		}
+		k := in.cfg.Reruns
+		if k == 0 {
+			k = 3
+		}
+		var baseRuns, candRuns []map[string]junit.Case
+		for i := 0; i < k; i++ {
+			x, err := a.run(ctx, in, cmd, in.baseSha, nil, nil, env)
+			if err != nil {
+				return gateError(fmt.Sprintf("re-run %d on the base", i+1), err), nil
+			}
+			y, err := a.run(ctx, in, cmd, in.tree, nil, nil, env)
+			if err != nil {
+				return gateError(fmt.Sprintf("re-run %d on the candidate", i+1), err), nil
+			}
+			baseRuns, candRuns = append(baseRuns, x.cases), append(candRuns, y.cases)
+		}
+		return g, judgeReds(newOnes, base.cases, candidate.cases, baseRuns, candRuns)
+	}
 }
 
 // newReds are the red ids in the candidate that were not red on the base. A red already present before does not

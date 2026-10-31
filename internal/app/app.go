@@ -660,11 +660,17 @@ func (a App) gates(ctx context.Context, cfg contract.Config, in gateInput, expor
 	if len(in.tests)+len(in.overlay) > 0 || in.cfg.BaselineCommand != "" {
 		in.warm = a.syncWarm(ctx, in)
 	}
-	if len(in.tests)+len(in.overlay) > 0 && len(in.sources) > 0 {
+	in.slots = make(chan struct{}, maxTestRuns)
+	nopInputs := len(in.tests)+len(in.overlay) > 0 && len(in.sources) > 0
+	if nopInputs {
 		if err := export(); err != nil {
 			e := gateError("export base and candidate", err)
 			return &contract.TestGates{NOPOracle: e, Baseline: e}, nil
 		}
+	}
+	// started before the stubs, on a copy of in that a.stubs does not touch
+	judgeBaseline := a.gateBaseline(ctx, in)
+	if nopInputs {
 		a.stubs(ctx, cfg, &in, *baseDir, *candDir)
 	}
 	gNOP, rNOP := a.gateNOP(ctx, in)
@@ -672,7 +678,7 @@ func (a App) gates(ctx context.Context, cfg contract.Config, in gateInput, expor
 	for _, r := range rNOP {
 		judged[r.Target] = true
 	}
-	gBase, rBase := a.gateBaseline(ctx, in, judged)
+	gBase, rBase := judgeBaseline(judged)
 	gDiff, rDiff := a.gateTestsDiff(ctx, in, peers, overlay)
 	return &contract.TestGates{NOPOracle: gNOP, Baseline: gBase, TestsDiff: &gDiff}, append(append(rNOP, rBase...), rDiff...)
 }
