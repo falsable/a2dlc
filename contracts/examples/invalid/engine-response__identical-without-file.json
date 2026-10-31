@@ -6,7 +6,7 @@
    "engine": "crosshair-diffbehavior",
    "engine_version": "0.0.111",
    "verdict": "PASS",
-   "reason": null,
+   "reason": "No differences found. (attempted 12 iterations)",
    "search_budget": {
     "iterations": 0,
     "per_condition_timeout_s": 10
