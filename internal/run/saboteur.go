@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/app"
 	"github.com/falsable/a2dlc/internal/contract"
@@ -186,18 +187,50 @@ func stageTier1(ctx context.Context, m *Machine) (string, string, string, error)
 	return contract.StageDone, reason, ArtVerdict, nil
 }
 
-// judge is the oracle → Saboteur loop (judgeLoop), then the Stage 4 fuzzing round over the candidate's changed public
-// functions (fuzzRound). It leaves the verdict in artV and its escalations in escalations.json, fuzzing findings included,
+// judge is the oracle → Saboteur loop (judgeLoop) and, beside it, the Stage 4 fuzzing round over the candidate's changed
+// public functions (fuzzRound). It leaves the verdict in artV and its escalations in escalations.json, fuzzing findings included,
 // and returns the verdict, the reason for the stop (with the note of a fuzzing round that did not run) and the fuzzing
 // escalations, which closeN2 needs to add to the N=2 escalations file.
 func (m *Machine) judge(ctx context.Context, opts app.CheckOptions, artV string) (contract.Verdict, string, []contract.Escalation, error) {
+	// The fuzzing round reads the config, the base and the candidate and writes nothing until both are back, so it runs while
+	// the oracle and the Saboteur judge the candidate instead of after them. Its budget is wall time, as the engines' diff is.
+	type fuzzResult struct {
+		escalations []contract.Escalation
+		note        string
+		err         error
+		ms          int64
+	}
+	// A candidate in the working tree is resolved to its tree first: building it means adding the working tree to an index,
+	// and the oracle writes its artifacts under .a2dlc meanwhile, so a file could change between the add and its removal.
+	fuzzCandidate := opts.CandidateTree
+	if fuzzCandidate == "" {
+		t, err := m.app.Repo.WorktreeTree()
+		if err != nil {
+			return contract.Verdict{}, "", nil, err
+		}
+		fuzzCandidate = t
+	}
+	fuzzCtx, cancelFuzz := context.WithCancel(ctx)
+	defer cancelFuzz()
+	fuzzDone := make(chan fuzzResult, 1)
+	go func() {
+		t0 := time.Now()
+		f, note, err := m.fuzzRound(fuzzCtx, fuzzCandidate)
+		fuzzDone <- fuzzResult{f, note, err, time.Since(t0).Milliseconds()}
+	}()
+	t0 := time.Now()
 	v, reason, err := m.judgeLoop(ctx, opts, artV)
+	judgeMs := time.Since(t0).Milliseconds()
 	if err != nil {
+		cancelFuzz()
+		<-fuzzDone
 		return v, "", nil, err
 	}
-	fuzzed, note, err := m.fuzzRound(ctx, opts.CandidateTree)
-	if err != nil {
-		return v, "", nil, err
+	fr := <-fuzzDone
+	stage4Timing{JudgeMs: judgeMs, FuzzMs: fr.ms}.log()
+	fuzzed, note := fr.escalations, fr.note
+	if fr.err != nil {
+		return v, "", nil, fr.err
 	}
 	if len(fuzzed) > 0 {
 		escalations := contract.Escalations{SchemaVersion: contract.SchemaVersion, TreeHash: v.TreeHash, CreatedAt: v.CreatedAt,
@@ -207,6 +240,24 @@ func (m *Machine) judge(ctx context.Context, opts app.CheckOptions, artV string)
 		}
 	}
 	return v, join(reason, note), fuzzed, nil
+}
+
+// stage4Timing is where a Stage 4 judgment's time went, logged like stage3Timing when A2DLC_TIMINGS is set: the oracle with
+// its Saboteur rounds (whose checks are also in the verdict's timings) and the fuzzing round, which runs beside them.
+type stage4Timing struct {
+	JudgeMs int64 `json:"judge_ms"`
+	FuzzMs  int64 `json:"fuzz_ms"`
+}
+
+func (s stage4Timing) log() {
+	if os.Getenv("A2DLC_TIMINGS") == "" {
+		return
+	}
+	b, _ := json.Marshal(struct {
+		Stage string `json:"stage"`
+		stage4Timing
+	}{"4", s})
+	fmt.Fprintf(os.Stderr, "a2dlc-timings %s\n", b)
 }
 
 // recordedGolden reads the golden master Stage −1 wrote to this slice's folder. Absent (no golden master declared, or not a

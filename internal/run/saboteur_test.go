@@ -7,7 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/app"
 	"github.com/falsable/a2dlc/internal/contract"
@@ -299,6 +301,48 @@ func TestStage4FuzzingRoundSaysWhenTheEngineDoesNotFuzz(t *testing.T) {
 	}
 	if len(esc) != 0 || !strings.Contains(note, "does not do the fuzz operation") {
 		t.Fatalf("the round must say it did not run: note=%q escalations=%+v", note, esc)
+	}
+}
+
+// overlapEngine is fuzzEngine whose differential waits for the fuzz operation to start: it records whether the two ran at the
+// same time (the fuzzing round beside the oracle) or the differential gave up waiting (the round after it).
+type overlapEngine struct {
+	fuzzEngine
+	fuzzing    chan struct{}
+	once       sync.Once
+	overlapped bool
+}
+
+func (o *overlapEngine) Run(context.Context, contract.EngineConfig, contract.Request, string, string) (contract.Response, error) {
+	select {
+	case <-o.fuzzing:
+		o.overlapped = true
+	case <-time.After(5 * time.Second):
+	}
+	return contract.Response{SchemaVersion: 1, Targets: []contract.TargetResult{}, OutOfScope: []contract.OutOfScope{}}, nil
+}
+
+func (o *overlapEngine) Fuzz(ctx context.Context, e contract.EngineConfig, req contract.Request, b, c string) (contract.FuzzResponse, error) {
+	o.once.Do(func() { close(o.fuzzing) })
+	return o.fuzzEngine.Fuzz(ctx, e, req, b, c)
+}
+
+func TestStage4FuzzingRoundRunsBesideTheOracle(t *testing.T) {
+	a, dir := repoLite(t)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"python","image":"x","paths":["src/**"],"budget":{}}]}`)
+	git(t, dir, "add", ".a2dlc/config.json")
+	git(t, dir, "commit", "-qm", "engine config")
+	eng := &overlapEngine{fuzzing: make(chan struct{})}
+	a.Runner = eng
+	m, err := open(a, &fakeLauncher{}, Options{Slice: "calc.media.v1", Mode: contract.ModeGreenfield})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := stageTier1(context.Background(), m); err != nil || !eng.overlapped {
+		t.Fatalf("err=%v: the differential finished before the fuzzing round started", err)
+	}
+	if eng.request.Operation != "fuzz" {
+		t.Fatalf("the fuzzing round did not run: %+v", eng.request)
 	}
 }
 
