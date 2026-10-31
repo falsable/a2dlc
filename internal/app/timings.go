@@ -24,6 +24,12 @@ func withTimer(ctx context.Context) (context.Context, *timer) {
 	return context.WithValue(ctx, timerKey{}, t), t
 }
 
+// WithTimings lets a caller outside a check (Stage 3 of a2dlc run) collect the same timings for what it runs with ctx.
+func WithTimings(ctx context.Context) (context.Context, func() *contract.Timings) {
+	ctx, t := withTimer(ctx)
+	return ctx, t.result
+}
+
 func timerOf(ctx context.Context) *timer {
 	t, _ := ctx.Value(timerKey{}).(*timer)
 	return t

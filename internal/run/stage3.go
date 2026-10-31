@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/app"
 	"github.com/falsable/a2dlc/internal/contract"
@@ -222,6 +223,27 @@ func (m *Machine) tier0SinBuilder(ctx context.Context) (string, string, string, 
 	return contract.StageDone, join(notes...), artifact, nil
 }
 
+// stage3Timing is where the time of one builder round went. With A2DLC_TIMINGS set it goes to stderr as one JSON line per
+// step (prefix "a2dlc-timings "), to measure runs without a field in any contract; unset, nothing is written.
+type stage3Timing struct {
+	Role           string            `json:"role"`
+	Round          int               `json:"round"`
+	BuilderMs      int64             `json:"builder_ms,omitempty"`
+	ReviewMs       int64             `json:"review_ms,omitempty"`
+	Tier0Ms        int64             `json:"tier0_ms,omitempty"`
+	Tier0          *contract.Timings `json:"tier0,omitempty"`
+	LemmasMs       int64             `json:"lemmas_ms,omitempty"`
+	DifferentialMs int64             `json:"differential_ms,omitempty"`
+}
+
+func (s stage3Timing) log() {
+	if os.Getenv("A2DLC_TIMINGS") == "" {
+		return
+	}
+	b, _ := json.Marshal(s)
+	fmt.Fprintf(os.Stderr, "a2dlc-timings %s\n", b)
+}
+
 // build runs the builder → Tier 0 loop of a builder with its own /work, freshly exported from the base. tier0Artifact is
 // the artifact where its findings remain for the next iteration: each builder has its own, and the policy only lets it
 // see its own (policy.go). Rounds are counted per builder (Round, MaxRounds, Iterations of the candidate) and added to
@@ -273,10 +295,13 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		m.iter++
 		pl := contract.BuilderRequest{Intent: in.intent, Contract: in.contractJSON, Probes: in.probes, Round: round, MaxRounds: maxRounds, Tier0Feedback: feedback, Header: &header, Boundary: in.boundary,
 			EngineLanguage: in.engineLanguage, Paradigm: m.roles.Roles[role].Paradigm, Critical: in.critical}
+		roundStart := time.Now()
 		invocation, err := m.invokeRole(ctx, role, cfg, "3", pl, work)
 		if err != nil {
 			return buildResult{}, err
 		}
+		timing := stage3Timing{Role: role, Round: round, BuilderMs: time.Since(roundStart).Milliseconds()}
+		reviewStart := time.Now()
 		switch {
 		case invocation.Response == nil:
 			return buildResult{status: contract.StageFailed, reason: fmt.Sprintf("the builder did not give a valid answer in %d attempts", len(invocation.Entries))}, nil
@@ -344,7 +369,12 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		// the builder's loop is the one place where config.tests is part of Tier 0, over every changed file
 		extra := in.extra
 		extra.Tests = true
-		res, unreviewed, err := m.app.Tier0With(ctx, m.baseSha, tree, in.probes, extra)
+		timing.ReviewMs = time.Since(reviewStart).Milliseconds()
+		tctx, tier0Timings := app.WithTimings(ctx)
+		tier0Start := time.Now()
+		res, unreviewed, err := m.app.Tier0With(tctx, m.baseSha, tree, in.probes, extra)
+		timing.Tier0Ms, timing.Tier0 = time.Since(tier0Start).Milliseconds(), tier0Timings()
+		timing.log()
 		if err != nil {
 			// a downed engine is not feedback: sending it to the builder would spend paid rounds on something that is not its own
 			return buildResult{status: contract.StageFailed, reason: "Tier 0 could not run: " + err.Error()}, nil
@@ -364,7 +394,9 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		// lemmas (§5 Stage 2, decision 12; lemmas.go): a refuted postcondition is the builder's, so it goes back as Tier 0
 		// feedback and spends the round, and so does a divergence from the base's lemma the first time and while a round is
 		// left; the rest is recorded in candidate.json
+		lemmasStart := time.Now()
 		lem, err := m.checkLemmas(ctx, tree, resp.Lemmas, in.critical != nil && *in.critical, returned, round < lastRound)
+		stage3Timing{Role: role, Round: round, LemmasMs: time.Since(lemmasStart).Milliseconds()}.log()
 		if err != nil {
 			return buildResult{status: contract.StageFailed, reason: "the lemmas could not be checked: " + err.Error()}, nil
 		}
@@ -376,7 +408,9 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			continue
 		}
 		// the differential on the accepted tree (divergence.go): a function that now differs from the base goes back once
+		divStart := time.Now()
 		div, err := m.checkDivergences(ctx, tree, returned, round < lastRound)
+		stage3Timing{Role: role, Round: round, DifferentialMs: time.Since(divStart).Milliseconds()}.log()
 		if err != nil {
 			return buildResult{status: contract.StageFailed, reason: "the differential could not run on the builder's tree: " + err.Error()}, nil
 		}

@@ -220,6 +220,24 @@ func TestTier0RunsTheTestsWhileTheEnginesReview(t *testing.T) {
 	}
 }
 
+// The timings a caller asks for record the engines' tier0, the export of the trees and the test run (Stage 3 logs them).
+func TestTier0RecordsItsTimings(t *testing.T) {
+	a, _, dir := newRepo(t)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],
+ "tests":{"image":"fake","paths":["tests/**"],"command":"run-all"}}`)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "engine and tests")
+	a.Tests = &scriptedTests{script: []engine.TestRun{junitRun(0, "tests/a.t fine")}}
+	c := candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 2\n"})
+	ctx, timings := WithTimings(context.Background())
+	if _, _, err := a.Tier0With(ctx, "HEAD", c, nil, withTests); err != nil {
+		t.Fatal(err)
+	}
+	if tm := timings(); len(tm.EngineOps) != 1 || tm.EngineOps[0].Name != "tier0" || len(tm.TestRuns) != 1 || tm.SyncMs == 0 || tm.TotalMs == 0 {
+		t.Fatalf("%+v", tm)
+	}
+}
+
 // Without the flag, Tier0 is the engines only: the review of a working tree that no builder wrote does not run the suite.
 func TestTier0WithoutTheTestsFlagRunsNoTests(t *testing.T) {
 	a, st := testsRepo(t)

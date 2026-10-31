@@ -8,6 +8,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/engine"
@@ -114,12 +115,14 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		return resp, nil, err
 	}
 	defer os.RemoveAll(candDir)
+	t0 := time.Now()
 	if err := a.Repo.Export(baseSha, baseDir); err != nil {
 		return resp, nil, err
 	}
 	if err := a.Repo.Export(tree, candDir); err != nil {
 		return resp, nil, err
 	}
+	timerOf(ctx).sync(time.Since(t0))
 	reviewed := false
 	for _, i := range idx {
 		e, files := cfg.Engines[i], byEngine[i]
@@ -132,7 +135,9 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		}
 		req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseRef: baseSha,
 			BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: files, Budget: b}
+		t0 := time.Now()
 		r, err := a.Runner.Tier0(ctx, e, req, baseDir, candDir)
+		timerOf(ctx).engineOp("tier0", time.Since(t0))
 		if errors.Is(err, engine.ErrWithoutTier0) {
 			unreviewed = append(unreviewed, files...)
 			for _, p := range probesByEngine[i] {
