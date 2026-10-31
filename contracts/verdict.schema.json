@@ -223,6 +223,7 @@
           "origin": { "type": "string", "minLength": 1, "description": "tests_diff: which tree the test file came from (candidate, peer:<short sha>, overlay). nop_oracle: \"overlay\" when the test was brought by --tests-overlay (the Saboteur) and not the candidate." },
           "message": { "type": "string", "description": "Message of the failure it decided on, trimmed." },
           "characterization": { "type": "boolean", "description": "Passes on the base and the change does not declare an intent to change behavior (no enforce_new_behavior stubs or waivers): it is recorded and does not block." },
+          "guard": { "type": "boolean", "description": "nop_oracle: passes on the base in a change that declares the intent to change behavior, and another new test in the same test file proves the change (config.tests.nop_base_passing is guard, RFC-0003): it is recorded and does not block." },
           "flaky": { "type": "boolean", "description": "Flaky on the base on re-runs: does not block; quarantine is proposed." },
           "reruns": {
             "type": "object",
@@ -236,7 +237,10 @@
           "waived": { "type": "boolean" }
         },
         "required": ["target", "gate", "verdict", "base", "candidate", "waived"],
-        "allOf": [{ "if": { "properties": { "verdict": { "enum": ["FAIL", "INCONCLUSIVE"] } } }, "then": { "required": ["reason"] } }],
+        "allOf": [
+          { "if": { "properties": { "verdict": { "enum": ["FAIL", "INCONCLUSIVE"] } } }, "then": { "required": ["reason"] } },
+          { "not": { "properties": { "guard": { "const": true }, "characterization": { "const": true } }, "required": ["guard", "characterization"] } }
+        ],
         "additionalProperties": false
       }
     },

@@ -32,6 +32,13 @@ const (
 	RungGatesNoMutation = "config.rung is gates: mutation is not part of this rung, so no mutant was generated and no kill rate was measured"
 )
 
+// Values of TestsConfig.NopBasePassing (RFC-0003): what the NOP gate does with a new test that passes on the base in a
+// change that declares the intent to change behavior.
+const (
+	NopBasePassingFail  = "fail"
+	NopBasePassingGuard = "guard"
+)
+
 type Config struct {
 	// ProtectedPaths are globs an agent cannot change without a signed approval (protected_path).
 	ProtectedPaths []string `json:"protected_paths,omitempty"`
@@ -149,10 +156,13 @@ type TestsConfig struct {
 	Command             string        `json:"command"`
 	BaselineCommand     string        `json:"baseline_command,omitempty"`
 	InvalidBaseFailures []string      `json:"invalid_base_failures,omitempty"`
-	Reruns              int           `json:"reruns,omitempty"`
-	TimeoutS            int           `json:"timeout_s,omitempty"`
-	Memory              string        `json:"memory,omitempty"`
-	CPUs                float64       `json:"cpus,omitempty"`
+	// NopBasePassing is NopBasePassingFail (also when absent) or NopBasePassingGuard: a base-passing new test is a
+	// regression guard when another new test in the same test file proves the change.
+	NopBasePassing string  `json:"nop_base_passing,omitempty"`
+	Reruns         int     `json:"reruns,omitempty"`
+	TimeoutS       int     `json:"timeout_s,omitempty"`
+	Memory         string  `json:"memory,omitempty"`
+	CPUs           float64 `json:"cpus,omitempty"`
 	// StubEngine is asked for stubs only (the NOP gate's base): it is no entry of Config.Engines, so it reviews no file and
 	// counts for no Tier 0 review. Its language also picks the default InvalidBaseFailures.
 	StubEngine *EngineConfig `json:"stub_engine,omitempty"`
@@ -491,6 +501,7 @@ type TestResult struct {
 	Origin           string            `json:"origin,omitempty"`
 	Message          string            `json:"message,omitempty"`
 	Characterization bool              `json:"characterization,omitempty"`
+	Guard            bool              `json:"guard,omitempty"`
 	Flaky            bool              `json:"flaky,omitempty"`
 	Reruns           *Reruns           `json:"reruns,omitempty"`
 	Waived           bool              `json:"waived"`

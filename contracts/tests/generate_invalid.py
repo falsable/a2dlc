@@ -72,6 +72,8 @@ cases = {
     "blackbox__compare-unknown.json": (b, lambda x: x["surfaces"][0]["compare"].update(time=True)),
     # without command there is no way to run the new tests: the NOP gate does not exist
     "config__tests-missing-command.json": (ct, lambda x: x["tests"].pop("command")),
+    # RFC-0003: nop_base_passing is fail or guard, nothing else
+    "config__nop-base-passing-unknown.json": (ct, lambda x: x["tests"].update(nop_base_passing="note")),
     # k = 0 would declare flaky without rerunning anything
     "config__tests-reruns-zero.json": (ct, lambda x: x["tests"].update(reruns=0)),
     # a stub engine without its image cannot be started: the stub of the base would silently not exist
@@ -84,6 +86,8 @@ cases = {
     "engine-stub-response__missing-unstubbed.json": (st, lambda x: x.pop("unstubbed")),
     "verdict__test-fail-missing-reason.json": (verdict_tests, lambda x: x["tests"][1].pop("reason")),
     "verdict__test-status-unknown.json": (verdict_tests, lambda x: x["tests"][0].update(base="xfail")),
+    # RFC-0003: a guard rides with a declared intent, a characterization test has none, so one entry is never both
+    "verdict__guard-and-characterization.json": (read("verdict__tests-guard.json"), lambda x: x["tests"][1].update(characterization=True)),
     # a gate that did not run must say why
     "verdict__gate-error-missing-reason.json": (verdict_tests, lambda x: x["test_gates"]["baseline"].update(status="error")),
     "verdict__gates-missing-baseline.json": (verdict_tests, lambda x: x["test_gates"].pop("baseline")),

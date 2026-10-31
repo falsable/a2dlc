@@ -349,7 +349,7 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	if in.stubNote != "" {
 		g.Reason = in.stubNote
 	}
-	res := judgeNOP(candidate.cases, own, nop.cases, declaresBehavior(in), invalid)
+	res := judgeNOP(candidate.cases, own, nop.cases, declaresBehavior(in), in.cfg.NopBasePassing == contract.NopBasePassingGuard, invalid)
 	for i := range res {
 		if c, ok := candidate.cases[res[i].Target]; ok {
 			if _, del := in.overlay[c.File]; del {
@@ -429,7 +429,20 @@ func classifier(patterns, unstubbed, added []string) (func(string) bool, error) 
 //   - Invalid failure on the base (import, collection, symbol without stub) or absent: INCONCLUSIVE.
 //   - Passes on the base: FAIL if the change declares the intent to change behavior (there were stubs or an
 //     enforce_new_behavior waiver); otherwise it is a characterization test (a refactor) and does not block.
-func judgeNOP(candidate, own, nop map[string]junit.Case, intent bool, invalid func(string) bool) []contract.TestResult {
+//   - Passes on the base with that intent and guard set (tests.nop_base_passing guard, RFC-0003): a regression guard that
+//     does not block when another new test in the same test file proves the change; else FAIL as above. A testcase that
+//     names no file is never a guard.
+func judgeNOP(candidate, own, nop map[string]junit.Case, intent, guard bool, invalid func(string) bool) []contract.TestResult {
+	proving := map[string]bool{}
+	for _, id := range keys(candidate) {
+		if _, old := own[id]; old || !guard {
+			continue
+		}
+		c, b := candidate[id], nop[id]
+		if f := testFile(c); f != "junit" && c.Status == contract.TestPassed && b.Status == contract.TestFailed && !invalid(b.Message) {
+			proving[f] = true
+		}
+	}
 	var out []contract.TestResult
 	for _, id := range keys(candidate) {
 		if _, old := own[id]; old {
@@ -449,6 +462,8 @@ func judgeNOP(candidate, own, nop map[string]junit.Case, intent bool, invalid fu
 			r.Verdict, r.Reason, r.Message = contract.FAIL, "the new test fails on the candidate", c.Message
 		case b.Status == contract.TestFailed && !invalid(b.Message):
 			r.Verdict = contract.PASS
+		case b.Status == contract.TestPassed && intent && proving[testFile(c)]:
+			r.Verdict, r.Guard = contract.PASS, true
 		case b.Status == contract.TestPassed && intent:
 			r.Verdict, r.Reason = contract.FAIL, "the test passes on the base with stubs: it does not prove the change"
 		case b.Status == contract.TestPassed:

@@ -280,7 +280,7 @@ func TestJudgeNOP(t *testing.T) {
 		"absent": "INCONCLUSIVE", "red": "FAIL"}
 	for _, intent := range []bool{false, true} {
 		got := map[string]contract.TestResult{}
-		for _, r := range judgeNOP(candidate, own, nop, intent, invalid) {
+		for _, r := range judgeNOP(candidate, own, nop, intent, false, invalid) {
 			got[strings.TrimPrefix(r.Target, "t.py::c::")] = r
 		}
 		if _, ok := got["old"]; ok {
@@ -299,6 +299,45 @@ func TestJudgeNOP(t *testing.T) {
 		}
 		if got["characterizes"].Characterization == intent {
 			t.Errorf("intent=%v: characterization=%v", intent, got["characterizes"].Characterization)
+		}
+	}
+}
+
+// TestJudgeNOPGuard covers RFC-0003: with tests.nop_base_passing guard, a base-passing new test is a guard only next to a
+// proving test of the same file, only when the change declares intent, and never when the testcase names no file.
+func TestJudgeNOPGuard(t *testing.T) {
+	invalid, _ := classifier([]string{"ImportError"}, nil, nil)
+	noFile := junit.Case{Name: "nofile", Status: "passed"}
+	candidate := mapOf(testCase("a.py::proves", "passed", ""), testCase("a.py::guards", "passed", ""),
+		testCase("b.py::alone", "passed", ""), testCase("c.py::import", "passed", ""), testCase("c.py::rides", "passed", ""), noFile)
+	nop := mapOf(testCase("a.py::proves", "failed", "NotImplementedError"), testCase("a.py::guards", "passed", ""),
+		testCase("b.py::alone", "passed", ""), testCase("c.py::import", "failed", "ImportError: x"), testCase("c.py::rides", "passed", ""),
+		junit.Case{Name: "nofile", Status: "passed"})
+	cases := []struct {
+		intent, guard bool
+		want          map[string]string
+	}{
+		{true, true, map[string]string{"a.py::c::proves": "PASS", "a.py::c::guards": "PASS guard", "b.py::c::alone": "FAIL",
+			"c.py::c::import": "INCONCLUSIVE", "c.py::c::rides": "FAIL", "junit::nofile": "FAIL"}},
+		{true, false, map[string]string{"a.py::c::guards": "FAIL", "b.py::c::alone": "FAIL"}},
+		{false, true, map[string]string{"a.py::c::guards": "PASS characterization", "b.py::c::alone": "PASS characterization"}},
+	}
+	for _, tc := range cases {
+		got := map[string]string{}
+		for _, r := range judgeNOP(candidate, map[string]junit.Case{}, nop, tc.intent, tc.guard, invalid) {
+			v := r.Verdict
+			if r.Guard {
+				v += " guard"
+			}
+			if r.Characterization {
+				v += " characterization"
+			}
+			got[r.Target] = v
+		}
+		for id, want := range tc.want {
+			if got[id] != want {
+				t.Errorf("intent=%v guard=%v %s: %q, want %q", tc.intent, tc.guard, id, got[id], want)
+			}
 		}
 	}
 }

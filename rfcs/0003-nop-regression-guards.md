@@ -1,6 +1,6 @@
 # RFC 0003: A new test that passes on the base, next to one that proves the change, is a regression guard
 
-- **Status:** Draft
+- **Status:** Accepted (2026-10-31, bead a2dlc-otj)
 - **Author:** Aldemar Hernández, falsable (bead a2dlc-otj)
 - **Amends:** RFC-0001 §5 Stage 4 (the NOP/Oracle gate), `contracts/config.schema.json` and `contracts/verdict.schema.json`
 - **Changes `schema_version`:** no
@@ -26,7 +26,7 @@ The sealed holdout of each of the 4 NOP-only issues was run on the candidate and
 
 ## Proposal
 
-**Config.** A new optional field in `contracts/config.schema.json`:
+**Config.** A new optional field of the `tests` block in `contracts/config.schema.json`, next to `invalid_base_failures`, because it only means something when the repo declares tests:
 
 ```json
 "nop_base_passing": {
@@ -38,12 +38,12 @@ The sealed holdout of each of the 4 NOP-only issues was run on the candidate and
 
 **Normative text.** A new item under the NOP/Oracle gate in RFC-0001 §5 Stage 4, as it would appear in `docs/A2-DLC_v3.5_protocol.md`:
 
-> - **A new test that passes on the base, next to one that proves the change.** With `config.nop_base_passing: "guard"`, a new test that passes on the base, in a change that declares the intent to change behavior, is a regression guard when another new test in the same test file proves the change: its failure on the base is valid and it passes on the candidate. A guard does not block and is recorded in the receipt with `guard: true`. The test file is the one the runner gives, else the testcase's classname. A testcase that names neither (`junit::<name>`) is never a guard. Without a proving test in the same file, or with the default `"fail"`, the test is `FAIL` as before. A guard never stands in for the proving test: the change still needs one.
+> - **A new test that passes on the base, next to one that proves the change.** With `config.tests.nop_base_passing: "guard"`, a new test that passes on the base, in a change that declares the intent to change behavior, is a regression guard when another new test in the same test file proves the change: its failure on the base is valid and it passes on the candidate. A guard does not block and is recorded in the receipt with `guard: true`. The test file is the one the runner gives, else the testcase's classname. A testcase that names neither (`junit::<name>`) is never a guard. Without a proving test in the same file, or with the default `"fail"`, the test is `FAIL` as before. A guard never stands in for the proving test: the change still needs one.
 
 **Receipt.** A new optional field on the entries of `tests` in `contracts/verdict.schema.json`:
 
 ```json
-"guard": { "type": "boolean", "description": "Passes on the base in a change that declares the intent to change behavior, and another new test in the same test file proves the change (config.nop_base_passing is guard): it is recorded and does not block." }
+"guard": { "type": "boolean", "description": "nop_oracle: passes on the base in a change that declares the intent to change behavior, and another new test in the same test file proves the change (config.tests.nop_base_passing is guard, RFC-0003): it is recorded and does not block." }
 ```
 
 An entry has at most one of `guard` and `characterization` set to true. `characterization` keeps its meaning (the change declares no intent), so a receipt still tells a refactor's characterization test apart from a guard.
