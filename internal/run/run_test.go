@@ -190,7 +190,25 @@ func TestInvokeMountsOnlyVisibleAndRecordsEachAttempt(t *testing.T) {
 	}
 }
 
-// fakeRunner runs the files in $A2DLC_TESTS of the tree: each line "name passed|failed" is a testcase, and a line
+// suiteFiles is what a fake command runs: the files in $A2DLC_TESTS, or, when it is empty (Tier 0 step 4 lists only
+// $A2DLC_CHANGED), the whole suite as a real command would, here every file under tests/ of the tree.
+func suiteFiles(env map[string]string, tree string) []string {
+	if listed := strings.Fields(env["A2DLC_TESTS"]); len(listed) > 0 {
+		return listed
+	}
+	var out []string
+	filepath.Walk(filepath.Join(tree, "tests"), func(p string, info os.FileInfo, err error) error {
+		if err == nil && !info.IsDir() {
+			if r, err := filepath.Rel(tree, p); err == nil {
+				out = append(out, filepath.ToSlash(r))
+			}
+		}
+		return nil
+	})
+	return out
+}
+
+// fakeRunner runs the files of suiteFiles: each line "name passed|failed" is a testcase, and a line
 // "cubre <file>:<a>-<b>" leaves LCOV coverage with those lines executed (1-99 as statements).
 type fakeRunner struct{ runs int }
 
@@ -199,7 +217,7 @@ func (f *fakeRunner) RunTests(_ context.Context, _ contract.TestsConfig, _ strin
 	var x, cov strings.Builder
 	x.WriteString("<testsuites><testsuite>")
 	exit := 0
-	for _, a := range strings.Fields(env["A2DLC_TESTS"]) {
+	for _, a := range suiteFiles(env, tree) {
 		b, err := os.ReadFile(filepath.Join(tree, filepath.FromSlash(a)))
 		if err != nil {
 			continue

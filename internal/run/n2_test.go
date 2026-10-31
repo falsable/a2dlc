@@ -186,7 +186,7 @@ func (runnerTree) RunTests(_ context.Context, _ contract.TestsConfig, _ string, 
 	var x strings.Builder
 	x.WriteString("<testsuites><testsuite>")
 	exit := 0
-	for _, a := range strings.Fields(env["A2DLC_TESTS"]) {
+	for _, a := range suiteFiles(env, tree) {
 		b, err := os.ReadFile(filepath.Join(tree, filepath.FromSlash(a)))
 		if err != nil {
 			continue
