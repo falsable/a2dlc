@@ -575,7 +575,9 @@ type engineUncovered struct {
 }
 
 func (f *engineUncovered) Run(ctx context.Context, cfg contract.EngineConfig, req contract.Request, baseDir, candidateDir string) (contract.Response, error) {
-	f.diffs = append(f.diffs, req)
+	if !app.DivergenceProbe(ctx) { // the builder loop's differential is not a judgment
+		f.diffs = append(f.diffs, req)
+	}
 	r, err := f.engineRun.Run(ctx, cfg, req, baseDir, candidateDir)
 	for i := range r.Targets {
 		r.Targets[i].Lines = []int{50, 60}

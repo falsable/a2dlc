@@ -33,8 +33,9 @@ func runDivergence(t *testing.T, opts Options, content func(contract.BuilderRequ
 
 // Round 1 holds Tier 0 but the differential finds an input where the new code differs from the base: the builder gets a
 // finding (kind divergence) with the function, the input, both results and the two ways out. In round 2 it changes nothing,
-// so the same divergence is not sent again: the run accepts the candidate, the stage reason says the builder kept it, and
-// Stage 4 records it as the receipt note of an ordinary divergence (the verdict is not lowered).
+// so the same divergence is not sent again and no round is spent on it: Stage 3 accepts the candidate and its reason says
+// the builder kept it. What Stage 4 does with a divergence is not changed: a2dlc run judges strictly, so the verdict is the
+// FAIL it would have been without the feedback.
 func TestStage3DivergenceGoesBackOnceThenTheRunAcceptsWithTheNote(t *testing.T) {
 	st, requests, eng, dir := runDivergence(t, Options{}, func(contract.BuilderRequest) map[string]string {
 		return map[string]string{"src/f.py": "def f(x):\n    return x * 2 + 1\n"}
@@ -59,13 +60,13 @@ func TestStage3DivergenceGoesBackOnceThenTheRunAcceptsWithTheNote(t *testing.T) 
 	if !strings.Contains(s3.Reason, "divergence src/f.py::f (args: x=2; old: 4; new: 5): returned to the builder, which kept it") {
 		t.Fatalf("%q", s3.Reason)
 	}
-	// Stage 4 judged the commit once; the divergence is the usual receipt note, and the run is not stopped by it
-	if len(eng.sawCand) != 1 || st.Stages[6].Status != contract.StageDone {
-		t.Fatalf("judged %d, %+v", len(eng.sawCand), st.Stages[6])
+	// Stage 4 judged the commit once, with the counterexample the builder was told about, and strictly as it always does in a run
+	if len(eng.sawCand) != 1 {
+		t.Fatalf("judged %d", len(eng.sawCand))
 	}
 	var v contract.Verdict
 	readJSONTest(t, filepath.Join(dir, ".a2dlc/run/div", ArtVerdict), &v)
-	if len(v.Targets) != 1 || v.Targets[0].Verdict != contract.FAIL || v.Targets[0].Note != "behavior_divergence" || v.Verdict != contract.PASS {
+	if v.Verdict != contract.FAIL || len(v.Targets) != 1 || v.Targets[0].Counterexample == nil || v.Targets[0].Counterexample.New != "5" {
 		t.Fatalf("%s %+v", v.Verdict, v.Targets)
 	}
 }
