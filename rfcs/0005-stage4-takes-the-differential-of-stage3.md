@@ -58,4 +58,9 @@ No existing document becomes invalid: the field is optional and an absent field 
   - an unknown value is refused when the config is read.
 - Run test (`internal/run/divergence_test.go`): with `stage3`, a run whose builder keeps a divergence is judged by Stage 4 without asking the engine, with the same strict `FAIL` and counterexample as without the field.
 - Schema examples: valid `config__run-differential-stage3.json`; invalid `config__run-differential-unknown.json`.
-- Not measured yet: the replay of the sixth freeze with the field on.
+- Replay of the sixth freeze on the repo whose engine is the Python differential, 6 lanes, as in the Problem section, with RFC-0004's field on in both arms and the same images; the arm with `stage3` also carries the change that runs Stage 4's fuzzing round beside the judgment instead of after it:
+  - Stage 4 took Stage 3's answer on 6 of 6 lanes and ran the differential on none; every lane got the same verdict and the same candidate as without the field;
+  - Stage 4 went from 238 s to 83 s, and a2dlc's time from 613 s to 457 s;
+  - the stages the field does not touch stayed within 1 % (Stage -1 97 s and 96 s, Stage 3 275 s and 277 s). A first run without the field gave 612 s with Stage -1 at 102 s; it was repeated because that control was 5.9 % apart, over the 5 % set before measuring;
+  - the 156 s are the two changes together, and the split between them is read from the timings, not from a separate arm: without the field the judgment took 168 s, 153 s of it the differential, and the fuzzing round about 70 s after it; with it, the judgment took 65 s and the fuzzing round, 76 s beside it, is now Stage 4's critical path.
+- Not measured: the TypeScript repo, where the differential took 30 s in Stage 4 and was not its critical path.
