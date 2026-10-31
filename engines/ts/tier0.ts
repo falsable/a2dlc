@@ -390,8 +390,10 @@ export function runProbe(p: Probe, candidateDir: string, timeoutMs: number): Fin
 function policyFindings(
   file: string, candSf: ts.SourceFile, baseSf: ts.SourceFile | undefined, policy: Policy,
 ): Finding[] {
-  const now = policyViolations(candSf, policy).map((v) => ({ kind: 'policy' as Kind, file, line: v.line, message: v.message }));
-  const before = baseSf ? policyViolations(baseSf, policy).map((v) => v.message) : [];
+  // The program's source files have no parent pointers until a checker binds them, and the policy walks `parent`
+  // (countedName): it runs on a copy parsed with them, so it does not depend on what the program has done so far.
+  const now = policyViolations(parse(candSf.text, file), policy).map((v) => ({ kind: 'policy' as Kind, file, line: v.line, message: v.message }));
+  const before = baseSf ? policyViolations(parse(baseSf.text, file), policy).map((v) => v.message) : [];
   return onlyNew(now, before);
 }
 

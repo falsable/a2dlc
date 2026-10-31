@@ -176,6 +176,30 @@ test('policy: complexity over max_complexity is a finding; the default is 15', (
   assert.deepEqual(lines(check({}, cand, ['k.ts'], policy({ max_complexity: 20 })), 'policy'), []);
 });
 
+// Regression (fifth freeze, issue-6 and issue-7): a program's source files have no parent pointers until a checker binds
+// them, and the policy read `parent` of every arrow function, so any changed file with one ended "tier0 crashed:
+// Cannot read properties of undefined (reading 'kind')".
+test('policy: arrow functions (declared, as arguments, as properties) do not crash Tier 0, base or candidate', () => {
+  const src = [
+    'export const twice = (n: number): number => n * 2;',
+    'export function make(register: (path: string, h: (req: string) => string) => void): void {',
+    "  register('/x', (req) => req + '!');",
+    '}',
+    'export const table = { go: (a: number) => a + 1 };',
+    '',
+  ].join('\n');
+  const r = runTier0({ base_dir: tree({ 'ar.ts': src }), candidate_dir: tree({ 'ar.ts': src + 'export const more = () => 1;\n' }), changed_files: ['ar.ts'], budget: {} });
+  assert.equal(r.error, null);
+  assert.deepEqual(r.findings, []);
+});
+
+test('policy: the complexity of an arrow function is named after its variable or property', () => {
+  const branches = Array.from({ length: 15 }, (_, i) => `if (x === ${i}) return ${i};`).join(' ');
+  const cand = { 'aw.ts': `export const big = (x: number): number => { ${branches} return -1; };\nexport const o = { huge: (x: number): number => { ${branches} return -1; } };\n` };
+  const f = lines(check({}, cand, ['aw.ts']), 'policy').map((m) => m.replace(/^\d+:/, ''));
+  assert.deepEqual(f, ['cyclomatic complexity 16 of big exceeds max_complexity 15', 'cyclomatic complexity 16 of huge exceeds max_complexity 15']);
+});
+
 test('header: require_header needs the @a2dlc:slice_id line; without the flag it is not checked', () => {
   const cand = { 'h.ts': 'export const x = 1;\n', 'i.ts': '// @a2dlc:slice_id demo\nexport const y = 2;\n' };
   const f = check({}, cand, ['h.ts', 'i.ts'], policy({ require_header: true }));
