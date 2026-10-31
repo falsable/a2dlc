@@ -56,7 +56,7 @@ An entry has at most one of `guard` and `characterization` set to true. `charact
 
 ## Compatibility
 
-The field is optional, and an absent field keeps today's behavior, so every existing config and verdict stays valid and `schema_version` does not change. The RFC text gets a minor version bump, because it adds a requirement without making a valid document invalid ([docs/COMPATIBILITY.md](../docs/COMPATIBILITY.md)), and the first release that implements it is a minor release (`0.Y.0`). The schemas are closed, so a verdict carrying `guard: true` is rejected by a reader that has an older schema. That is the pairing rule working as intended. A consumer that decodes verdicts strictly with its own mirror of the schema (the factory does) updates the mirror when it pins the release.
+The field is optional, and an absent field keeps today's behavior, so every existing config and verdict stays valid and `schema_version` does not change. The RFC text gets a minor version bump, because it adds a requirement without making a valid document invalid ([docs/COMPATIBILITY.md](../docs/COMPATIBILITY.md)), and the first release that implements it is a minor release (`0.Y.0`). The schemas are closed, so a verdict carrying `guard: true` is rejected by a reader that has an older schema. That is the pairing rule working as intended. A consumer that reads only part of the verdict and ignores the rest, as the factory does, needs no change.
 
 ## Alternatives
 
