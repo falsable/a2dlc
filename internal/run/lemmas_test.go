@@ -158,21 +158,123 @@ func TestStage3LemmasRequiredButNotDeclaredIsANote(t *testing.T) {
 	}
 }
 
-// Refactor: a lemma that diverges from the base's ({args, old, new}) is a candidate counterexample, not builder feedback:
-// recorded as fail, with the note that Stage 4 is what tests the main function.
-func TestClassifyLemmasRefactorDivergenceIsRecordedNotFedBack(t *testing.T) {
-	r := classifyLemmas([]contract.LemmaResult{
+// Refactor: a lemma that diverges from the base's ({args, old, new}) goes back to the builder once as a finding that names
+// the function, the input and both results and gives the two ways out; the same divergence a second time, or one with no
+// round left to act on it, is only a note and a fail in candidate.json.
+func TestClassifyLemmasRefactorDivergenceGoesBackOnce(t *testing.T) {
+	results := []contract.LemmaResult{
 		{Name: "f", Status: app.LemmaFail, Message: "the candidate's lemma diverges from the base's lemma", Counterexample: map[string]any{"args": "x=2", "old": "4", "new": "5"}},
 		{Name: "g", Status: app.LemmaFail, Message: "broken", Counterexample: map[string]any{"args": "x=0", "raised": "ZeroDivisionError"}},
-	})
-	if r.feedback == nil || len(r.feedback.Findings) != 1 || r.feedback.Findings[0].File != "g" || !strings.Contains(r.feedback.Findings[0].Message, "raised: ZeroDivisionError") {
+	}
+	returned := map[string]bool{}
+	r := classifyLemmas(results, returned, true)
+	if r.feedback == nil || len(r.feedback.Findings) != 2 || r.feedback.Findings[1].File != "g" || !strings.Contains(r.feedback.Findings[1].Message, "raised: ZeroDivisionError") {
 		t.Fatalf("%+v", r.feedback)
 	}
-	if len(r.recorded) != 2 || r.recorded[0].Status != app.LemmaFail || len(r.notes) != 2 ||
-		!strings.Contains(r.notes[0], "lemmas: 2 declared, 2 fail") || !strings.Contains(r.notes[1], "lemma f diverges from the base lemma (args: x=2; new: 5; old: 4)") {
+	d := r.feedback.Findings[0]
+	for _, want := range []string{"lemma f diverges from the base", "input (x=2)", "base returned 4", "candidate returns 5",
+		"If the intent does not ask for this change, restore the old behavior", "if it does, add a test that pins the new behavior"} {
+		if d.Kind != contract.Tier0Lemma || d.File != "f" || !strings.Contains(d.Message, want) {
+			t.Fatalf("missing %q in %+v", want, d)
+		}
+	}
+	if len(r.recorded) != 2 || r.recorded[0].Status != app.LemmaFail || len(r.notes) != 1 || !strings.Contains(r.notes[0], "lemmas: 2 declared, 2 fail") {
 		t.Fatalf("%+v %v", r.recorded, r.notes)
 	}
-	if r := classifyLemmas(nil); r.feedback != nil || len(r.notes) != 0 || len(r.recorded) != 0 {
+	// the next round the builder kept it: g is returned again, f is a note
+	r = classifyLemmas(results, returned, true)
+	if r.feedback == nil || len(r.feedback.Findings) != 1 || r.feedback.Findings[0].File != "g" || len(r.notes) != 2 ||
+		!strings.Contains(r.notes[1], "lemma f diverges from the base lemma (args: x=2; new: 5; old: 4): returned to the builder, which kept it: recorded as fail") {
+		t.Fatalf("%+v %v", r.feedback, r.notes)
+	}
+	// no round left: nothing to act on it, so it is a note
+	r = classifyLemmas(results[:1], map[string]bool{}, false)
+	if r.feedback != nil || len(r.notes) != 2 || !strings.Contains(r.notes[1], "lemma f diverges from the base lemma (args: x=2; new: 5; old: 4): recorded as fail") {
+		t.Fatalf("%+v %v", r.feedback, r.notes)
+	}
+	if r := classifyLemmas(nil, map[string]bool{}, true); r.feedback != nil || len(r.notes) != 0 || len(r.recorded) != 0 {
 		t.Fatalf("%+v", r)
+	}
+}
+
+// A fake engine answer with old and new (a divergence from the base's lemma) reaches the builder's next round as a
+// finding; the builder keeps the change on purpose, the same divergence comes back, and the run accepts the candidate
+// instead of spending every round on it (the verdict is untouched; candidate.json records the fail).
+func TestStage3LemmaDivergenceReachesTheNextRoundOnceThenIsAccepted(t *testing.T) {
+	a, dir, eng := repoBuilder(t)
+	withRouterN2(t)
+	eng.lemmas = func(contract.LemmasBudget, string) contract.LemmasResponse {
+		return contract.LemmasResponse{SchemaVersion: 1, Lemmas: []contract.LemmaResult{{Name: "f", Status: app.LemmaFail,
+			Message: "the candidate's lemma diverges from the base's lemma", Counterexample: map[string]any{"args": "x=2", "old": "4", "new": "5"}}}}
+	}
+	var requests []contract.BuilderRequest
+	launcherFake := &fakeLauncher{script: fakeBuilderLemmas(t, &requests, []contract.BuilderLemma{{Name: "f", Postcondition: "true"}}, func(contract.BuilderRequest) map[string]string {
+		return map[string]string{"src/f.py": "def f(x: int) -> int:\n    return x * 2 + 1\n"}
+	})}
+	path := intentFile(t, func(in *contract.Intent) { in.SliceID, in.Mode, in.Goal = "lem", contract.ModeLite, "f" })
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "lem", Intent: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s3 := st.Stages[5]
+	if s3.Status != contract.StageDone || len(requests) != 2 || eng.lemmaCalls != 2 {
+		t.Fatalf("%+v: requests %d, lemmas %d", s3, len(requests), eng.lemmaCalls)
+	}
+	if requests[0].Tier0Feedback != nil {
+		t.Fatalf("round 1 has feedback: %+v", requests[0].Tier0Feedback)
+	}
+	fb := requests[1].Tier0Feedback
+	if fb == nil || fb.OK || len(fb.Findings) != 1 || fb.Findings[0].Kind != contract.Tier0Lemma || fb.Findings[0].File != "f" {
+		t.Fatalf("%+v", fb)
+	}
+	for _, want := range []string{"lemma f", "input (x=2)", "base returned 4", "candidate returns 5", "restore the old behavior", "pins the new behavior"} {
+		if !strings.Contains(fb.Findings[0].Message, want) {
+			t.Fatalf("missing %q in %q", want, fb.Findings[0].Message)
+		}
+	}
+	if !strings.Contains(s3.Reason, "returned to the builder, which kept it: recorded as fail") {
+		t.Fatalf("%q", s3.Reason)
+	}
+	var c contract.Candidate
+	readJSONTest(t, filepath.Join(dir, ".a2dlc/run/lem", ArtCandidate), &c)
+	if c.Iterations != 2 || len(c.Lemmas) != 1 || c.Lemmas[0].Status != app.LemmaFail {
+		t.Fatalf("%+v", c)
+	}
+}
+
+// The builder restores the old behavior after the finding: the next round's lemma check passes and nothing is recorded as a
+// divergence. With a single round there is none left to act on one, so the divergence is only a note and a fail.
+func TestStage3LemmaDivergenceRestoredOrWithNoRoundLeft(t *testing.T) {
+	run := func(opts Options) (contract.StageRun, []contract.BuilderRequest) {
+		a, _, eng := repoBuilder(t)
+		withRouterN2(t)
+		eng.lemmas = func(_ contract.LemmasBudget, f string) contract.LemmasResponse {
+			if strings.Contains(f, "x * 2 + 1") {
+				return contract.LemmasResponse{SchemaVersion: 1, Lemmas: []contract.LemmaResult{{Name: "f", Status: app.LemmaFail,
+					Message: "diverges", Counterexample: map[string]any{"args": "x=2", "old": "4", "new": "5"}}}}
+			}
+			return contract.LemmasResponse{SchemaVersion: 1, Lemmas: []contract.LemmaResult{{Name: "f", Status: app.LemmaPass, Message: "confirmed"}}}
+		}
+		var requests []contract.BuilderRequest
+		launcherFake := &fakeLauncher{script: fakeBuilderLemmas(t, &requests, []contract.BuilderLemma{{Name: "f", Postcondition: "true"}}, func(pl contract.BuilderRequest) map[string]string {
+			if pl.Tier0Feedback != nil {
+				return map[string]string{"src/f.py": "def f(x: int) -> int:\n    return x * 2\n"}
+			}
+			return map[string]string{"src/f.py": "def f(x: int) -> int:\n    return x * 2 + 1\n"}
+		})}
+		opts.Slice, opts.Intent = "lem", intentFile(t, func(in *contract.Intent) { in.SliceID, in.Mode, in.Goal = "lem", contract.ModeLite, "f" })
+		st, err := Run(context.Background(), a, launcherFake, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return st.Stages[5], requests
+	}
+	s3, requests := run(Options{})
+	if s3.Status != contract.StageDone || len(requests) != 2 || strings.Contains(s3.Reason, "diverges") || !strings.Contains(s3.Reason, "lemmas: 1 declared, 1 pass") {
+		t.Fatalf("restored: %+v, %d requests", s3, len(requests))
+	}
+	s3, requests = run(Options{MaxInner: 1})
+	if s3.Status != contract.StageDone || len(requests) != 1 || !strings.Contains(s3.Reason, "lemma f diverges from the base lemma (args: x=2; new: 5; old: 4): recorded as fail") {
+		t.Fatalf("one round: %+v, %d requests", s3, len(requests))
 	}
 }

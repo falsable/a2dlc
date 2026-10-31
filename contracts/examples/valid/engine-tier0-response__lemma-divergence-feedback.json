@@ -1,0 +1,5 @@
+{"schema_version": 1, "ok": false,
+ "findings": [
+  {"kind": "lemma", "file": "double", "line": null, "message": "lemma double diverges from the base: for the input (x=2) the base returned 4 and the candidate returns 5. If the intent does not ask for this change, restore the old behavior; if it does, add a test that pins the new behavior."}
+ ],
+ "error": null}

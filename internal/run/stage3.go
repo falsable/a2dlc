@@ -263,7 +263,9 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			c = m.exhausted(agent, tier0Artifact)
 		}
 	}()
-	for round := 1; round <= in.rounds+extra; round++ {
+	returned := map[string]bool{} // lemma divergences already sent back to this builder (lemmas.go)
+	lastRound := in.rounds + extra
+	for round := 1; round <= lastRound; round++ {
 		cfg, maxRounds := (*contract.Role)(nil), in.rounds
 		if round > in.rounds {
 			cfg, maxRounds, inTierUp = tierUp, round, true
@@ -360,8 +362,9 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			return buildResult{status: contract.StageEscalated, reason: noteTier0NotRun(false, unreviewed) + "; nobody reviewed the builder's candidate and the stage does not accept it"}, nil
 		}
 		// lemmas (§5 Stage 2, decision 12; lemmas.go): a refuted postcondition is the builder's, so it goes back as Tier 0
-		// feedback and spends the round; the rest is recorded in candidate.json
-		lem, err := m.checkLemmas(ctx, tree, resp.Lemmas, in.critical != nil && *in.critical)
+		// feedback and spends the round, and so does a divergence from the base's lemma the first time and while a round is
+		// left; the rest is recorded in candidate.json
+		lem, err := m.checkLemmas(ctx, tree, resp.Lemmas, in.critical != nil && *in.critical, returned, round < lastRound)
 		if err != nil {
 			return buildResult{status: contract.StageFailed, reason: "the lemmas could not be checked: " + err.Error()}, nil
 		}
