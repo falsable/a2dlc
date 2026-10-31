@@ -172,6 +172,13 @@ func (a App) configAt(commit string) (contract.Config, error) {
 	default:
 		return c, fmt.Errorf("%s: run_divergence %q is not %s or %s", pathConfig, c.RunDivergence, contract.RunDivergenceStrict, contract.RunDivergenceCriticalCode)
 	}
+	if c.Tests != nil {
+		switch c.Tests.Tier0Command {
+		case "", contract.Tier0CommandTests, contract.Tier0CommandBaseline:
+		default:
+			return c, fmt.Errorf("%s: tests.tier0_command %q is not %s or %s", pathConfig, c.Tests.Tier0Command, contract.Tier0CommandTests, contract.Tier0CommandBaseline)
+		}
+	}
 	if c.Integration != nil {
 		if err := c.Integration.Validate(); err != nil {
 			return c, fmt.Errorf("%s: %v", pathConfig, err)

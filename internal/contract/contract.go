@@ -39,6 +39,12 @@ const (
 	NopBasePassingGuard = "guard"
 )
 
+// Values of TestsConfig.Tier0Command (RFC-0004): which command step 4 of Tier 0 runs.
+const (
+	Tier0CommandTests    = "command"
+	Tier0CommandBaseline = "baseline"
+)
+
 type Config struct {
 	// ProtectedPaths are globs an agent cannot change without a signed approval (protected_path).
 	ProtectedPaths []string `json:"protected_paths,omitempty"`
@@ -158,11 +164,14 @@ type TestsConfig struct {
 	InvalidBaseFailures []string      `json:"invalid_base_failures,omitempty"`
 	// NopBasePassing is NopBasePassingFail (also when absent) or NopBasePassingGuard: a base-passing new test is a
 	// regression guard when another new test in the same test file proves the change.
-	NopBasePassing string  `json:"nop_base_passing,omitempty"`
-	Reruns         int     `json:"reruns,omitempty"`
-	TimeoutS       int     `json:"timeout_s,omitempty"`
-	Memory         string  `json:"memory,omitempty"`
-	CPUs           float64 `json:"cpus,omitempty"`
+	NopBasePassing string `json:"nop_base_passing,omitempty"`
+	// Tier0Command is Tier0CommandTests (also when absent) or Tier0CommandBaseline: Tier 0's step 4 runs baseline_command,
+	// with the selection and the cache of Stage 4's baseline gate.
+	Tier0Command string  `json:"tier0_command,omitempty"`
+	Reruns       int     `json:"reruns,omitempty"`
+	TimeoutS     int     `json:"timeout_s,omitempty"`
+	Memory       string  `json:"memory,omitempty"`
+	CPUs         float64 `json:"cpus,omitempty"`
 	// StubEngine is asked for stubs only (the NOP gate's base): it is no entry of Config.Engines, so it reviews no file and
 	// counts for no Tier 0 review. Its language also picks the default InvalidBaseFailures.
 	StubEngine *EngineConfig `json:"stub_engine,omitempty"`

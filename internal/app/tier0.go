@@ -159,10 +159,7 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 		return resp, fmt.Errorf("this binary has no test runner: config.tests cannot review %s", strings.Join(unique(files), ", "))
 	}
 	cov := &accumulated{}
-	c, err := a.run(ctx, gateInput{cfg: *cfg.Tests, tree: tree, cov: cov}, cfg.Tests.Command, tree, nil, nil, envTests(nil, unique(files)))
-	if err == nil {
-		err = c.readable()
-	}
+	c, err := a.tier0Run(ctx, *cfg.Tests, baseSha, tree, files, cov)
 	if err == nil && len(c.cases) == 0 {
 		err = fmt.Errorf("the run reported no testcase (exit %d): %s", c.exit, c.log)
 	}
@@ -202,6 +199,38 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = true
 	return resp, nil
+}
+
+// tier0Run is the run of step 4. By default it is tests.command with every changed file in $A2DLC_CHANGED. With
+// tests.tier0_command "baseline" (RFC-0004) it is baseline_command with the selection Stage 4's baseline gate gives it, through
+// the same cache: the run on the tree of the builder's last round is then the one Stage 4 takes for the candidate, instead of
+// running the whole suite again on the same tree. An image without a digest cannot key that cache, so the run is not kept.
+func (a App) tier0Run(ctx context.Context, t contract.TestsConfig, baseSha, tree string, files []string, cov *accumulated) (run, error) {
+	if t.Tier0Command != contract.Tier0CommandBaseline || t.BaselineCommand == "" {
+		c, err := a.run(ctx, gateInput{cfg: t, tree: tree, cov: cov}, t.Command, tree, nil, nil, envTests(nil, unique(files)))
+		if err == nil {
+			err = c.readable()
+		}
+		return c, err
+	}
+	// the selection check makes: what changed from the base to the candidate, split by tests.paths
+	changed, _, err := a.Repo.Changed(baseSha, tree)
+	if err != nil {
+		return run{}, err
+	}
+	tests, sources := partition(t.Paths, changed)
+	in := gateInput{cfg: t, baseSha: baseSha, tree: tree, tests: tests, sources: sources, cov: cov}
+	env := envTests(tests, sources)
+	digest, err := a.imageDigest(ctx, t.Image)
+	if err != nil || digest == "" {
+		c, err := a.run(ctx, in, t.BaselineCommand, tree, nil, nil, env)
+		if err == nil {
+			err = c.readable()
+		}
+		return c, err
+	}
+	c, _, err := a.suite(ctx, in, t.BaselineCommand, tree, digest, env)
+	return c, err
 }
 
 // coverageFindings are the changed source lines that the green run left unexecuted (RFC-0002, step 4): the lines Stage 4's

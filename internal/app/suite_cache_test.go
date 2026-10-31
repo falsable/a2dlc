@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/falsable/a2dlc/internal/contract"
@@ -118,6 +119,71 @@ func TestSetBaselineUsesAnUnreproducedCachedRunAsTheFirstOfTwo(t *testing.T) {
 	out, err = a.SetBaseline(context.Background(), "HEAD")
 	if err != nil || !out.Stable || len(tf.runs) != n || !out.Cached || out.Reruns != 1 {
 		t.Fatalf("a reproduced cached run must cost nothing: %v %+v, %d runs", err, out, len(tf.runs)-n)
+	}
+}
+
+// With tests.tier0_command "baseline" (RFC-0004), Tier 0's run on a candidate is the baseline gate's run on it: the check of
+// that candidate takes it from the cache, also when baseline_command uses the selection. Without the field it runs again.
+func TestTier0BaselineRunServesTheCheckOfTheSameCandidate(t *testing.T) {
+	for _, c := range []struct {
+		name, baseline string
+		cached         bool
+	}{
+		{"whole suite", `"baseline","tier0_command":"baseline"`, true},
+		{"selection", `"baseline $A2DLC_CHANGED","tier0_command":"baseline"`, true},
+		{"default", `"baseline"`, false},
+	} {
+		a, tf, dir := suiteRepo(t)
+		// the fake's "nop" runs $A2DLC_TESTS only, and Tier 0's default leaves it empty: a command that runs the whole suite
+		cfg := strings.Replace(gatesConfig, `"command":"nop"`, `"command":"all"`, 1)
+		write(t, dir, ".a2dlc/config.json", strings.Replace(cfg, `"baseline_command":"baseline"`, `"baseline_command":`+c.baseline, 1))
+		git(t, dir, "add", "-A")
+		git(t, dir, "commit", "-qm", "config", "--allow-empty") // the default leaves the config as it was
+		cand := candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 2\nIMPL old\n"})
+		if _, _, err := a.Tier0With(context.Background(), "HEAD", cand, nil, withTests); err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		n := len(tf.runs)
+		v, err := a.CheckWith(context.Background(), "HEAD", CheckOptions{CandidateTree: cand})
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		if g := v.TestGates.Baseline; g.Status != contract.GateRan || g.CandidateCached != c.cached {
+			t.Fatalf("%s: candidate cached %v, want %v: %+v (check ran %v)", c.name, g.CandidateCached, c.cached, g, tf.runs[n:])
+		}
+	}
+}
+
+// Without a digest the run cannot be keyed, and without baseline_command there is nothing to run instead: the first runs
+// baseline_command uncached, the second runs tests.command as before.
+func TestTier0BaselineFallsBack(t *testing.T) {
+	for _, c := range []struct{ tests, want string }{
+		{`"command":"run-all","baseline_command":"base-all","tier0_command":"baseline"`, "base-all"},
+		{`"command":"run-all","tier0_command":"baseline"`, "run-all"},
+	} {
+		a, st := testsRepo(t, junitRun(0, "test/a.test.ts first"))
+		write(t, a.Repo.Dir, ".a2dlc/config.json", strings.Replace(testsOnlyConfig, `"command":"run-all"`, c.tests, 1))
+		git(t, a.Repo.Dir, "add", "-A")
+		git(t, a.Repo.Dir, "commit", "-qm", "config")
+		cand := candidateOf(t, a, map[string]string{"src/server.ts": "export const s = 2\n"})
+		if r, _, err := a.Tier0With(context.Background(), "HEAD", cand, nil, withTests); err != nil || !r.Reviewed {
+			t.Fatalf("%s: %v %+v", c.want, err, r)
+		}
+		if len(st.cmds) != 1 || st.cmds[0] != c.want {
+			t.Fatalf("ran %v, want %s", st.cmds, c.want)
+		}
+	}
+}
+
+// Any other value is refused when the config is read, as rung is: a misspelt "baseline" does not fall back to the default.
+func TestTier0CommandRefusesAnUnknownValue(t *testing.T) {
+	a, _ := testsRepo(t)
+	write(t, a.Repo.Dir, ".a2dlc/config.json", strings.Replace(testsOnlyConfig, `"command":"run-all"`, `"command":"run-all","tier0_command":"Baseline"`, 1))
+	git(t, a.Repo.Dir, "add", "-A")
+	git(t, a.Repo.Dir, "commit", "-qm", "config")
+	cand := candidateOf(t, a, map[string]string{"src/server.ts": "export const s = 2\n"})
+	if _, _, err := a.Tier0With(context.Background(), "HEAD", cand, nil, withTests); err == nil || !strings.Contains(err.Error(), "tests.tier0_command") {
+		t.Fatalf("want the config refused, got %v", err)
 	}
 }
 

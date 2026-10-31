@@ -312,7 +312,7 @@
         },
         "reason": { "type": "string", "minLength": 1 },
         "cached": { "type": "boolean", "description": "baseline: the base run came from the cache (the same tree content, command and image answered it before)." },
-        "candidate_cached": { "type": "boolean", "description": "baseline: the candidate run came from the cache too (the same tree content, command and image answered it before, in an earlier check of the same repository)." },
+        "candidate_cached": { "type": "boolean", "description": "baseline: the candidate run came from the cache too (the same tree content, command and image answered it before, in an earlier check of the same repository or, with tests.tier0_command \"baseline\" (RFC-0004), in Tier 0 of the same run)." },
         "stubs": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "nop_oracle: symbols that received a stub on the base." },
         "trees": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "tests_diff: trees on which T ran, in order." },
         "tests": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "tests_diff: files of T." }

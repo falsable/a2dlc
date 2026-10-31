@@ -74,6 +74,8 @@ cases = {
     "config__tests-missing-command.json": (ct, lambda x: x["tests"].pop("command")),
     # RFC-0003: nop_base_passing is fail or guard, nothing else
     "config__nop-base-passing-unknown.json": (ct, lambda x: x["tests"].update(nop_base_passing="note")),
+    # RFC-0004: tier0_command names one of the two commands of config.tests, not a command line
+    "config__tier0-command-unknown.json": (ct, lambda x: x["tests"].update(tier0_command="npm test")),
     # k = 0 would declare flaky without rerunning anything
     "config__tests-reruns-zero.json": (ct, lambda x: x["tests"].update(reruns=0)),
     # a stub engine without its image cannot be started: the stub of the base would silently not exist

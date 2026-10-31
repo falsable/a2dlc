@@ -7,6 +7,7 @@ An RFC is a written proposal to change what the protocol requires or what a cont
 | [0001](0001-a2dlc-protocol.md) | A2-DLC protocol | Consolidated draft (v3.5); §6.4, the receipt, is normative |
 | [0002](0002-declared-tests-as-tier0.md) | Declared tests as the Tier 0 of files no engine covers | Accepted |
 | [0003](0003-nop-regression-guards.md) | A new test that passes on the base, next to one that proves the change, is a regression guard | Accepted |
+| [0004](0004-tier0-runs-the-baseline-command.md) | Tier 0 can run the baseline command, so Stage 4 does not run it again on the same tree | Draft |
 
 ## What needs an RFC
 
