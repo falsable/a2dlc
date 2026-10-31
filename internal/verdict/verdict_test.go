@@ -140,3 +140,21 @@ func TestAssignFirstEngineWins(t *testing.T) {
 		t.Fatalf("by=%v without=%v", byEngine, without)
 	}
 }
+
+// A glob such as src/** covers a module the step adds, at any depth, and only what is under src/.
+func TestAssignGlobCoversNewModules(t *testing.T) {
+	engines := []contract.EngineConfig{{Paths: []string{"src/**"}}}
+	byEngine, without := Assign(engines, []string{"src/rateLimit.ts", "src/lib/deep/new.ts", "src.ts", "test/rate.test.ts"})
+	if !reflect.DeepEqual(byEngine[0], []string{"src/rateLimit.ts", "src/lib/deep/new.ts"}) || !reflect.DeepEqual(without, []string{"src.ts", "test/rate.test.ts"}) {
+		t.Fatalf("by=%v without=%v", byEngine, without)
+	}
+}
+
+// The glob that install writes for a TypeScript repo also covers a module directly under src/.
+func TestAssignInstalledTypeScriptGlobCoversTopLevelModules(t *testing.T) {
+	engines := []contract.EngineConfig{{Paths: []string{"src/**/*.ts"}}}
+	byEngine, without := Assign(engines, []string{"src/rateLimit.ts", "src/lib/new.ts", "src/data.json"})
+	if !reflect.DeepEqual(byEngine[0], []string{"src/rateLimit.ts", "src/lib/new.ts"}) || !reflect.DeepEqual(without, []string{"src/data.json"}) {
+		t.Fatalf("by=%v without=%v", byEngine, without)
+	}
+}

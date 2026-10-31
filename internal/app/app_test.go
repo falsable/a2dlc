@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -115,6 +117,73 @@ func TestCheckFailAndFileWithoutEngine(t *testing.T) {
 	v, err := a.Check(context.Background(), "HEAD")
 	if err != nil || v.Verdict != contract.FAIL || len(v.Targets) != 1 || len(v.OutOfScope) != 1 || v.OutOfScope[0].Reason != "no_engine" {
 		t.Fatalf("v=%+v err=%v", v, err)
+	}
+}
+
+// addedEngine answers like the real engines for a module the step adds: a file with no counterpart in the base is out of
+// scope as "added" (there is nothing to compare it with), and a file that exists on both sides is judged. It records the
+// files it was asked about.
+type addedEngine struct {
+	fakeEngine
+	asked []string
+}
+
+func (m *addedEngine) Run(_ context.Context, _ contract.EngineConfig, req contract.Request, baseDir, _ string) (contract.Response, error) {
+	r := contract.Response{SchemaVersion: 1, Targets: []contract.TargetResult{}, OutOfScope: []contract.OutOfScope{}}
+	for _, f := range req.ChangedFiles {
+		m.asked = append(m.asked, f)
+		if _, err := os.Stat(filepath.Join(baseDir, f)); err != nil {
+			r.OutOfScope = append(r.OutOfScope, contract.OutOfScope{File: f, Reason: "added"})
+			continue
+		}
+		r.Targets = append(r.Targets, contract.TargetResult{Target: f + "::f", Engine: "fast-check", EngineVersion: "fake", Verdict: contract.PASS,
+			SearchBudget: json.RawMessage(`{"examples":1,"seed":1}`), Generators: "typed_default", Equivalence: "strict"})
+	}
+	return r, nil
+}
+
+// A glob such as src/** hands the engine a module the step adds as well as the ones it changes: the added one is out of
+// scope for the engine ("added"), never "no_engine", and a file outside the glob is still "no_engine". Its lines need a test.
+func TestCheckGlobCoversAModuleTheStepAdds(t *testing.T) {
+	a, _, dir := newRepo(t)
+	write(t, dir, "src/server.ts", "export function createApp() { return 1 }\n")
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/**"],"budget":{}}]}`)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "server")
+	write(t, dir, "src/server.ts", "export function createApp() { return 1 } // changed\n")
+	write(t, dir, "src/rateLimit.ts", "export function transition() { return 1 }\n")
+	write(t, dir, "docs/notes.md", "notes\n")
+	m := &addedEngine{}
+	a.Runner = m
+	v, err := a.Check(context.Background(), "HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(m.asked)
+	if !reflect.DeepEqual(m.asked, []string{"src/rateLimit.ts", "src/server.ts"}) {
+		t.Fatalf("the engine was asked about %v", m.asked)
+	}
+	reasons := map[string]string{}
+	for _, o := range v.OutOfScope {
+		reasons[o.File] = o.Reason
+	}
+	want := map[string]string{"src/rateLimit.ts": "added", "docs/notes.md": "no_engine"}
+	if !reflect.DeepEqual(reasons, want) {
+		t.Fatalf("out of scope = %v, want %v", reasons, want)
+	}
+	// The engine has nothing to compare an added module with, so its lines are examined only by tests; with no tests block
+	// they stay unexamined and the diff is INCONCLUSIVE, with the file named in the coverage.
+	if len(v.Targets) != 1 || v.Targets[0].Target != "src/server.ts::f" || v.Verdict != contract.INCONCLUSIVE {
+		t.Fatalf("verdict=%s targets=%+v", v.Verdict, v.Targets)
+	}
+	var uncovered []string
+	for _, f := range v.Coverage.Files {
+		if len(f.Uncovered) > 0 {
+			uncovered = append(uncovered, f.File)
+		}
+	}
+	if !reflect.DeepEqual(uncovered, []string{"src/rateLimit.ts"}) {
+		t.Fatalf("files with unexamined changed lines = %v", uncovered)
 	}
 }
 
@@ -347,6 +416,25 @@ func TestInstallDevBuildWritesTheCurrentPythonEngineTag(t *testing.T) {
 		t.Fatal(err)
 	}
 	write(t, dir, "pyproject.toml", "[project]\nname = \"x\"\n")
+	if _, err := a.Install("/opt/a2dlc", nil); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, ".a2dlc/config.json"))
+	if !strings.Contains(string(b), `"image": "`+current+`"`) && !strings.Contains(string(b), `"image":"`+current+`"`) {
+		t.Fatalf("config does not name %s:\n%s", current, b)
+	}
+}
+
+func TestInstallDevBuildWritesTheCurrentTypeScriptEngineTag(t *testing.T) {
+	const current = "a2dlc-engine-ts:0.3"
+	if engineTSImage != current {
+		t.Fatalf("engineTSImage = %q, want %q", engineTSImage, current)
+	}
+	a, _, dir := newRepo(t)
+	if err := os.Remove(filepath.Join(dir, ".a2dlc/config.json")); err != nil {
+		t.Fatal(err)
+	}
+	write(t, dir, "package.json", "{}\n")
 	if _, err := a.Install("/opt/a2dlc", nil); err != nil {
 		t.Fatal(err)
 	}

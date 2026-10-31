@@ -23,7 +23,7 @@ const (
 // that built it, and the engine would fail with "pull access denied". Dev builds keep the local tags.
 var (
 	enginePyImage = "a2dlc-engine-py:0.10"
-	engineTSImage = "a2dlc-engine-ts:0.1"
+	engineTSImage = "a2dlc-engine-ts:0.3"
 )
 
 // Install leaves the repo ready: config if missing, .gitignore, the pre-push block and the hooks of the requested agents.

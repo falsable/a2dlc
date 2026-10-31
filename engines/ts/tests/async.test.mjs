@@ -127,3 +127,15 @@ test('a module that opens a socket when it loads is INCONCLUSIVE for every targe
   assert.equal(byName.f.verdict, 'INCONCLUSIVE');
   assert.match(byName.f.reason, /network \(server listen\)/);
 });
+
+test('a module the step adds is out of scope as "added" and does not stop the changed ones from being judged', () => {
+  const base = { 'src/server.ts': 'export function pick(n: number): number { return n + 1; }\n' };
+  const cand = {
+    'src/server.ts': "import { limit } from './rateLimit.js';\nexport function pick(n: number): number { return n + limit(); }\n",
+    'src/rateLimit.ts': 'export function limit(): number { return 1; }\n',
+  };
+  const { status, response, byName } = diff(base, cand, ['src/rateLimit.ts', 'src/server.ts']);
+  assert.equal(status, 0);
+  assert.deepEqual(response.out_of_scope, [{ file: 'src/rateLimit.ts', reason: 'added' }]);
+  assert.equal(byName.pick.verdict, 'PASS', 'the candidate imports the added module and behaves as the base');
+});

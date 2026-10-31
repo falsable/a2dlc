@@ -3,7 +3,7 @@
 # no model: a builder that changes label(0) from "zero" to "none" in round 1, gets the core's divergence finding in round 2
 # and keeps the change. The engine runs with --network none like in any run. The builder is e2e/divergence_ts_builder.mjs
 # inside the engine image, so only that image has to exist.
-# Usage, after building dist/a2dlc.exe and a2dlc-engine-ts:0.2 (engines/ts): bash e2e/divergence_ts.sh <empty temporary folder>
+# Usage, after building dist/a2dlc.exe and a2dlc-engine-ts:0.3 (engines/ts): bash e2e/divergence_ts.sh <empty temporary folder>
 set -u
 R=$(cd "$(dirname "$0")/.." && pwd)
 A2="$R/dist/a2dlc.exe"
@@ -13,13 +13,13 @@ IMG=a2dlc-ts-divergence-builder:0.1
 [ -z "$(ls -A "$T" 2>/dev/null)" ] || { echo "$T is not empty"; exit 1; }
 mkdir -p "$T/img" "$T/repo/src/lib" "$T/repo/.a2dlc"
 cp "$R/e2e/divergence_ts_builder.mjs" "$T/img/builder.mjs"
-printf 'FROM a2dlc-engine-ts:0.2\nCOPY builder.mjs /fake/builder.mjs\n' >"$T/img/Dockerfile"
+printf 'FROM a2dlc-engine-ts:0.3\nCOPY builder.mjs /fake/builder.mjs\n' >"$T/img/Dockerfile"
 MSYS_NO_PATHCONV=1 docker build -q -t "$IMG" "$(cygpath -w "$T/img")" >/dev/null || exit 1
 trap 'docker rmi "$IMG" >/dev/null 2>&1' EXIT
 
 cd "$T/repo" || exit 1
 printf 'export function label(n: number): string {\n  return n === 0 ? "zero" : String(n);\n}\n' >src/lib/label.ts
-echo '{"schema_version":1,"engines":[{"language":"typescript","image":"a2dlc-engine-ts:0.2","paths":["src/lib/**"],"budget":{"examples":300,"seed":1}}]}' >.a2dlc/config.json
+echo '{"schema_version":1,"engines":[{"language":"typescript","image":"a2dlc-engine-ts:0.3","paths":["src/lib/**"],"budget":{"examples":300,"seed":1}}]}' >.a2dlc/config.json
 echo '{"schema_version":1,"approvals":[]}' >.a2dlc/approvals.json
 cat >.a2dlc/roles.json <<JSON
 {"schema_version":1,"roles":{"builder_primary":{"family":"claude","image":"$IMG","argv":["node","/fake/builder.mjs"],"network":"none","timeout_s":300,"retries":0}}}
