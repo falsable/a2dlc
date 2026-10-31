@@ -1,0 +1,5 @@
+{"schema_version": 1, "ok": false,
+ "findings": [
+  {"kind": "divergence", "file": "src/lib/label.ts", "line": null, "message": "src/lib/label.ts::label gives a different result than the base: for the input [0] the old code returned {\"ok\":\"zero\"} and the new code returns {\"ok\":\"none\"}. If the intent does not ask for this change, restore the old behavior; if it does, add a test that pins the new behavior."}
+ ],
+ "error": null}

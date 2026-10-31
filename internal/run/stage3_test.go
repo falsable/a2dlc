@@ -23,16 +23,31 @@ type engineRun struct {
 	// lemmas scripts the lemmas operation (lemmas_test.go); nil means the engine does not do it.
 	lemmas     func(budget contract.LemmasBudget, f string) contract.LemmasResponse
 	lemmaCalls int
+	// diverge scripts the differential (divergence_test.go): a non-nil answer for a file makes its target FAIL with that
+	// counterexample, for the builder's probe and for Stage 4 alike. probes counts the builder loop's calls, which are not
+	// in sawCand (that is what Stage 4 judged).
+	diverge func(file, candidate string) *contract.Counterexample
+	probes  int
 }
 
-func (f *engineRun) Run(_ context.Context, _ contract.EngineConfig, req contract.Request, _, candidateDir string) (contract.Response, error) {
+func (f *engineRun) Run(ctx context.Context, _ contract.EngineConfig, req contract.Request, _, candidateDir string) (contract.Response, error) {
 	r := contract.Response{SchemaVersion: 1, Targets: []contract.TargetResult{}, OutOfScope: []contract.OutOfScope{}}
 	for _, file := range req.ChangedFiles {
 		b, _ := os.ReadFile(filepath.Join(candidateDir, file))
-		f.sawCand = append(f.sawCand, string(b))
-		r.Targets = append(r.Targets, contract.TargetResult{Target: file + "::f", Engine: "crosshair-diffbehavior", EngineVersion: "fake",
+		if app.DivergenceProbe(ctx) {
+			f.probes++
+		} else {
+			f.sawCand = append(f.sawCand, string(b))
+		}
+		t := contract.TargetResult{Target: file + "::f", Engine: "crosshair-diffbehavior", EngineVersion: "fake",
 			Verdict: contract.PASS, SearchBudget: json.RawMessage(`{"iterations":1,"per_condition_timeout_s":10}`), Generators: "typed_default",
-			Equivalence: "strict"})
+			Equivalence: "strict"}
+		if f.diverge != nil {
+			if cx := f.diverge(file, string(b)); cx != nil {
+				t.Verdict, t.Counterexample = contract.FAIL, cx
+			}
+		}
+		r.Targets = append(r.Targets, t)
 	}
 	return r, nil
 }

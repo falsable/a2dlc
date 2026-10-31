@@ -26,4 +26,9 @@ const (
 	// lines Stage 4 notes (defensive handlers, declaration-only code) are left out. The core writes it from the coverage the
 	// same run left, only when the suite is green; an engine does not emit it. line is the first such line.
 	Tier0Coverage = "coverage"
+	// Tier0Divergence is a function on which the engines' differential found an input where the base and the candidate give
+	// different results (a FAIL target whose counterexample carries old and new), returned to the builder once so that it
+	// restores the old behavior or pins the new one with a test. The core writes it from the differential it runs on the tree
+	// Tier 0 accepted; an engine's tier0 does not emit it. file is the target's file; the function is in the message.
+	Tier0Divergence = "divergence"
 )

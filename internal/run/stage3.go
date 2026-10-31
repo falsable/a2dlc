@@ -375,6 +375,18 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			feedback = lem.feedback
 			continue
 		}
+		// the differential on the accepted tree (divergence.go): a function that now differs from the base goes back once
+		div, err := m.checkDivergences(ctx, tree, returned, round < lastRound)
+		if err != nil {
+			return buildResult{status: contract.StageFailed, reason: "the differential could not run on the builder's tree: " + err.Error()}, nil
+		}
+		if div.feedback != nil {
+			if _, err := m.writeArtifact(tier0Artifact, *div.feedback); err != nil {
+				return buildResult{}, err
+			}
+			feedback = div.feedback
+			continue
+		}
 		// @a2dlc headers (§6.3): one declared for another run fails the stage; the missing ones go to candidate.json and the reason
 		rev, err := reviewHeaders(work, diffs, header)
 		if err != nil {
@@ -393,6 +405,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		}
 		notes = append(notes, rev.notes...)
 		notes = append(notes, lem.notes...)
+		notes = append(notes, div.notes...)
 		if err := m.app.Repo.UpdateRef("refs/a2dlc/run/"+m.state.SliceID+"/"+role, commit); err != nil {
 			notes = append(notes, "the commit "+commit[:10]+" was left without a ref: "+err.Error())
 		}
