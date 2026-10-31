@@ -123,6 +123,7 @@ type RoleResponse struct {
 	Attempt       int             `json:"attempt"`
 	Status        string          `json:"status"`
 	Reason        string          `json:"reason,omitempty"`
+	ErrorKind     string          `json:"error_kind,omitempty"`
 	Cost          *Cost           `json:"cost"`
 	Model         string          `json:"model,omitempty"`
 	Payload       json.RawMessage `json:"payload"`

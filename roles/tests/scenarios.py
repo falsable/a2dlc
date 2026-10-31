@@ -136,6 +136,10 @@ def check(t: Path) -> int:
                 problems.append(f"stream events {kinds}, expected {want}")
         if fake == "sleep_cut" and (r["status"] != "error" or "exceeded the cap" not in r.get("reason", "") or "3 events" not in r.get("reason", "")):
             problems.append(f"cut-off reason {r.get('reason')}")
+        # error_kind: only a failure of the CLI itself carries it (cli_fails prints nothing, so its output is not JSON)
+        want_kind = {"sleep_cut": "cli_cut", "cli_fails": "cli_output_not_json"}.get(fake)
+        if r.get("error_kind") != want_kind:
+            problems.append(f"error_kind {r.get('error_kind')} (expected {want_kind})")
         if llm == "claude" and called_cli and fake in ("ok", "refused", "prose", "claude_error"):
             if r["cost"] != {"usd": 0.0123, "input_tokens": 110, "cache_read_input_tokens": 10, "output_tokens": 50, "turns": 2}:
                 problems.append(f"cost {r['cost']}")

@@ -1,0 +1,12 @@
+{
+ "schema_version": 1,
+ "run_id": "run-3f9a1c2b7d4e",
+ "role": "builder_primary",
+ "stage": "3",
+ "attempt": 1,
+ "status": "error",
+ "reason": "the CLI 'claude' exceeded the cap of 390 s and was cut off (partial stream kept in /out/stream.jsonl: 12 events, 5 assistant messages, 4 tool calls)",
+ "error_kind": "timeout",
+ "cost": null,
+ "payload": {}
+}

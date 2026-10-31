@@ -46,7 +46,9 @@ Role prompt: prompts/<role>.<stage>.md if it exists (e.g. builder_primary.3.md),
 of them, the adapter answers with an error: it does not make up instructions.
 
 Output: exit 0 with status ok or refused; exit 1 with status error (CLI down, output that is not JSON, files outside
-the contract). If the request cannot even be read, there is no response.json and exit 1.
+the contract). An error of the CLI itself also carries error_kind (cut at the cap, missing, no result event, output not
+JSON), so a reader never has to match the wording of reason. If the request cannot even be read, there is no
+response.json and exit 1.
 """
 from __future__ import annotations
 
@@ -151,11 +153,12 @@ are already applied). Your final answer is ONE single JSON object, with no text 
 
 
 class Failure(Exception):
-    """A failure that is reported as status error in response.json."""
+    """A failure that is reported as status error in response.json. kind is its error_kind (role-response.schema.json) when
+    the CLI itself failed: cli_cut, cli_missing, cli_no_result or cli_output_not_json; None for every other failure."""
 
-    def __init__(self, reason: str, cost: dict | None = None, model: str | None = None):
+    def __init__(self, reason: str, cost: dict | None = None, model: str | None = None, kind: str | None = None):
         super().__init__(reason)
-        self.reason, self.cost, self.model = reason, cost, model
+        self.reason, self.cost, self.model, self.kind = reason, cost, model, kind
 
 
 def is_builder(role: str) -> bool:
@@ -578,9 +581,10 @@ def call_cli(cmd: list[str], prompt: str, cwd: str, stream: Path | None = None,
             except subprocess.TimeoutExpired:
                 pass
             cost = stream_cost(stream) if stream else None
-            raise Failure(f"the CLI {cmd[0]!r} exceeded the cap of {limit:g} s and was cut off" + stream_note(stream), cost)
+            raise Failure(f"the CLI {cmd[0]!r} exceeded the cap of {limit:g} s and was cut off" + stream_note(stream), cost,
+                          kind="cli_cut")
     except FileNotFoundError:
-        raise Failure(f"cannot find the CLI {cmd[0]!r} in the image")
+        raise Failure(f"cannot find the CLI {cmd[0]!r} in the image", kind="cli_missing")
     finally:
         if out:
             out.close()
@@ -682,8 +686,9 @@ def read_claude(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, 
     doc = claude_result(stdout)
     if doc is None:
         if stream_events(stdout):
-            raise Failure(f"claude exited with {code} without a result event; the stream is kept in /out/{STREAM_FILE}: {clean(stderr)}")
-        raise Failure(f"claude exited with {code} and its output is not JSON: {clean(stderr or stdout)}")
+            raise Failure(f"claude exited with {code} without a result event; the stream is kept in /out/{STREAM_FILE}: {clean(stderr)}",
+                          kind="cli_no_result")
+        raise Failure(f"claude exited with {code} and its output is not JSON: {clean(stderr or stdout)}", kind="cli_output_not_json")
     cost = claude_cost(doc)
     model = None
     mu = doc.get("modelUsage")
@@ -702,7 +707,7 @@ def read_gemini(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, 
     """gemini -p --output-format json: {response, stats, error?}. The documentation gives no cost: cost stays null."""
     doc = first_object(stdout)
     if doc is None:
-        raise Failure(f"gemini exited with {code} and its output is not JSON: {clean(stderr or stdout)}")
+        raise Failure(f"gemini exited with {code} and its output is not JSON: {clean(stderr or stdout)}", kind="cli_output_not_json")
     model = None
     st = doc.get("stats")
     if isinstance(st, dict) and isinstance(st.get("models"), dict) and st["models"]:
@@ -906,11 +911,14 @@ def payload_saboteur(model: dict, hashed: list[dict]) -> dict:
 # ---------- main ----------
 
 
-def response(req: dict, status: str, payload: dict, reason: str | None = None, cost: dict | None = None, model: str | None = None) -> dict:
+def response(req: dict, status: str, payload: dict, reason: str | None = None, cost: dict | None = None, model: str | None = None,
+             kind: str | None = None) -> dict:
     out = {"schema_version": 1, "run_id": req["run_id"], "role": req["role"], "stage": req["stage"], "attempt": req["attempt"],
            "status": status, "cost": cost, "payload": payload}
     if reason:
         out["reason"] = reason
+    if kind and status == "error":
+        out["error_kind"] = kind
     if model:
         out["model"] = model
     return out
@@ -955,7 +963,7 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
     try:
         status, reason, files, payload = validate_model(model_object(text), builder, without_tools)
     except Failure as f:
-        raise Failure(f.reason, cost, model)
+        raise Failure(f.reason, cost, model, f.kind)
     try:
         if status == "refused":
             return response(req, "refused", {}, reason, cost, model)
@@ -971,7 +979,7 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
             write_files(out_dir / "files", files)
         return response(req, "ok", payload, reason, cost, model)
     except Failure as f:
-        raise Failure(f.reason, cost, model)
+        raise Failure(f.reason, cost, model, f.kind)
 
 
 def main() -> int:
@@ -987,7 +995,7 @@ def main() -> int:
         write_response(response_path, doc)
         return 0
     except Failure as f:
-        write_response(response_path, response(req, "error", {}, f.reason, f.cost, f.model))
+        write_response(response_path, response(req, "error", {}, f.reason, f.cost, f.model, f.kind))
         print(f"a2dlc-roles: error: {f.reason}", file=sys.stderr)
         return 1
     except Exception as e:  # nothing escapes without a response.json: the core would count it as invalid_response with no reason

@@ -47,6 +47,7 @@ class CutOff(unittest.TestCase):
         self.assertLess(took, 30)  # cut at ~2.7 s, not after the fake's hour
         self.assertEqual(response["status"], "error")
         self.assertIn("exceeded the cap of 2.7 s and was cut off", response["reason"])
+        self.assertEqual(response["error_kind"], "cli_cut")
         self.assertIn("3 events, 1 assistant messages, 1 tool calls", response["reason"])
         self.assertIsNone(response["cost"])  # no result event yet, so no USD to report
         kinds = [json.loads(x)["type"] for x in stream.read_text(encoding="utf-8").splitlines()]

@@ -148,6 +148,9 @@ cases = {
     "role-response__refused-missing-reason.json": (rr, lambda x: x.update(status="refused")),
     # the cost is what the CLI reported: without usd there is no report
     "role-response__cost-missing-usd.json": (rr, lambda x: x.update(cost={"input_tokens": 10})),
+    # error_kind says how a CLI failed: only on an error, and only one of the kinds the schema names
+    "role-response__error-kind-on-ok.json": (rr, lambda x: x.update(error_kind="cli_cut")),
+    "role-response__error-kind-unknown.json": (read("role-response__builder-error-cli-cut.json"), lambda x: x.update(error_kind="timeout")),
     # a done stage has to leave an artifact: resume checks it
     "run-state__done-missing-artifact.json": (rs_, lambda x: x["stages"][1].update(artifact=None)),
     "run-state__skipped-missing-reason.json": (rs_, lambda x: x["stages"][0].pop("reason")),

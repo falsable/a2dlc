@@ -88,6 +88,21 @@ class ReadClaudeCost(unittest.TestCase):
             adapter.read_claude(stream, "boom", 1)
         self.assertIn("without a result event", caught.exception.reason)
         self.assertIn("stream.jsonl", caught.exception.reason)
+        self.assertEqual(caught.exception.kind, "cli_no_result")
+
+    def test_output_that_is_not_json_is_its_own_error_kind(self):
+        with self.assertRaises(adapter.Failure) as caught:
+            adapter.read_claude("Segmentation fault", "boom", 139)
+        self.assertEqual(caught.exception.kind, "cli_output_not_json")
+
+    def test_a_failed_answer_of_the_model_carries_no_error_kind(self):
+        failed = json.dumps({"type": "result", "subtype": "error_max_turns", "is_error": True, "result": "x"})
+        with self.assertRaises(adapter.Failure) as caught:
+            adapter.read_claude(failed, "", 1)
+        self.assertIsNone(caught.exception.kind)
+        doc = adapter.response({"run_id": "run-1", "role": "builder_primary", "stage": "3", "attempt": 1}, "error", {},
+                               caught.exception.reason, kind=caught.exception.kind)
+        self.assertNotIn("error_kind", doc)
 
     def test_stream_cost_of_a_cut_call_is_the_result_event_if_there_is_one_and_nothing_otherwise(self):
         import tempfile

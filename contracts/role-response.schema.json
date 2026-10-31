@@ -12,6 +12,10 @@
     "attempt": { "type": "integer", "minimum": 1 },
     "status": { "enum": ["ok", "refused", "error"] },
     "reason": { "type": "string", "minLength": 1, "description": "Required with refused and error." },
+    "error_kind": {
+      "enum": ["cli_cut", "cli_missing", "cli_no_result", "cli_output_not_json"],
+      "description": "Only with status error, and optional: how the role's CLI failed, when the command knows. cli_cut: the CLI ran past the command's time cap and was killed (a slow call, a cost of the attempt); cli_missing: the CLI is not in the image; cli_no_result: the CLI exited and its event stream has no result event; cli_output_not_json: the CLI exited and printed no JSON. Absent: any other error, or a command that does not say. A reader that tells these failures apart reads this field, never the wording of reason."
+    },
     "cost": { "$ref": "run-defs.schema.json#/$defs/cost" },
     "model": { "type": "string", "description": "What the CLI said it used, if it said so. It is a declaration, not proof." },
     "payload": { "type": "object" }
@@ -22,6 +26,10 @@
     {
       "if": { "properties": { "status": { "enum": ["refused", "error"] } } },
       "then": { "required": ["reason"] }
+    },
+    {
+      "if": { "properties": { "status": { "enum": ["ok", "refused"] } }, "required": ["status"] },
+      "then": { "not": { "required": ["error_kind"] } }
     },
     {
       "if": { "properties": { "role": { "const": "saboteur" }, "status": { "const": "ok" } }, "required": ["role", "status"] },
