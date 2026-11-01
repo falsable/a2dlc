@@ -6,7 +6,7 @@ import hashlib
 import subprocess
 
 # RFC §6.4.2: the gate outputs and the signatures. Each entry is an exact path or a directory (prefix at a "/").
-EXCLUDED = [".a2dlc/verdict.json", ".a2dlc/reports", ".a2dlc/approvals.json", ".a2dlc/escalations.json", ".a2dlc/run"]
+EXCLUDED = [".a2dlc/verdict.json", ".a2dlc/verdict.sig", ".a2dlc/reports", ".a2dlc/approvals.json", ".a2dlc/escalations.json", ".a2dlc/run"]
 
 _SHORT = {'"': '\\"', "\\": "\\\\", "\n": "\\n", "\r": "\\r", "\t": "\\t", "\b": "\\b", "\f": "\\f"}
 

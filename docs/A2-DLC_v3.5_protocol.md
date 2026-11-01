@@ -412,6 +412,7 @@ Three roles appear below. A **producer** runs the gates and writes a receipt (`a
 | `.a2dlc/waivers.json` | `waivers` | yes | Decisions the agent declares. Declaring is not approving. |
 | `.a2dlc/approvals.json` | `approvals` | no | Signatures over waivers (§6.4.7). |
 | `.a2dlc/verdict.json` | `verdict` | no | The receipt. A producer writes it; it is not committed by default. |
+| `.a2dlc/verdict.sig` | none | no | Optional signature over the exact bytes of `verdict.json` (§6.4.7). |
 | `.a2dlc/escalations.json` | `escalation` | no | What a person has to decide. |
 | `.a2dlc/reports/` | none | no | Gate output. |
 | `.a2dlc/run/` | none | no | State of `a2dlc run`. |
@@ -432,6 +433,7 @@ The excluded paths are the gate outputs and the signatures:
 <!-- a2dlc:excluded -->
 ```text
 .a2dlc/verdict.json
+.a2dlc/verdict.sig
 .a2dlc/reports
 .a2dlc/approvals.json
 .a2dlc/escalations.json
@@ -645,6 +647,8 @@ An approval is valid for a commit when all of these hold:
 4. The signature verifies for `principal` over the signed text.
 
 When `approvals` holds several entries for one target, one valid entry is enough.
+
+**Verdict signature (optional).** When the environment variable `A2DLC_SIGNING_KEY` names a private SSH key, the reference also writes `.a2dlc/verdict.sig` beside `verdict.json`: an OpenSSH signature (`ssh-keygen -Y sign`) over the exact bytes of `verdict.json`, with the namespace `a2dlc-verdict`, so a signature made for an approval never verifies as a verdict or the reverse. Those bytes include `tree_hash`, which binds the signature to the tree. A verifier looks the signing key up in the allowed signers (`ssh-keygen -Y find-principals`), verifies, and compares `tree_hash` with the tree of the working directory. Without the variable, or when signing fails, no `verdict.sig` is written (a stale one is removed) and the verdict is unsigned; that is not an error and does not change the receipt. `a2dlc_status` reports `verdict_signature.status` as `unsigned`, `unverifiable` (no allowed signers), `invalid`, `stale` (valid for another tree) or `valid`.
 
 #### 6.4.8 Verification
 

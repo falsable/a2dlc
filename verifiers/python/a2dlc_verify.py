@@ -25,7 +25,7 @@ import subprocess
 import sys
 
 NAMESPACE = "a2dlc-approval"
-EXCLUDED = (b".a2dlc/verdict.json", b".a2dlc/reports", b".a2dlc/approvals.json", b".a2dlc/escalations.json", b".a2dlc/run")
+EXCLUDED = (b".a2dlc/verdict.json", b".a2dlc/verdict.sig", b".a2dlc/reports", b".a2dlc/approvals.json", b".a2dlc/escalations.json", b".a2dlc/run")
 RECEIPT = ".a2dlc/verdict.json"
 WAIVERS = ".a2dlc/waivers.json"
 APPROVALS = ".a2dlc/approvals.json"

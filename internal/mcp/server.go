@@ -159,7 +159,7 @@ func toolsCatalog() []toolDef {
 	return []toolDef{
 		{
 			Name:        "a2dlc_status",
-			Description: "Inspect the current A2-DLC verification state (.a2dlc/verdict.json, .a2dlc/escalations.json, .a2dlc/waivers.json) and tree_hash validity without launching Docker containers.",
+			Description: "Inspect the current A2-DLC verification state (.a2dlc/verdict.json and whether its signature .a2dlc/verdict.sig is valid, .a2dlc/escalations.json, .a2dlc/waivers.json) and tree_hash validity without launching Docker containers.",
 			InputSchema: map[string]any{
 				"type":       "object",
 				"properties": map[string]any{},
@@ -392,6 +392,11 @@ func toolStatus(a app.App) callToolResult {
 		return v
 	}
 	out["verdict"] = readJSON(".a2dlc/verdict.json")
+	if sig, err := a.VerdictSignature(); err != nil {
+		out["verdict_signature"] = map[string]string{"error": err.Error()}
+	} else {
+		out["verdict_signature"] = sig
+	}
 	out["escalations"] = readJSON(".a2dlc/escalations.json")
 	out["waivers"] = readJSON(".a2dlc/waivers.json")
 	problems, err := a.Verify("HEAD")

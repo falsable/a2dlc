@@ -37,6 +37,7 @@ EXCLUDED_FILES = {
     ".a2dlc/approvals.json": '{"schema_version":1,"approvals":[]}\n',
     ".a2dlc/escalations.json": "{}\n",
     ".a2dlc/run": ".a2dlc/run/slice-1/state.json",
+    ".a2dlc/verdict.sig": "x\n",
 }
 
 _tmp = tempfile.mkdtemp(prefix="a2dlc-vectors-")

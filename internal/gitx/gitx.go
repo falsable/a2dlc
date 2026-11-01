@@ -17,7 +17,7 @@ import (
 // Excluded are the gate outputs and the signatures: they do not enter the tree_hash (ADR meta/0004). .a2dlc/run is the
 // state of `a2dlc run` (state, route, ledger, Saboteur overlay): it is not code either, and if it got in, the verdict
 // would go stale for the code commit.
-var Excluded = []string{".a2dlc/verdict.json", ".a2dlc/reports", ".a2dlc/approvals.json", ".a2dlc/escalations.json", ".a2dlc/run"}
+var Excluded = []string{".a2dlc/verdict.json", ".a2dlc/verdict.sig", ".a2dlc/reports", ".a2dlc/approvals.json", ".a2dlc/escalations.json", ".a2dlc/run"}
 
 type Repo struct{ Dir string }
 

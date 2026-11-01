@@ -114,7 +114,7 @@ func sum(acc, x *int) *int {
 // has to remain is the selected one's, not the last one checked.
 func (a App) SaveVerdict(v contract.Verdict) error {
 	verdict.CompleteDiffBudget(&v)
-	if err := a.write(pathVerdict, v); err != nil {
+	if err := a.writeVerdict(v); err != nil {
 		return err
 	}
 	return a.write(pathEscalations, contract.Escalations{SchemaVersion: contract.SchemaVersion, TreeHash: v.TreeHash,

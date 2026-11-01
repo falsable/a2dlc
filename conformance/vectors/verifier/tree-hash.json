@@ -188,6 +188,35 @@
    ]
   },
   {
+   "id": "V-tree-007",
+   "title": "A file under the excluded path .a2dlc/verdict.sig does not enter the tree hash",
+   "rfc": "6.4.2",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n",
+       ".a2dlc/verdict.sig": "x\n"
+      }
+     }
+    ]
+   },
+   "receipt": {
+    "set": {
+     "tree_hash": "git-tree:9596215b9a512c23fe47ceb7727e3e26eea6128d"
+    }
+   },
+   "expect": {
+    "valid": true
+   },
+   "tags": [
+    "exclusion"
+   ]
+  },
+  {
    "id": "V-tree-008",
    "title": "Paths that only look like excluded ones enter the tree hash",
    "rfc": "6.4.2",

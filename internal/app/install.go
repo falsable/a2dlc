@@ -227,7 +227,7 @@ func (a App) gitignore() (int, error) {
 	b, _ := os.ReadFile(path)
 	actual := strings.ReplaceAll(string(b), "\r\n", "\n")
 	missing := []string{}
-	for _, l := range []string{pathVerdict, pathReports + "/", pathEscalations, pathRun + "/"} {
+	for _, l := range []string{pathVerdict, pathVerdictSig, pathReports + "/", pathEscalations, pathRun + "/"} {
 		if !strings.Contains("\n"+actual+"\n", "\n"+l+"\n") {
 			missing = append(missing, l)
 		}

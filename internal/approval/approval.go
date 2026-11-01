@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +18,10 @@ import (
 )
 
 const Namespace = "a2dlc-approval"
+
+// VerdictNamespace is the ssh signature namespace of .a2dlc/verdict.sig. It is not Namespace on purpose: the same key
+// signs approvals and verdicts, and a namespace of its own keeps a signature made for one from verifying as the other.
+const VerdictNamespace = "a2dlc-verdict"
 
 // WaiverSHA is the sha256 of the waiver serialized with the struct's fixed field order.
 func WaiverSHA(w contract.Waiver) string {
@@ -40,6 +45,17 @@ func keygen() string {
 // Sign signs with the given key. ssh-keygen asks for the passphrase through the terminal: that is why Stdin and
 // Stderr are the process's own.
 func Sign(keyPath string, payload []byte) (string, error) {
+	return sign(keyPath, Namespace, payload, os.Stdin, os.Stderr)
+}
+
+// SignVerdict signs the bytes of verdict.json under VerdictNamespace. Unlike Sign it never reads the process's stdin,
+// which under `a2dlc mcp` is the protocol transport: a passphrase key can only be unlocked at a terminal ssh-keygen
+// opens itself, and without one the signing fails instead of hanging or eating protocol bytes.
+func SignVerdict(keyPath string, payload []byte) (string, error) {
+	return sign(keyPath, VerdictNamespace, payload, nil, nil)
+}
+
+func sign(keyPath, namespace string, payload []byte, stdin io.Reader, stderr io.Writer) (string, error) {
 	dir, err := os.MkdirTemp("", "a2dlc-sign-*")
 	if err != nil {
 		return "", err
@@ -49,9 +65,20 @@ func Sign(keyPath string, payload []byte) (string, error) {
 	if err := os.WriteFile(f, payload, 0o600); err != nil {
 		return "", err
 	}
-	c := exec.Command(keygen(), "-Y", "sign", "-f", keyPath, "-n", Namespace, f)
-	c.Stdin, c.Stderr = os.Stdin, os.Stderr
+	var errb bytes.Buffer
+	c := exec.Command(keygen(), "-Y", "sign", "-f", keyPath, "-n", namespace, f)
+	if stdin != nil {
+		c.Stdin = stdin
+	}
+	if stderr != nil {
+		c.Stderr = stderr
+	} else {
+		c.Stderr = &errb
+	}
 	if err := c.Run(); err != nil {
+		if msg := strings.TrimSpace(errb.String()); msg != "" {
+			return "", fmt.Errorf("ssh-keygen -Y sign: %v: %s", err, msg)
+		}
 		return "", fmt.Errorf("ssh-keygen -Y sign: %v", err)
 	}
 	sig, err := os.ReadFile(f + ".sig")
@@ -86,6 +113,44 @@ func AllowedSigners() (string, func(), error) {
 
 // Verify checks the signature of principal over payload against allowedSigners.
 func Verify(allowedSigners, principal string, payload []byte, signature string) error {
+	return verify(allowedSigners, principal, Namespace, payload, signature)
+}
+
+// VerifyVerdict checks a verdict signature against allowedSigners and returns the principal whose key made it. The
+// signature file does not name a principal, so they are the ones allowedSigners lists for the signing key
+// (ssh-keygen -Y find-principals); the signature is valid if it verifies for any of them.
+func VerifyVerdict(allowedSigners string, payload []byte, signature string) (string, error) {
+	if allowedSigners == "" {
+		return "", fmt.Errorf("no allowed signers configured")
+	}
+	dir, err := os.MkdirTemp("", "a2dlc-verify-*")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(dir)
+	sig := filepath.Join(dir, "sig")
+	if err := os.WriteFile(sig, []byte(signature), 0o600); err != nil {
+		return "", err
+	}
+	var out bytes.Buffer
+	c := exec.Command(keygen(), "-Y", "find-principals", "-f", allowedSigners, "-n", VerdictNamespace, "-s", sig)
+	c.Stdout, c.Stderr = &out, &out
+	if err := c.Run(); err != nil {
+		return "", fmt.Errorf("the signing key is not in the allowed signers for namespace %s: %s", VerdictNamespace, strings.TrimSpace(out.String()))
+	}
+	var last error
+	for _, p := range strings.Fields(out.String()) {
+		if last = verify(allowedSigners, p, VerdictNamespace, payload, signature); last == nil {
+			return p, nil
+		}
+	}
+	if last == nil {
+		last = fmt.Errorf("no principal for the signing key")
+	}
+	return "", last
+}
+
+func verify(allowedSigners, principal, namespace string, payload []byte, signature string) error {
 	if allowedSigners == "" {
 		return fmt.Errorf("no allowed signers configured")
 	}
@@ -99,7 +164,7 @@ func Verify(allowedSigners, principal string, payload []byte, signature string) 
 		return err
 	}
 	var out bytes.Buffer
-	c := exec.Command(keygen(), "-Y", "verify", "-f", allowedSigners, "-I", principal, "-n", Namespace, "-s", sig)
+	c := exec.Command(keygen(), "-Y", "verify", "-f", allowedSigners, "-I", principal, "-n", namespace, "-s", sig)
 	c.Stdin = bytes.NewReader(payload)
 	c.Stdout, c.Stderr = &out, &out
 	if err := c.Run(); err != nil {

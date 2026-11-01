@@ -142,7 +142,7 @@ class TreeHash(unittest.TestCase):
     def test_the_excluded_paths_change_nothing_and_the_others_do(self):
         _, _, d = self.both()
         base = ref.tree_hash(d, "HEAD")
-        for path in [".a2dlc/verdict.json", ".a2dlc/run/s1/state.json", ".a2dlc/reports/r1.json", ".a2dlc/approvals.json", ".a2dlc/escalations.json"]:
+        for path in [".a2dlc/verdict.json", ".a2dlc/verdict.sig", ".a2dlc/run/s1/state.json", ".a2dlc/reports/r1.json", ".a2dlc/approvals.json", ".a2dlc/escalations.json"]:
             self.amend(d, path, b"changed\n")
             self.assertEqual(ref.tree_hash(d, "HEAD"), base, path)
         for path in [".a2dlc/runner/k.json", ".a2dlc/verdict.json.bak", ".A2DLC/verdict.json", "sub/.a2dlc/verdict.json", ".a2dlc/config.json", ".a2dlc/waivers.json"]:

@@ -64,15 +64,24 @@ func (a App) read(commit, rel string, v any) error {
 	return nil
 }
 
-func (a App) write(rel string, v any) error {
+// encode is the canonical form of every .a2dlc JSON file this package writes; the verdict signature covers these bytes.
+func encode(v any) ([]byte, error) {
 	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return append(b, '\n'), nil
+}
+
+func (a App) write(rel string, v any) error {
+	b, err := encode(v)
 	if err != nil {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(a.path(rel)), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(a.path(rel), append(b, '\n'), 0o644)
+	return os.WriteFile(a.path(rel), b, 0o644)
 }
 
 func (a App) waivers(commit string) (map[string]contract.Waiver, error) {
@@ -584,7 +593,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	v.CreatedAt = a.Now().UTC().Format(time.RFC3339)
 	verdict.CompleteDiffBudget(&v)
 	v.Timings = tm.result()
-	if err := a.write(pathVerdict, v); err != nil {
+	if err := a.writeVerdict(v); err != nil {
 		return v, err
 	}
 	return v, a.write(pathEscalations, contract.Escalations{SchemaVersion: contract.SchemaVersion, TreeHash: v.TreeHash,

@@ -131,6 +131,9 @@ func run(args []string) int {
 		}
 		fmt.Printf("%s: %d targets, %d tests judged, %d out of scope, %d changed lines examined and %d not examined, %d waivers pending, %d engines with errors\n",
 			v.Verdict, len(v.Targets), len(v.Tests), len(v.OutOfScope), covered, without, len(v.PendingWaivers), len(v.EngineErrors))
+		if sig, err := a.VerdictSignature(); err == nil {
+			fmt.Println("note:", sig.Line())
+		}
 		if c := v.Coverage; c != nil && c.Status == contract.CoverageNotConfigured && c.Reason != "" {
 			fmt.Printf("note: no test ran: %s\n", c.Reason)
 		} else if n := app.NoTestsSectionNote(v); n != "" {

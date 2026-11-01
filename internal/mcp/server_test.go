@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/falsable/a2dlc/internal/app"
+	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/gitx"
 )
 
@@ -288,5 +289,64 @@ func TestIntentFromSignalInheritsBudgetInvariantsAndThreshold(t *testing.T) {
 	resp = call(9, `{"from_slice":"billing.ledger.v1","slice_id":"billing.ledger.v1","metric":"latency_p99_ms","observed":310}`)
 	if !strings.Contains(resp, `"isError":true`) || !strings.Contains(resp, "must differ from from_slice") {
 		t.Fatalf("expected the self-overwrite to be refused: %s", resp)
+	}
+}
+
+// a2dlc_status reports whether the verdict is signed and whether the signature holds for the verdict and the current
+// tree: unsigned without a key, valid with one, invalid once verdict.json is edited.
+func TestStatusReportsTheVerdictSignature(t *testing.T) {
+	if _, err := exec.LookPath("ssh-keygen"); err != nil {
+		t.Skip("no ssh-keygen")
+	}
+	repo := initTestRepo(t)
+	a := app.App{Repo: repo, Version: "test", Now: time.Now}
+	tree, err := repo.WorktreeTree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := contract.Verdict{SchemaVersion: contract.SchemaVersion, Verdict: contract.PASS, TreeHash: "git-tree:" + tree}
+	status := func() map[string]any {
+		t.Helper()
+		var st map[string]any
+		if err := json.Unmarshal([]byte(toolStatus(a).Content[0].Text), &st); err != nil {
+			t.Fatal(err)
+		}
+		sig, _ := st["verdict_signature"].(map[string]any)
+		if sig == nil {
+			t.Fatalf("no verdict_signature in the status: %v", st)
+		}
+		return sig
+	}
+
+	t.Setenv("A2DLC_SIGNING_KEY", "")
+	if err := a.SaveVerdict(v); err != nil {
+		t.Fatal(err)
+	}
+	if got := status()["status"]; got != "unsigned" {
+		t.Fatalf("without a key the status is %v", got)
+	}
+
+	dir := t.TempDir()
+	key := filepath.Join(dir, "k")
+	if out, err := exec.Command("ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", "tester", "-f", key).CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, out)
+	}
+	pub, _ := os.ReadFile(key + ".pub")
+	signers := filepath.Join(dir, "allowed")
+	os.WriteFile(signers, []byte("tester@a2dlc "+strings.TrimSpace(string(pub))+"\n"), 0o600)
+	t.Setenv("A2DLC_SIGNING_KEY", key)
+	t.Setenv("A2DLC_ALLOWED_SIGNERS", signers)
+	if err := a.SaveVerdict(v); err != nil {
+		t.Fatal(err)
+	}
+	if got := status(); got["status"] != "valid" || got["principal"] != "tester@a2dlc" {
+		t.Fatalf("signed verdict: %v", got)
+	}
+
+	p := filepath.Join(repo.Dir, ".a2dlc", "verdict.json")
+	raw, _ := os.ReadFile(p)
+	os.WriteFile(p, []byte(strings.Replace(string(raw), `"PASS"`, `"FAIL"`, 1)), 0o644)
+	if got := status()["status"]; got != "invalid" {
+		t.Fatalf("tampered verdict: %v", got)
 	}
 }
