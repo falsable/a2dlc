@@ -3,7 +3,7 @@ short A2DLC_TIMEOUT_S. The adapter must cut it off, answer status error, and lea
 response.json, with the cost if the stream already carried a result event. No network, no model.
 
   python -I -X utf8 roles/tests/test_stream_cut.py          (standard library only)
-  docker run --rm --network none -v "<worktree>:/src" -w /src --entrypoint python3 a2dlc-roles:0.13 \
+  docker run --rm --network none -v "<worktree>:/src" -w /src --entrypoint python3 a2dlc-roles:0.14 \
       -I -X utf8 roles/tests/test_stream_cut.py              (what the image runs)
 """
 from __future__ import annotations

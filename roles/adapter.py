@@ -4,21 +4,24 @@
 The core launches this script inside the role's container (image a2dlc-roles) with:
   /in          read-only: request.json (role-request) and the artifacts the policy lets this role see
   /out         empty and writable: response.json (role-response) and the files the role delivers go here, and with claude
-               stream.jsonl, the CLI's event stream (also when the call is cut off at the cap)
+               or acp stream.jsonl, the CLI's event stream (also when the call is cut off at the cap)
   /work        only for builders: writable copy of the tree (cwd)
   A2DLC_REQUEST, A2DLC_RESPONSE, A2DLC_ROLE, A2DLC_STAGE   set by the core
   A2DLC_TIMEOUT_S   role cap in seconds (roles.<role>.timeout_s): the CLI is cut a little earlier, with an error
-and the provider credential arrives through --env-file: with claude or gemini only the agent's CLI reads it, never this
-script; with openrouter or entropos this script is the HTTP client and sends the key in the header, never writing it out.
+and the provider credential arrives through --env-file: with claude, gemini or acp only the agent's CLI reads it, never
+this script; with openrouter or entropos this script is the HTTP client and sends the key in the header, never writing it out.
 
 What it does: builds the prompt (role instructions + request.json + each file in /in), calls the headless CLI chosen
-with A2DLC_LLM (claude | gemini | openrouter | entropos; default claude), requires the model to return ONE JSON object
+with A2DLC_LLM (claude | gemini | acp | openrouter | entropos; default claude), requires the model to return ONE JSON object
   {"status": "ok"|"refused", "reason": str|null, "files": [{"path", "content"}], "payload": {...}}
 and translates it into /out/response.json. The model's files are written under /out/tests/<path> (saboteur) or
 /out/files/<path> (the others). For the saboteur, payload.test_files is computed by this script from the sha256 of what it wrote.
 
 Optional variables (roles.<role>.env can set them):
-  A2DLC_LLM             claude | gemini | openrouter | entropos. openrouter and entropos call the OpenAI/Entropos
+  A2DLC_LLM             claude | gemini | acp | openrouter | entropos. acp runs any Agent Client Protocol agent (Gemini
+                        CLI, OpenCode, codex-acp, claude-agent-acp, ...) through acpx, the headless ACP client: one
+                        stateless `exec`, the prompt on stdin, the raw ACP messages as the stream, the USD cost from the
+                        last usage_update. openrouter and entropos call the OpenAI/Entropos
                         API (chat/completions) with the API key from the --env-file. A builder with openrouter or
                         entropos has no tools: it receives in the prompt the files of /work (text, up to the limits below)
                         and delivers in "files" the full content of each file it changes or creates; this script writes
@@ -33,6 +36,11 @@ Optional variables (roles.<role>.env can set them):
   A2DLC_LLM_CMD         TESTS ONLY: command (split as a shell would) that replaces the CLI executable; it receives the
                         same arguments and the prompt on stdin. roles/tests/fake_cli.py uses it to test the adapter
                         without network or credentials.
+  A2DLC_ACP_AGENT       with acp, required: the agent's command as `acpx --agent` takes it (for example
+                        "gemini --experimental-acp"). The image installs the agent: acpx's built-in names fetch it with npx.
+  A2DLC_BUDGET_USD      with acp: the call is stopped once the cost the agent reports reaches this many USD. The stop
+                        is soft (the overshoot is at most one model response) and the reason says so. claude has its
+                        own hard cap (--max-budget-usd in A2DLC_LLM_CMD).
 
 Role prompt: prompts/<role>.<stage>.md if it exists (e.g. builder_primary.3.md), else prompts/<role>.md. With neither
 of them, the adapter answers with an error: it does not make up instructions.
@@ -48,9 +56,12 @@ import os
 import posixpath
 import re
 import shlex
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -287,7 +298,18 @@ def cli_command(llm: str, builder: bool) -> list[str]:
         if builder:
             cmd += ["--approval-mode", "yolo"]
         return cmd
-    raise Failure(f"A2DLC_LLM={llm!r}: only claude, gemini, openrouter or entropos")
+    if llm == "acp":
+        agent = os.environ.get("A2DLC_ACP_AGENT", "").strip()
+        if not agent:
+            raise Failure("A2DLC_LLM=acp needs A2DLC_ACP_AGENT: the agent's command, as acpx --agent takes it")
+        # --json-strict: stdout carries only the raw ACP JSON-RPC messages, one per line. The permission mode is always
+        # explicit because nobody can answer a prompt inside a role; a request no mode resolves fails instead of waiting.
+        cmd = [*(shlex.split(override) if override else ["acpx"]), "--format", "json", "--json-strict",
+               "--approve-all" if builder else "--deny-all", "--non-interactive-permissions", "fail"]
+        if model:
+            cmd += ["--model", model]
+        return cmd + ["--agent", agent, "exec", "--file", "-"]
+    raise Failure(f"A2DLC_LLM={llm!r}: only claude, gemini, acp, openrouter or entropos")
 
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -501,23 +523,56 @@ def cli_cap() -> float | None:
 STREAM_FILE = "stream.jsonl"
 
 
-def call_cli(cmd: list[str], prompt: str, cwd: str, stream: Path | None = None) -> tuple[str, str, int]:
+def kill_group(proc: subprocess.Popen, sig: int = 9) -> None:
+    try:
+        os.killpg(proc.pid, sig) if hasattr(os, "killpg") else proc.kill()
+    except OSError:
+        pass
+
+
+def watch_budget(proc: subprocess.Popen, stream: Path, budget: float, stopped: list[float]) -> None:
+    """Reads the ACP stream as the CLI writes it and stops the call once the agent's cumulative cost reaches the budget:
+    SIGINT first, which acpx answers with session/cancel, then SIGKILL if it has not exited 5 s later."""
+    pending = b""
+    with stream.open("rb") as f:
+        while proc.poll() is None:
+            time.sleep(0.25)
+            pending += f.read()
+            cut = pending.rfind(b"\n") + 1
+            if not cut:
+                continue
+            # usage_update carries the cumulative cost, so the new complete lines are enough
+            lines, pending = pending[:cut], pending[cut:]
+            cost = acp_cost(stream_events(lines.decode("utf-8", errors="replace")))
+            if cost and cost["usd"] >= budget:
+                stopped.append(cost["usd"])
+                kill_group(proc, signal.SIGINT)
+                for _ in range(20):
+                    if proc.poll() is not None:
+                        return
+                    time.sleep(0.25)
+                kill_group(proc)
+                return
+
+
+def call_cli(cmd: list[str], prompt: str, cwd: str, stream: Path | None = None,
+             budget: float | None = None) -> tuple[str, str, int]:
     """Runs the CLI under the cap. With stream, its stdout goes straight to that file as the CLI writes it (the file is
     the CLI's own event stream, untouched), so a call that is cut off, or a container that is killed, leaves what was
-    streamed so far."""
+    streamed so far. With budget (acp only), the call is also stopped when the cost in that stream reaches it."""
     limit = cli_cap()
     out = stream.open("wb") if stream else None
+    stopped: list[float] = []
     try:
         proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=out or subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                                 encoding="utf-8", cwd=cwd, env=os.environ.copy(), start_new_session=hasattr(os, "killpg"))
+        if stream and budget is not None:
+            threading.Thread(target=watch_budget, args=(proc, stream, budget, stopped), daemon=True).start()
         try:
             stdout, stderr = proc.communicate(input=prompt, timeout=limit)
         except subprocess.TimeoutExpired:
             # the CLI's children (a test run, an install) die with it; the stream stays on disk
-            try:
-                os.killpg(proc.pid, 9) if hasattr(os, "killpg") else proc.kill()
-            except OSError:
-                pass
+            kill_group(proc)
             try:
                 proc.communicate(timeout=5)
             except subprocess.TimeoutExpired:
@@ -531,6 +586,10 @@ def call_cli(cmd: list[str], prompt: str, cwd: str, stream: Path | None = None) 
             out.close()
     if stream:
         stdout = stream.read_text(encoding="utf-8", errors="replace")
+    if stopped:
+        raise Failure(f"the CLI {cmd[0]!r} reached the budget of USD {budget:g} (USD {stopped[0]:g} reported) and was "
+                      "stopped; the stop is soft, so the call may have spent up to one more model response"
+                      + stream_note(stream), stream_cost(stream) if stream else None)
     return stdout, stderr, proc.returncode
 
 
@@ -556,6 +615,8 @@ def stream_cost(stream: Path) -> dict | None:
         events = stream_events(stream.read_text(encoding="utf-8", errors="replace"))
     except OSError:
         return None
+    if any(e.get("jsonrpc") == "2.0" for e in events):
+        return acp_cost(events)
     results = [e for e in events if e.get("type") == "result"]
     return claude_cost(results[-1]) if results else None
 
@@ -568,6 +629,9 @@ def stream_note(stream: Path | None) -> str:
         events = stream_events(stream.read_text(encoding="utf-8", errors="replace"))
     except OSError:
         return ""
+    if any(e.get("jsonrpc") == "2.0" for e in events):
+        tools = sum(1 for e in events if acp_update(e).get("sessionUpdate") == "tool_call")
+        return f" (partial stream kept in /out/{STREAM_FILE}: {len(events)} ACP messages, {tools} tool calls)"
     turns = [e for e in events if e.get("type") == "assistant"]
     tools = sum(1 for e in turns for b in (e.get("message") or {}).get("content", []) if isinstance(b, dict) and b.get("type") == "tool_use")
     return f" (partial stream kept in /out/{STREAM_FILE}: {len(events)} events, {len(turns)} assistant messages, {tools} tool calls)"
@@ -651,6 +715,73 @@ def read_gemini(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, 
     if not isinstance(doc.get("response"), str):
         raise Failure("gemini returned no response", None, model)
     return doc["response"], None, model
+
+
+def acp_budget() -> float | None:
+    """A2DLC_BUDGET_USD as a positive number, or None (no budget stop)."""
+    raw = os.environ.get("A2DLC_BUDGET_USD", "").strip()
+    if not raw:
+        return None
+    try:
+        budget = float(raw)
+    except ValueError:
+        raise Failure(f"A2DLC_BUDGET_USD={raw!r} is not a number")
+    if budget <= 0:
+        raise Failure(f"A2DLC_BUDGET_USD={raw!r} must be positive")
+    return budget
+
+
+# acpx exit codes (docs/exit-codes.md of acpx) that say more than "the agent or the runtime failed"
+ACPX_EXITS = {2: "usage error", 3: "timed out", 5: "every permission request was denied", 130: "interrupted"}
+
+
+def acp_update(msg: dict) -> dict:
+    """The update of a session/update notification, or {}."""
+    if msg.get("method") != "session/update" or not isinstance(msg.get("params"), dict):
+        return {}
+    update = msg["params"].get("update")
+    return update if isinstance(update, dict) else {}
+
+
+def acp_cost(messages: list[dict]) -> dict | None:
+    """The session's cost from the last usage_update that carries one in USD: ACP reports it cumulative for the session,
+    and an exec is one session. None if the agent reported no USD: usage_update's token counts are the context window,
+    not billed tokens, so they are not turned into a cost."""
+    usd = None
+    for msg in messages:
+        update = acp_update(msg)
+        cost = update.get("cost") if update.get("sessionUpdate") == "usage_update" else None
+        if isinstance(cost, dict) and str(cost.get("currency", "")).upper() == "USD":
+            amount = cost.get("amount")
+            if isinstance(amount, (int, float)) and not isinstance(amount, bool) and amount >= 0:
+                usd = float(amount)
+    return {"usd": usd} if usd is not None else None
+
+
+def read_acp(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, str | None]:
+    """acpx --format json --json-strict: the raw ACP JSON-RPC messages, one per line. The answer is the agent's message
+    chunks joined; the call is done when session/prompt answers with a stopReason. acpx does not prove which model
+    answered, so no model is reported."""
+    messages = [m for m in stream_events(stdout) if m.get("jsonrpc") == "2.0"]
+    cost = acp_cost(messages)
+    results = [m["result"] for m in messages if isinstance(m.get("result"), dict) and "stopReason" in m["result"]]
+    exit_note = f" ({ACPX_EXITS[code]})" if code in ACPX_EXITS else ""
+    if not results:
+        errors = [m["error"] for m in messages if isinstance(m.get("error"), dict)]
+        detail = clean(str(errors[-1].get("message") or errors[-1])) if errors else clean(stderr)
+        if messages:
+            raise Failure(f"acpx exited with {code}{exit_note} without a result event; the stream is kept in /out/{STREAM_FILE}: {detail}", cost)
+        raise Failure(f"acpx exited with {code}{exit_note} and its output is not JSON: {detail or clean(stdout)}", cost)
+    stop = results[-1]["stopReason"]
+    if code != 0:
+        raise Failure(f"acpx exited with {code}{exit_note}: {clean(stderr)}", cost)
+    if stop != "end_turn":
+        raise Failure(f"the agent ended with {stop}", cost)
+    text = "".join(str((u.get("content") or {}).get("text", "")) for u in map(acp_update, messages)
+                   if u.get("sessionUpdate") == "agent_message_chunk" and isinstance(u.get("content"), dict))
+    if not text.strip():
+        raise Failure("the agent ended its turn without a message", cost)
+    return text, cost, None
 
 
 # ---------- model response ----------
@@ -811,15 +942,16 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
     elif llm == "entropos":
         text, cost, model = call_entropos(prompt)
     else:
-        # claude's event stream stays in /out for every call, cut off or not; gemini has none
-        stream = out_dir / STREAM_FILE if llm == "claude" else None
+        # claude's and acp's event streams stay in /out for every call, cut off or not; gemini has none
+        stream = out_dir / STREAM_FILE if llm in ("claude", "acp") else None
+        budget = acp_budget() if llm == "acp" else None
         if builder and work.is_dir():
-            stdout, stderr, code = call_cli(cmd, prompt, str(work), stream)
+            stdout, stderr, code = call_cli(cmd, prompt, str(work), stream, budget)
         else:
             # the other roles touch nothing: ephemeral cwd, so /out only carries what the role delivers
             with tempfile.TemporaryDirectory() as tmp:
-                stdout, stderr, code = call_cli(cmd, prompt, tmp, stream)
-        text, cost, model = (read_claude if llm == "claude" else read_gemini)(stdout, stderr, code)
+                stdout, stderr, code = call_cli(cmd, prompt, tmp, stream, budget)
+        text, cost, model = {"claude": read_claude, "acp": read_acp}.get(llm, read_gemini)(stdout, stderr, code)
     try:
         status, reason, files, payload = validate_model(model_object(text), builder, without_tools)
     except Failure as f:
