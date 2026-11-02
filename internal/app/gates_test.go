@@ -100,7 +100,10 @@ func (m *fakeEngine) Mutate(_ context.Context, _ contract.EngineConfig, req cont
 // "imports <symbol>" is the module's import: without "IMPL" or "STUB" of that symbol in src the whole file does not
 // collect (no testcase in the JUnit), like a module ImportError in pytest. The state "loads:<path>" passes if the tree
 // has that file and otherwise fails with a vitest-style message naming it ("Failed to load url <path>"); "asserts:<path>"
-// passes the same way and otherwise fails with a bare AssertionError.
+// passes the same way and otherwise fails with a bare AssertionError. A line "requires <module>" is a module that imports
+// <module>, a package nobody installed: on every tree the file does not collect, and the error says so in its body, as
+// pytest does (its message attribute is only "collection failure"). The state "needs-exec:<name>" fails on every tree
+// with the FileNotFoundError of a subprocess that cannot find <name>.
 type fakeTests struct {
 	mu       sync.Mutex // the candidate and the NOP run are concurrent
 	runs     []string
@@ -165,15 +168,18 @@ func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command 
 			continue
 		}
 		lines := strings.Split(strings.TrimSpace(string(b)), "\n")
-		collects := true
+		collects, body := true, ""
 		for _, l := range lines {
+			if s, ok := strings.CutPrefix(l, "requires "); ok {
+				collects, exit, body = false, 1, "ModuleNotFoundError: No module named '"+s+"'"
+			}
 			if s, ok := strings.CutPrefix(l, "imports "); ok && !strings.Contains(src, "IMPL "+s) && !strings.Contains(src, "STUB "+s) {
 				collects, exit = false, 1
 			}
 		}
 		if !collects {
 			// like pytest: a <testcase> without a test name, with <error>, for the module that does not import
-			fmt.Fprintf(&x, `<testcase classname="" name="%s" file="%s"><error message="collection failure"/></testcase>`, strings.TrimSuffix(a, ".t"), a)
+			fmt.Fprintf(&x, `<testcase classname="" name="%s" file="%s"><error message="collection failure">%s</error></testcase>`, strings.TrimSuffix(a, ".t"), a, body)
 			continue
 		}
 		for _, l := range lines {
@@ -220,6 +226,9 @@ func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command 
 				} else {
 					state = "passed"
 				}
+			}
+			if n, ok := strings.CutPrefix(state, "needs-exec:"); ok {
+				state = "failed:FileNotFoundError: [Errno 2] No such file or directory: '" + n + "'"
 			}
 			if p, ok := strings.CutPrefix(state, "asserts:"); ok {
 				// the same dependency on a file, but the failure is an assertion that names no file
@@ -288,7 +297,7 @@ func TestJudgeNOP(t *testing.T) {
 		"absent": "INCONCLUSIVE", "red": "FAIL"}
 	for _, intent := range []bool{false, true} {
 		got := map[string]contract.TestResult{}
-		for _, r := range judgeNOP(candidate, own, nop, intent, false, invalid) {
+		for _, r := range judgeNOP(candidate, own, nop, intent, false, invalid, nil) {
 			got[strings.TrimPrefix(r.Target, "t.py::c::")] = r
 		}
 		if _, ok := got["old"]; ok {
@@ -332,7 +341,7 @@ func TestJudgeNOPGuard(t *testing.T) {
 	}
 	for _, tc := range cases {
 		got := map[string]string{}
-		for _, r := range judgeNOP(candidate, map[string]junit.Case{}, nop, tc.intent, tc.guard, invalid) {
+		for _, r := range judgeNOP(candidate, map[string]junit.Case{}, nop, tc.intent, tc.guard, invalid, nil) {
 			v := r.Verdict
 			if r.Guard {
 				v += " guard"
@@ -801,5 +810,66 @@ func TestUnreproducibleNamesTheFirstDifference(t *testing.T) {
 	missing := mapOf(testCase("tests/a.t::one", "passed", ""))
 	if got := unreproducible(first, missing); !strings.Contains(got, "::two was passed on one run and missing") {
 		t.Fatalf("missing test not named: %q", got)
+	}
+}
+
+// Bead a2dlc-cgl. A new test that could not run because of the environment says nothing about the change: the verdict is
+// INCONCLUSIVE and the reason names the missing piece, so the user can fix the image. A failure the change causes stays FAIL.
+const envConfig = `{"schema_version":1,"engines":[],"tests":{"image":"fake","paths":["tests/**"],"source_paths":["src/**"],"command":"nop","baseline_command":"baseline"}}`
+
+func envCheck(t *testing.T, files map[string]string) (contract.Verdict, map[string]contract.TestResult) {
+	t.Helper()
+	a, dir := testsOnlyRepo(t, envConfig)
+	write(t, dir, "src/lib/f.ts", "export const f = 1\nIMPL old\nIMPL added\n")
+	for f, c := range files {
+		write(t, dir, f, c)
+	}
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v, testsOf(v)
+}
+
+// click 22177f8: a file under tests.paths that imports a package the test image lacks. It errors on both sides with
+// "collection failure"; the module is in the body of the error.
+func TestNOPFileThatImportsAMissingThirdPartyModuleIsInconclusiveNamingIt(t *testing.T) {
+	v, got := envCheck(t, map[string]string{"tests/typing_path.t": "requires typing_extensions\n"})
+	r := got["tests/typing_path"]
+	if r.Verdict != contract.INCONCLUSIVE || r.Base != contract.TestError || r.Candidate != contract.TestError ||
+		!strings.Contains(r.Reason, "typing_extensions") || !strings.Contains(r.Reason, "environment") {
+		t.Fatalf("%+v", r)
+	}
+	if v.Verdict != contract.INCONCLUSIVE {
+		t.Fatalf("verdict %s, want INCONCLUSIVE", v.Verdict)
+	}
+}
+
+// agencia-ia 767a5cb: the render tests call the node executable, absent from the test image.
+func TestNOPTestThatNeedsAMissingExecutableIsInconclusiveNamingIt(t *testing.T) {
+	v, got := envCheck(t, map[string]string{"tests/render.t": "test_render needs-exec:node\n"})
+	r := got["test_render"]
+	if r.Verdict != contract.INCONCLUSIVE || r.Base != contract.TestFailed || r.Candidate != contract.TestFailed ||
+		!strings.Contains(r.Reason, "node") || !strings.Contains(r.Reason, "environment") {
+		t.Fatalf("%+v", r)
+	}
+	if v.Verdict != contract.INCONCLUSIVE {
+		t.Fatalf("verdict %s, want INCONCLUSIVE", v.Verdict)
+	}
+}
+
+// The control: what the change was supposed to provide and does not is the change's failure, not the environment's.
+func TestNOPFailuresTheChangeCausesStayFail(t *testing.T) {
+	_, got := envCheck(t, map[string]string{
+		"tests/sym.t":    "test_symbol uses:missing\n",              // a symbol of the repo the candidate lacks
+		"tests/sub.t":    "requires lib.newmodule\n",                // a new module inside a package of the repo
+		"tests/top.t":    "requires f\n",                            // the top-level name is a file of the repo
+		"tests/data.t":   "test_data needs-exec:fixture.json\n",     // a data file, not an executable
+		"tests/assert.t": "test_assert asserts:src/lib/absent.ts\n", // a plain assertion
+	})
+	for _, id := range []string{"test_symbol", "tests/sub", "tests/top", "test_data"} {
+		if r := got[id]; r.Verdict != contract.FAIL {
+			t.Errorf("%s: %+v, want FAIL", id, r)
+		}
 	}
 }

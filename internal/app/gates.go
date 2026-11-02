@@ -366,7 +366,7 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	if in.stubNote != "" {
 		g.Reason = in.stubNote
 	}
-	res := judgeNOP(candidate.cases, own, nop.cases, declaresBehavior(in), in.cfg.NopBasePassing == contract.NopBasePassingGuard, invalid)
+	res := judgeNOP(candidate.cases, own, nop.cases, declaresBehavior(in), in.cfg.NopBasePassing == contract.NopBasePassingGuard, invalid, a.environmentCause(in))
 	for i := range res {
 		if c, ok := candidate.cases[res[i].Target]; ok {
 			if _, del := in.overlay[c.File]; del {
@@ -441,6 +441,8 @@ func classifier(patterns, unstubbed, added []string) (func(string) bool, error) 
 
 // judgeNOP applies the NOP/Oracle gate to each new testcase (its id does not exist on the base). Whether an old test
 // changes its body cannot be judged without knowing the language: it is left out.
+//   - Red on the candidate because the environment lacks a module or an executable it needs (environment says what): the
+//     test did not run, and it says nothing about the change: INCONCLUSIVE naming the missing piece (bead a2dlc-cgl).
 //   - Red on the candidate: FAIL (Oracle).
 //   - Valid failure on the base: PASS.
 //   - Invalid failure on the base (import, collection, symbol without stub) or absent: INCONCLUSIVE.
@@ -449,7 +451,7 @@ func classifier(patterns, unstubbed, added []string) (func(string) bool, error) 
 //   - Passes on the base with that intent and guard set (tests.nop_base_passing guard, RFC-0003): a regression guard that
 //     does not block when another new test in the same test file proves the change; else FAIL as above. A testcase that
 //     names no file is never a guard.
-func judgeNOP(candidate, own, nop map[string]junit.Case, intent, guard bool, invalid func(string) bool) []contract.TestResult {
+func judgeNOP(candidate, own, nop map[string]junit.Case, intent, guard bool, invalid func(string) bool, environment func(junit.Case) string) []contract.TestResult {
 	proving := map[string]bool{}
 	for _, id := range keys(candidate) {
 		if _, old := own[id]; old || !guard {
@@ -475,6 +477,9 @@ func judgeNOP(candidate, own, nop map[string]junit.Case, intent, guard bool, inv
 		}
 		r := contract.TestResult{Target: id, Gate: contract.GateNOP, Base: b.Status, Candidate: c.Status, Message: b.Message}
 		switch {
+		case junit.Red(c.Status) && environment != nil && environment(c) != "":
+			r.Verdict, r.Message = contract.INCONCLUSIVE, c.Message
+			r.Reason = "environment: the test could not run, " + environment(c) + " in the test image (tests.image); it says nothing about the change"
 		case junit.Red(c.Status):
 			r.Verdict, r.Reason, r.Message = contract.FAIL, "the new test fails on the candidate", c.Message
 		case b.Status == contract.TestFailed && !invalid(b.Message):

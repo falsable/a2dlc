@@ -1,6 +1,7 @@
 package junit
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/falsable/a2dlc/internal/contract"
@@ -68,5 +69,20 @@ func TestParseDuplicateIDKeepsWorst(t *testing.T) {
 	cases, _ := Parse([]byte(`<testsuite><testcase classname="a" name="t"/><testcase classname="a" name="t"><failure message="m"/></testcase></testsuite>`))
 	if cases["a::t"].Status != contract.TestFailed {
 		t.Fatalf("%+v", cases)
+	}
+}
+
+// The message attribute of a pytest collection error is only "collection failure": what failed is in the body, and the
+// gates read it to tell an environment failure from a failure of the change.
+func TestParseKeepsTheBodyOfAnError(t *testing.T) {
+	const x = `<testsuites><testsuite><testcase classname="" name="tests.typing.typing_path" file="tests/typing/typing_path.py"><error message="collection failure">ImportError while importing test module
+E   ModuleNotFoundError: No module named 'typing_extensions'</error></testcase></testsuite></testsuites>`
+	cases, err := Parse([]byte(x))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := cases["tests/typing/typing_path.py::::tests.typing.typing_path"]
+	if c.Message != "collection failure" || !strings.Contains(c.Detail, "No module named 'typing_extensions'") {
+		t.Fatalf("%+v", c)
 	}
 }

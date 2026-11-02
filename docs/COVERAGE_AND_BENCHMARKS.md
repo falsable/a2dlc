@@ -401,6 +401,7 @@ copy of the tree per run) and reads JUnit XML.
   - It must pass on the candidate. On the base it must fail for a valid reason: an assertion, a domain exception, or the `NotImplementedError` raised by the stub of a new symbol.
   - The tests of `--tests-overlay` (the Saboteur's) go through the same gate and the same stubs as the candidate's own new tests (`origin: "overlay"` in the verdict): one that passes against the stub is `test_without_teeth` whoever wrote it; one the candidate fails is `FAIL` and escalates as `behavior_divergence` (`enforce_new_behavior` waives it in both gates). Before 2026-10-17 the gate reported `not_applicable` for a run whose only tests came from the Saboteur.
   - A failure caused by an import or collection error, or one that names a symbol the engine could not stub, gives `INCONCLUSIVE`.
+  - A new test that is red on the candidate because the test image lacks a package it imports (a module outside the repo's tree) or an executable it calls (`node`) is `INCONCLUSIVE`, not `FAIL`: the reason starts with `environment:` and names the missing piece (bead a2dlc-cgl). A module the repo's tree holds (the change was to provide it), a missing symbol and an assertion stay `FAIL`.
 - **Stubs.** The language engine provides them (`operation: "stub"` in the engine contract).
   - Python stubs new functions, classes, top-level methods and names.
   - TypeScript does not stub yet. There, a new test that fails on the base because the symbol does not exist gives `INCONCLUSIVE`.

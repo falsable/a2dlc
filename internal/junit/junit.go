@@ -19,6 +19,7 @@ type Case struct {
 	Name      string
 	Status    string // contract.TestPassed | TestFailed | TestError | TestSkipped
 	Message   string
+	Detail    string // the body of the failure or error element (traceback), trimmed and cut
 }
 
 // ID identifies the testcase across runs: <file>::<classname>::<name> if the runner gives the file (pytest with
@@ -80,9 +81,9 @@ func Parse(b []byte) (map[string]Case, error) {
 			c := Case{File: strings.TrimPrefix(strings.ReplaceAll(x.File, "\\", "/"), "./"), Classname: x.Classname, Name: x.Name, Status: contract.TestPassed}
 			switch {
 			case len(x.Error) > 0:
-				c.Status, c.Message = contract.TestError, message(x.Error[0])
+				c.Status, c.Message, c.Detail = contract.TestError, message(x.Error[0]), detail(x.Error[0])
 			case len(x.Failure) > 0:
-				c.Status, c.Message = contract.TestFailed, message(x.Failure[0])
+				c.Status, c.Message, c.Detail = contract.TestFailed, message(x.Failure[0]), detail(x.Failure[0])
 			case x.Skipped != nil:
 				c.Status = contract.TestSkipped
 			}
@@ -113,6 +114,16 @@ func message(m xmsg) string {
 	}
 	if len(s) > 300 {
 		s = s[:300] + "…"
+	}
+	return s
+}
+
+// detail is the body of the failure (the traceback), trimmed and cut. A runner may put only a label in the message
+// ("collection failure") and what failed in the body.
+func detail(m xmsg) string {
+	s := strings.TrimSpace(m.Text)
+	if len(s) > 4000 {
+		s = s[:4000]
 	}
 	return s
 }
