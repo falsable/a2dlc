@@ -91,7 +91,7 @@ class DepsGraphEndToEnd(Operation):
     def test_deps_graph_answers_engine_deps_response(self):
         (self.cand / "a.py").write_text("import b\nimport nowhere_at_all\n", encoding="utf-8")
         (self.cand / "b.py").write_text("X = 1\n", encoding="utf-8")
-        resp = self.run_main({"operation": "deps_graph", "candidate_dir": str(self.cand)})
+        resp = self.run_main({"operation": "deps_graph", "candidate_dir": str(self.cand), "changed_files": ["a.py", "b.py"]})
         self.assertKeys(resp, {"schema_version", "edges", "unresolved"}, {"error"})
         self.assertEqual(resp["schema_version"], 1)
         self.assertIn({"from": "a.py", "to": "b.py"}, resp["edges"])

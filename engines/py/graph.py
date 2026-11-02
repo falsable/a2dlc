@@ -1,6 +1,6 @@
 """Operation deps_graph (decision 15, Stage 6): the Python import graph of the candidate, read by the AST.
 
-An edge goes from each file to every file its imports execute: the module itself and each package __init__.py on the
+An edge goes from a requested file to every requested file its imports execute: the module itself and each package __init__.py on the
 way (Python runs those too). Absolute and relative imports both count, including the ones inside functions, try
 blocks and TYPE_CHECKING guards. An import that maps to no file of the repository is reported in unresolved as
 "<file>: <name>", never dropped: standard library and third-party modules appear there too. Dynamic imports
@@ -115,20 +115,26 @@ def imports_of(rel: str, tree: ast.AST, index: Index) -> tuple[set[str], set[str
 
 
 def deps_graph(req: dict, io: Path = IO) -> int:
-    """Writes engine-deps-response (edges, unresolved) to io/response.json."""
+    """Writes engine-deps-response (edges, unresolved) to io/response.json.
+
+    Imports are resolved against every file of the tree, but the answer is about the requested files only: an edge needs
+    both ends in changed_files (the core refuses any other), and unresolved is reported for requested importers."""
     root = Path(req["candidate_dir"])
     files = sources(root)
     index = Index(files)
+    asked = set(req.get("changed_files") or [])
     edges: set[tuple[str, str]] = set()
     unresolved: set[str] = set()
     for rel in files:
+        if rel not in asked:
+            continue
         try:
             tree = ast.parse(read_source(root / rel), filename=rel)
         except (OSError, SyntaxError, ValueError, RecursionError) as e:
             unresolved.add(f"{rel}: not parsed ({type(e).__name__})")
             continue
         found, missing = imports_of(rel, tree, index)
-        edges.update((rel, target) for target in found if target != rel)
+        edges.update((rel, target) for target in found if target != rel and target in asked)
         unresolved.update(missing)
     response = {
         "schema_version": 1,

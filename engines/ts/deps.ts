@@ -1,6 +1,7 @@
 // Import graph of the candidate (protocol §5, deps_graph; contracts/engine-deps-response.schema.json). The edges run from
 // the importer to the imported file, both relative to the candidate root. Every import that does not map to a file of the
 // candidate (a package, a node: builtin, a missing file, a non-literal specifier) is listed in unresolved: never dropped.
+// An edge needs both ends in the requested files (the core refuses any other): a candidate file nobody asked about gets none.
 import ts from 'typescript';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -65,6 +66,7 @@ export function resolveRelative(candidateDir: string, fromFile: string, spec: st
 export function depsOf(candidateDir: string, changed: string[]): DepsResult {
   const edges = new Map<string, { from: string; to: string }>();
   const unresolved = new Set<string>();
+  const asked = new Set(changed);
   for (const file of changed) {
     if (!TARGET_FILE.test(file) || !isFile(path.join(candidateDir, file))) continue;
     const text = readFileSync(path.join(candidateDir, file), 'utf-8');
@@ -76,7 +78,7 @@ export function depsOf(candidateDir: string, changed: string[]): DepsResult {
       }
       const to = resolveRelative(candidateDir, file, spec);
       if (to === null) unresolved.add(spec);
-      else edges.set(`${file}\u0000${to}`, { from: file, to });
+      else if (asked.has(to)) edges.set(`${file}\u0000${to}`, { from: file, to });
     }
   }
   return { edges: [...edges.values()], unresolved: [...unresolved].sort() };

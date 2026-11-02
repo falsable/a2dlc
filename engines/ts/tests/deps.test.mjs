@@ -21,7 +21,7 @@ test('static imports, re-exports, import(), require() and import-equals give edg
     'src/eq.ts': 'export = 4;\n',
     'src/util/b.mts': 'export const bm = 5;\n',
   });
-  const r = depsOf(cand, ['src/app.ts']);
+  const r = depsOf(cand, ['src/app.ts', 'src/calc.ts', 'src/eq.ts', 'src/star.ts', 'src/util/b.mts', 'src/util/b.ts']);
   assert.deepEqual(r.edges.map((e) => `${e.from} -> ${e.to}`).sort(), [
     'src/app.ts -> src/calc.ts',
     'src/app.ts -> src/eq.ts',
@@ -37,7 +37,7 @@ test('a bare package, a node: builtin and a missing relative file are unresolved
     'a.ts': "import req from 'requests';\nimport fs from 'node:fs';\nimport { x } from './missing';\nimport { y } from './present';\n",
     'present.ts': 'export const y = 1;\n',
   });
-  const r = depsOf(cand, ['a.ts']);
+  const r = depsOf(cand, ['a.ts', 'present.ts']);
   assert.deepEqual(r.edges, [{ from: 'a.ts', to: 'present.ts' }]);
   assert.deepEqual(r.unresolved, ['./missing', 'node:fs', 'requests']);
 });
@@ -55,7 +55,7 @@ test('an index file resolves a directory import; an unparseable changed file is 
     'use.ts': "import { i } from './lib';\n",
     'broken.ts': 'export const = ;\n',
   });
-  const r = depsOf(cand, ['use.ts', 'broken.ts']);
+  const r = depsOf(cand, ['use.ts', 'broken.ts', 'lib/index.ts']);
   assert.deepEqual(r.edges, [{ from: 'use.ts', to: 'lib/index.ts' }]);
   assert.deepEqual(r.unresolved, ['unparseable: broken.ts']);
 });
@@ -64,6 +64,21 @@ test('a relative specifier that climbs out of the candidate tree is unresolved',
   const cand = tree({ 'x/y.ts': "import z from '../../outside';\n" });
   assert.equal(resolveRelative(cand, 'x/y.ts', '../../outside'), null);
   assert.deepEqual(depsOf(cand, ['x/y.ts']).unresolved, ['../../outside']);
+});
+
+test('an edge names only requested files: an import of a file nobody asked about gets none', () => {
+  const cand = tree({
+    'tests/calc.test.ts': "import { a } from '../src/calc';\nimport { h } from '../examples/helper';\n",
+    'src/calc.ts': "import { u } from './util';\nexport const a = 1;\n",
+    'src/util.ts': 'export const u = 1;\n',
+    'examples/helper.ts': "import { a } from '../src/calc';\nexport const h = a;\n",
+  });
+  const r = depsOf(cand, ['tests/calc.test.ts', 'src/calc.ts', 'src/util.ts']);
+  assert.deepEqual(r.edges.map((e) => `${e.from} -> ${e.to}`).sort(), [
+    'src/calc.ts -> src/util.ts',
+    'tests/calc.test.ts -> src/calc.ts',
+  ]);
+  assert.deepEqual(r.unresolved, []);
 });
 
 test('non-code changed files are not read', () => {

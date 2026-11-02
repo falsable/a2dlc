@@ -31,12 +31,16 @@ class Repo(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
 
-    def deps(self) -> dict:
-        self.assertEqual(graph.deps_graph({"candidate_dir": str(self.root)}, self.io), 0)
+    def deps(self, changed_files: list[str] | None = None) -> dict:
+        """The response for changed_files; by default every .py file of the tree is requested."""
+        if changed_files is None:
+            changed_files = graph.sources(self.root)
+        req = {"candidate_dir": str(self.root), "changed_files": changed_files}
+        self.assertEqual(graph.deps_graph(req, self.io), 0)
         return json.loads((self.io / "response.json").read_text(encoding="utf-8"))
 
-    def edges(self) -> set[tuple[str, str]]:
-        return {(e["from"], e["to"]) for e in self.deps()["edges"]}
+    def edges(self, changed_files: list[str] | None = None) -> set[tuple[str, str]]:
+        return {(e["from"], e["to"]) for e in self.deps(changed_files)["edges"]}
 
 
 class Absolute(Repo):
@@ -149,6 +153,49 @@ class Unresolved(Repo):
         self.write("a.py", "import b\n")
         self.assertEqual(self.edges(), {("a.py", "b.py")})
         self.assertEqual(self.deps()["unresolved"], [])
+
+
+class Requested(Repo):
+    """The answer names only requested files (ValidateDeps in the core refuses anything else), but imports are resolved
+    against the whole tree: the related-tests gate lays out the full candidate and asks about a subset of it."""
+
+    def test_an_unrequested_importer_gets_no_edge_and_no_unresolved_entry(self):
+        self.write("src/click/__init__.py")
+        self.write("tests/test_core.py", "import click\n")
+        self.write("examples/aliases/aliases.py", "import click\nimport requests\n")
+        asked = ["src/click/__init__.py", "tests/test_core.py"]
+        response = self.deps(asked)
+        self.assertEqual({(e["from"], e["to"]) for e in response["edges"]},
+                         {("tests/test_core.py", "src/click/__init__.py")})
+        self.assertEqual(response["unresolved"], [])
+
+    def test_an_edge_to_an_unrequested_file_is_dropped(self):
+        self.write("pkg/__init__.py")
+        self.write("pkg/helper.py")
+        self.write("pkg/a.py", "from pkg import helper\n")
+        self.assertEqual(self.edges(["pkg/a.py", "pkg/__init__.py"]), {("pkg/a.py", "pkg/__init__.py")})
+
+    def test_transitive_chain_between_requested_files_keeps_both_edges(self):
+        self.write("a.py")
+        self.write("b.py", "import a\n")
+        self.write("tests/test_b.py", "import b\n")
+        self.write("scripts/tool.py", "import a\nimport b\n")
+        self.assertEqual(self.edges(["a.py", "b.py", "tests/test_b.py"]),
+                         {("b.py", "a.py"), ("tests/test_b.py", "b.py")})
+
+    def test_unresolved_is_reported_for_requested_files_only(self):
+        self.write("a.py", "import os\n")
+        self.write("scripts/tool.py", "import sys\n")
+        self.assertEqual(self.deps(["a.py"])["unresolved"], ["a.py: os"])
+
+    def test_a_syntax_error_in_an_unrequested_file_is_not_reported(self):
+        self.write("a.py")
+        self.write("scripts/broken.py", "def broken(:\n")
+        self.assertEqual(self.deps(["a.py"])["unresolved"], [])
+
+    def test_no_changed_files_gives_an_empty_graph(self):
+        self.write("a.py", "import os\n")
+        self.assertEqual(self.deps([]), {"schema_version": 1, "edges": [], "unresolved": []})
 
 
 class Output(Repo):
