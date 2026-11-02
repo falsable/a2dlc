@@ -166,6 +166,59 @@ class Robustness(unittest.TestCase):
                          [{"category": classify.DECLARATIVE, "lines": [1, 2]}])
 
 
+class NonStatementLines(unittest.TestCase):
+    """Bead a2dlc-dj0. A changed file no test imports has no coverage data, so every changed line arrives as unexamined,
+    including the lines coverage.py never counts as statements. They carry no behavior: noted, never blocking. The
+    executable lines stay blocking."""
+
+    def test_declaration_only_files_of_the_bead_leave_nothing_blocking(self):
+        for name in ("ports_init", "ports_audit_ledger", "ports_tenant_store", "ports_tool_authz"):
+            with self.subTest(name):
+                text = (DATA / f"{name}.py.txt").read_text(encoding="utf-8")
+                every = list(range(1, text.count("\n") + 1))
+                got = {n["category"]: n["lines"] for n in classify.classify(text, every)}
+                left = sorted(set(every) - {line for ls in got.values() for line in ls})
+                self.assertEqual(left, [], f"{name}: still blocking {left}")
+
+    def test_docstrings_blank_lines_and_comments_are_noted_and_the_body_is_not(self):
+        src = textwrap.dedent('''\
+            """Module docstring,
+            two lines."""
+
+            # a comment
+
+            def f(x):
+                """Function docstring."""
+
+                # inside the body
+                return x + 1
+            ''')
+        # line 6 is `def f(x):` and line 10 is `return x + 1`: both stay unexamined
+        self.assertEqual(notes_of(src, everything(src)), {classify.DECLARATIVE: [1, 2, 3, 4, 5, 7, 8, 9]})
+
+    def test_class_docstring_and_blank_lines_inside_a_class_with_real_code(self):
+        src = textwrap.dedent('''\
+            class C:
+                """Doc."""
+
+                def m(self):
+                    return compute()
+            ''')
+        self.assertEqual(notes_of(src, everything(src)), {classify.DECLARATIVE: [2, 3]})
+
+    def test_blank_and_comment_lines_inside_a_multiline_string_are_part_of_the_statement(self):
+        src = 'X = """a\n\n# not a comment\nb"""\n'
+        self.assertEqual(notes_of(src, everything(src)), {})
+
+    def test_a_string_that_is_not_a_docstring_is_not_noted(self):
+        src = "def f():\n    g()\n    'not a docstring'\n"
+        self.assertEqual(notes_of(src, everything(src)), {})
+
+    def test_a_comment_on_a_code_line_does_not_note_the_line(self):
+        src = "x = compute()  # trailing\n"
+        self.assertEqual(notes_of(src, [1]), {})
+
+
 class Operation(unittest.TestCase):
     def test_classify_lines_answers_the_engine_classify_response(self):
         with tempfile.TemporaryDirectory() as tmp:

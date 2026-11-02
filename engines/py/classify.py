@@ -24,6 +24,8 @@ inert values. A call is never inert, except str(), repr() and type() inside the 
 from __future__ import annotations
 
 import ast
+import io
+import tokenize
 
 DEFENSIVE = "defensive_handler"
 DECLARATIVE = "declarative_only"
@@ -204,11 +206,38 @@ def categories(tree: ast.AST) -> dict[int, str]:
     return out
 
 
+_TOKENS_WITHOUT_CODE = {tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT,
+                        tokenize.ENDMARKER, tokenize.ENCODING}
+
+
+def non_statement_lines(text: str, tree: ast.AST) -> set[int]:
+    """Lines that carry no statement, which coverage.py never counts: docstrings (module, class, function), blank lines
+    and comment-only lines. A file no test imports has no coverage data, so these arrive as unexamined; there is no
+    behavior in them to examine. A blank or `#` line inside a multi-line string literal belongs to its token, so it stays."""
+    out: set[int] = set()
+    for n in ast.walk(tree):
+        if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and n.body:
+            first = n.body[0]
+            if (isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant)
+                    and isinstance(first.value.value, str)):
+                out.update(range(first.lineno, first.end_lineno + 1))
+    code: set[int] = set()
+    for t in tokenize.generate_tokens(io.StringIO(text).readline):
+        if t.type not in _TOKENS_WITHOUT_CODE:
+            code.update(range(t.start[0], t.end[0] + 1))
+    total = text.count("\n") + (0 if text.endswith("\n") else 1)  # not splitlines(): \f and \r are not newlines to ast
+    out.update(set(range(1, total + 1)) - code)
+    return out
+
+
 def classify(text: str, lines: list[int]) -> list[dict]:
     """The notes for `lines` of a Python source, one per category, sorted. A source that does not parse has none."""
     try:
-        by_line = categories(ast.parse(text))
-    except (SyntaxError, ValueError, RecursionError):
+        tree = ast.parse(text)
+        by_line = categories(tree)
+        for line in non_statement_lines(text, tree):
+            by_line.setdefault(line, DECLARATIVE)
+    except (SyntaxError, ValueError, RecursionError, tokenize.TokenError):
         return []
     notes: dict[str, list[int]] = {}
     for line in sorted(set(lines)):

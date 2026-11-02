@@ -59,6 +59,12 @@ short list (`runtime_checkable`, `abstractmethod`, `dataclass`, `property`, ...)
 skeleton. Not classified: any other module-level assignment (`THRESHOLD = 0.5`, `logger = getLogger(...)`), a route
 decorator, a function that is not a stub method of a skeleton.
 
+Also `declarative_only` (bead a2dlc-dj0), as the TypeScript engine does: every docstring (module, class or function), blank
+line and comment-only line. coverage.py never counts them as statements, but a changed file that no test imports has no
+coverage data at all, so each of its lines arrives as unexamined. A blank or `#` line inside a multi-line string literal is
+part of that token and is not noted, and neither is a comment that shares its line with code. The code lines around a
+docstring stay unexamined.
+
 An inert value is a literal, a name, an attribute chain, a unary minus or `not`, or a tuple, list, set, dict or f-string of
 inert values; a call never is, except `str()`, `repr()` and `type()` inside the arguments of a logging call.
 
