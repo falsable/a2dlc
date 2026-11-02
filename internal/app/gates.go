@@ -388,13 +388,25 @@ func gateError(where string, err error) contract.Gate {
 	return contract.Gate{Status: contract.GateError, Reason: where + ": " + err.Error()}
 }
 
+// dataFiles are the extensions of files that carry data or prose and that no import resolves to, in any language the
+// engines cover. A file with another extension (or none) counts as code that can fail to load: the safe side, since the
+// rule only lowers a verdict. shortcut: a fixed list, not the repo's declaration of what is code; extend it when a
+// repo adds a data format whose assertion tests go INCONCLUSIVE.
+var dataFiles = map[string]bool{
+	".json": true, ".yaml": true, ".yml": true, ".toml": true, ".ini": true, ".cfg": true, ".env": true, ".xml": true,
+	".csv": true, ".tsv": true, ".txt": true, ".md": true, ".rst": true, ".html": true, ".svg": true, ".sql": true,
+	".lock": true, ".snap": true, ".png": true, ".jpg": true, ".jpeg": true, ".gif": true, ".pdf": true,
+}
+
 // addedWithoutStub lists the changed sources that the candidate adds (they are not on the base, they are in the
 // candidate) and that no engine stubbed. A test that imports one of them cannot load on the base, and nothing in the
-// failure's wording is reliable across runners and languages, so the failure is recognized by naming the file.
+// failure's wording is reliable across runners and languages, so the failure is recognized by naming the file. Data files
+// (a schema, a fixture, a document) are left out: no import resolves to them, so a message that names one is a test
+// asserting the file the change provides, which is a valid failure (bead a2dlc-9ks).
 func addedWithoutStub(sources []string, stubs map[string][]byte, onBase, inCandidate func(string) bool) []string {
 	var out []string
 	for _, f := range sources {
-		if _, stubbed := stubs[f]; !stubbed && !onBase(f) && inCandidate(f) {
+		if _, stubbed := stubs[f]; !stubbed && !dataFiles[strings.ToLower(filepath.Ext(f))] && !onBase(f) && inCandidate(f) {
 			out = append(out, f)
 		}
 	}

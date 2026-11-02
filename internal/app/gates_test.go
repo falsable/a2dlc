@@ -230,6 +230,14 @@ func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command 
 			if n, ok := strings.CutPrefix(state, "needs-exec:"); ok {
 				state = "failed:FileNotFoundError: [Errno 2] No such file or directory: '" + n + "'"
 			}
+			if p, ok := strings.CutPrefix(state, "asserts-names:"); ok {
+				// an assertion that says which file is missing, as agencia-ia's contract tests do (bead a2dlc-9ks)
+				if _, err := os.Stat(filepath.Join(tree, filepath.FromSlash(p))); err != nil {
+					state = "failed:AssertionError: the contract " + p[strings.LastIndex(p, "/")+1:] + " does not exist in /work/contracts"
+				} else {
+					state = "passed"
+				}
+			}
 			if p, ok := strings.CutPrefix(state, "asserts:"); ok {
 				// the same dependency on a file, but the failure is an assertion that names no file
 				if _, err := os.Stat(filepath.Join(tree, filepath.FromSlash(p))); err != nil {
@@ -400,6 +408,62 @@ func TestNOPAssertionFailureStaysAValidFailureWithoutAnEngine(t *testing.T) {
 	}
 	if got := testsOf(v)["test_limit"]; got.Verdict != contract.PASS || got.Base != contract.TestFailed {
 		t.Fatalf("%+v", got)
+	}
+}
+
+// Bead a2dlc-9ks. A change that adds a data file (a schema, a fixture) and a test that asserts it exists: on the base the
+// assertion names the file, and that is the test proving the change, not a collection error. An import of a module the
+// candidate adds, in the same repo, stays invalid.
+func TestNOPAssertionNamingADataFileTheCandidateAddsIsAValidFailure(t *testing.T) {
+	a, dir := testsOnlyRepo(t, nopTestsOnlyConfig)
+	write(t, dir, "contracts/governed-tool.schema.json", "{}\n")
+	write(t, dir, "src/lib/rateLimiter.ts", "export const limit = 10\n")
+	write(t, dir, "tests/n.t", "test_contract asserts-names:contracts/governed-tool.schema.json\ntest_limit loads:src/lib/rateLimiter.ts\n")
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := testsOf(v)
+	if c := got["test_contract"]; c.Verdict != contract.PASS || c.Base != contract.TestFailed {
+		t.Fatalf("%+v", c)
+	}
+	if l := got["test_limit"]; l.Verdict != contract.INCONCLUSIVE || !strings.Contains(l.Reason, "import") {
+		t.Fatalf("%+v", l)
+	}
+}
+
+// A data file is never the target of an import, so its stem names nothing the runner failed to load. The code files an
+// import resolves to keep counting, in every language the pef cases cover (a Python and a TypeScript module).
+func TestAddedWithoutStubSkipsDataFiles(t *testing.T) {
+	none := func(string) bool { return false }
+	all := func(string) bool { return true }
+	got := addedWithoutStub([]string{"contracts/governed-tool.schema.json", "tests/fixtures/data.YAML", "docs/notes.md", "src/lib/slug.ts", "pkg/store.py", "Makefile"},
+		nil, none, all)
+	if strings.Join(got, ",") != "src/lib/slug.ts,pkg/store.py,Makefile" {
+		t.Fatal(got)
+	}
+}
+
+// pef with the runners' own words: an import error of an added Python module and of an added TypeScript module, each
+// reported as a failure under the test id, with engines: [] (nothing stubs the module).
+func TestClassifierStillNamesAddedPythonAndTypeScriptModulesNotDataFiles(t *testing.T) {
+	added := addedWithoutStub([]string{"app/rate_limiter.py", "src/slugify.ts", "contracts/governed-tool.schema.json"},
+		nil, func(string) bool { return false }, func(string) bool { return true })
+	invalid, err := classifier(nil, nil, added)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		msg  string
+		want bool
+	}{
+		{"ModuleNotFoundError: No module named 'app.rate_limiter'", true},
+		{"Error: Failed to resolve import \"../src/slugify\" from \"test/slugify.test.ts\". Does the file exist?", true},
+		{"AssertionError: El contrato governed-tool.schema.json no existe en /work/contracts", false},
+	} {
+		if got := invalid(c.msg); got != c.want {
+			t.Errorf("%q: invalid=%v, want %v", c.msg, got, c.want)
+		}
 	}
 }
 
