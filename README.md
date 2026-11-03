@@ -131,7 +131,7 @@ All numbers come from frozen mutants (`e2e/testdata/`, pinned by SHA-256) and fi
 | Benchmark | Result |
 |---|---|
 | **SWE-bench Verified** — 38 real agent patches (18 rejected by maintainers, 20 accepted) | CrossHair alone: **0/18** caught. Repo tests + coverage precondition + Saboteur overlay: **18/18 caught (100%, CI 82–100%)**, **0/20 false positives** |
-| **"Every session verifies its own work"** (ADLC rule) vs `a2dlc check`, 9 frozen trees | Self-verification lets **3/5** blocking cases through; the gate blocks **5/5**, passes **4/4** |
+| **"Every session verifies its own work"** (rule from the ADLC infographic, not AI-DLC) vs `a2dlc check`, 9 frozen trees | Self-verification lets **3/5** blocking cases through; the gate blocks **5/5**, passes **4/4** |
 | TypeScript engine — 8 frozen mutants + 1 equivalent refactor, seeds 1–3 | **8/8** caught on every seed; refactor `PASS` |
 | Black-box engine — 5 mutants of `internal/verdict` + 1 equivalent refactor | **5/5** caught in 8–12 s; refactor `PASS` |
 | Equivalent-mutant pruning (`mutmut`, `billing.py`) | kill rate **48.9% → 65.6%** after pruning 13 equivalent mutants |
@@ -143,15 +143,16 @@ The gate also gates this repo: every push to `main` runs `a2dlc check` against a
 
 ## How it compares
 
-| | Spec Kit · BMAD · OpenSpec · Superpowers · AI-DLC | **A2-DLC** |
-|---|---|---|
-| Primary mechanism | Markdown plans, personas, prompt skills | Go state machine + `--network none` Docker engines |
-| Who grades the code | the agent, or a human reading `tasks.md` | symbolic execution, PBT, Z3, fuzzing, mutation |
-| Same agent writes code + test | ✗ undefended | ✓ clean-room roles, blind Saboteur |
-| Refactor equivalence (`old(x) ≡ new(x)`) | ✗ | ✓ native, per function, with counterexample |
-| Anti-bypass | ✗ | ✓ `tree_hash`-bound receipt, hook guard, SSH-signed waivers |
+| | Spec Kit · BMAD · OpenSpec · Superpowers | AI-DLC v2.11 | **A2-DLC** |
+|---|---|---|---|
+| Primary mechanism | Markdown plans, personas, prompt skills | workflow engine with hooks, an audit log and, by default, a human approval gate per stage | Go state machine + `--network none` Docker engines |
+| Who grades the code | the agent, or a human reading `tasks.md` | the exit code of the test command a person approved, which the engine runs, and an LLM reviewer subagent; advisory lint and type-check sensors for TS/JS | symbolic execution, PBT, Z3, fuzzing, mutation |
+| Same agent writes code + test | ✗ undefended | partial: the reviewer is separate, the tests are the builder's | ✓ clean-room roles, blind Saboteur |
+| Refactor equivalence (`old(x) ≡ new(x)`) | ✗ | ✗ | ✓ native, per function, with counterexample |
+| Anti-bypass | ✗ | ✓ review receipts bound to a source fingerprint; `aidlc attest resolve` can require independent, signed records | ✓ `tree_hash`-bound receipt, hook guard, SSH-signed waivers |
+| What the receipt certifies | — | an LLM review marked the unit READY | the oracles ran on this tree: differential, NOP test gate, mutation |
 
-Stage-by-stage against classic SDLC and ADLC: [`docs/VS_SDLC_AND_ADLC.md`](docs/VS_SDLC_AND_ADLC.md).
+The AI-DLC column was read from the source code and docs of [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) at v2.11.2 and at its main branch of 2026-11-03; it was not run or benchmarked. Stage-by-stage against classic SDLC and the ADLC infographic: [`docs/VS_SDLC_AND_ADLC.md`](docs/VS_SDLC_AND_ADLC.md).
 
 ---
 
