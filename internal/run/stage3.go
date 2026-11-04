@@ -286,6 +286,33 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		}
 	}()
 	returned := map[string]bool{} // lemma divergences already sent back to this builder (lemmas.go)
+	var bestTree string
+	var bestFeedback *contract.Tier0Response
+	var bestScore, bestRound int
+	var demingNotes []string
+	ratchetFeedback := func(round int, tree string, next *contract.Tier0Response) error {
+		score := demingDefectScore(next)
+		if bestTree == "" || score <= bestScore {
+			cp := *next
+			bestTree, bestFeedback, bestScore, bestRound = tree, &cp, score, round
+			feedback = next
+			_, err := m.writeArtifact(tier0Artifact, *next)
+			return err
+		}
+		if err := os.RemoveAll(work); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(work, 0o755); err != nil {
+			return err
+		}
+		if err := m.app.Repo.Export(bestTree, work); err != nil {
+			return err
+		}
+		demingNotes = append(demingNotes, fmt.Sprintf("deming-ratchet: round %d regressed (defect score %d > %d from round %d); restored /work to round %d candidate", round, score, bestScore, bestRound, bestRound))
+		feedback = bestFeedback
+		_, err := m.writeArtifact(tier0Artifact, *bestFeedback)
+		return err
+	}
 	lastRound := in.rounds + extra
 	for round := 1; round <= lastRound; round++ {
 		cfg, maxRounds := (*contract.Role)(nil), in.rounds
@@ -383,7 +410,9 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			return buildResult{}, err
 		}
 		if !res.OK {
-			feedback = &res
+			if err := ratchetFeedback(round, tree, &res); err != nil {
+				return buildResult{}, err
+			}
 			continue
 		}
 		// Tier 0 ok without having run anything (no engine had files or probes) is not a reviewed candidate: what nobody
@@ -401,10 +430,9 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			return buildResult{status: contract.StageFailed, reason: "the lemmas could not be checked: " + err.Error()}, nil
 		}
 		if lem.feedback != nil {
-			if _, err := m.writeArtifact(tier0Artifact, *lem.feedback); err != nil {
+			if err := ratchetFeedback(round, tree, lem.feedback); err != nil {
 				return buildResult{}, err
 			}
-			feedback = lem.feedback
 			continue
 		}
 		// the differential on the accepted tree (divergence.go): a function that now differs from the base goes back once
@@ -415,10 +443,9 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			return buildResult{status: contract.StageFailed, reason: "the differential could not run on the builder's tree: " + err.Error()}, nil
 		}
 		if div.feedback != nil {
-			if _, err := m.writeArtifact(tier0Artifact, *div.feedback); err != nil {
+			if err := ratchetFeedback(round, tree, div.feedback); err != nil {
 				return buildResult{}, err
 			}
-			feedback = div.feedback
 			continue
 		}
 		// @a2dlc headers (§6.3): one declared for another run fails the stage (unless it is the base's own, inherited from an earlier slice); the missing ones go to candidate.json and the reason
@@ -441,6 +468,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		if len(unreviewed) > 0 {
 			notes = append(notes, "Tier 0 did not review: "+strings.Join(unreviewed, ", "))
 		}
+		notes = append(notes, demingNotes...)
 		notes = append(notes, rev.notes...)
 		notes = append(notes, lem.notes...)
 		notes = append(notes, div.notes...)
@@ -468,6 +496,27 @@ func join(parts ...string) string {
 		}
 	}
 	return strings.Join(out, "; ")
+}
+
+// demingDefectScore computes a deterministic defect severity score for a Tier 0 feedback payload so the Deming Funnel
+// ratchet can detect round-to-round regressions (Deming's Funnel Rule 2/3/4 tampering) and restore the lowest-defect
+// candidate tree before the next builder round.
+func demingDefectScore(fb *contract.Tier0Response) int {
+	if fb == nil {
+		return 0
+	}
+	score := 0
+	for _, f := range fb.Findings {
+		switch f.Kind {
+		case contract.Tier0Compile, contract.Tier0Typecheck:
+			score += 100
+		case contract.Tier0Probe:
+			score += 20
+		default:
+			score += 5
+		}
+	}
+	return score
 }
 
 // readTier0Extra reads what the intent adds to the Tier 0 policy: intent.capabilities.forbidden_imports and

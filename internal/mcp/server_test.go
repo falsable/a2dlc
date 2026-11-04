@@ -137,9 +137,41 @@ func TestMCPServeProtocolAndTools(t *testing.T) {
 		t.Fatalf("expected intent file on disk: %v", err)
 	}
 
-	// 4. Verify a2dlc_format_report generated Markdown table with counterexample
-	if !strings.Contains(lines[8], `src/pricing.py::apply_discount`) || !strings.Contains(lines[8], `(100, 101)`) {
-		t.Fatalf("expected formatted report with counterexample: %s", lines[8])
+	// 4. Verify a2dlc_format_report generated Markdown table with counterexample, AMEF RPN, Ishikawa 6M, and 5W1H
+	if !strings.Contains(lines[8], `src/pricing.py::apply_discount`) || !strings.Contains(lines[8], `(100, 101)`) ||
+		!strings.Contains(lines[8], `AMEF / FMEA RPN`) || !strings.Contains(lines[8], `MACHINE_LLM`) || !strings.Contains(lines[8], `5W1H Deterministic Audit Summary`) {
+		t.Fatalf("expected formatted report with counterexample and quality telemetry: %s", lines[8])
+	}
+}
+
+func TestComputeQualityMetricsDeterministicClassification(t *testing.T) {
+	// 1. Waiver pending -> GOVERNANCE_WAIVER
+	qmWaiver := ComputeQualityMetrics(contract.Verdict{
+		Verdict:        contract.FAIL,
+		PendingWaivers: []string{"src/pay.py::charge"},
+		Targets:        []contract.VerdictTarget{{TargetResult: contract.TargetResult{Target: "src/pay.py::charge", Engine: "crosshair", Verdict: contract.FAIL}}},
+	})
+	if !strings.HasPrefix(qmWaiver.Ishikawa6M, "GOVERNANCE_WAIVER") || qmWaiver.RPN != 9*4*1 {
+		t.Fatalf("unexpected waiver metrics: %+v", qmWaiver)
+	}
+
+	// 2. Coverage failure -> MEASUREMENT_ORACLE
+	qmCov := ComputeQualityMetrics(contract.Verdict{
+		Verdict:    contract.INCONCLUSIVE,
+		OutOfScope: []contract.OutOfScope{{File: "server.ts", Reason: "no_engine"}},
+		Coverage:   &contract.Coverage{Status: "unavailable"},
+	})
+	if !strings.HasPrefix(qmCov.Ishikawa6M, "MEASUREMENT_ORACLE") || qmCov.Detectability != 9 {
+		t.Fatalf("unexpected coverage metrics: %+v", qmCov)
+	}
+
+	// 3. Clean PASS -> NONE (Nominal)
+	qmPass := ComputeQualityMetrics(contract.Verdict{
+		Verdict: contract.PASS,
+		Targets: []contract.VerdictTarget{{TargetResult: contract.TargetResult{Target: "src/pay.py::charge", Engine: "crosshair", Verdict: contract.PASS}}},
+	})
+	if !strings.HasPrefix(qmPass.Ishikawa6M, "NONE") || qmPass.RPN != 2*1*1 {
+		t.Fatalf("unexpected pass metrics: %+v", qmPass)
 	}
 }
 

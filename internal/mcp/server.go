@@ -689,6 +689,160 @@ func indexOf(xs []string, x string) int {
 	return -1
 }
 
+// QualityMetrics holds the deterministic industrial quality governance metrics (AMEF/FMEA RPN, Ishikawa 6M,
+// 5W1H audit summary, and 1-10-100 cost-of-quality stage) derived purely from a Verdict receipt.
+type QualityMetrics struct {
+	Severity      int    `json:"severity"`
+	Occurrence    int    `json:"occurrence"`
+	Detectability int    `json:"detectability"`
+	RPN           int    `json:"rpn"`
+	Ishikawa6M    string `json:"ishikawa_6m"`
+	CostTier      string `json:"cost_tier"`
+	What          string `json:"what"`
+	Why           string `json:"why"`
+	Where         string `json:"where"`
+	When          string `json:"when"`
+	Who           string `json:"who"`
+	How           string `json:"how"`
+}
+
+// ComputeQualityMetrics computes deterministic AMEF/FMEA (RPN = S * O * D), Ishikawa 6M root-cause classification,
+// 5W1H audit fields, and 1-10-100 cost-of-quality tier from a Verdict without any LLM calls.
+func ComputeQualityMetrics(v contract.Verdict) QualityMetrics {
+	failedTargets, errorTargets, divergenceNotes := 0, 0, 0
+	var firstReason string
+	var whereList []string
+	var engines []string
+	seenEngine := map[string]bool{}
+	for _, t := range v.Targets {
+		whereList = append(whereList, t.Target)
+		if t.Engine != "" && !seenEngine[t.Engine] {
+			seenEngine[t.Engine] = true
+			engines = append(engines, t.Engine)
+		}
+		if t.Note == contract.NoteBehaviorDivergence {
+			divergenceNotes++
+		}
+		if t.Verdict == contract.FAIL {
+			failedTargets++
+			if firstReason == "" {
+				if t.Counterexample != nil {
+					firstReason = fmt.Sprintf("%s counterexample args=%s -> old=%s, new=%s", t.Target, t.Counterexample.Args, t.Counterexample.Old, t.Counterexample.New)
+				} else {
+					firstReason = t.Target + ": " + t.Reason
+				}
+			}
+		} else if t.Verdict == contract.INCONCLUSIVE {
+			errorTargets++
+			if firstReason == "" && t.Reason != "" {
+				firstReason = t.Target + ": " + t.Reason
+			}
+		}
+	}
+	for _, o := range v.OutOfScope {
+		whereList = append(whereList, o.File)
+	}
+
+	failedChecks, errorChecks := 0, 0
+	for _, c := range v.Checks {
+		if c.Status == "error" {
+			errorChecks++
+		} else if c.Status == "ran" && (c.Pass == nil || !*c.Pass) {
+			failedChecks++
+		}
+	}
+
+	// Ishikawa 6M deterministic root-cause classification
+	ishikawa := "NONE (Nominal)"
+	switch {
+	case v.Verdict == contract.PASS:
+		ishikawa = "NONE (Nominal)"
+	case len(v.PendingWaivers) > 0:
+		ishikawa = "GOVERNANCE_WAIVER (Manpower / Unsigned Waiver)"
+	case errorTargets > 0 || errorChecks > 0 || len(v.EngineErrors) > 0 || (v.TestGates != nil && v.TestGates.NOPOracle.Status == "error"):
+		ishikawa = "ENV_DOCKER (Environment / Engine Execution Error)"
+	case (v.TestGates != nil && v.TestGates.NOPOracle.Status == "fail") || (v.Coverage != nil && (v.Coverage.Status == "fail" || v.Coverage.Status == "unavailable")) || (len(v.OutOfScope) > 0 && failedTargets == 0 && failedChecks == 0):
+		ishikawa = "MEASUREMENT_ORACLE (Measurement / Test & Coverage Precondition)"
+	case failedTargets > 0 || failedChecks > 0:
+		ishikawa = "MACHINE_LLM (Machine / Behavioral Divergence or Check Failure)"
+	default:
+		ishikawa = "METHOD_SPEC (Method / Unclassified Gate Stop)"
+	}
+
+	// AMEF / FMEA: RPN = Severity (1..10) * Occurrence (1..10) * Detectability (1..10)
+	s := 2
+	if failedTargets > 0 || failedChecks > 0 {
+		s = 7
+		if len(v.Targets) > 1 || len(v.PendingWaivers) > 0 {
+			s = 9
+		}
+	} else if v.Verdict == contract.INCONCLUSIVE {
+		s = 5
+	}
+
+	defects := failedTargets + failedChecks + divergenceNotes
+	o := 1
+	if defects > 0 {
+		o = 2 + 2*defects
+		if o > 10 {
+			o = 10
+		}
+	} else if v.Verdict != contract.PASS {
+		o = 3
+	}
+
+	d := 1
+	switch {
+	case v.Coverage != nil && (v.Coverage.Status == "fail" || v.Coverage.Status == "unavailable"):
+		d = 9
+	case len(v.OutOfScope) > 0 && len(v.Targets) == 0:
+		d = 8
+	case len(v.OutOfScope) > 0:
+		d = 4
+	case len(v.Targets) == 0 && len(v.Tests) == 0:
+		d = 5
+	}
+
+	if firstReason == "" {
+		if v.Verdict == contract.PASS {
+			firstReason = "All differential, test, and coverage gates satisfied"
+		} else {
+			firstReason = "Gate stopped with verdict " + v.Verdict
+		}
+	}
+	whereStr := "none"
+	if len(whereList) > 0 {
+		whereStr = strings.Join(whereList, ", ")
+	}
+	howStr := "git-tree receipt"
+	if len(engines) > 0 {
+		howStr = strings.Join(engines, ", ")
+	}
+	whoStr := "Automated deterministic gate (0 pending waivers)"
+	if len(v.PendingWaivers) > 0 {
+		whoStr = fmt.Sprintf("Requires SSH human approval (%d pending waivers)", len(v.PendingWaivers))
+	}
+	costTier := "$10 Pre-Merge Verification Gate (prevents $100 production incident)"
+	if v.Verdict == contract.PASS && len(v.Targets) == 0 && len(v.Tests) == 0 {
+		costTier = "$1 Prevention / Static Gate"
+	}
+
+	return QualityMetrics{
+		Severity:      s,
+		Occurrence:    o,
+		Detectability: d,
+		RPN:           s * o * d,
+		Ishikawa6M:    ishikawa,
+		CostTier:      costTier,
+		What:          fmt.Sprintf("Verdict %s (%d targets, %d tests, %d out_of_scope)", v.Verdict, len(v.Targets), len(v.Tests), len(v.OutOfScope)),
+		Why:           firstReason,
+		Where:         whereStr,
+		When:          fmt.Sprintf("%s (tree=%s, base=%s)", v.CreatedAt, v.TreeHash, v.BaseRef),
+		Who:           whoStr,
+		How:           howStr,
+	}
+}
+
 func toolFormatReport(a app.App) callToolResult {
 	verdictPath := filepath.Join(a.Repo.Dir, ".a2dlc", "verdict.json")
 	b, err := os.ReadFile(verdictPath)
@@ -699,6 +853,7 @@ func toolFormatReport(a app.App) callToolResult {
 	if err := json.Unmarshal(b, &v); err != nil {
 		return errorResult("invalid .a2dlc/verdict.json: " + err.Error())
 	}
+	qm := ComputeQualityMetrics(v)
 	var sb strings.Builder
 	badge := "✅ PASS"
 	if v.Verdict == contract.FAIL {
@@ -709,7 +864,17 @@ func toolFormatReport(a app.App) callToolResult {
 	fmt.Fprintf(&sb, "## 🛡️ A2-DLC Verification Receipt: **%s**\n\n", badge)
 	fmt.Fprintf(&sb, "- **Base Ref:** `%s`\n", v.BaseRef)
 	fmt.Fprintf(&sb, "- **Bound Tree Hash:** `%s`\n", v.TreeHash)
-	fmt.Fprintf(&sb, "- **Targets Judged:** `%d`  •  **Tests Judged:** `%d`  •  **Out of Scope:** `%d`\n\n", len(v.Targets), len(v.Tests), len(v.OutOfScope))
+	fmt.Fprintf(&sb, "- **Targets Judged:** `%d`  •  **Tests Judged:** `%d`  •  **Out of Scope:** `%d`\n", len(v.Targets), len(v.Tests), len(v.OutOfScope))
+	fmt.Fprintf(&sb, "- **AMEF / FMEA RPN:** `%d` (`S=%d × O=%d × D=%d`)  •  **Ishikawa 6M:** `%s`\n", qm.RPN, qm.Severity, qm.Occurrence, qm.Detectability, qm.Ishikawa6M)
+	fmt.Fprintf(&sb, "- **1-10-100 Cost Tier:** `%s`\n\n", qm.CostTier)
+
+	sb.WriteString("### 5W1H Deterministic Audit Summary\n")
+	fmt.Fprintf(&sb, "- **What:** %s\n", qm.What)
+	fmt.Fprintf(&sb, "- **Why:** %s\n", qm.Why)
+	fmt.Fprintf(&sb, "- **Where:** `%s`\n", qm.Where)
+	fmt.Fprintf(&sb, "- **When:** `%s`\n", qm.When)
+	fmt.Fprintf(&sb, "- **Who:** %s\n", qm.Who)
+	fmt.Fprintf(&sb, "- **How:** `%s`\n\n", qm.How)
 
 	if len(v.Targets) > 0 {
 		sb.WriteString("| Target Symbol | Engine | Verdict | Counterexample / Details |\n")

@@ -579,3 +579,57 @@ func TestStage3CandidateSaysTier0Reviewed(t *testing.T) {
 		t.Fatalf("%v %+v", err, c)
 	}
 }
+
+// Deming Funnel Ratchet: when round 2 introduces strictly more defects than round 1 (Rule 2/3/4 tampering), Stage 3
+// restores /work and tier0_feedback to round 1's best candidate before launching round 3, and records the ratchet note.
+func TestStage3DemingRatchetRestoresBestCandidateOnRegression(t *testing.T) {
+	a, _, _ := repoBuilder(t)
+	var requests []contract.BuilderRequest
+	var round3WorkContent string
+	launcherFake := &fakeLauncher{script: func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
+		var req contract.RoleRequest
+		b, _ := os.ReadFile(filepath.Join(s.InDir, "request.json"))
+		if err := contract.DecodeStrictBytes(b, &req); err != nil {
+			t.Fatal(err)
+		}
+		var pl contract.BuilderRequest
+		if err := contract.DecodeStrictBytes(req.Payload, &pl); err != nil {
+			t.Fatal(err)
+		}
+		requests = append(requests, pl)
+		p := filepath.Join(s.WorkDir, "src", "f.py")
+		switch pl.Round {
+		case 1:
+			// Round 1: 1 compile finding (score 100), preserves valid helper
+			_ = os.WriteFile(p, []byte("def f(x):\n    return x * 2\n# ROTO 1\n"), 0o644)
+		case 2:
+			// Round 2: Builder regresses to 3 compile findings (score 300 > 100) and destroys return x * 2
+			_ = os.WriteFile(p, []byte("# ROTO A\n# ROTO B\n# ROTO C\n"), 0o644)
+		case 3:
+			// Round 3 must see Round 1's restored /work ("return x * 2") and Round 1's single finding, not Round 2's 3 findings
+			raw, _ := os.ReadFile(p)
+			round3WorkContent = strings.ReplaceAll(string(raw), "\r\n", "\n")
+			_ = os.WriteFile(p, []byte(strings.ReplaceAll(round3WorkContent, "# ROTO 1\n", "")), 0o644)
+		}
+		out, _ := json.Marshal(contract.BuilderResponse{Summary: "done", FilesChanged: []string{"src/f.py"}})
+		return &contract.RoleResponse{SchemaVersion: 1, RunID: req.RunID, Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,
+			Status: contract.RoleOK, Cost: &contract.Cost{USD: 0.1}, Payload: out}, 0, false
+	}}
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "b.deming"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(requests) != 3 {
+		t.Fatalf("expected 3 rounds, got %d", len(requests))
+	}
+	if !strings.Contains(round3WorkContent, "return x * 2") {
+		t.Fatalf("expected round 3 /work to be restored to round 1 candidate, got: %q", round3WorkContent)
+	}
+	if requests[2].Tier0Feedback == nil || len(requests[2].Tier0Feedback.Findings) != 1 {
+		t.Fatalf("expected round 3 feedback to be ratcheted back to round 1's 1 finding, got: %+v", requests[2].Tier0Feedback)
+	}
+	s3 := st.Stages[5]
+	if s3.Status != contract.StageDone || !strings.Contains(s3.Reason, "deming-ratchet: round 2 regressed (defect score 300 > 100 from round 1)") {
+		t.Fatalf("expected StageDone with deming-ratchet note, got: %+v", s3)
+	}
+}
