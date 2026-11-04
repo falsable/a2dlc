@@ -32,10 +32,17 @@ const (
 
 // Values of Config.Rung, the Lite escalation rung a2dlc run climbs to (protocol section 4.4).
 const (
-	RungGates    = "gates"
-	RungMutation = "mutation"
+	RungGates        = "gates"
+	RungCriticalCode = "critical_code"
+	RungMutation     = "mutation"
 	// RungGatesNoMutation is the reason recorded for mutation (verdict test_gates.mutation, Stage 5 of the run) at RungGates.
 	RungGatesNoMutation = "config.rung is gates: mutation is not part of this rung, so no mutant was generated and no kill rate was measured"
+	// RungCriticalCodeNoMutation is the reason recorded for mutation (verdict test_gates.mutation, Stage 5 of the run) at
+	// RungCriticalCode when no changed file matches config.critical_code and the route's criticality is low.
+	RungCriticalCodeNoMutation = "config.rung is critical_code and the change touches no critical_code (route criticality low): mutation is not part of this rung, so no mutant was generated and no kill rate was measured"
+	// RungCriticalCodeNoSaboteur is the reason Stage 4 records at RungCriticalCode when uncovered_change is outside
+	// config.critical_code and the route's criticality is low.
+	RungCriticalCodeNoSaboteur = "config.rung is critical_code and uncovered_change is outside critical_code (route criticality low): the saboteur is not launched"
 )
 
 // Values of TestsConfig.NopBasePassing (RFC-0003): what the NOP gate does with a new test that passes on the base in a
@@ -65,7 +72,9 @@ type Config struct {
 	// request is the same, instead of running the engine again (RFC-0005).
 	RunDifferential string `json:"run_differential,omitempty"`
 	// Rung is how far a2dlc run climbs: RungMutation (also when absent) runs Stage 5 after Stage 4; RungGates stops after the
-	// oracle, the tests and their gates, skips Stage 5 and records that mutation was not run.
+	// oracle, the tests and their gates, skips Stage 5 and records that mutation was not run; RungCriticalCode climbs to the
+	// Saboteur in Stage 4 and to Stage 5 mutation only when a changed file matches CriticalCode or the Stage 2 route has
+	// criticality_effective above low.
 	Rung string `json:"rung,omitempty"`
 	// SupplyChain names the dependency allowlist file (config.supply_chain).
 	SupplyChain   *SupplyChain    `json:"supply_chain,omitempty"`
@@ -492,7 +501,8 @@ type TestGates struct {
 	NOPOracle    Gate  `json:"nop_oracle"`
 	Baseline     Gate  `json:"baseline"`
 	TestsDiff    *Gate `json:"tests_diff,omitempty"`
-	// Mutation is set only at RungGates: not_applicable, with the rung as the reason.
+	// Mutation is set only when config.rung skips mutation (RungGates, or RungCriticalCode when nothing critical changed):
+	// not_applicable, with the rung as the reason.
 	Mutation *Gate `json:"mutation,omitempty"`
 }
 

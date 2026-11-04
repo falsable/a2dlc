@@ -247,9 +247,51 @@ def work_files(work: Path) -> tuple[list[tuple[str, str]], list[str]]:
     return with_files, only_listed
 
 
+def feedback_work_files(req: dict, work: Path) -> list[tuple[str, str]]:
+    """For a CLI builder in round 2+, the current content in /work of the files named by tier0_feedback.findings, so the
+    stateless round can edit them directly without spending tool turns re-reading them."""
+    if not work.is_dir():
+        return []
+    payload = req.get("payload")
+    if not isinstance(payload, dict):
+        return []
+    fb = payload.get("tier0_feedback")
+    if not isinstance(fb, dict) or not isinstance(fb.get("findings"), list):
+        return []
+    root = work.resolve()
+    seen, out, total = set(), [], 0
+    for item in fb["findings"]:
+        if not isinstance(item, dict):
+            continue
+        rel = item.get("file")
+        if not isinstance(rel, str) or not rel or rel in seen or "\\" in rel or rel.startswith("/") or rel.startswith("../"):
+            continue
+        rel = posixpath.normpath(rel)
+        if rel in seen or rel.startswith("../") or rel == ".":
+            continue
+        seen.add(rel)
+        p = (work / rel).resolve()
+        if not p.is_relative_to(root) or not p.is_file():
+            continue
+        if any(part in WORK_EXCLUDE for part in p.relative_to(root).parts):
+            continue
+        data = p.read_bytes()
+        if len(data) > MAX_WORK_FILE_BYTES or total + len(data) > MAX_WORK_TOTAL_BYTES:
+            continue
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        total += len(data)
+        out.append((rel, text))
+    return out
+
+
 def build_prompt(role: str, stage: str, instructions: str, request_text: str, inputs: list[tuple[str, str]],
-                 work: tuple[list[tuple[str, str]], list[str]] | None = None) -> str:
-    """work: (files with content, paths only listed) of /work for a builder without tools; None with a CLI."""
+                 work: tuple[list[tuple[str, str]], list[str]] | None = None,
+                 feedback_work: list[tuple[str, str]] | None = None) -> str:
+    """work: (files with content, paths only listed) of /work for a builder without tools; None with a CLI.
+    feedback_work: for a CLI builder in round 2+, the files in /work named by tier0_feedback.findings."""
     if is_builder(role):
         output = OUTPUT_BUILDER if work is None else OUTPUT_BUILDER_NO_TOOLS
     else:
@@ -265,6 +307,10 @@ def build_prompt(role: str, stage: str, instructions: str, request_text: str, in
         if only_listed:
             parts.append("Files present but not included (binary or too large):\n" + "\n".join("- " + r for r in only_listed) + "\n")
         for rel, content in with_files:
+            parts.append(f"### /work/{rel}\n\n```\n{content.rstrip()}\n```\n")
+    elif feedback_work:
+        parts.append("## /work (files named in tier0_feedback)\n\nCurrent content in /work of the files your previous round left with Tier 0 findings, so you can edit them directly without reading them first.\n")
+        for rel, content in feedback_work:
             parts.append(f"### /work/{rel}\n\n```\n{content.rstrip()}\n```\n")
     prompt = "\n\n".join(parts) + "\n"
     if len(prompt.encode("utf-8")) > MAX_PROMPT_BYTES:
@@ -942,8 +988,9 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
     without_tools = builder and llm in ("openrouter", "entropos")
     if without_tools and not work.is_dir():
         raise Failure(f"a builder needs {work} and it does not exist")
+    fb_work = feedback_work_files(req, work) if builder and not without_tools else None
     prompt = build_prompt(role, stage, instructions(req), request_path.read_text(encoding="utf-8"),
-                          input_files(request_path.parent, request_path), work_files(work) if without_tools else None)
+                          input_files(request_path.parent, request_path), work_files(work) if without_tools else None, fb_work)
     print(f"a2dlc-roles: role={role} stage={stage} llm={llm} prompt={len(prompt.encode('utf-8'))}B", file=sys.stderr)
     if llm == "openrouter":
         text, cost, model = call_openrouter(prompt)

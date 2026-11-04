@@ -277,6 +277,26 @@ func (m *Machine) recordedGolden() (*contract.Golden, error) {
 	return &g, nil
 }
 
+// criticalRoute reports whether the Stage 2 route has criticality_effective above low or track N=2.
+func (m *Machine) criticalRoute() (bool, error) {
+	r, err := m.readRoute()
+	if err != nil {
+		return false, err
+	}
+	return r.CriticalityEffective != contract.CriticalityLow || r.Track == contract.TrackN2, nil
+}
+
+// criticalUncovered keeps only the uncovered files that match config.critical_code.
+func criticalUncovered(globs []string, without []contract.SaboteurUncovered) []contract.SaboteurUncovered {
+	var out []contract.SaboteurUncovered
+	for _, u := range without {
+		if app.CriticalFile(globs, u.File) {
+			out = append(out, u)
+		}
+	}
+	return out
+}
+
 // judgeLoop is the oracle → Saboteur loop over a candidate (opts.CandidateTree, with its peers if there are any): it leaves
 // each verdict in artV and its escalations in escalations.json (what the Saboteur sees), and returns the last verdict and
 // the reason for the stop ("" if nothing without cover remained). Rounds are counted per candidate and added to m.iter.
@@ -284,6 +304,11 @@ func (m *Machine) recordedGolden() (*contract.Golden, error) {
 func (m *Machine) judgeLoop(ctx context.Context, opts app.CheckOptions, artV string) (contract.Verdict, string, error) {
 	opts.EquivalenceRelaxations = m.relaxations()
 	opts.StrictDivergence = true // Stage 4 ranks candidates by verdict: a divergence is never only a note here
+	critRoute, err := m.criticalRoute()
+	if err != nil {
+		return contract.Verdict{}, "", err
+	}
+	opts.CriticalRoute = critRoute
 	// The oracle's own inputs: the golden master recorded on the base by Stage -1 (replayed by CheckWith) and the change
 	// kind the person declared (the gates that apply to feature, bugfix or refactor read it).
 	if m.intent != nil {
@@ -318,6 +343,13 @@ func (m *Machine) judgeLoop(ctx context.Context, opts app.CheckOptions, artV str
 		without := hasUncovered(v)
 		if v.Verdict != contract.INCONCLUSIVE || len(without) == 0 {
 			break
+		}
+		if cfg, err := m.app.Config(); err == nil && cfg.Rung == contract.RungCriticalCode && !critRoute {
+			without = criticalUncovered(cfg.CriticalCode, without)
+			if len(without) == 0 {
+				reason = contract.RungCriticalCodeNoSaboteur
+				break
+			}
 		}
 		if _, ok := m.roles.Roles[contract.RoleSaboteur]; !ok {
 			reason = "uncovered_change without a saboteur role in " + pathRoles + ": nobody brings the test"

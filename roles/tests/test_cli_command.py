@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -58,6 +59,44 @@ class CliCommandTest(unittest.TestCase):
         cmd = adapter.cli_command("claude", True)
         self.assertEqual(cmd[:2], ["claude", "-p"])
         self.assertNotIn("--max-budget-usd", cmd)
+
+    def test_feedback_work_files_includes_only_clean_finding_files_in_round_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp) / "work"
+            (work / "src").mkdir(parents=True)
+            (work / ".a2dlc").mkdir()
+            (work / "src" / "f.py").write_text("def f(x):\n    return x + 1\n", encoding="utf-8", newline="\n")
+            (work / "src" / "other.py").write_text("def g():\n    return 0\n", encoding="utf-8", newline="\n")
+            (work / ".a2dlc" / "config.json").write_text("{}", encoding="utf-8")
+            (Path(tmp) / "secret.txt").write_text("outside", encoding="utf-8")
+
+            req_r1 = {"payload": {"round": 1, "tier0_feedback": None}}
+            self.assertEqual(adapter.feedback_work_files(req_r1, work), [])
+            p1 = adapter.build_prompt("builder_primary", "3", "inst", "{}", [], None,
+                                      adapter.feedback_work_files(req_r1, work))
+            self.assertNotIn("## /work", p1)
+
+            req_r2 = {
+                "payload": {
+                    "round": 2,
+                    "tier0_feedback": {
+                        "ok": False,
+                        "findings": [
+                            {"kind": "coverage", "file": "src/f.py", "line": 2, "message": "uncovered"},
+                            {"kind": "lint", "file": "src/f.py", "line": 1, "message": "dup"},
+                            {"kind": "lint", "file": "../secret.txt", "line": 1, "message": "outside"},
+                            {"kind": "lint", "file": ".a2dlc/config.json", "line": 1, "message": "excluded"},
+                        ],
+                    },
+                }
+            }
+            fb = adapter.feedback_work_files(req_r2, work)
+            self.assertEqual(fb, [("src/f.py", "def f(x):\n    return x + 1\n")])
+            p2 = adapter.build_prompt("builder_primary", "3", "inst", "{}", [], None, fb)
+            self.assertIn("## /work (files named in tier0_feedback)", p2)
+            self.assertIn("### /work/src/f.py", p2)
+            self.assertNotIn("other.py", p2)
+            self.assertNotIn("outside", p2)
 
 
 if __name__ == "__main__":

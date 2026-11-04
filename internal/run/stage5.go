@@ -43,6 +43,19 @@ func stageMutation(ctx context.Context, m *Machine) (string, string, string, err
 	if cfg.Rung == contract.RungGates {
 		return contract.StageSkipped, contract.RungGatesNoMutation, "", nil
 	}
+	candidate, err := m.candidate() // with a builder (Stage 3) its sources are mutated, not the working tree
+	if err != nil {
+		return "", "", "", err
+	}
+	if cfg.Rung == contract.RungCriticalCode {
+		crit, err := m.criticalForRung(cfg, candidate)
+		if err != nil {
+			return "", "", "", err
+		}
+		if !crit {
+			return contract.StageSkipped, contract.RungCriticalCodeNoMutation, "", nil
+		}
+	}
 	if cfg.Tests == nil {
 		return contract.StageSkipped, "no config.tests: there is no command to run T against the mutants", "", nil
 	}
@@ -62,10 +75,6 @@ func stageMutation(ctx context.Context, m *Machine) (string, string, string, err
 	}
 	if m.maxMutants > 0 {
 		limit = m.maxMutants // the intent belongs to this slice; config.mutation belongs to the repo
-	}
-	candidate, err := m.candidate() // with a builder (Stage 3) its sources are mutated, not the working tree
-	if err != nil {
-		return "", "", "", err
 	}
 	// signatures.json belongs to the candidate that the Saboteur attacks: the one from Stage 4 may be another (N=2 with
 	// the primary selected after rounds of the orthogonal), so roundSaboteur regenerates it with this stage's candidate
@@ -309,6 +318,17 @@ func (m *Machine) stageDone(id string) bool {
 		}
 	}
 	return false
+}
+
+// criticalForRung reports whether the run climbs to Stage 5 under RungCriticalCode: either the Stage 2 route has
+// criticality_effective above low (or track N=2), or a changed or deleted file between the base and the candidate
+// matches config.critical_code.
+func (m *Machine) criticalForRung(cfg contract.Config, candidate string) (bool, error) {
+	critRoute, err := m.criticalRoute()
+	if err != nil || critRoute {
+		return critRoute, err
+	}
+	return m.app.TouchesCriticalCode(cfg, m.baseSha, candidate)
 }
 
 func readJSON(path string, v any) error {

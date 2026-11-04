@@ -32,8 +32,10 @@ func (r VerifyReport) Lines() (lines []string, blocked bool) {
 	return lines, len(r.Blocked) > 0
 }
 
-// criticalFile says whether file matches a critical_code glob. A glob over file::symbol counts for the whole file: this is
-// used where the receipt does not say which symbol.
+// CriticalFile says whether file matches a critical_code glob. A glob over file::symbol counts for the whole file: this is
+// used where the receipt or the stage does not say which symbol.
+func CriticalFile(globs []string, file string) bool { return criticalFile(globs, file) }
+
 func criticalFile(globs []string, file string) bool {
 	for _, g := range globs {
 		gf, _, _ := strings.Cut(g, "::")
@@ -42,6 +44,36 @@ func criticalFile(globs []string, file string) bool {
 		}
 	}
 	return false
+}
+
+func touchesCriticalCode(globs, changed, deleted []string) bool {
+	for _, f := range changed {
+		if criticalFile(globs, f) {
+			return true
+		}
+	}
+	for _, f := range deleted {
+		if criticalFile(globs, f) {
+			return true
+		}
+	}
+	return false
+}
+
+// TouchesCriticalCode reports whether any changed or deleted file between baseSha and candidate matches cfg.CriticalCode.
+func (a App) TouchesCriticalCode(cfg contract.Config, baseSha, candidate string) (bool, error) {
+	if len(cfg.CriticalCode) == 0 {
+		return false, nil
+	}
+	tree, err := a.candidateTree(candidate)
+	if err != nil {
+		return false, err
+	}
+	changed, deleted, err := a.Repo.Changed(baseSha, tree)
+	if err != nil {
+		return false, err
+	}
+	return touchesCriticalCode(cfg.CriticalCode, changed, deleted), nil
 }
 
 // guarded says whether file is critical or protected in the config of the base (critical_code or protected_paths).

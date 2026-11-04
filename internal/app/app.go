@@ -172,9 +172,9 @@ func (a App) configAt(commit string) (contract.Config, error) {
 		return c, fmt.Errorf("%s: schema_version %d", pathConfig, c.SchemaVersion)
 	}
 	switch c.Rung {
-	case "", contract.RungMutation, contract.RungGates:
+	case "", contract.RungMutation, contract.RungCriticalCode, contract.RungGates:
 	default:
-		return c, fmt.Errorf("%s: rung %q is not %s or %s", pathConfig, c.Rung, contract.RungGates, contract.RungMutation)
+		return c, fmt.Errorf("%s: rung %q is not %s, %s or %s", pathConfig, c.Rung, contract.RungGates, contract.RungCriticalCode, contract.RungMutation)
 	}
 	switch c.RunDivergence {
 	case "", contract.RunDivergenceStrict, contract.RunDivergenceCriticalCode:
@@ -316,6 +316,9 @@ type CheckOptions struct {
 	// pass. a2dlc check leaves it off, and config.critical_code decides there. A base config with
 	// run_divergence "critical_code" turns it off for a run too (an autonomous consumer signs no waivers).
 	StrictDivergence bool
+	// CriticalRoute is set by a2dlc run when the Stage 2 route has criticality_effective above low: with config.rung
+	// "critical_code", it keeps Stage 5 mutation active even when no changed file matches config.critical_code.
+	CriticalRoute bool
 	// Differential are the diff answers Stage 3 of a2dlc run got on the builder's last round (Divergences). Check takes one
 	// instead of running the engine only when the base config sets run_differential "stage3" and its request is the same on
 	// the same tree (RFC-0005); otherwise they are ignored.
@@ -544,8 +547,13 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	v.DiffBudget = diffBudget
 	if cfg.Tests != nil {
 		v.TestGates, v.Tests = testGates, testResults
-		if cfg.Rung == contract.RungGates && v.TestGates != nil {
-			v.TestGates.Mutation = &contract.Gate{Status: contract.GateNotApplicable, Reason: contract.RungGatesNoMutation}
+		if v.TestGates != nil {
+			switch {
+			case cfg.Rung == contract.RungGates:
+				v.TestGates.Mutation = &contract.Gate{Status: contract.GateNotApplicable, Reason: contract.RungGatesNoMutation}
+			case cfg.Rung == contract.RungCriticalCode && !opts.CriticalRoute && !touchesCriticalCode(cfg.CriticalCode, changed, deleted):
+				v.TestGates.Mutation = &contract.Gate{Status: contract.GateNotApplicable, Reason: contract.RungCriticalCodeNoMutation}
+			}
 		}
 		addTests(&v, waivers, approved)
 	}
