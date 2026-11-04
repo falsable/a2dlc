@@ -175,6 +175,11 @@ func (m *Machine) specDual(ctx context.Context) (string, string, string, error) 
 	if json.Unmarshal(intent, &obj) != nil || obj == nil {
 		return contract.StageFailed, "intent.json is not a JSON object", "", nil
 	}
+	if cfg, err := m.app.Config(); err == nil && cfg.Rung == contract.RungCriticalCode {
+		if rt, err := m.readRoute(); err == nil && !rt.DualSpecRequired && rt.CriticalityEffective == contract.CriticalityLow && rt.Track == contract.TrackN1 {
+			return contract.StageSkipped, contract.RungCriticalCodeNoDualSpec, "", nil
+		}
+	}
 	var missing []string
 	for _, r := range []string{contract.RoleSpecifierAlpha, contract.RoleSpecifierBeta, contract.RoleInquisitor} {
 		if _, ok := m.roles.Roles[r]; !ok {

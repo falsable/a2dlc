@@ -52,7 +52,11 @@ func (m *Machine) fuzzRound(ctx context.Context, candidate string) ([]contract.E
 	}
 	var files []string
 	targetOf := map[string]string{}
+	critRoute, _ := m.criticalRoute()
 	for _, f := range sigs {
+		if cfg.Rung == contract.RungCriticalCode && !critRoute && !app.CriticalFile(cfg.CriticalCode, f.File) {
+			continue
+		}
 		changed, err := m.app.Repo.ChangedLines(m.baseSha, tree, f.File)
 		if err != nil {
 			return nil, "", err

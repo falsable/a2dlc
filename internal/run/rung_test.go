@@ -208,3 +208,32 @@ func TestRungCriticalCodeStage4SaboteurRespectsCriticality(t *testing.T) {
 		}
 	})
 }
+
+// config.rung "critical_code": when dual_spec_required is false and the route's criticality is low (track N=1), Stage 1
+// skips launching specifier_alpha, specifier_beta, and inquisitor (0 LLM spec calls) even when roles.json defines them.
+func TestRungCriticalCodeStage1SkipsDualSpecOnLowRoute(t *testing.T) {
+	a, dir, _ := repoWithTests(t)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"rung":"critical_code","critical_code":["lib/**"],"engines":[],"tests":{"image":"x","paths":["tests/**"],"source_paths":["src/**"],"command":"run"}}`)
+	write(t, dir, ".a2dlc/roles.json", `{"schema_version":1,"roles":{
+		"specifier_alpha":{"family":"claude","image":"img:1","argv":["sh","a"]},
+		"specifier_beta":{"family":"gemini","image":"img:1","argv":["sh","b"]},
+		"inquisitor":{"family":"claude","image":"img:1","argv":["sh","i"]}
+	}}`)
+	git(t, dir, "add", ".a2dlc/config.json")
+	git(t, dir, "commit", "-qm", "rung critical_code stage1")
+	intent := intentFile(t, func(in *contract.Intent) {
+		in.SliceID, in.Mode, in.Criticality = "s1-cc-low", contract.ModeBrownfield, contract.CriticalityLow
+	})
+	launcher := &fakeLauncher{}
+	st, err := Run(context.Background(), a, launcher, Options{Slice: "s1-cc-low", Mode: contract.ModeBrownfield, Intent: intent})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(launcher.seen) != 0 {
+		t.Fatalf("expected 0 LLM specifier calls on low route under rung critical_code, got %d: %+v", len(launcher.seen), launcher.seen)
+	}
+	s1 := st.Stages[2]
+	if s1.Status != contract.StageSkipped || s1.Reason != contract.RungCriticalCodeNoDualSpec {
+		t.Fatalf("expected Stage 1 skipped with RungCriticalCodeNoDualSpec, got: %+v", s1)
+	}
+}

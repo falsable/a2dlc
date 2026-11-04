@@ -43,6 +43,9 @@ const (
 	// RungCriticalCodeNoSaboteur is the reason Stage 4 records at RungCriticalCode when uncovered_change is outside
 	// config.critical_code and the route's criticality is low.
 	RungCriticalCodeNoSaboteur = "config.rung is critical_code and uncovered_change is outside critical_code (route criticality low): the saboteur is not launched"
+	// RungCriticalCodeNoDualSpec is the reason Stage 1 records at RungCriticalCode when dual_spec_required is false
+	// and the route's criticality is low (track N=1): the builder runs directly from intent.json with zero LLM spec overhead.
+	RungCriticalCodeNoDualSpec = "config.rung is critical_code and dual_spec_required is false (route criticality low): dual-spec is not launched; the following stages run from intent.json"
 )
 
 // Values of TestsConfig.NopBasePassing (RFC-0003): what the NOP gate does with a new test that passes on the base in a
