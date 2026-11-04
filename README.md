@@ -4,7 +4,7 @@
 
 <h1 align="center">A2-DLC</h1>
 
-<p align="center"><b>Your AI agent wrote the bug — and the test that hides it.<br>A2-DLC finds the input that proves it, and blocks the push.</b></p>
+<p align="center"><b>The provider-agnostic, clean-room orchestrator and deterministic verification protocol for AI software engineering.<br>Your AI agent wrote the bug — and the test that hides it. A2-DLC orchestrates isolated roles and mathematical oracles so no single model grades its own work.</b></p>
 
 <p align="center">
   <a href="https://github.com/falsable/a2dlc/releases"><img src="https://img.shields.io/github/v/release/falsable/a2dlc?style=flat-square&color=10b981" alt="Release"></a>
@@ -79,24 +79,24 @@ a2dlc check                      # exit 0 PASS · 1 FAIL · 2 INCONCLUSIVE
 
 ## How it works
 
-**1. Differential gate (`a2dlc check`)** — extracts every changed function from `git diff` and searches for an input where `old(x) ≠ new(x)`:
+**1. Clean-room protocol orchestrator (`a2dlc run`, Stages −1 to 7)** — orchestrates isolated container roles across any LLM provider (`claude`, `gemini`, `openrouter`, `entropos`) so no single model sees the whole picture:
+- **Stages 0–2 (Spec & Track Routing):** dual **Specifiers** ($\alpha \not\equiv \beta$) write the spec independently, an **Inquisitor** probes boundaries, **Z3** checks invariants for vacuity/contradiction (Stage 1.5), and the deterministic Track Router assigns `N=1` or `N=2`.
+- **Stage 3 (Clean-Room Build & Saboteur):** **Builders** implement against Tier 0 gates (declared repo tests, LCOV/XML coverage, complexity, CrossHair lemmas) with round-to-round candidate file anchoring (`feedback_work_files`), and a blind **Saboteur** attacks public signatures without ever seeing the implementation.
+- **Stages 4–5 (Proportional Differential & Mutation Verification):** Stage 4 reuses Stage 3 coverage (`diff_from_stage3`, `candidate_cached`) and applies guarded base stubs (`guard: true`) when extending prior `@a2dlc`-contracted files. Stage 5 runs diff-scoped mutation testing proportional to risk (`config.rung: "critical_code"` runs Stage 5 only when `critical_code` globs are touched).
+- **Stages 6–7 (Blast Radius & Progressive Delivery):** AST/contract blast-radius analysis (imports, OpenAPI, Protobuf, SQL DDL) and canary rollback plan with circuit breaker `CB-06`. Every stage writes to a SHA-256 hash-chained `ledger.json` verified by `a2dlc verify-run`.
+
+Measured: a greenfield slice converges in **84–127 s** across 6–8 role containers at **$0.025–$0.069 per slice** (Claude Haiku 4.5 + Gemini 2.5 Flash). Sequential 3-issue brownfield chains with `rung: "critical_code"` converge in **117.4 s** on `tinylinks` (`47.1 s`, `41.6 s`, `28.7 s`) and **425.6 s** on `click` (`91.9 s`, `65.0 s`, `268.7 s`), passing all sealed holdout suites and final `a2dlc check --base B0`. Full reference in the [spec](docs/A2-DLC_v3.5_protocol.md), [RFC-0002](rfcs/0002-declared-tests-as-tier0.md), and [coverage matrix](docs/COVERAGE_AND_BENCHMARKS.md).
+
+**2. Standalone differential gate (`a2dlc check`)** — extracts every changed function from `git diff` and searches for an input where `old(x) ≠ new(x)`:
 - Python → [CrossHair](https://github.com/pschanely/CrossHair) symbolic execution (`diffbehavior`)
 - TypeScript → [fast-check](https://github.com/dubzzz/fast-check) property-based testing
 - Go / any CLI → black-box I/O oracle
 
 Plus test gates: *no-op test* detection (passes on the base tree), coverage precondition on changed lines, dependency allowlist. Output is `.a2dlc/verdict.json`, hash-bound to the Git tree it judged.
 
-**2. Agent lifecycle hooks** — `PreToolUse` blocks edits to `protected_paths` and `git push --no-verify` *before* they run; the `Stop` / `AfterAgent` hook runs level 0 (`a2dlc check --level 0`) at the end of every turn: no test runs, it informs and never blocks, and it writes `.a2dlc/reports/level0.json`. Level 1 (`a2dlc check`, which runs the tests) is the blocking gate: the agent runs it when it says "done", `pre-push` verifies its receipt, and CI runs it on the PR. `pre-push` runs `a2dlc verify` (<50 ms) and blocks a push only on evidence about the pushed tree: a `FAIL`, a waiver without a valid signed approval, a protected path without approval, `critical_code` left unjudged. A missing or stale receipt (its `tree_hash` is not the commit's tree), one based on commits that were not pushed, or an `INCONCLUSIVE` verdict only warns, because on a repo with history "could not judge" is the normal case and a gate that blocks on it gets bypassed; `a2dlc verify --strict` blocks on all of them. It does not check who wrote `verdict.json`: a hand-written `PASS` with the right `tree_hash` passes. Closing that gap takes `a2dlc check --require-signatures` in CI over the same commit, not the verifier ([RFC-0001 §6.4.9](docs/A2-DLC_v3.5_protocol.md#649-what-a-receipt-does-not-claim), [SECURITY.md](SECURITY.md)).
+**3. Agent lifecycle hooks** — `PreToolUse` blocks edits to `protected_paths` and `git push --no-verify` *before* they run; the `Stop` / `AfterAgent` hook runs level 0 (`a2dlc check --level 0`) at the end of every turn: no test runs, it informs and never blocks, and it writes `.a2dlc/reports/level0.json`. Level 1 (`a2dlc check`, which runs the tests) is the gate: the agent runs it when it says "done", `pre-push` verifies its receipt (`a2dlc verify`, <50 ms), and CI runs it on the PR. `pre-push` blocks a push only on evidence about the pushed tree: a `FAIL`, a waiver without a valid signed approval, a protected path without approval, `critical_code` left unjudged. A missing or stale receipt (its `tree_hash` is not the commit's tree), one based on commits that were not pushed, or an `INCONCLUSIVE` verdict only warns; `a2dlc verify --strict` blocks on all of them. Closing the authorship gap takes `a2dlc check --require-signatures` in CI over the same commit ([RFC-0001 §6.4.9](docs/A2-DLC_v3.5_protocol.md#649-what-a-receipt-does-not-claim), [SECURITY.md](SECURITY.md)).
 
-**3. Intentional changes are signed, not argued** — the agent declares the change in `.a2dlc/waivers.json`; a human signs it with `a2dlc approve src/pricing.py::apply_discount --key ~/.ssh/id_ed25519`. Agents never hold the key. A behavior change the engines find in code your `.a2dlc/config.json` does not list under `critical_code` is only a note in the receipt, with its counterexample; on critical code it fails until signed ([docs/DIVERGENCE_NOTES.md](docs/DIVERGENCE_NOTES.md)).
-
-<details>
-<summary><b>4. Full Protocol Mode (<code>a2dlc run</code>) — the clean-room state machine</b></summary>
-
-For autonomous slices, A2-DLC orchestrates isolated container roles so no single model sees the whole picture: dual **Specifiers** (α ≢ β) write the spec independently, an **Inquisitor** probes the boundaries, **Z3** checks invariants, clean-room **Builders** implement with lemma gates, and a blind **Saboteur** attacks the code from public signatures without ever seeing the implementation. Stages −1 to 7 end with diff-scoped mutation testing, blast-radius analysis (imports, OpenAPI, Protobuf, SQL DDL) and a canary rollback plan. Every stage writes to a SHA-256 hash-chained `ledger.json` verified by `a2dlc verify-run`. In a repo with no language engine, Tier 0 runs the declared `config.tests` on the changed files, engine-covered ones included: red testcases go back to the builder as findings, and so do changed lines that no test executed. This is proposed by [RFC-0002](rfcs/0002-declared-tests-as-tier0.md) (Draft), so it is not normative until the RFC is accepted.
-
-Measured: a greenfield slice converges in 84–127 s across 6–8 role containers at **$0.025–$0.069 per slice** (Claude Haiku 4.5 + Gemini 2.5 Flash). Full reference in the [spec](docs/A2-DLC_v3.5_protocol.md) and [coverage matrix](docs/COVERAGE_AND_BENCHMARKS.md).
-</details>
+**4. Intentional changes are signed, not argued** — the agent declares the change in `.a2dlc/waivers.json`; a human signs it with `a2dlc approve src/pricing.py::apply_discount --key ~/.ssh/id_ed25519`. Agents never hold the key. A behavior change the engines find in code your `.a2dlc/config.json` does not list under `critical_code` is only a note in the receipt, with its counterexample; on critical code it fails until signed ([docs/DIVERGENCE_NOTES.md](docs/DIVERGENCE_NOTES.md)).
 
 <p align="center"><img src="docs/assets/protocol-architecture.svg" alt="A2-DLC architecture" width="820"></p>
 
@@ -131,6 +131,7 @@ All numbers come from frozen mutants (`e2e/testdata/`, pinned by SHA-256) and fi
 | Benchmark | Result |
 |---|---|
 | **SWE-bench Verified** — 38 real agent patches (18 rejected by maintainers, 20 accepted) | CrossHair alone: **0/18** caught. Repo tests + coverage precondition + Saboteur overlay: **18/18 caught (100%, CI 82–100%)**, **0/20 false positives** |
+| **Multi-issue `a2dlc run` chains** (`rung: "critical_code"`, Stage 4 `diff_from_stage3` + `guard: true` base stubs, round-2 file anchoring) | **`tinylinks` (`#1 → #2 → #5`)**: **3/3 PASS** in **117.4 s** (`3/3` hidden suites green, final `a2dlc check` `PASS` in `14.5 s`). **`click` (`#1 → #5 → #6`)**: **3/3 PASS** in **425.6 s** (`28/28` sealed holdout tests green, final `a2dlc check` `PASS` in `73.9 s`) |
 | **"Every session verifies its own work"** (rule from the ADLC infographic, not AI-DLC) vs `a2dlc check`, 9 frozen trees | Self-verification lets **3/5** blocking cases through; the gate blocks **5/5**, passes **4/4** |
 | TypeScript engine — 8 frozen mutants + 1 equivalent refactor, seeds 1–3 | **8/8** caught on every seed; refactor `PASS` |
 | Black-box engine — 5 mutants of `internal/verdict` + 1 equivalent refactor | **5/5** caught in 8–12 s; refactor `PASS` |
@@ -169,7 +170,7 @@ The AI-DLC column was read from the source code and docs of [awslabs/aidlc-workf
 | `a2dlc answer --slice <id> --probe <id> --choice alpha` | Answer a human probe and resume |
 | `a2dlc mcp` | Built-in MCP server (JSON-RPC 2.0 over stdio) |
 
-`a2dlc` (`cmd/a2dlc`) is the reference implementation of the protocol: the receipt, the schemas under `contracts/` that it reads and writes, and RFC-0001 describe what it does. The factory that runs batches of issues through `a2dlc run` is a separate project that uses a2dlc only through its binary and these contracts.
+`a2dlc` (`cmd/a2dlc`) is both the clean-room protocol orchestrator (`a2dlc run`, Stages −1 to 7) and the differential verification gate (`a2dlc check` / `a2dlc verify`), governed by the JSON Schema contracts under `contracts/` and RFC-0001.
 
 <details>
 <summary><b>Enterprise: Jira · Linear · GitHub · GitLab · Confluence · Slack via MCP / Composio</b></summary>
