@@ -61,7 +61,14 @@ func (m *Machine) reviewBoundary(base, tree string, diffs []string, b *contract.
 				break
 			}
 		}
-		if glob == "" && len(b.DoNotRefactor) == 0 {
+		// allowed_paths: a changed file outside every allowed glob crosses the boundary (a plan slice outside its owns).
+		outside := false
+		if len(b.AllowedPaths) > 0 {
+			if matched, _ := app.Partition(b.AllowedPaths, []string{f}); len(matched) == 0 {
+				outside = true
+			}
+		}
+		if glob == "" && !outside && len(b.DoNotRefactor) == 0 {
 			continue
 		}
 		before, after, err := m.contents(base, tree, f)
@@ -74,6 +81,9 @@ func (m *Machine) reviewBoundary(base, tree string, diffs []string, b *contract.
 			first = "+ " + added[0]
 		} else if len(removed) > 0 {
 			first = "- " + removed[0]
+		}
+		if outside {
+			add(f+"::allowed_paths", fmt.Sprintf("The builder changed %s, which is outside the files this slice may change (boundary.allowed_paths: %s). Revert the change, or a person widens the slice (in the plan or the intent) and re-runs.", f, strings.Join(b.AllowedPaths, ", ")), first)
 		}
 		if glob != "" {
 			add(f+"::"+glob, fmt.Sprintf("The builder changed %s, which the intent declares out of scope (boundary.forbidden_paths). Revert the change, or a person widens the boundary in the intent and re-runs: raising privileges is their decision, not the builder's.", f), first)

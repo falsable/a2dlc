@@ -1,0 +1,43 @@
+{
+ "schema_version": 1,
+ "feature_id": "billing.discounts",
+ "plan_sha256": "0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c",
+ "base_sha": "0123456789abcdef0123456789abcdef01234567",
+ "invocation": 1,
+ "slices": [
+  {
+   "slice_id": "billing.discounts.model",
+   "status": "passed",
+   "base": "0123456789abcdef0123456789abcdef01234567",
+   "candidate": "1123456789abcdef0123456789abcdef01234567",
+   "finished_in": 1,
+   "reason": "PASS"
+  },
+  {
+   "slice_id": "billing.discounts.api",
+   "status": "escalated",
+   "base": "1123456789abcdef0123456789abcdef01234567",
+   "candidate": null,
+   "finished_in": 1
+  },
+  {
+   "slice_id": "billing.discounts.report",
+   "status": "passed",
+   "base": "1123456789abcdef0123456789abcdef01234567",
+   "candidate": "2123456789abcdef0123456789abcdef01234567",
+   "finished_in": 1,
+   "reason": "PASS"
+  },
+  {
+   "slice_id": "billing.discounts.docs",
+   "status": "blocked",
+   "base": null,
+   "candidate": null,
+   "finished_in": 0,
+   "reason": "blocked by billing.discounts.api (escalated)"
+  }
+ ],
+ "merged": null,
+ "outcome": "escalated",
+ "reason": "billing.discounts.api escalated; 1 slice blocked"
+}

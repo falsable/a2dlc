@@ -333,6 +333,8 @@ cases = {
     "intent__boundary-list-empty.json": (read("intent__boundary.json"), lambda x: x["boundary"].update(forbidden_paths=[])),
     "intent__boundary-symbol-empty.json": (read("intent__boundary.json"), lambda x: x["boundary"].update(do_not_refactor=[""])),
     "intent__boundary-empty.json": (read("intent__boundary.json"), lambda x: x.update(boundary={})),
+    "intent__boundary-allowed-empty.json": (read("intent__boundary-allowed-paths.json"), lambda x: x["boundary"].update(allowed_paths=[])),
+    "intent__boundary-allowed-empty-glob.json": (read("intent__boundary-allowed-paths.json"), lambda x: x["boundary"].update(allowed_paths=[""])),
     # forbidden_side_effects is a declared key of boundary (intent.schema.json): this one is invalid by its enum value "red"
     "intent__boundary-extra-field.json": (read("intent__boundary.json"), lambda x: x["boundary"].update(forbidden_side_effects=["red"])),
     "role-request__builder-boundary-empty.json": (read("role-request__builder-boundary.json"), lambda x: x["payload"]["boundary"].update(do_not_refactor=[])),
@@ -494,6 +496,10 @@ cases = {
     "plan__bad-slice-id.json": (read("plan__diamond.json"), lambda x: x["slices"][0].update(slice_id="Billing Model")),
     "plan__covers-negative.json": (read("plan__diamond.json"), lambda x: x["slices"][0].update(covers=[-1])),
     "plan__without-shared.json": (read("plan__diamond.json"), lambda x: x.pop("shared")),
+    "plan-state__status-unknown.json": (read("plan-state__blocked.json"), lambda x: x["slices"][0].update(status="done")),
+    "plan-state__outcome-pass-lowercase.json": (read("plan-state__blocked.json"), lambda x: x.update(outcome="pass")),
+    "plan-state__plan-sha-short.json": (read("plan-state__blocked.json"), lambda x: x.update(plan_sha256="abc")),
+    "plan-state__slice-without-reason.json": (read("plan-state__blocked.json"), lambda x: x["slices"][1].pop("reason")),
 }
 for name, (base, breaks) in cases.items():
     doc = copy.deepcopy(base)

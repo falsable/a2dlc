@@ -160,3 +160,42 @@ func expectedID(kind, target string) string {
 	h := sha256.Sum256([]byte(kind + "\x00" + target))
 	return hex.EncodeToString(h[:])[:12]
 }
+
+// allowed_paths (a slice of a feature plan, RFC-0008): a builder that changes a file outside them escalates CB-04 before
+// Tier 0; one that stays inside them goes on.
+func TestCB04AllowedPathsBoundTheBuilder(t *testing.T) {
+	for _, c := range []struct {
+		name      string
+		allowed   []string
+		escalates bool
+	}{
+		{"outside", []string{"src/g.py"}, true},
+		{"inside", []string{"src/f.py", "tests/**"}, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			a, _, engine := repoBuilder(t)
+			var requests []contract.BuilderRequest
+			launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, func(contract.BuilderRequest) map[string]string {
+				return map[string]string{"src/f.py": "def f(x):\n    return x * 2\n"}
+			})}
+			path := intentFile(t, func(in *contract.Intent) {
+				in.SliceID, in.Mode, in.Goal = "allowed", contract.ModeLite, "f doubles"
+				in.Boundary = &contract.Boundary{AllowedPaths: c.allowed}
+			})
+			st, err := Run(context.Background(), a, launcherFake, Options{Slice: "allowed", Intent: path})
+			if err != nil {
+				t.Fatal(err)
+			}
+			s3 := st.Stages[5]
+			if c.escalates {
+				if s3.Status != contract.StageEscalated || !strings.Contains(s3.Reason, "src/f.py::allowed_paths") || engine.tier0 != 0 {
+					t.Fatalf("a change outside allowed_paths did not escalate before Tier 0: %+v tier0=%d", s3, engine.tier0)
+				}
+				return
+			}
+			if s3.Status != contract.StageDone || strings.Contains(s3.Reason, "CB-04") {
+				t.Fatalf("a change inside allowed_paths was stopped: %+v", s3)
+			}
+		})
+	}
+}

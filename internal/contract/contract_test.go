@@ -63,7 +63,8 @@ func exampleTypes() map[string]func() any {
 		"role-response": func() any { return &RoleResponse{} }, "run-state": func() any { return &RunState{} },
 		"run-ledger": func() any { return &RunLedger{} },
 		"intent":     func() any { return &Intent{} }, "route": func() any { return &Route{} },
-		"plan": func() any { return &Plan{} },
+		"plan":       func() any { return &Plan{} },
+		"plan-state": func() any { return &PlanState{} },
 		// block 3
 		"engine-tier0-response": func() any { return &Tier0Response{} }, "candidate": func() any { return &Candidate{} },
 		// block 5

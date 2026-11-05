@@ -391,7 +391,8 @@ func budget(p contract.Plan, feature contract.Intent) ([]string, string) {
 }
 
 // SliceIntent is the intent a2dlc run gets for one slice of the plan: the slice's goal, invariants, criticality and budget,
-// the acceptance criteria it covers, and the feature's mode, non-goals, critical paths and inner-loop limits.
+// the acceptance criteria it covers, the feature's mode, non-goals, critical paths and inner-loop limits, and the slice's
+// owns as boundary.allowed_paths.
 func SliceIntent(s contract.PlanSlice, feature contract.Intent) contract.Intent {
 	in := contract.Intent{SchemaVersion: contract.SchemaVersion, SliceID: s.SliceID, Mode: feature.Mode, Goal: s.Goal,
 		Invariants: append(append([]string{}, feature.Invariants...), s.Invariants...), NonGoals: append([]string{}, feature.NonGoals...),
@@ -413,6 +414,8 @@ func SliceIntent(s contract.PlanSlice, feature contract.Intent) contract.Intent 
 		}
 	}
 	in.Budget = &b
+	// The slice may change only what it owns (RFC-0008 section 1): Stage 3 enforces it as CB-04 (boundary.allowed_paths).
+	in.Boundary = &contract.Boundary{AllowedPaths: append([]string{}, s.Owns...)}
 	return in
 }
 

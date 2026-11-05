@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/plan-state.schema.json",
+  "title": "State of a feature plan run (RFC-0008 section 5): .a2dlc/run/_plan/<feature>/state.json",
+  "description": "What `a2dlc plan run` leaves after each invocation. Each slice runs as an ordinary a2dlc run on a base that is the feature's base with the passed candidates of its dependencies merged. A slice that ends escalated or failed blocks every slice that depends on it, and nothing else. The outcome is PASS only when every slice passed and the merge of all candidates passed a final check against the feature's base. The rules and invariants are in docs/STATE_MACHINE.md.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "feature_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+    "plan_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the plan file the state belongs to: a changed plan is a new plan run." },
+    "base_sha": { "type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$" },
+    "invocation": { "type": "integer", "minimum": 0 },
+    "slices": { "type": "array", "items": { "$ref": "#/$defs/slice" } },
+    "merged": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$", "description": "The commit with every passed candidate merged, once every slice passed." },
+    "outcome": { "enum": [null, "PASS", "escalated", "INCONCLUSIVE"] },
+    "reason": { "type": "string" }
+  },
+  "required": ["schema_version", "feature_id", "plan_sha256", "base_sha", "invocation", "slices", "merged", "outcome", "reason"],
+  "additionalProperties": false,
+  "$defs": {
+    "slice": {
+      "type": "object",
+      "properties": {
+        "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+        "status": { "enum": ["pending", "passed", "escalated", "failed", "blocked"] },
+        "base": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$", "description": "The commit the slice's run started from." },
+        "candidate": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$", "description": "The candidate commit of a passed slice." },
+        "finished_in": { "type": "integer", "minimum": 0, "description": "The invocation that last ran it (0: never)." },
+        "reason": { "type": "string" }
+      },
+      "required": ["slice_id", "status", "base", "candidate", "finished_in", "reason"],
+      "additionalProperties": false
+    }
+  }
+}

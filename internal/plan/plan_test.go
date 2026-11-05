@@ -145,6 +145,9 @@ func TestSliceIntentCarriesTheCoveredCriteria(t *testing.T) {
 		!strings.Contains(strings.Join(in.Acceptance, "|"), "codes apply at checkout") {
 		t.Fatalf("%+v", in)
 	}
+	if in.Boundary == nil || strings.Join(in.Boundary.AllowedPaths, ",") != "src/api/discounts.py" {
+		t.Fatalf("the slice intent does not bound the builder to its owns: %+v", in.Boundary)
+	}
 	if err := in.Validate(); err != nil {
 		t.Fatal(err)
 	}

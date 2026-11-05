@@ -652,3 +652,16 @@ func (m *Machine) readCandidate() (*contract.Candidate, error) {
 	}
 	return nil, nil
 }
+
+// Candidate is the commit a finished run delivers: the one Stage 3 left in candidate.json, or the one selection.json chose
+// between two builders. Empty when Stage 3 did not finish done. The plan runner (internal/plan) merges it into the base
+// of the slices that depend on this one.
+func Candidate(a app.App, st contract.RunState) (string, error) {
+	m := &Machine{app: a, state: st, dir: filepath.Join(a.Repo.Dir, filepath.FromSlash(pathRun), st.SliceID)}
+	return m.candidate()
+}
+
+// RunDir is the folder of a slice's run.
+func RunDir(a app.App, slice string) string {
+	return filepath.Join(a.Repo.Dir, filepath.FromSlash(pathRun), slice)
+}

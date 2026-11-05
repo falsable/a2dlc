@@ -71,3 +71,4 @@ Checked on every reachable state of the model, and on every state the real `Run`
 - The loops inside a stage (Tier 0 rounds, Saboteur rounds, specification rounds): each is bounded by its own limit (`max_inner_iterations`, `--max-rounds`, `--max-spec-rounds`), so a stage terminates; their content is the stage's.
 - Which outcome a stage produces: that is the stage's judgment (§5), not the machine's.
 - The budget breaker in the conformance test: the model checks R4 and I4; the real breaker is covered by the run's budget tests, because its spend comes from the ledger.
+- A feature of several slices: the plan machine above this one runs each slice through it, in dependency order ([PLAN_MACHINE.md](PLAN_MACHINE.md), RFC-0008).

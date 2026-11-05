@@ -63,7 +63,9 @@ type Intent struct {
 // A field that is absent (nil) protects nothing; a present one has at least one element, because [] declares nothing.
 type Boundary struct {
 	ForbiddenPaths []string `json:"forbidden_paths,omitempty"`
-	DoNotRefactor  []string `json:"do_not_refactor,omitempty"`
+	// AllowedPaths, when present, are the only files the builder may change (a slice of a feature plan, RFC-0008).
+	AllowedPaths  []string `json:"allowed_paths,omitempty"`
+	DoNotRefactor []string `json:"do_not_refactor,omitempty"`
 	// ForbiddenSideEffects are protocol names (network.http.outbound, fs.write, ...) the changed code may not produce.
 	ForbiddenSideEffects []string `json:"forbidden_side_effects,omitempty"`
 }
@@ -71,13 +73,13 @@ type Boundary struct {
 // validate repeats in Go the rules of intent.schema.json#/$defs/boundary: at least one field, non-empty lists and
 // non-empty elements.
 func (b Boundary) validate() error {
-	if b.ForbiddenPaths == nil && b.DoNotRefactor == nil && b.ForbiddenSideEffects == nil {
-		return fmt.Errorf("boundary without forbidden_paths, do_not_refactor or forbidden_side_effects: omit it or declare at least one")
+	if b.ForbiddenPaths == nil && b.AllowedPaths == nil && b.DoNotRefactor == nil && b.ForbiddenSideEffects == nil {
+		return fmt.Errorf("boundary without forbidden_paths, allowed_paths, do_not_refactor or forbidden_side_effects: omit it or declare at least one")
 	}
 	for _, l := range []struct {
 		field string
 		v     []string
-	}{{"forbidden_paths", b.ForbiddenPaths}, {"do_not_refactor", b.DoNotRefactor}, {"forbidden_side_effects", b.ForbiddenSideEffects}} {
+	}{{"forbidden_paths", b.ForbiddenPaths}, {"allowed_paths", b.AllowedPaths}, {"do_not_refactor", b.DoNotRefactor}, {"forbidden_side_effects", b.ForbiddenSideEffects}} {
 		if l.v == nil {
 			continue
 		}

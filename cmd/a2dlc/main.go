@@ -34,6 +34,9 @@ const usage = `usage: a2dlc <command>
           every turn: it runs no test, informs and never blocks, writes .a2dlc/reports/level0.json and exits 0 (2 only if a2dlc itself fails)
   plan check --plan <plan.json> --intent <feature intent.json> [--base <ref>] [--json]
           judges a feature plan (RFC-0008) before any Builder runs: 0 valid, 1 not valid, 64 bad usage; --json for an agent
+  plan run --plan <plan.json> --intent <feature intent.json> [--base <ref>] [--json] [--z3-image <image>]
+          runs (or resumes) a valid plan: each slice an a2dlc run in dependency order, then a final check of the merge
+          (.a2dlc/run/_plan/<feature>/state.json; 0 PASS, 2 escalated, 1 plan refused)
   propose [--base <ref>] --out <empty dir outside the repo>
           asks the propose_properties role (roles.json) for the properties of the change from base to the working tree;
           prints the outcome as JSON (0 ok, 1 otherwise). Nothing is written into the repo; the answer goes to --out.
@@ -294,7 +297,7 @@ func run(args []string) int {
 		fmt.Println("a2dlc approve: signed", args[1])
 		return 0
 	case "plan":
-		return planCommand(a, repo, args[1:])
+		return planCommand(ctx, a, repo, args[1:])
 	case "propose":
 		base := fs.String("base", "", "commit base (default: the upstream, else the fork point from origin's default branch, else HEAD)")
 		out := fs.String("out", "", "empty folder outside the repository where the role's answer goes (required)")
@@ -421,39 +424,47 @@ func approvePending(a app.App, email string, args []string) int {
 	return 0
 }
 
-// planCommand is `a2dlc plan check`: the gates of RFC-0008 section 3 over a plan and the feature's intent, against the files of
-// the base tree. The text is for the person who approves the plan; --json is the same report for an agent, compact.
-func planCommand(a app.App, repo gitx.Repo, args []string) int {
-	if len(args) == 0 || args[0] != "check" {
-		fmt.Fprintln(os.Stderr, "usage: a2dlc plan check --plan <plan.json> --intent <feature intent.json> [--base <ref>] [--json]")
+// planCommand is `a2dlc plan check` and `a2dlc plan run` (RFC-0008). check: the gates of section 3 over a plan and the
+// feature's intent, against the files of the base tree; the text is for the person who approves the plan and --json is
+// the same report for an agent, compact. run: one invocation of the plan machine (section 5, docs/STATE_MACHINE.md),
+// each slice an ordinary a2dlc run, state in .a2dlc/run/_plan/<feature>/state.json.
+func planCommand(ctx context.Context, a app.App, repo gitx.Repo, args []string) int {
+	const use = "usage: a2dlc plan check|run --plan <plan.json> --intent <feature intent.json> [--base <ref>] [--json]"
+	if len(args) == 0 || (args[0] != "check" && args[0] != "run") {
+		fmt.Fprintln(os.Stderr, use)
 		return 64
 	}
-	fs := flag.NewFlagSet("plan check", flag.ContinueOnError)
+	sub := args[0]
+	name := "a2dlc plan " + sub + ":"
+	fs := flag.NewFlagSet("plan "+sub, flag.ContinueOnError)
 	planPath := fs.String("plan", "", "the plan (contracts/plan.schema.json)")
 	intentPath := fs.String("intent", "", "the feature's intent (contracts/intent.schema.json)")
 	base := fs.String("base", "", "commit base (default: the upstream, else the fork point from origin's default branch, else HEAD)")
-	asJSON := fs.Bool("json", false, "the report as JSON, for an agent or a UI")
+	asJSON := fs.Bool("json", false, "the report (check) or the plan state (run) as JSON, for an agent or a UI")
+	z3Image := fs.String("z3-image", "a2dlc-engine-z3:0.1", "run: z3 engine image for Stage 1.5 of each slice (empty: Z3 is skipped)")
 	if fs.Parse(args[1:]) != nil || *planPath == "" || *intentPath == "" {
-		fmt.Fprintln(os.Stderr, "a2dlc plan check: --plan and --intent are required")
+		fmt.Fprintln(os.Stderr, name, "--plan and --intent are required")
+		return 64
+	}
+	planBytes, err := os.ReadFile(*planPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, name, err)
 		return 64
 	}
 	var p contract.Plan
-	if b, err := os.ReadFile(*planPath); err != nil {
-		fmt.Fprintln(os.Stderr, "a2dlc plan check:", err)
-		return 64
-	} else if err := contract.DecodeStrictBytes(b, &p); err != nil {
-		fmt.Fprintf(os.Stderr, "a2dlc plan check: %s does not match the plan contract: %v\n", *planPath, err)
+	if err := contract.DecodeStrictBytes(planBytes, &p); err != nil {
+		fmt.Fprintf(os.Stderr, "%s %s does not match the plan contract: %v\n", name, *planPath, err)
 		return 1
 	}
 	var f contract.Intent
 	if b, err := os.ReadFile(*intentPath); err != nil {
-		fmt.Fprintln(os.Stderr, "a2dlc plan check:", err)
+		fmt.Fprintln(os.Stderr, name, err)
 		return 64
 	} else if err := contract.DecodeStrictBytes(b, &f); err != nil {
-		fmt.Fprintf(os.Stderr, "a2dlc plan check: %s does not match the intent contract: %v\n", *intentPath, err)
+		fmt.Fprintf(os.Stderr, "%s %s does not match the intent contract: %v\n", name, *intentPath, err)
 		return 1
 	} else if err := f.Validate(); err != nil {
-		fmt.Fprintf(os.Stderr, "a2dlc plan check: the feature's intent is not valid: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s the feature's intent is not valid: %v\n", name, err)
 		return 1
 	}
 	ref := *base
@@ -462,12 +473,15 @@ func planCommand(a app.App, repo gitx.Repo, args []string) int {
 	}
 	sha, err := repo.ResolveCommit(ref)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "a2dlc plan check: base %q: %v\n", ref, err)
+		fmt.Fprintf(os.Stderr, "%s base %q: %v\n", name, ref, err)
 		return 64
+	}
+	if sub == "run" {
+		return planRun(ctx, a, repo, planBytes, p, f, sha, *z3Image, *asJSON)
 	}
 	files, err := repo.Files(sha)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "a2dlc plan check:", err)
+		fmt.Fprintln(os.Stderr, name, err)
 		return 2
 	}
 	r := plan.Check(p, f, files)
@@ -480,4 +494,39 @@ func planCommand(a app.App, repo gitx.Repo, args []string) int {
 		return 1
 	}
 	return 0
+}
+
+// planRun is one invocation of `a2dlc plan run`. Exit codes as a2dlc run: 0 PASS, 2 escalated, the verdict's code for
+// INCONCLUSIVE, 1 for a plan that does not pass its gates or a state that belongs to another plan or base.
+func planRun(ctx context.Context, a app.App, repo gitx.Repo, planBytes []byte, p contract.Plan, f contract.Intent, base, z3Image string, asJSON bool) int {
+	opts := a2run.Options{MaxSpecRounds: a2run.MaxSpecRoundsDefault}
+	if z3Image != "" {
+		opts.Z3 = engine.Z3{Image: z3Image}
+	}
+	r := plan.Runner{Repo: repo, Exec: plan.RunExec{App: a, Launcher: a2run.DockerLauncher{}, Options: opts, Feature: p.FeatureID},
+		Final: plan.AppFinalCheck(a, f)}
+	st, ran, err := r.Run(ctx, planBytes, f, base)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "a2dlc plan run:", err)
+		return 1
+	}
+	if asJSON {
+		json.NewEncoder(os.Stdout).Encode(st)
+	} else {
+		fmt.Printf("invocation %d ran %d slice(s)\n", st.Invocation, len(ran))
+		for _, s := range st.Slices {
+			fmt.Printf("  %-40s %-9s %s\n", s.SliceID, s.Status, s.Reason)
+		}
+	}
+	out := "no verdict"
+	if st.Outcome != nil {
+		out = *st.Outcome
+	}
+	if !asJSON {
+		fmt.Printf("%s: plan %s, %s\n", out, st.FeatureID, st.Reason)
+	}
+	if out == "escalated" {
+		return 2
+	}
+	return verdict.ExitCode(out)
 }

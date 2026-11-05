@@ -1,0 +1,22 @@
+{
+ "schema_version": 1,
+ "slice_id": "billing.discounts.api",
+ "mode": "greenfield",
+ "goal": "Expose discounts on the checkout API.",
+ "invariants": [],
+ "non_goals": [],
+ "criticality": "medium",
+ "budget": {
+  "max_cost_usd": 0.8,
+  "max_inner_iterations": 5,
+  "max_tier1_adversarial_rounds": 3,
+  "max_mutants": null
+ },
+ "critical_paths": [],
+ "acceptance": [
+  "POST /discounts applies a code"
+ ],
+ "boundary": {
+  "allowed_paths": []
+ }
+}

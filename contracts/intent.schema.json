@@ -131,10 +131,11 @@
       "enum": ["low", "medium", "high", "critical"]
     },
     "boundary": {
-      "description": "What the builder cannot change (§7, CB-04). With forbidden_paths, a file in /work that matches a glob escalates. With do_not_refactor, a changed file whose added or removed lines contain the symbol as a whole word escalates: it is a textual heuristic, so it also flags a new call site.",
+      "description": "What the builder cannot change (§7, CB-04). With forbidden_paths, a file in /work that matches a glob escalates. With allowed_paths, a file in /work that matches none of its globs escalates: a slice of a feature plan (RFC-0008) gets its owns and the plan's shared files there. With do_not_refactor, a changed file whose added or removed lines contain the symbol as a whole word escalates: it is a textual heuristic, so it also flags a new call site.",
       "type": "object",
       "properties": {
         "forbidden_paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Globs (same syntax as config.paths): no file that matches may change in /work." },
+        "allowed_paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Globs (same syntax as config.paths): every file that changes in /work must match one; any other changed file escalates." },
         "do_not_refactor": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "description": "Identifiers whose lines cannot change (see the boundary description)." },
         "forbidden_side_effects": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["network.http.outbound", "fs.write", "db.raw_sql_unparameterized", "time.system_clock_direct"] }, "description": "Side effects the changed code may not produce, by protocol name. Declared here; checking them is engine work." }
       },

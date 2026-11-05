@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Comment period:** 2026-11-05 to 2026-11-19 (14 days, [README.md](README.md) step 2); comments on the pull request that opened it
 - **Author:** Aldemar Hernández, falsable
-- **Amends:** RFC-0001 §3 (a Planner role), §5 (a plan machine above the slice machine), §7 (CB-02b decomposition); new `contracts/plan.schema.json` and `contracts/plan-state.schema.json`
+- **Amends:** RFC-0001 §3 (a Planner role), §5 (a plan machine above the slice machine), §7 (CB-02b decomposition); new `contracts/plan.schema.json` and `contracts/plan-state.schema.json`; `boundary.allowed_paths` in `contracts/intent.schema.json`
 - **Changes `schema_version`:** no
 
 ## Problem
@@ -40,7 +40,7 @@ A **plan** is a set of slices with the files each one owns and the slices it dep
 
 - `owns` are globs of the files the slice may change. Stage 3 of that slice enforces them through the existing boundary: a change outside `owns` escalates `protected_boundary` (CB-04), with no retry.
 - `shared` lists files more than one slice may change. Only slices ordered by `depends_on` may share one, never two that can run at the same time.
-- Each slice becomes a slice intent (`contracts/intent.schema.json`) derived from the plan: goal, invariants, acceptance, criticality, budget, and `boundary.forbidden_paths` set to everything the slice does not own.
+- Each slice becomes a slice intent (`contracts/intent.schema.json`) derived from the plan: goal, invariants, acceptance, criticality, budget, and `boundary.allowed_paths` set to the slice's `owns` (a new optional field: every file the Builder changes must match one of its globs).
 
 ### 2. Who proposes it: the Planner role (§3)
 
@@ -82,7 +82,7 @@ Each slice has a plan status: `pending → ready → running → passed | escala
 - **P5, CB-02b:** a slice whose Builders are exhausted is sent back to the Planner once, to be decomposed into sub-slices that own a partition of the exhausted slice's `owns` and keep its edges. The new sub-plan goes through the gates of §3 and the person's approval. The depth is bounded (`max_replan`, default 1). Past it, CB-02b stops at a person, as today.
 - **P6.** Resume follows the slice machine's rules: a passed slice whose run still verifies (`verify-run`) is kept, and a slice re-run makes every slice that depends on it run again (the plan-level R3).
 
-The plan machine is written like the slice machine (`internal/run/fsm.go`): as data and a pure function, rendered to `docs/STATE_MACHINE.md`, model-checked to a fixpoint and held to the implementation by a conformance test. Its invariants:
+The plan machine is written like the slice machine (`internal/run/fsm.go`): as data and a pure function, rendered to `docs/PLAN_MACHINE.md`, model-checked to a fixpoint and held to the implementation by a conformance test. Its invariants:
 
 - no slice runs before every slice it depends on has passed;
 - a failure blocks exactly the slices that depend on it;
@@ -95,12 +95,22 @@ The plan is the source of truth. `a2dlc plan export --beads` writes one issue pe
 
 ## Implementation ahead of acceptance
 
-Section 3 is in the reference implementation as `a2dlc plan check` (`internal/plan`, `contracts/plan.schema.json`), as RFC-0004 did for its opt-in: a new command that changes nothing else, so a repository that never runs it is unaffected. Rules G1 to G7 are implemented. G8 (blast radius) is reported as not checked until the command runs the engines' `deps_graph`. The glob rule of G3 is conservative: two globs whose fixed directories contain one another are taken to overlap even when no file matches both yet, because accepting two concurrent slices on one future file is the failure the gate exists to prevent. If the RFC is rejected, the command, the package and the schema are removed.
+As RFC-0004 did for its opt-in, two new commands are in the reference implementation. They change nothing else: a repository that never runs them is unaffected. If the RFC is rejected, the commands, `internal/plan`, both schemas and `boundary.allowed_paths` are removed.
+
+**Section 3, `a2dlc plan check`.** Rules G1 to G7 are implemented. G8 (blast radius) is reported as not checked until the command runs the engines' `deps_graph`. The glob rule of G3 is conservative: two globs whose fixed directories contain one another are taken to overlap even when no file matches both yet, because accepting two concurrent slices on one future file is the failure the gate exists to prevent.
+
+**Section 5, `a2dlc plan run`.** One invocation runs every slice it can, one after another, and stops; running it again resumes. Its rules, invariants and checks are in [docs/PLAN_MACHINE.md](../docs/PLAN_MACHINE.md), generated from `internal/plan/fsm.go`: a model checker over the 64 dependency graphs on four slices (118,650 states, every slice outcome, the final check passing or not, a passed slice that stops verifying), a conformance test that drives the real runner with real git merges against the model, and an end-to-end test through real `a2dlc run`s with a fake Builder and engine. How it maps to this section:
+
+- `ready` and `running` are not stored: within one invocation a slice is ready when its dependencies passed and it runs at once. The stored statuses are `pending`, `passed`, `escalated`, `failed` and `blocked` (`contracts/plan-state.schema.json`).
+- P1 to P4 and P6 are implemented as written, with two decisions the text left open. The outcome is `escalated` when some slice escalated or the final merge or check did not pass, and `INCONCLUSIVE` when some slice failed and none escalated (the worst outcome, as `a2dlc run` ranks them). A slice whose dependencies do not merge escalates without launching a Builder.
+- The state and the final receipt live in `.a2dlc/run/_plan/<feature>/`, under `.a2dlc/run`, so `gitx.Excluded` already keeps them out of the `tree_hash` and §6.4 does not change. A slice id starts with a letter, so `_plan` is never a slice's run.
+- Merges are `git merge-tree` commits with a fixed author and date: the same base and candidates always give the same commit, so a resumed slice finds its run on the base it ran on. A single dependency is a fast-forward.
+- Not implemented yet: concurrent slices in separate worktrees (P2 allows it; they run in sequence), replanning on CB-02b (P5), the plan's signed approval (section 4) and `plan show`, `plan import` and `plan export --beads`.
 
 ## Compatibility
 
 - `a2dlc run` on one slice does not change. A plan is a new artifact, a new command family (`a2dlc plan`) and a new role.
-- New schemas only, no existing field changes. Per [docs/COMPATIBILITY.md](../docs/COMPATIBILITY.md), no `schema_version` bumps.
+- New schemas, and one new optional field in an existing one (`boundary.allowed_paths` in `intent.schema.json`); no existing field changes. Per [docs/COMPATIBILITY.md](../docs/COMPATIBILITY.md), no `schema_version` bumps.
 - CB-02b keeps its current behavior unless the run belongs to a plan with `max_replan` above 0.
 
 ## Alternatives
