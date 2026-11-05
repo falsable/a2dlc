@@ -93,6 +93,7 @@ func run(args []string) int {
 		fs.Var(&peers, "peer", "commit of another builder of the same change (repeatable)")
 		overlay := fs.String("tests-overlay", "", "folder with tests from outside, at the path they would have in the repo")
 		level := fs.Int("level", 1, "1: the blocking gate (default); 0: the static level, which runs no test and never blocks")
+		background := fs.Bool("background", false, "level 1 for the agent hook: writes .a2dlc/reports/background.json, not the receipt verify reads")
 		if fs.Parse(args[1:]) != nil {
 			return 64
 		}
@@ -113,6 +114,14 @@ func run(args []string) int {
 		default:
 			fmt.Fprintln(os.Stderr, "a2dlc check: --level is 0 or 1")
 			return 64
+		}
+		if *background {
+			defer a.BackgroundDone()
+			if _, err := a.CheckWith(ctx, *base, app.CheckOptions{ReportPath: app.BackgroundReport()}); err != nil {
+				fmt.Fprintln(os.Stderr, "a2dlc check --background:", err)
+				return 2
+			}
+			return 0
 		}
 		v, err := a.CheckWith(ctx, *base, app.CheckOptions{Peers: peers, TestsOverlay: *overlay})
 		if err != nil {

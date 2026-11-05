@@ -325,6 +325,10 @@ type CheckOptions struct {
 	// instead of running the engine only when the base config sets run_differential "stage3" and its request is the same on
 	// the same tree (RFC-0005); otherwise they are ignored.
 	Differential DiffAnswers
+	// ReportPath, when set, is where the receipt goes instead of .a2dlc/verdict.json, and no escalations.json or
+	// verdict.sig is written: the background check of the agent hook (background.go) writes its answer there, so the
+	// receipt verify reads is never one the agent did not ask for.
+	ReportPath string
 }
 
 // allCritical makes every target critical (CheckOptions.StrictDivergence).
@@ -635,6 +639,9 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	v.CreatedAt = a.Now().UTC().Format(time.RFC3339)
 	verdict.CompleteDiffBudget(&v)
 	v.Timings = tm.result()
+	if opts.ReportPath != "" {
+		return v, a.write(opts.ReportPath, v)
+	}
 	if err := a.writeVerdict(v); err != nil {
 		return v, err
 	}
@@ -1044,8 +1051,9 @@ func (a App) Hook(ctx context.Context, agent string, stdin io.Reader, stdout, st
 	if tool != "" {
 		return a.preTool(agent, tool, in, stdout, stderr)
 	}
-	// Stop is the end of every agent turn, so it runs the static level: it informs and never blocks (owner's decision of
-	// 2026-10-27). The blocking gate, level 1, is `a2dlc check` when the agent says "done", the pre-push verify and the PR
+	// Stop is the end of every agent turn, so it runs the static level, which informs and never makes the turn wait (owner's
+	// decision of 2026-10-27). It blocks only to hand back an answer the background level 1 already has for the current tree
+	// (background.go), never on work that is still running. The blocking gate, level 1, is `a2dlc check` when the agent says "done", the pre-push verify and the PR
 	// check. Claude Code does not show a Stop hook's stdout to the model, only systemMessage to the person: the agent finds
 	// out through .a2dlc/reports/level0.json. A failure of level 0 itself is also not a block (exit 2 would be).
 	v, err := a.Level0(ctx, "")
@@ -1053,8 +1061,16 @@ func (a App) Hook(ctx context.Context, agent string, stdin io.Reader, stdout, st
 		fmt.Fprintln(stderr, "a2dlc: level 0:", err)
 		return allow(agent, stdout)
 	}
+	// The background level 1 (background.go): start it if nothing answers the current tree yet, or hand its answer to
+	// the agent once it exists. Gemini's AfterAgent is not a stop the agent can be sent back from, so it only starts it.
+	session, _ := in["session_id"].(string)
+	reason := a.backgroundStep(session)
 	if agent == "gemini" {
 		return allow(agent, stdout)
+	}
+	if reason != "" {
+		json.NewEncoder(stdout).Encode(markBlock(reason))
+		return 0
 	}
 	json.NewEncoder(stdout).Encode(map[string]string{"systemMessage": Level0Summary(v)})
 	return 0
