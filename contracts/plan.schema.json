@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/plan.schema.json",
+  "title": "Feature plan (RFC-0008): the slices of a feature, the files each owns and the slices each depends on",
+  "description": "A Planner, a person or an imported tool proposes it; `a2dlc plan check` judges it against the feature's intent before any Builder runs (RFC-0008 section 3). owns are globs of the files a slice may change; two slices with no dependency path between them must own no file in common. shared lists files that more than one slice may change, and only slices ordered by depends_on may share one.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "feature_id": { "$ref": "run-defs.schema.json#/$defs/slice_id", "description": "The slice_id of the feature's intent." },
+    "slices": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/slice" }
+    },
+    "shared": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Globs of files more than one slice may change; every slice that owns one must lie on one dependency path."
+    }
+  },
+  "required": ["schema_version", "feature_id", "slices", "shared"],
+  "additionalProperties": false,
+  "$defs": {
+    "slice": {
+      "type": "object",
+      "properties": {
+        "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+        "goal": { "type": "string", "minLength": 1, "description": "What the slice changes and why, written for the person who approves the plan." },
+        "owns": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "Globs of the files the slice may change (repository-relative, the glob syntax of config.protected_paths)." },
+        "depends_on": { "type": "array", "items": { "$ref": "run-defs.schema.json#/$defs/slice_id" }, "uniqueItems": true },
+        "criticality": { "$ref": "intent.schema.json#/$defs/criticality" },
+        "budget": {
+          "type": "object",
+          "properties": { "max_cost_usd": { "type": "number", "exclusiveMinimum": 0 } },
+          "required": ["max_cost_usd"],
+          "additionalProperties": false
+        },
+        "acceptance": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "invariants": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "covers": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "uniqueItems": true,
+          "description": "Indexes (0-based) of the feature intent's acceptance criteria this slice is responsible for."
+        }
+      },
+      "required": ["slice_id", "goal", "owns", "depends_on", "criticality", "budget", "acceptance", "invariants", "covers"],
+      "additionalProperties": false
+    }
+  }
+}

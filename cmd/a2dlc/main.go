@@ -17,6 +17,7 @@ import (
 	"github.com/falsable/a2dlc/internal/engine"
 	"github.com/falsable/a2dlc/internal/gitx"
 	"github.com/falsable/a2dlc/internal/mcp"
+	"github.com/falsable/a2dlc/internal/plan"
 	a2run "github.com/falsable/a2dlc/internal/run"
 	"github.com/falsable/a2dlc/internal/verdict"
 )
@@ -31,6 +32,8 @@ const usage = `usage: a2dlc <command>
           --tests-overlay: tests from outside that run over base, candidate and peers without being committed.
           --level 1 (default) is the blocking gate above, for "done" and the PR check. --level 0 is the static level for
           every turn: it runs no test, informs and never blocks, writes .a2dlc/reports/level0.json and exits 0 (2 only if a2dlc itself fails)
+  plan check --plan <plan.json> --intent <feature intent.json> [--base <ref>] [--json]
+          judges a feature plan (RFC-0008) before any Builder runs: 0 valid, 1 not valid, 64 bad usage; --json for an agent
   propose [--base <ref>] --out <empty dir outside the repo>
           asks the propose_properties role (roles.json) for the properties of the change from base to the working tree;
           prints the outcome as JSON (0 ok, 1 otherwise). Nothing is written into the repo; the answer goes to --out.
@@ -290,6 +293,8 @@ func run(args []string) int {
 		}
 		fmt.Println("a2dlc approve: signed", args[1])
 		return 0
+	case "plan":
+		return planCommand(a, repo, args[1:])
 	case "propose":
 		base := fs.String("base", "", "commit base (default: the upstream, else the fork point from origin's default branch, else HEAD)")
 		out := fs.String("out", "", "empty folder outside the repository where the role's answer goes (required)")
@@ -413,5 +418,66 @@ func approvePending(a app.App, email string, args []string) int {
 		return 1
 	}
 	fmt.Printf("a2dlc approve: signed %d approval(s); run a2dlc check again so the receipt sees them.\n", r.Count)
+	return 0
+}
+
+// planCommand is `a2dlc plan check`: the gates of RFC-0008 section 3 over a plan and the feature's intent, against the files of
+// the base tree. The text is for the person who approves the plan; --json is the same report for an agent, compact.
+func planCommand(a app.App, repo gitx.Repo, args []string) int {
+	if len(args) == 0 || args[0] != "check" {
+		fmt.Fprintln(os.Stderr, "usage: a2dlc plan check --plan <plan.json> --intent <feature intent.json> [--base <ref>] [--json]")
+		return 64
+	}
+	fs := flag.NewFlagSet("plan check", flag.ContinueOnError)
+	planPath := fs.String("plan", "", "the plan (contracts/plan.schema.json)")
+	intentPath := fs.String("intent", "", "the feature's intent (contracts/intent.schema.json)")
+	base := fs.String("base", "", "commit base (default: the upstream, else the fork point from origin's default branch, else HEAD)")
+	asJSON := fs.Bool("json", false, "the report as JSON, for an agent or a UI")
+	if fs.Parse(args[1:]) != nil || *planPath == "" || *intentPath == "" {
+		fmt.Fprintln(os.Stderr, "a2dlc plan check: --plan and --intent are required")
+		return 64
+	}
+	var p contract.Plan
+	if b, err := os.ReadFile(*planPath); err != nil {
+		fmt.Fprintln(os.Stderr, "a2dlc plan check:", err)
+		return 64
+	} else if err := contract.DecodeStrictBytes(b, &p); err != nil {
+		fmt.Fprintf(os.Stderr, "a2dlc plan check: %s does not match the plan contract: %v\n", *planPath, err)
+		return 1
+	}
+	var f contract.Intent
+	if b, err := os.ReadFile(*intentPath); err != nil {
+		fmt.Fprintln(os.Stderr, "a2dlc plan check:", err)
+		return 64
+	} else if err := contract.DecodeStrictBytes(b, &f); err != nil {
+		fmt.Fprintf(os.Stderr, "a2dlc plan check: %s does not match the intent contract: %v\n", *intentPath, err)
+		return 1
+	} else if err := f.Validate(); err != nil {
+		fmt.Fprintf(os.Stderr, "a2dlc plan check: the feature's intent is not valid: %v\n", err)
+		return 1
+	}
+	ref := *base
+	if ref == "" {
+		ref = a.DefaultBase()
+	}
+	sha, err := repo.ResolveCommit(ref)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "a2dlc plan check: base %q: %v\n", ref, err)
+		return 64
+	}
+	files, err := repo.Files(sha)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "a2dlc plan check:", err)
+		return 2
+	}
+	r := plan.Check(p, f, files)
+	if *asJSON {
+		json.NewEncoder(os.Stdout).Encode(r)
+	} else {
+		fmt.Println(r.Text(p))
+	}
+	if !r.Valid {
+		return 1
+	}
 	return 0
 }

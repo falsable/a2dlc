@@ -487,6 +487,13 @@ cases = {
     "escalation__check-failed-missing-message.json": (read("escalation__check-failed.json"), lambda x: x["items"][0]["evidence"].pop("message")),
     "escalation__check-failed-with-legacy-waiver.json": (read("escalation__check-failed.json"), lambda x: x["items"][0].update(resolve_with=["preserve_legacy"])),
     "escalation__check-failed-no-resolution.json": (read("escalation__check-failed.json"), lambda x: x["items"][0].update(resolve_with=[])),
+    "plan__no-slices.json": (read("plan__diamond.json"), lambda x: x.update(slices=[])),
+    "plan__owns-empty.json": (read("plan__diamond.json"), lambda x: x["slices"][0].update(owns=[])),
+    "plan__budget-zero.json": (read("plan__diamond.json"), lambda x: x["slices"][0].update(budget={"max_cost_usd": 0})),
+    "plan__slice-extra-field.json": (read("plan__diamond.json"), lambda x: x["slices"][0].update(parallel=True)),
+    "plan__bad-slice-id.json": (read("plan__diamond.json"), lambda x: x["slices"][0].update(slice_id="Billing Model")),
+    "plan__covers-negative.json": (read("plan__diamond.json"), lambda x: x["slices"][0].update(covers=[-1])),
+    "plan__without-shared.json": (read("plan__diamond.json"), lambda x: x.pop("shared")),
 }
 for name, (base, breaks) in cases.items():
     doc = copy.deepcopy(base)

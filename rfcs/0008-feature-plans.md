@@ -93,6 +93,10 @@ The plan machine is written like the slice machine (`internal/run/fsm.go`): as d
 
 The plan is the source of truth. `a2dlc plan export --beads` writes one issue per slice with its dependencies, so `bd ready` shows the same ready set as P1. Beads is a view of the plan, never an input to it.
 
+## Implementation ahead of acceptance
+
+Section 3 is in the reference implementation as `a2dlc plan check` (`internal/plan`, `contracts/plan.schema.json`), as RFC-0004 did for its opt-in: a new command that changes nothing else, so a repository that never runs it is unaffected. Rules G1 to G7 are implemented. G8 (blast radius) is reported as not checked until the command runs the engines' `deps_graph`. The glob rule of G3 is conservative: two globs whose fixed directories contain one another are taken to overlap even when no file matches both yet, because accepting two concurrent slices on one future file is the failure the gate exists to prevent. If the RFC is rejected, the command, the package and the schema are removed.
+
 ## Compatibility
 
 - `a2dlc run` on one slice does not change. A plan is a new artifact, a new command family (`a2dlc plan`) and a new role.
