@@ -11,6 +11,7 @@ An RFC is a written proposal to change what the protocol requires or what a cont
 | [0005](0005-stage4-takes-the-differential-of-stage3.md) | Stage 4 can take the differential Stage 3 already ran on the same tree | Draft |
 | [0006](0006-contract-first-api-slices.md) | Contract-first API slices: the API contract is part of `S*`, and Stages 1, 1.5, 3 and 4 judge against it | Draft (comment period until 2026-11-19) |
 | [0007](0007-fewer-human-stops.md) | Fewer human stops: batch approval, and pre-authorized behavior changes bound to base, intent and expiry | Draft (comment period until 2026-11-19) |
+| [0008](0008-feature-plans.md) | Feature plans: a Planner proposes slices, deterministic gates judge the split, a plan machine runs them in dependency order | Draft (comment period until 2026-11-19) |
 
 ## What needs an RFC
 
