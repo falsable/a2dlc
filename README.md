@@ -22,9 +22,6 @@
   <a href="docs/A2-DLC_v3.5_protocol.md">Spec</a>
 </p>
 
-<!-- TODO: record with asciinema/vhs → docs/assets/demo.gif (see examples/quickstart/) -->
-<p align="center"><img src="docs/assets/demo.gif" alt="a2dlc check catching a refactor that changed behavior" width="760"></p>
-
 ```
 $ a2dlc check
 FAIL: 1 target, 6 changed lines examined
