@@ -217,8 +217,9 @@ func TestN2FromIntentWithRealRouter(t *testing.T) {
 		artifact, err := m.writeArtifact(ArtContract, contractOf(contract.SourceConsensus, "doubles"))
 		return contract.StageDone, "", artifact, err
 	})
-	withStage(t, "1.5", func(context.Context, *Machine) (string, string, string, error) {
-		return contract.StageDone, "", "", nil
+	withStage(t, "1.5", func(_ context.Context, m *Machine) (string, string, string, error) {
+		p, err := m.writeArtifact(ArtLint, map[string]any{"fake": true})
+		return contract.StageDone, "", p, err
 	})
 	a, dir, _ := repoBuilder(t)
 	write(t, dir, ".a2dlc/roles.json", rolesN2)
@@ -594,8 +595,9 @@ func TestN2OrthogonalSaboteurTestsRejudgePrimaryWithRelaxations(t *testing.T) {
 		artifact, err := m.writeArtifact(ArtContract, s)
 		return contract.StageDone, "", artifact, err
 	})
-	withStage(t, "1.5", func(context.Context, *Machine) (string, string, string, error) {
-		return contract.StageDone, "", "", nil
+	withStage(t, "1.5", func(_ context.Context, m *Machine) (string, string, string, error) {
+		p, err := m.writeArtifact(ArtLint, map[string]any{"fake": true})
+		return contract.StageDone, "", p, err
 	})
 	a, dir, _ := repoBuilder(t)
 	engine := &engineUncovered{}

@@ -303,6 +303,11 @@ func (m *Machine) runStage(ctx context.Context, s *contract.StageRun) error {
 	if err != nil {
 		return fmt.Errorf("stage %s: %w", s.ID, err)
 	}
+	if status == contract.StageDone && artifact == "" {
+		// A done stage is resumed from its artifact (R2) and verify-run requires one: without it the next invocation
+		// would run it again and verify-run would reject the run. That is a stage's bug, said where it happens.
+		return fmt.Errorf("stage %s ended done without an artifact", s.ID)
+	}
 	finished := m.now().UTC().Format(timeRFC)
 	s.Status, s.Reason, s.FinishedAt = status, reason, &finished
 	if artifact != "" {

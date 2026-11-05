@@ -44,8 +44,9 @@ func TestStage3WithoutBuilderChecksDependenciesBeforeProbes(t *testing.T) {
 		artifact, err := m.writeArtifact(ArtProbes, contract.Probes{SchemaVersion: 1, SliceID: c.SliceID, ContractHash: h, Probes: []contract.Probe{probe}})
 		return contract.StageDone, "", artifact, err
 	})
-	withStage(t, "1.5", func(context.Context, *Machine) (string, string, string, error) {
-		return contract.StageDone, "", "", nil
+	withStage(t, "1.5", func(_ context.Context, m *Machine) (string, string, string, error) {
+		p, err := m.writeArtifact(ArtLint, map[string]any{"fake": true})
+		return contract.StageDone, "", p, err
 	})
 	a, dir := repoLite(t)
 	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"python","image":"x","paths":["src/**"],"budget":{}}]}`)

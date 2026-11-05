@@ -146,6 +146,8 @@ A minimal subset, adoptable in minutes, that requires no orchestrator. Inspired 
 [7 Progressive Delivery + Rollback Sentinel + Compensation]
 ```
 
+The diagram gives the order of the stages. The orchestration rules of the reference implementation (resume, re-running a stage and every stage after it, the budget breaker before each stage, the stop on escalation), with the invariants a model checker and a conformance test hold it to, are in [docs/STATE_MACHINE.md](STATE_MACHINE.md) (informative).
+
 ### Stage −1: Make It Testable (refactor and legacy)
 Mandatory order, because the seaming is itself a refactor and needs a safety net:
 1. **Black-box golden master baseline** at the module boundary, *before* touching anything.
