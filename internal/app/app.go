@@ -39,6 +39,8 @@ type App struct {
 	Checks  engine.CheckRunner // runs config.checks; nil leaves every check in error (never a pass)
 	Version string
 	Now     func() time.Time
+	// Memo keeps the engines' decisive answers for the life of the process (enginememo.go); nil remembers nothing.
+	Memo *EngineMemo
 }
 
 func (a App) path(rel string) string { return filepath.Join(a.Repo.Dir, filepath.FromSlash(rel)) }
@@ -458,7 +460,18 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 			if err := export(); err != nil {
 				return err
 			}
-			for _, i := range sortedIndexes(byEngine) {
+			// The engines judge disjoint files and share nothing but the read-only trees, so they run side by side
+			// (engineJobs); their answers are joined afterwards in config order, so the receipt does not depend on which
+			// one finished first.
+			order := sortedIndexes(byEngine)
+			type answer struct {
+				resp contract.Response
+				err  error
+			}
+			answers := make([]answer, len(order))
+			sem := make(chan struct{}, engineJobs(len(order), os.Getenv("A2DLC_ENGINE_JOBS")))
+			var ewg sync.WaitGroup
+			for k, i := range order {
 				e, files := cfg.Engines[i], byEngine[i]
 				req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseRef: baseSha,
 					BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: files, Budget: e.Budget, GeneratorsOverride: generators(candDir),
@@ -466,18 +479,39 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 				if len(req.Budget) == 0 {
 					req.Budget = json.RawMessage("{}")
 				}
-				resp, reused := contract.Response{}, false
-				if cfg.RunDifferential == contract.RunDifferentialStage3 {
-					resp, reused = opts.Differential.answer(tree, e, req)
-				}
-				var err error
-				if reused {
-					timerOf(ctx).engineOp("diff_from_stage3", 0)
-				} else {
-					t0 := time.Now()
-					resp, err = a.Runner.Run(ctx, e, req, baseDir, candDir)
-					timerOf(ctx).engineOp("diff", time.Since(t0))
-				}
+				ewg.Add(1)
+				go func(k int, e contract.EngineConfig, req contract.Request) {
+					defer ewg.Done()
+					sem <- struct{}{}
+					defer func() { <-sem }()
+					resp, reused := contract.Response{}, false
+					if cfg.RunDifferential == contract.RunDifferentialStage3 {
+						resp, reused = opts.Differential.answer(tree, e, req)
+						if reused {
+							timerOf(ctx).engineOp("diff_from_stage3", 0)
+						}
+					}
+					if !reused {
+						if resp, reused = a.Memo.get(baseSha, tree, e, req); reused {
+							timerOf(ctx).engineOp("diff_from_memo", 0)
+						}
+					}
+					var err error
+					if !reused {
+						t0 := time.Now()
+						resp, err = a.Runner.Run(ctx, e, req, baseDir, candDir)
+						timerOf(ctx).engineOp("diff", time.Since(t0))
+						if err == nil {
+							a.Memo.put(baseSha, tree, e, req, resp)
+						}
+					}
+					answers[k] = answer{resp, err}
+				}(k, e, req)
+			}
+			ewg.Wait()
+			for k, i := range order {
+				e, files := cfg.Engines[i], byEngine[i]
+				resp, err := answers[k].resp, answers[k].err
 				if err != nil {
 					errs = append(errs, contract.EngineError{Language: e.Language, Files: files, Error: err.Error()})
 					continue

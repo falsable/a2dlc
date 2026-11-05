@@ -151,7 +151,7 @@ Legend: ✅ implemented · 🟡 partial · ⬜ not yet.
 | CrossHair budget of at least 10 s per function | ✅ | The Python engine enforces a 10 s floor on `per_condition_timeout_s`. |
 | Old tree imported from a clean base checkout under another package name, with imports rewritten | ✅ | Python engine. |
 | Engines run hermetically | ✅ | `--network none`, base and candidate mounted read-only, memory and CPU capped, 30 min timeout. |
-| Functions that do not fit the budget are listed as `INCONCLUSIVE`, never omitted | ✅ | A run-level cap (`max_files`) lists what was not run, and the Python engine splits `budget.total_s` across its targets (1 s floor each): the ones it cut are `INCONCLUSIVE` with reason `not run: budget` and named in `verdict.diff_budget` (`total_s`, `used_s`, `cut[]`). There is no per-core parallelism and no prioritisation by callers or criticality. |
+| Functions that do not fit the budget are listed as `INCONCLUSIVE`, never omitted | ✅ | A run-level cap (`max_files`) lists what was not run, and the Python engine splits `budget.total_s` across its targets (1 s floor each): the ones it cut are `INCONCLUSIVE` with reason `not run: budget` and named in `verdict.diff_budget` (`total_s`, `used_s`, `cut[]`). Within the Python engine, `budget.workers` threads run the targets (default 1, at most 2 until the memory per worker is measured), and the targets with more callers in their own file start first; there is no prioritisation by criticality. Across engines, the core runs every engine of a polyglot diff side by side (`A2DLC_ENGINE_JOBS` bounds it, 1 runs them in turn). Inside one process (`a2dlc run`), a decisive engine answer for the same base, candidate tree and request is reused instead of asked again, and the receipt lists it as `diff_from_memo` in `timings.engine_ops` (`internal/app/enginememo.go`). |
 | Domain guard before CrossHair, recorded in the verdict | 🟡 | The schema has the `domain_guard` field, but the engines always emit `null`. A first measurement showed little benefit (see the roadmap). |
 | Optionally run committed property tests | 🟡 | Through the [test gates](#test-gates): committed property tests under `tests.paths` run in NOP/Oracle when they change and in the baseline when they are affected. |
 | Protected `tests/human` suite the agent cannot modify | ✅ | `config.protected_paths` (globs): a change that touches one of them escalates `protected_path` with the file as target, in `check` and in every Stage 4 check of `a2dlc run`; no waiver kind lifts it. The suite itself is whatever the repository commits under those paths. |
@@ -899,7 +899,7 @@ The order follows the protocol's escalation path from Lite to the full lifecycle
 8. ~~**Lemmas as a gate**~~ (decision 12): done in Stage 3 (a refuted postcondition is Tier 0 feedback of kind `lemma`; verdicts in `candidate.json`). Open: feeding a refactor lemma divergence into the main function's differential as a probe, and lemmas in the TypeScript and black-box engines.
 
 Within Lite, the open items are:
-- per-core parallelism and prioritisation by callers;
+- ~~per-core parallelism and prioritisation by callers~~ (done in the Python engine: `budget.workers`, at most 2 until memory per worker is measured; targets with more callers start first). Open: a default above 1 worker, once measured, and prioritisation by criticality;
 - ~~a protected `tests/human` suite~~ (done: `config.protected_paths`);
 - ~~an LLM that proposes properties once~~ (done: `a2dlc propose`);
 - running committed property tests;

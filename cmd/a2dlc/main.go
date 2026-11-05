@@ -79,7 +79,7 @@ func run(args []string) int {
 		return 64
 	}
 	a := app.App{Repo: repo, Runner: engine.Docker{CopyIn: engine.CopyInDefault}, Tests: engine.DockerTests{CopyIn: engine.CopyInDefault},
-		Checks: engine.DockerChecks{}, Version: version, Now: time.Now}
+		Checks: engine.DockerChecks{}, Version: version, Now: time.Now, Memo: app.NewEngineMemo()}
 	ctx := context.Background()
 	if args[0] == "check" || args[0] == "verify" {
 		warnHookBinary(a, os.Stderr)

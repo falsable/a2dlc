@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,10 +23,15 @@ import (
 // fakeEngine compares each file request between base and candidate: different is FAIL, equal is PASS, and a candidate
 // with "INCONCLUSIVE" or "CRASH" gives that. "NO_TARGET" leaves the file out of scope (not_exported), like a change
 // inside a method for the Python engine; "LINES a-b" bounds the target to those lines.
-type fakeEngine struct{ calls int }
+type fakeEngine struct {
+	mu    sync.Mutex
+	calls int
+}
 
 func (m *fakeEngine) Run(_ context.Context, _ contract.EngineConfig, req contract.Request, baseDir, candDir string) (contract.Response, error) {
+	m.mu.Lock()
 	m.calls++
+	m.mu.Unlock()
 	r := contract.Response{SchemaVersion: 1, Targets: []contract.TargetResult{}, OutOfScope: []contract.OutOfScope{}}
 	for _, f := range req.ChangedFiles {
 		old, _ := os.ReadFile(filepath.Join(baseDir, f))

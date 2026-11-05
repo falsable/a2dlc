@@ -78,7 +78,7 @@
       "additionalProperties": false
     },
     "timings": {
-      "description": "Where the check spent its time, in milliseconds, measured by the core. total_ms is the whole check; sync_ms the tree sync (export or warm-tree sync); stubs_ms the stub operation; test_runs one entry per test command run (name says which: candidate, base_with_stubs, base_as_is, baseline_base, ...), engine_ops one per engine operation (diff, stub, classify_lines, list_tests; diff_from_stage3, with ms 0, when a2dlc run took the diff answer Stage 3 already had, config.run_differential stage3, RFC-0005). Runs that overlap are listed separately, so their sum can exceed total_ms.",
+      "description": "Where the check spent its time, in milliseconds, measured by the core. total_ms is the whole check; sync_ms the tree sync (export or warm-tree sync); stubs_ms the stub operation; test_runs one entry per test command run (name says which: candidate, base_with_stubs, base_as_is, baseline_base, ...), engine_ops one per engine operation (diff, stub, classify_lines, list_tests; diff_from_stage3, with ms 0, when a2dlc run took the diff answer Stage 3 already had, config.run_differential stage3, RFC-0005; diff_from_memo, with ms 0, when the same process already had a decisive answer of that engine for the same base, candidate tree and request, which a2dlc run reuses across the oracle calls of one run). Runs that overlap are listed separately, so their sum can exceed total_ms.",
       "type": "object",
       "properties": {
         "total_ms": { "type": "integer", "minimum": 0 },
