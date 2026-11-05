@@ -726,11 +726,11 @@ Where the reference falls short of this section is in §6.4.11.
 
 | Layer | Recommended | Alternative |
 |---|---|---|
-| Control plane / state machine | **LangGraph** (checkpointers, `interrupt()` for probes and CBs) | Pydantic AI + Temporal/DBOS |
-| Roles with typed output (Specifier, Inquisitor, Saboteur) | **Pydantic AI** (multi-provider, validated outputs) | Direct calls + Pydantic |
+| Control plane / state machine | **The reference implementation:** a deterministic Go state machine (`a2dlc run`) with per-stage artifacts under `.a2dlc/run/` and a hash-chained ledger (`verify-run`) | LangGraph (checkpointers, `interrupt()` for probes and CBs) · Pydantic AI + Temporal/DBOS |
+| Roles with typed output (Specifier, Inquisitor, Saboteur) | **The reference implementation:** role images (`roles/`) that run a coding CLI headless (Claude Code, Gemini CLI) or an API backend behind one adapter, with every response validated against a JSON Schema in `contracts/` | Pydantic AI (multi-provider, validated outputs) · direct calls + Pydantic |
 | Builder family A | **Claude Agent SDK** inside the sandbox | — |
 | Builder family B | Coding agent from another family, or Pydantic AI with tools | — |
-| Observability / pilot metrics | **LangSmith** | OpenTelemetry + own backend |
+| Observability / pilot metrics | **The reference implementation:** the run ledger with cost per role (`budget.by_role`) and per-stage timings in the receipt | LangSmith · OpenTelemetry + own backend |
 | Sandbox | Docker read-only rootfs, `--network=none`, pre-warmed toolchains | Nix, Firecracker, WASM/WASI |
 | Schemas | Pydantic v2 · Zod/TypeBox · serde + newtypes | — |
 | PBT / fuzzing | Hypothesis + Atheris · fast-check · proptest + cargo-fuzz | — |
@@ -741,7 +741,7 @@ Where the reference falls short of this section is in §6.4.11.
 | Indexer | Tree-sitter + SCIP + service contracts in graph | — |
 | Migrations | squawk · atlas | — |
 
-The gates are deterministic code, not agents. The greatest implementation effort lies in the **sandbox runner**, not in the orchestration framework.
+Any stack that implements §5 and §6.4 conforms; the rows marked "reference implementation" say what `a2dlc` itself uses, and the alternatives are what another implementation may choose. The gates are deterministic code, not agents. The greatest implementation effort lies in the **sandbox runner**, not in the orchestration framework.
 
 ---
 

@@ -1,6 +1,6 @@
 # SDLC vs ADLC vs A2-DLC: who grades the code an AI agent writes
 
-This page compares `a2dlc` (protocol v3.4, binary v0.4.0) with the two lifecycles that circulate most in 2026 talks about agent-written code:
+This page compares `a2dlc` as it stood on 2026-10-22 (protocol v3.4, binary v0.4.0; see "How this page was checked" at the end) with the two lifecycles that circulate most in 2026 talks about agent-written code:
 
 - **SDLC**, the classic six-stage cycle: requirements and planning, architecture and design, implementation, QA and testing, release and rollout, monitor and fix.
 - **ADLC** ("Agentic Development Lifecycle"), as drawn in the widely shared "From SDLC to ADLC" infographic (Rakesh Gohel, 2026): capture intent, requirements and design with the agent, agent builds with context and skills, continuous evals, agentic review with executable gates, production signals create new intent. Its artifact chain is `intent.md → spec.md → plan.md → code + tests → review record → production signal`, and "the chain of commits becomes the audit trail".
