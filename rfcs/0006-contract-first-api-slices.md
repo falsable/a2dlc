@@ -1,6 +1,7 @@
 # RFC 0006: Contract-first API slices
 
 - **Status:** Draft
+- **Comment period:** 2026-11-05 to 2026-11-19 (14 days, [rfcs/README.md](README.md) step 2); comments on the pull request that opened it
 - **Author:** Aldemar Hernández, falsable
 - **Amends:** RFC-0001 §5 (Stages 1, 1.5, 3 and 4), §6.1; `contracts/slice-contract.schema.json` (`io_contract`), `contracts/config.schema.json` (new optional `api` section), `contracts/defs.schema.json` (engine enum), `contracts/escalation.schema.json` (new kinds)
 - **Changes `schema_version`:** no
