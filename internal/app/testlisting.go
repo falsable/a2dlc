@@ -144,6 +144,58 @@ func moduleOf(file string) string {
 	return strings.ReplaceAll(strings.TrimSuffix(file, ".py"), "/", ".")
 }
 
+// baseFileOf is the file of inBase that a testcase belongs to: the one its file attribute names or, when the runner gives
+// none, the one with the longest module that its classname starts with. "" when none.
+func baseFileOf(c junit.Case, inBase []string) string {
+	file := ""
+	for _, f := range inBase {
+		if c.File != "" {
+			if c.File == f {
+				file = f
+			}
+			continue
+		}
+		if m := moduleOf(f); (c.Classname == m || strings.HasPrefix(c.Classname, m+".")) && len(m) > len(moduleOf(file)) {
+			file = f
+		}
+	}
+	return file
+}
+
+// changedBodies picks, among the testcases that already existed on the base, the ones the engine reported in
+// modified_tests (file::Class.name or file::name, as engine-stub-response.schema.json gives them): their body changed, so
+// they cannot be told apart from a test the change weakened. A testcase whose classname does not start with its file's
+// module cannot be named that way and is left out.
+func changedBodies(own map[string]junit.Case, inBase, modified []string) map[string]bool {
+	set := map[string]bool{}
+	for _, m := range modified {
+		set[m] = true
+	}
+	out := map[string]bool{}
+	for id, c := range own {
+		file := baseFileOf(c, inBase)
+		if file == "" {
+			continue
+		}
+		m := moduleOf(file)
+		name := c.Name
+		if i := strings.Index(name, "["); i >= 0 {
+			name = name[:i]
+		}
+		switch {
+		case c.Classname == m:
+		case strings.HasPrefix(c.Classname, m+"."):
+			name = strings.TrimPrefix(c.Classname, m+".") + "." + name
+		default:
+			continue
+		}
+		if set[file+"::"+name] {
+			out[id] = true
+		}
+	}
+	return out
+}
+
 // existing says which of the candidate's testcases already existed on the base, from the listings. A testcase belongs to a
 // base file when its file attribute names it, or, when the runner does not give one, when its classname starts with the
 // file's module. It existed when its class path and its name without the parametrize suffix are in the listing of that
@@ -153,18 +205,7 @@ func moduleOf(file string) string {
 func existing(candidate map[string]junit.Case, inBase []string, ls listings) (own map[string]junit.Case, fallback map[string]bool) {
 	own, fallback = map[string]junit.Case{}, map[string]bool{}
 	for id, c := range candidate {
-		file := ""
-		for _, f := range inBase {
-			if c.File != "" {
-				if c.File == f {
-					file = f
-				}
-				continue
-			}
-			if m := moduleOf(f); (c.Classname == m || strings.HasPrefix(c.Classname, m+".")) && len(m) > len(moduleOf(file)) {
-				file = f
-			}
-		}
+		file := baseFileOf(c, inBase)
 		set, listed := ls[file]
 		if file == "" || !listed {
 			continue

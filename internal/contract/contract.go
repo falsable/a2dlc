@@ -318,7 +318,8 @@ type StubResponse struct {
 	SchemaVersion int        `json:"schema_version"`
 	Stubbed       []StubFile `json:"stubbed"`
 	Unstubbed     []string   `json:"unstubbed"`
-	// ModifiedTests are the test ids whose body changed; the NOP gate judges them as new tests.
+	// ModifiedTests are the test ids (file::Class.name or file::name) whose body changed; the NOP gate judges them like
+	// new tests, and one that still passes on the base with stubs is INCONCLUSIVE: it may have lost its assert.
 	ModifiedTests []string `json:"modified_tests,omitempty"`
 	Error         *string  `json:"error"`
 }

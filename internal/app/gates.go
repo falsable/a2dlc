@@ -122,6 +122,7 @@ type gateInput struct {
 	stubs      map[string][]byte
 	symbols    []string                // symbols that received a stub
 	unstubbed  []string                // new symbols the engine could not stub
+	modified   []string                // tests whose body changed (file::Class.name), reported by the engines' stub operation
 	stubNote   string                  // why there were no stubs, if there were none
 	cov        *accumulated            // coverage from the runs overlaid on the candidate (all that leave it)
 	engines    []contract.EngineConfig // config.engines: the static listing of the base's tests asks them
@@ -366,7 +367,7 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	if in.stubNote != "" {
 		g.Reason = in.stubNote
 	}
-	res := judgeNOP(candidate.cases, own, nop.cases, declaresBehavior(in), in.cfg.NopBasePassing == contract.NopBasePassingGuard, invalid, a.environmentCause(in))
+	res := judgeNOP(candidate.cases, own, changedBodies(own, inBase, in.modified), nop.cases, declaresBehavior(in), in.cfg.NopBasePassing == contract.NopBasePassingGuard, invalid, a.environmentCause(in))
 	for i := range res {
 		if c, ok := candidate.cases[res[i].Target]; ok {
 			if _, del := in.overlay[c.File]; del {
@@ -451,19 +452,21 @@ func classifier(patterns, unstubbed, added []string) (func(string) bool, error) 
 	}, nil
 }
 
-// judgeNOP applies the NOP/Oracle gate to each new testcase (its id does not exist on the base). Whether an old test
-// changes its body cannot be judged without knowing the language: it is left out.
+// judgeNOP applies the NOP/Oracle gate to each new testcase (its id does not exist on the base) and to the old ones whose
+// body changed (changed, from the engine's modified_tests). The other old tests are left out.
 //   - Red on the candidate because the environment lacks a module or an executable it needs (environment says what): the
 //     test did not run, and it says nothing about the change: INCONCLUSIVE naming the missing piece (bead a2dlc-cgl).
 //   - Red on the candidate: FAIL (Oracle).
 //   - Valid failure on the base: PASS.
 //   - Invalid failure on the base (import, collection, symbol without stub) or absent: INCONCLUSIVE.
+//   - A changed old test that passes on the base: INCONCLUSIVE. A body edit that still passes where the change is absent
+//     proves nothing, and it looks the same as an edit that dropped the assert; a human decides.
 //   - Passes on the base: FAIL if the change declares the intent to change behavior (there were stubs or an
 //     enforce_new_behavior waiver); otherwise it is a characterization test (a refactor) and does not block.
 //   - Passes on the base with that intent and guard set (tests.nop_base_passing guard, RFC-0003): a regression guard that
 //     does not block when another new test in the same test file proves the change; else FAIL as above. A testcase that
 //     names no file is never a guard.
-func judgeNOP(candidate, own, nop map[string]junit.Case, intent, guard bool, invalid func(string) bool, environment func(junit.Case) string) []contract.TestResult {
+func judgeNOP(candidate, own map[string]junit.Case, changed map[string]bool, nop map[string]junit.Case, intent, guard bool, invalid func(string) bool, environment func(junit.Case) string) []contract.TestResult {
 	proving := map[string]bool{}
 	for _, id := range keys(candidate) {
 		if _, old := own[id]; old || !guard {
@@ -476,7 +479,7 @@ func judgeNOP(candidate, own, nop map[string]junit.Case, intent, guard bool, inv
 	}
 	var out []contract.TestResult
 	for _, id := range keys(candidate) {
-		if _, old := own[id]; old {
+		if _, old := own[id]; old && !changed[id] {
 			continue
 		}
 		c := candidate[id]
@@ -496,6 +499,8 @@ func judgeNOP(candidate, own, nop map[string]junit.Case, intent, guard bool, inv
 			r.Verdict, r.Reason, r.Message = contract.FAIL, "the new test fails on the candidate", c.Message
 		case b.Status == contract.TestFailed && !invalid(b.Message):
 			r.Verdict = contract.PASS
+		case changed[id] && b.Status == contract.TestPassed:
+			r.Verdict, r.Reason = contract.INCONCLUSIVE, "the body of this existing test changed and it passes on the base with stubs: it is not known whether the edit weakened it"
 		case b.Status == contract.TestPassed && intent && proving[testFile(c)]:
 			r.Verdict, r.Guard = contract.PASS, true
 		case b.Status == contract.TestPassed && intent:
@@ -761,36 +766,54 @@ func (a App) saveCache(key string, c run) {
 
 // stubs asks each engine for the base with stubs for what the candidate added in its sources. An engine that does not
 // produce them stops nothing: NOP runs without stubs and import failures remain INCONCLUSIVE. The stub engine of
-// config.tests comes last: it gets the sources no reviewing engine claimed, and only for stubs.
+// config.tests comes last: it gets the sources no reviewing engine claimed, and only for stubs. A second ask names the
+// changed test files that exist on the base and keeps only what the engines say about them, modified_tests: their stubs
+// and unstubbed symbols are test code's, not the change's, so they never reach the NOP run.
 func (a App) stubs(ctx context.Context, cfg contract.Config, in *gateInput, baseDir, candDir string) {
 	in.stubs = map[string][]byte{}
 	engines := cfg.Engines
 	if cfg.Tests != nil && cfg.Tests.StubEngine != nil {
 		engines = append(append([]contract.EngineConfig{}, cfg.Engines...), *cfg.Tests.StubEngine)
 	}
-	byEngine, _ := verdict.Assign(engines, in.sources)
 	var notes []string
-	for _, i := range sortedIndexes(byEngine) {
-		e := engines[i]
-		req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseRef: in.baseSha,
-			BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: byEngine[i], Budget: json.RawMessage("{}")}
-		t0 := time.Now()
-		resp, files, err := a.Runner.Stub(ctx, e, req, baseDir, candDir)
-		timerOf(ctx).engineOp("stub", time.Since(t0))
-		if err != nil {
-			notes = append(notes, e.Language+": "+err.Error())
-			continue
-		}
-		for f, b := range files {
-			in.stubs[f] = b
-		}
-		for _, s := range resp.Stubbed {
-			for _, x := range s.Symbols {
-				in.symbols = append(in.symbols, s.File+"::"+x)
+	ask := func(changed []string, modifiedOnly bool) {
+		byEngine, _ := verdict.Assign(engines, changed)
+		for _, i := range sortedIndexes(byEngine) {
+			e := engines[i]
+			req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseRef: in.baseSha,
+				BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: byEngine[i], Budget: json.RawMessage("{}")}
+			t0 := time.Now()
+			resp, files, err := a.Runner.Stub(ctx, e, req, baseDir, candDir)
+			timerOf(ctx).engineOp("stub", time.Since(t0))
+			if err != nil {
+				if !modifiedOnly {
+					notes = append(notes, e.Language+": "+err.Error())
+				}
+				continue
 			}
+			in.modified = append(in.modified, resp.ModifiedTests...)
+			if modifiedOnly {
+				continue
+			}
+			for f, b := range files {
+				in.stubs[f] = b
+			}
+			for _, s := range resp.Stubbed {
+				for _, x := range s.Symbols {
+					in.symbols = append(in.symbols, s.File+"::"+x)
+				}
+			}
+			in.unstubbed = append(in.unstubbed, resp.Unstubbed...)
 		}
-		in.unstubbed = append(in.unstubbed, resp.Unstubbed...)
 	}
+	ask(in.sources, false)
+	var oldTests []string
+	for _, f := range in.tests {
+		if _, err := a.Repo.Blob(in.baseSha, f); err == nil {
+			oldTests = append(oldTests, f)
+		}
+	}
+	ask(oldTests, true)
 	sort.Strings(in.symbols)
 	if len(notes) > 0 {
 		in.stubNote = "no stubs from " + strings.Join(notes, "; ")

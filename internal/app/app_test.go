@@ -24,8 +24,9 @@ import (
 // with "INCONCLUSIVE" or "CRASH" gives that. "NO_TARGET" leaves the file out of scope (not_exported), like a change
 // inside a method for the Python engine; "LINES a-b" bounds the target to those lines.
 type fakeEngine struct {
-	mu    sync.Mutex
-	calls int
+	mu       sync.Mutex
+	calls    int
+	modified []string // what the stub operation reports as modified_tests
 }
 
 func (m *fakeEngine) Run(_ context.Context, _ contract.EngineConfig, req contract.Request, baseDir, candDir string) (contract.Response, error) {

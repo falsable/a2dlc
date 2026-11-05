@@ -747,7 +747,7 @@ func (a App) gates(ctx context.Context, cfg contract.Config, in gateInput, expor
 		in.warm = a.syncWarm(ctx, in)
 	}
 	in.slots = make(chan struct{}, maxTestRuns)
-	nopInputs := len(in.tests)+len(in.overlay) > 0 && len(in.sources) > 0
+	nopInputs := len(in.tests)+len(in.overlay) > 0
 	if nopInputs {
 		if err := export(); err != nil {
 			e := gateError("export base and candidate", err)

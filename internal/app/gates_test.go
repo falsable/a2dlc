@@ -30,7 +30,7 @@ func withoutImpl(b []byte) []byte {
 
 // Stub of the fake engine: each IMPL the candidate adds goes to the base as STUB.
 func (m *fakeEngine) Stub(_ context.Context, _ contract.EngineConfig, req contract.Request, baseDir, candDir string) (contract.StubResponse, map[string][]byte, error) {
-	r := contract.StubResponse{SchemaVersion: 1, Stubbed: []contract.StubFile{}, Unstubbed: []string{}}
+	r := contract.StubResponse{SchemaVersion: 1, Stubbed: []contract.StubFile{}, Unstubbed: []string{}, ModifiedTests: m.modified}
 	files := map[string][]byte{}
 	for _, f := range req.ChangedFiles {
 		old, _ := os.ReadFile(filepath.Join(baseDir, f))
@@ -305,7 +305,7 @@ func TestJudgeNOP(t *testing.T) {
 		"absent": "INCONCLUSIVE", "red": "FAIL"}
 	for _, intent := range []bool{false, true} {
 		got := map[string]contract.TestResult{}
-		for _, r := range judgeNOP(candidate, own, nop, intent, false, invalid, nil) {
+		for _, r := range judgeNOP(candidate, own, nil, nop, intent, false, invalid, nil) {
 			got[strings.TrimPrefix(r.Target, "t.py::c::")] = r
 		}
 		if _, ok := got["old"]; ok {
@@ -349,7 +349,7 @@ func TestJudgeNOPGuard(t *testing.T) {
 	}
 	for _, tc := range cases {
 		got := map[string]string{}
-		for _, r := range judgeNOP(candidate, map[string]junit.Case{}, nop, tc.intent, tc.guard, invalid, nil) {
+		for _, r := range judgeNOP(candidate, map[string]junit.Case{}, nil, nop, tc.intent, tc.guard, invalid, nil) {
 			v := r.Verdict
 			if r.Guard {
 				v += " guard"
@@ -934,6 +934,76 @@ func TestNOPFailuresTheChangeCausesStayFail(t *testing.T) {
 	for _, id := range []string{"test_symbol", "tests/sub", "tests/top", "test_data"} {
 		if r := got[id]; r.Verdict != contract.FAIL {
 			t.Errorf("%s: %+v, want FAIL", id, r)
+		}
+	}
+}
+
+// An existing test whose body the engine reports as changed is judged like a new one: red on the candidate is FAIL, a valid
+// failure on the base is PASS (the edit strengthened it), and a pass on the base is INCONCLUSIVE (bead a2dlc-8ug). One the
+// engine did not report stays out.
+func TestJudgeNOPChangedExistingTest(t *testing.T) {
+	invalid, _ := classifier(nil, nil, nil)
+	candidate := mapOf(testCase("t.py::weak", "passed", ""), testCase("t.py::strong", "passed", ""), testCase("t.py::broken", "failed", "assert"),
+		testCase("t.py::same", "passed", ""))
+	own := mapOf(testCase("t.py::weak", "passed", ""), testCase("t.py::strong", "passed", ""), testCase("t.py::broken", "failed", "assert"),
+		testCase("t.py::same", "passed", ""))
+	nop := mapOf(testCase("t.py::weak", "passed", ""), testCase("t.py::strong", "failed", "AssertionError"), testCase("t.py::broken", "failed", "assert"),
+		testCase("t.py::same", "passed", ""))
+	changed := map[string]bool{testCase("t.py::weak", "", "").ID(): true, testCase("t.py::strong", "", "").ID(): true, testCase("t.py::broken", "", "").ID(): true}
+	got := map[string]contract.TestResult{}
+	for _, intent := range []bool{false, true} {
+		for _, r := range judgeNOP(candidate, own, changed, nop, intent, false, invalid, nil) {
+			got[strings.TrimPrefix(r.Target, "t.py::c::")] = r
+		}
+		for n, v := range map[string]string{"weak": "INCONCLUSIVE", "strong": "PASS", "broken": "FAIL"} {
+			if got[n].Verdict != v {
+				t.Errorf("intent=%v %s: %+v, want %s", intent, n, got[n], v)
+			}
+		}
+		if _, ok := got["same"]; ok {
+			t.Errorf("intent=%v: an existing test the engine did not report was judged", intent)
+		}
+	}
+}
+
+func TestChangedBodiesNamesTestsLikeTheEngineDoes(t *testing.T) {
+	mk := func(file, class, name string) junit.Case {
+		return junit.Case{File: file, Classname: class, Name: name, Status: "passed"}
+	}
+	own := mapOf(mk("tests/t.py", "tests.t", "test_a[1]"), mk("tests/t.py", "tests.t.TestB", "test_m"), mk("tests/t.py", "tests.t", "test_c"),
+		mk("tests/t.py", "elsewhere", "test_d"))
+	got := changedBodies(own, []string{"tests/t.py"}, []string{"tests/t.py::test_a", "tests/t.py::TestB.test_m", "tests/t.py::test_d"})
+	if len(got) != 2 || !got[mk("tests/t.py", "tests.t", "test_a[1]").ID()] || !got[mk("tests/t.py", "tests.t.TestB", "test_m").ID()] {
+		t.Fatalf("%v", got)
+	}
+}
+
+const modifiedTestsConfig = `{"schema_version":1,"engines":[],"tests":{"image":"fake","paths":["tests/**"],"source_paths":["src/**"],"command":"nop","baseline_command":"baseline",` +
+	`"stub_engine":{"language":"typescript","image":"fake","paths":["src/lib/**","tests/**"],"budget":{}}}}`
+
+// The case of the bead: a change that touches no source and drops what an existing test checked. The test still passes on the
+// candidate and on the base, so before the engine's modified_tests was read nothing judged it and the check said PASS.
+func TestCheckWeakenedExistingTestIsNotPass(t *testing.T) {
+	for _, reported := range []bool{false, true} {
+		a, dir := testsOnlyRepo(t, modifiedTestsConfig)
+		a.Tests.(*fakeTests).module = true
+		if reported {
+			a.Runner.(*fakeEngine).modified = []string{"tests/a.t::old"}
+		}
+		write(t, dir, "tests/a.t", "old passed\nprevious failed\n")
+		v, err := a.Check(context.Background(), "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, judged := testsOf(v)["old"]
+		if !reported {
+			if judged {
+				t.Fatalf("an existing test nobody reported was judged: %+v", got)
+			}
+			continue
+		}
+		if !judged || got.Verdict != contract.INCONCLUSIVE || !strings.Contains(got.Reason, "changed") || v.Verdict == contract.PASS {
+			t.Fatalf("%s %+v", v.Verdict, got)
 		}
 	}
 }
