@@ -638,7 +638,7 @@ func DecodeStrictBytes(b []byte, v any) error { return DecodeStrict(bytes.NewRea
 var (
 	targetRe  = regexp.MustCompile(`^[^\\]+::.+$`)
 	engines   = map[string]bool{"fast-check": true, "crosshair-diffbehavior": true, "hypothesis": true, "rapid": true, "blackbox": true}
-	oosReason = map[string]bool{"no_engine": true, "not_pure": true, "no_types": true, "not_exported": true, "excluded_by_config": true, "deleted": true, "added": true}
+	oosReason = map[string]bool{"no_engine": true, "not_pure": true, "no_types": true, "not_exported": true, "excluded_by_config": true, "deleted": true, "added": true, "test_code": true}
 )
 
 // TargetFile returns the path of the file of a target "<file>::<symbol>".

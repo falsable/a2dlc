@@ -123,8 +123,8 @@
         "properties": {
           "file": { "type": "string", "minLength": 1 },
           "reason": {
-            "description": "added: the file does not exist on the base (there is no oracle). not_exported: no comparable function changed in the file.",
-            "enum": ["no_engine", "not_pure", "no_types", "not_exported", "excluded_by_config", "deleted", "added"]
+            "description": "added: the file does not exist on the base (there is no oracle). not_exported: no comparable function changed in the file. test_code: the file is test code (test module, a file under tests/, conftest), which the test gates judge with the repo's runner and dependencies; the coverage precondition still applies to it.",
+            "enum": ["no_engine", "not_pure", "no_types", "not_exported", "excluded_by_config", "deleted", "added", "test_code"]
           }
         },
         "required": ["file", "reason"],

@@ -1,0 +1,15 @@
+import pytest
+
+from cg.core import add
+
+
+def test_add() -> None:
+    assert add(1, 2) == 3
+
+
+def test_weak() -> None:
+    assert add(5, 5) == 10
+
+
+def test_broken() -> None:
+    assert add(1, 1) == 2

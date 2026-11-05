@@ -1,0 +1,4 @@
+{"schema_version": 1,
+ "targets": [],
+ "out_of_scope": [{"file": "tests/test_core.py", "reason": "test_code"}, {"file": "conftest.py", "reason": "test_code"}],
+ "error": null}

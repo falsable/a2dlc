@@ -1,0 +1,29 @@
+{
+ "what": "a2dlc-85a: test files whose only third-party import is pytest, on an engine image without the repo's dev dependencies (the stock a2dlc-engine-py has no pytest). Frozen: not edited or regenerated; .py.txt is copied as .py.",
+ "changed_files": [
+  "tests/test_core.py",
+  "tests/test_plain.py"
+ ],
+ "files": {
+  "base/src/cg/__init__.py.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "base/src/cg/core.py.txt": "b414e3e8a1cc84d091471727544c353f60db59fc2bea10ee562ece77410915be",
+  "base/tests/test_core.py.txt": "2de5b544aa86bcd0eb3b6f09b1412310f47b23d4884cd0504800927db63c7221",
+  "base/tests/test_plain.py.txt": "8afd9fa95dfb78eb231a4f1c519e5b511f0ffe22108da213a07387cc773b8100",
+  "cand/src/cg/__init__.py.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "cand/src/cg/core.py.txt": "b414e3e8a1cc84d091471727544c353f60db59fc2bea10ee562ece77410915be",
+  "cand/tests/test_core.py.txt": "246051318809b2174e3a4d7c6f815a24fe0b8e91caa2eb136655c82772f08643",
+  "cand/tests/test_plain.py.txt": "f5fd1bc866856a0b2ee819135e609dbc24b855bf8fc11fca84d4014f2d796c16"
+ },
+ "cases": {
+  "tests/test_core.py::test_add": "equivalent rewrite of the test (same assertion, arguments swapped)",
+  "tests/test_core.py::test_weak": "weakened test: the candidate drops the assert, so it can no longer fail",
+  "tests/test_core.py::test_broken": "broken test: the candidate's expected value is wrong, so it fails",
+  "tests/test_plain.py::test_sum": "equivalent rewrite of a test that imports nothing of the repo"
+ },
+ "head_before_fix": {
+  "engine": "a2dlc-engine-py:main, engine.py as of commit 72a0127",
+  "every_target": "INCONCLUSIVE, could not import: ModuleNotFoundError: No module named 'pytest'",
+  "with_pytest_in_the_image": "test_add PASS, test_weak PASS (a false PASS: the weakened test can no longer fail), test_broken FAIL"
+ },
+ "after_fix": "a2dlc-engine-py:0.12: no target; both files out_of_scope with reason test_code, so test_weak can never be PASS (test_engine.py, class TestCode)"
+}

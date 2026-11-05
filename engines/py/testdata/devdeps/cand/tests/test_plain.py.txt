@@ -1,0 +1,5 @@
+import pytest
+
+
+def test_sum() -> None:
+    assert sum([2, 1]) == 3

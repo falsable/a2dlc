@@ -6,6 +6,7 @@
 Each case comes from a review finding; the name says which invariant it guards.
 """
 import ast
+import hashlib
 import importlib.util
 import itertools
 import json
@@ -1038,6 +1039,42 @@ class ClassMethods(Directory):
         self.assertTrue(engine.typed(fn("@classmethod\ndef f(cls, x: int) -> int: ..."), True))
         self.assertFalse(engine.typed(fn("@staticmethod\ndef f(x, y: int) -> int: ..."), True))
 
+
+DEVDEPS = Path(__file__).resolve().parent / "testdata" / "devdeps"
+
+
+class TestCode(Directory):
+    """a2dlc-85a, over the frozen fixture testdata/devdeps: tests that import pytest, on an image without the repo's dev
+    dependencies. Before, every one of its targets was INCONCLUSIVE (No module named 'pytest'), and with pytest in the
+    image test_weak, whose assert the candidate drops, was PASS."""
+
+    def setUp(self):
+        super().setUp()
+        manifest = json.loads((DEVDEPS / "manifest.json").read_text(encoding="utf-8"))
+        for stored, digest in manifest["files"].items():
+            raw = (DEVDEPS / stored).read_bytes()
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), digest, f"{stored} changed: the fixture is frozen")
+            tree, rel = stored.split("/", 1)
+            d = (self.base if tree == "base" else self.cand) / rel.removesuffix(".txt")
+            d.parent.mkdir(parents=True, exist_ok=True)
+            d.write_bytes(raw)
+        self.changed = manifest["changed_files"]
+
+    def test_test_files_are_test_code_and_nothing_in_them_is_judged(self):
+        engine.diff(self.req(self.changed, budget={}))
+        r = self.response()
+        self.assertEqual(r["targets"], [])
+        self.assertEqual(r["out_of_scope"], [{"file": f, "reason": "test_code"} for f in self.changed])
+
+    def test_a_conftest_is_test_code_and_a_source_file_is_not(self):
+        for tree, n in ((self.base, "1"), (self.cand, "2")):
+            (tree / "conftest.py").write_text(f"import pytest\n\n\n@pytest.fixture\ndef n() -> int:\n    return {n}\n",
+                                              encoding="utf-8")
+            (tree / "src" / "cg" / "core.py").write_text(f"def _hidden() -> int:\n    return {n}\n", encoding="utf-8")
+        engine.diff(self.req(["conftest.py", "src/cg/core.py"], budget={}))
+        r = self.response()
+        self.assertEqual(r["out_of_scope"], [{"file": "conftest.py", "reason": "test_code"}])
+        self.assertEqual([t["target"] for t in r["targets"]], ["src/cg/core.py::_hidden"])
 
 
 if __name__ == "__main__":

@@ -42,6 +42,12 @@ func TestValidate(t *testing.T) {
 			t.Errorf("%s: err = %v", want, err)
 		}
 	}
+	// a2dlc-85a: the Python engine leaves test files out with test_code; rejecting it would turn every one into an engine error.
+	r := responseOK()
+	r.OutOfScope = []OutOfScope{{File: "src/a.ts", Reason: "test_code"}}
+	if err := r.Validate([]string{"src/a.ts"}); err != nil {
+		t.Errorf("test_code: %v", err)
+	}
 }
 
 const (

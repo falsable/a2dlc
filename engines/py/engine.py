@@ -2,7 +2,9 @@
 
 Contract: reads /io/request.json and writes /io/response.json (contracts/engine-*.schema.json).
 Targets: top-level functions that exist in both versions and whose AST changed, plus the ones that call them
-within the same file (transitive closure). Methods and new functions are out of scope in v0.1.
+within the same file (transitive closure). Methods and new functions are out of scope in v0.1. Test code (is_test_code)
+is out of scope as test_code: the test gates run it with the repo's runner and dev dependencies, which this image does
+not have, and a weakened test (its assert dropped) behaves the same as the old one, so a diff of it would say PASS.
 Both versions are copied to /tmp/a2dlc/a2dlc_base and a2dlc_cand so they can be imported at the same time; absolute
 imports of the repo's own modules are rewritten to that prefix.
 CrossHair does not use generators: generators is always typed_default, and without type annotations the target is INCONCLUSIVE.
@@ -811,6 +813,11 @@ def stub_of(base_txt: str | None, cand_txt: str) -> tuple[str | None, list[str],
 def is_test_file(file: str) -> bool:
     p = Path(file)
     return p.name.startswith("test_") or p.name.endswith("_test.py") or "tests" in p.parts
+
+
+def is_test_code(file: str) -> bool:
+    """A test file, or a pytest conftest: what the diff leaves to the test gates (a2dlc-85a)."""
+    return is_test_file(file) or Path(file).name == "conftest.py"
 
 
 def modified_tests_of(base_txt: str | None, cand_txt: str, file: str) -> list[str]:
@@ -1860,6 +1867,9 @@ def diff(req: dict, clock=time.monotonic) -> int:
             continue
         if not cp.exists():
             outside.append({"file": file, "reason": "deleted"})
+            continue
+        if is_test_code(file):
+            outside.append({"file": file, "reason": "test_code"})
             continue
         try:
             base_txt, cand_txt = read_py(bp), read_py(cp)
