@@ -99,3 +99,32 @@ func TestMergeCommitsDeterministicAndFastForward(t *testing.T) {
 		t.Fatalf("commits already in the result changed it: %s %v", same, err)
 	}
 }
+
+// A worktree is added once at a commit and moved to another later, keeping its untracked files.
+func TestWorktreeAtAddsAndMoves(t *testing.T) {
+	dir := t.TempDir()
+	gitT(t, dir, "init", "-q", "-b", "main")
+	writeT(t, dir, "a.txt", "1\n")
+	gitT(t, dir, "add", "-A")
+	gitT(t, dir, "commit", "-qm", "one")
+	one := gitT(t, dir, "rev-parse", "HEAD")
+	writeT(t, dir, "a.txt", "2\n")
+	gitT(t, dir, "commit", "-qam", "two")
+	two := gitT(t, dir, "rev-parse", "HEAD")
+	r := Repo{Dir: dir}
+	wt := filepath.Join(t.TempDir(), "wt", "slice")
+	if err := r.WorktreeAt(wt, one); err != nil {
+		t.Fatal(err)
+	}
+	writeT(t, wt, ".a2dlc/run/s/state.json", "{}")
+	if err := r.WorktreeAt(wt, two); err != nil {
+		t.Fatal(err)
+	}
+	a, _ := os.ReadFile(filepath.Join(wt, "a.txt"))
+	if string(a) != "2\n" || gitT(t, wt, "rev-parse", "HEAD") != two {
+		t.Fatalf("the worktree is at %q", a)
+	}
+	if _, err := os.Stat(filepath.Join(wt, ".a2dlc/run/s/state.json")); err != nil {
+		t.Fatal("the run folder did not survive the checkout")
+	}
+}

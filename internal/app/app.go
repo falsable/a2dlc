@@ -159,6 +159,9 @@ func (a App) config() (contract.Config, error) { return a.configAt("") }
 
 // configAt reads the config from commit, or from the working tree when commit is "". check judges a diff with the
 // base's config: a working tree that drops a glob must not take its files out of the engines' scope.
+// ConfigAt is the config committed at commit, validated: the plan runner reads the feature base's to size its slices.
+func (a App) ConfigAt(commit string) (contract.Config, error) { return a.configAt(commit) }
+
 func (a App) configAt(commit string) (contract.Config, error) {
 	var c contract.Config
 	if err := a.read(commit, pathConfig, &c); err != nil {

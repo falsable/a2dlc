@@ -281,3 +281,34 @@ type Timings struct {
 	TestRuns  []Timing `json:"test_runs,omitempty"`
 	EngineOps []Timing `json:"engine_ops,omitempty"`
 }
+
+// PlannerRequest is the payload of role planner (role-payloads.schema.json#/$defs/planner_request).
+type PlannerRequest struct {
+	FeatureIntent  Intent           `json:"feature_intent"`
+	Files          []string         `json:"files"`
+	FilesTruncated bool             `json:"files_truncated"`
+	Round          int              `json:"round"`
+	MaxRounds      int              `json:"max_rounds"`
+	Findings       []PlannerFinding `json:"findings"`
+	PreviousPlan   *Plan            `json:"previous_plan"`
+	Replan         *PlannerReplan   `json:"replan"`
+}
+
+// PlannerFinding is a gate the previous round's plan broke.
+type PlannerFinding struct {
+	Rule     string   `json:"rule"`
+	Title    string   `json:"title"`
+	Findings []string `json:"findings"`
+}
+
+// PlannerReplan asks the planner to decompose one slice of plan whose Builders were exhausted (CB-02b).
+type PlannerReplan struct {
+	Plan    Plan   `json:"plan"`
+	SliceID string `json:"slice_id"`
+	Reason  string `json:"reason"`
+}
+
+// PlannerResponse is the payload of an ok response from role planner.
+type PlannerResponse struct {
+	Plan Plan `json:"plan"`
+}

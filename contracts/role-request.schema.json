@@ -62,6 +62,10 @@
     {
       "if": { "properties": { "role": { "const": "propose_properties" } }, "required": ["role"] },
       "then": { "properties": { "payload": { "$ref": "role-payloads.schema.json#/$defs/propose_request" } } }
+    },
+    {
+      "if": { "properties": { "role": { "const": "planner" } }, "required": ["role"] },
+      "then": { "properties": { "stage": { "const": "plan" }, "payload": { "$ref": "role-payloads.schema.json#/$defs/planner_request" } } }
     }
   ]
 }

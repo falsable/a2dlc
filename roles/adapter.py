@@ -78,6 +78,7 @@ TARGET_ID = re.compile(r"^[^\\]+::.+$")  # contracts/defs.schema.json#/$defs/tar
 # builders edit the tree in /work; the rest only answer with the JSON
 BUILDER_PREFIX = "builder_"
 PROPOSE_ROLE = "propose_properties"
+PLANNER_ROLE = "planner"
 CLAUDE_BUILDER_TOOLS = "Read,Edit,Write,Glob,Grep,Bash"
 GEMINI_STDIN_PROMPT = "Follow the instructions and inputs you receive on stdin and answer with the requested JSON object."
 DEFAULT_ENGINE_LANGUAGE = "python"
@@ -934,6 +935,18 @@ def validate_propose(payload: dict, files: list[tuple[str, str]]) -> None:
             raise Failure(f"payload.properties names {x['file']!r}, which is not one of the delivered files")
 
 
+def validate_planner(payload: dict, files: list[tuple[str, str]]) -> None:
+    """planner (role-payloads.schema.json planner_response): ok means a plan, and nothing else. The planner writes no
+    file: it proposes the decomposition, the core's plan gates judge it and decode it strictly."""
+    if files:
+        raise Failure(f"the planner delivers files ({', '.join(sorted(p for p, _ in files))}): it answers a plan only")
+    if set(payload) != {"plan"} or not isinstance(payload["plan"], dict):
+        raise Failure("planner payload: plan (object) is required and there are no other keys")
+    slices = payload["plan"].get("slices")
+    if not isinstance(slices, list) or not slices:
+        raise Failure("planner answered ok with a plan without slices: refuse with the reason instead")
+
+
 def write_files(base: Path, files: list[tuple[str, str]]) -> list[dict]:
     hashed = []
     for p, content in files:
@@ -1016,6 +1029,8 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
             return response(req, "refused", {}, reason, cost, model)
         if role == PROPOSE_ROLE:
             validate_propose(payload, files)
+        if role == PLANNER_ROLE:
+            validate_planner(payload, files)
         if role == "saboteur":
             hashed = write_files(out_dir / "tests", files)
             payload = payload_saboteur(payload, hashed)

@@ -8,8 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/gitx"
@@ -77,36 +81,54 @@ type scripted struct {
 	stale    map[string]bool   // slice id → a passed run that no longer verifies
 	n        int
 	sawBases map[string]string // slice id → base of its last run
+	mu       sync.Mutex
+	inflight int
+	peak     int           // most runs at once
+	hold     time.Duration // how long a run takes, so runs that may overlap do
 }
 
 func (s *scripted) Run(_ context.Context, sl contract.PlanSlice, intentPath, base string) (SliceRun, error) {
+	s.mu.Lock()
 	s.n++
+	n := s.n
+	s.inflight++
+	if s.inflight > s.peak {
+		s.peak = s.inflight
+	}
+	s.sawBases[sl.SliceID] = base
+	o := s.outcome[sl.SliceID]
+	s.mu.Unlock()
+	defer func() { s.mu.Lock(); s.inflight--; s.mu.Unlock() }()
+	time.Sleep(s.hold)
 	var in contract.Intent
 	b, err := os.ReadFile(intentPath)
 	if err != nil {
 		return SliceRun{}, err
 	}
 	if err := contract.DecodeStrictBytes(b, &in); err != nil || in.SliceID != sl.SliceID || in.Boundary == nil {
-		s.t.Fatalf("the intent of %s: %v %+v", sl.SliceID, err, in)
+		s.t.Errorf("the intent of %s: %v %+v", sl.SliceID, err, in)
 	}
-	s.sawBases[sl.SliceID] = base
-	o := s.outcome[sl.SliceID]
 	if o != OutPassed {
 		return SliceRun{Status: o, Reason: "scripted " + o}, nil
 	}
-	c := commitFile(s.t, s.dir, base, sl.Owns[0], fmt.Sprintf("%s run %d\n", sl.SliceID, s.n))
+	c := commitFile(s.t, s.dir, base, sl.Owns[0], fmt.Sprintf("%s run %d\n", sl.SliceID, n))
 	return SliceRun{Status: contract.PlanPassed, Candidate: c, Reason: "PASS"}, nil
 }
 
 func (s *scripted) Verifies(sl contract.PlanSlice, _ contract.PlanSliceState) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return !s.stale[sl.SliceID]
 }
 
 // TestRunnerConformsToTheModel drives the real runner, with real git merges, over every graph on 4 slices and three
-// invocations with random slice outcomes, final checks and passed slices that stop verifying. After each invocation the
-// slices it ran, their order, their statuses, their invocation and the outcome must be what the model predicts, and every
-// passed slice must have run on a base that contains the candidate of each slice it depends on (P2).
+// invocations with random slice outcomes, final checks, passed slices that stop verifying and 1 to 3 slices at once.
+// After each invocation the slices it ran, their statuses, their invocation and the outcome must be what the model
+// predicts; no slice may start before a slice it depends on that also ran; no more than the slots may run at once; and
+// every passed slice must have run on a base that contains the candidate of each slice it depends on (P2). The model is
+// sequential: with slices side by side only the order they start in may differ from it.
 func TestRunnerConformsToTheModel(t *testing.T) {
+	var overlapped int32
 	outs := []string{OutPassed, OutPassed, OutEscalated, OutFailed} // passing more often reaches the deeper states
 	for gi, deps := range allGraphs(modelSlices) {
 		gi, deps := gi, deps
@@ -116,13 +138,16 @@ func TestRunnerConformsToTheModel(t *testing.T) {
 			repo, base := newRepo(t)
 			p, f := graphPlan(deps)
 			planBytes, _ := json.Marshal(p)
-			ex := &scripted{t: t, dir: repo.Dir, sawBases: map[string]string{}}
+			ex := &scripted{t: t, dir: repo.Dir, sawBases: map[string]string{}, hold: 15 * time.Millisecond}
 			finalOK := true
+			jobs := 1 + rng.Intn(3)
 			r := Runner{Repo: repo, Exec: ex, Final: func(_ context.Context, b, merged string) (bool, string, error) {
 				if b != base {
-					t.Fatalf("final check against %s, not the feature base", b)
+					t.Errorf("final check against %s, not the feature base", b)
 				}
 				return finalOK, "scripted", nil
+			}, Slots: func(width int) (int, *contract.PlanScheduler) {
+				return jobs, &contract.PlanScheduler{Jobs: jobs, Why: "scripted", Demand: contract.PlanDemand{}, Host: contract.PlanPlace{Name: "test"}}
 			}}
 			var order []int
 			for _, id := range Order(p) {
@@ -153,8 +178,24 @@ func TestRunnerConformsToTheModel(t *testing.T) {
 				for _, i := range step.Ran {
 					want = append(want, fmt.Sprintf("f.s%d", i))
 				}
-				if strings.Join(ran, ",") != strings.Join(want, ",") {
+				if a, b := append([]string{}, ran...), append([]string{}, want...); !sameSet(a, b) {
 					t.Fatalf("invocation %d ran %v, the model %v", inv, ran, want)
+				}
+				pos := map[string]int{}
+				for k, id := range ran {
+					pos[id] = k
+				}
+				for i, ds := range deps {
+					id := fmt.Sprintf("f.s%d", i)
+					for _, d := range ds {
+						dp, dRan := pos[fmt.Sprintf("f.s%d", d)]
+						if ip, iRan := pos[id]; iRan && dRan && dp > ip {
+							t.Fatalf("invocation %d started %s before its dependency f.s%d: %v", inv, id, d, ran)
+						}
+					}
+				}
+				if ex.peak > jobs {
+					t.Fatalf("%d runs at once with %d slot(s)", ex.peak, jobs)
 				}
 				for i, ms := range model.Slices {
 					rs := st.Slices[i]
@@ -192,19 +233,34 @@ func TestRunnerConformsToTheModel(t *testing.T) {
 					t.Fatalf("state.json out of contract: %v", err)
 				}
 			}
+			if ex.peak > 1 {
+				atomic.AddInt32(&overlapped, 1)
+			}
 		})
 	}
+	t.Cleanup(func() {
+		if atomic.LoadInt32(&overlapped) == 0 {
+			t.Error("no graph ran two slices at once: the concurrent schedule was not exercised")
+		}
+	})
 }
 
-// A settled plan runs nothing (J5), and a changed plan or base is refused rather than mixed with the old state.
-func TestSettledPlanRunsNothingAndChangesAreRefused(t *testing.T) {
+func sameSet(a, b []string) bool {
+	sort.Strings(a)
+	sort.Strings(b)
+	return strings.Join(a, ",") == strings.Join(b, ",")
+}
+
+// A settled plan runs nothing (J5); a new version of the plan keeps the state of the slices it did not change (and that
+// depend only on unchanged slices) and runs the rest; another base is refused rather than mixed with the old state.
+func TestSettledPlanRunsNothingAndNewVersionsCarryOver(t *testing.T) {
 	repo, base := newRepo(t)
-	p, f := graphPlan([][]int{{}, {0}})
+	p, f := graphPlan([][]int{{}, {0}, {}})
 	planBytes, _ := json.Marshal(p)
-	ex := &scripted{t: t, dir: repo.Dir, sawBases: map[string]string{}, outcome: map[string]string{"f.s0": OutPassed, "f.s1": OutPassed}}
+	ex := &scripted{t: t, dir: repo.Dir, sawBases: map[string]string{}, outcome: map[string]string{"f.s0": OutPassed, "f.s1": OutPassed, "f.s2": OutPassed}}
 	r := Runner{Repo: repo, Exec: ex, Final: func(context.Context, string, string) (bool, string, error) { return true, "", nil }}
 	st, ran, err := r.Run(context.Background(), planBytes, f, base)
-	if err != nil || *st.Outcome != contract.PASS || len(ran) != 2 {
+	if err != nil || *st.Outcome != contract.PASS || len(ran) != 3 {
 		t.Fatalf("%v %v %v", err, st.Outcome, ran)
 	}
 	if ex.sawBases["f.s1"] != *st.Slices[0].Candidate {
@@ -213,13 +269,23 @@ func TestSettledPlanRunsNothingAndChangesAreRefused(t *testing.T) {
 	if _, ran, err := r.Run(context.Background(), planBytes, f, base); err != nil || len(ran) != 0 {
 		t.Fatalf("a settled plan ran %v (%v)", ran, err)
 	}
-	p.Slices[1].Goal = "another goal"
+	// s0 changes: s0 and s1 (which depends on it) run again; s2 keeps its state
+	p.Slices[0].Goal = "another goal"
 	changed, _ := json.Marshal(p)
-	if _, _, err := r.Run(context.Background(), changed, f, base); err == nil || !strings.Contains(err.Error(), "another version of the plan") {
-		t.Fatalf("a changed plan was not refused: %v", err)
+	st, ran, err = r.Run(context.Background(), changed, f, base)
+	if err != nil || !sameSet(ran, []string{"f.s0", "f.s1"}) || *st.Outcome != contract.PASS {
+		t.Fatalf("a new version ran %v (%v), outcome %v", ran, err, st.Outcome)
+	}
+	// a slice dropped and one added: the new one runs, nothing else
+	p.Slices = append(p.Slices[:2], contract.PlanSlice{SliceID: "f.s9", Goal: "new", Owns: []string{"s9.txt"}, DependsOn: []string{},
+		Criticality: "low", Budget: contract.PlanBudget{MaxCostUSD: 0.1}, Acceptance: []string{}, Invariants: []string{}, Covers: []int{2}})
+	ex.outcome["f.s9"] = OutPassed
+	changed, _ = json.Marshal(p)
+	if st, ran, err = r.Run(context.Background(), changed, f, base); err != nil || strings.Join(ran, ",") != "f.s9" || len(st.Slices) != 3 {
+		t.Fatalf("after replacing a slice ran %v (%v), %d slices", ran, err, len(st.Slices))
 	}
 	other := commitFile(t, repo.Dir, base, "x.txt", "x\n")
-	if _, _, err := r.Run(context.Background(), planBytes, f, other); err == nil || !strings.Contains(err.Error(), "is on base") {
+	if _, _, err := r.Run(context.Background(), changed, f, other); err == nil || !strings.Contains(err.Error(), "is on base") {
 		t.Fatalf("another base was not refused: %v", err)
 	}
 }

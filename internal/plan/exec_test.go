@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -16,10 +17,19 @@ import (
 )
 
 // passEngine judges every changed file PASS and has a clean Tier 0.
-type passEngine struct{ runs int }
+type passEngine struct {
+	mu   sync.Mutex
+	runs int
+	// stuck names files whose Tier 0 never passes: the Builder of their slice exhausts its rounds (CB-02b)
+	stuck map[string]bool
+}
+
+func (e *passEngine) count() int { e.mu.Lock(); defer e.mu.Unlock(); return e.runs }
 
 func (e *passEngine) Run(_ context.Context, _ contract.EngineConfig, req contract.Request, _, _ string) (contract.Response, error) {
+	e.mu.Lock()
 	e.runs++
+	e.mu.Unlock()
 	r := contract.Response{SchemaVersion: 1, Targets: []contract.TargetResult{}, OutOfScope: []contract.OutOfScope{}}
 	for _, f := range req.ChangedFiles {
 		r.Targets = append(r.Targets, contract.TargetResult{Target: f + "::f", Engine: "fake", EngineVersion: "fake", Verdict: contract.PASS,
@@ -33,8 +43,16 @@ func (e *passEngine) Stub(context.Context, contract.EngineConfig, contract.Reque
 func (e *passEngine) Signatures(context.Context, contract.EngineConfig, contract.Request, string, string) (contract.SignaturesResponse, error) {
 	return contract.SignaturesResponse{SchemaVersion: 1, Files: []contract.SignatureFile{}}, nil
 }
-func (e *passEngine) Tier0(context.Context, contract.EngineConfig, contract.Request, string, string) (contract.Tier0Response, error) {
-	return contract.Tier0Response{SchemaVersion: 1, OK: true, Findings: []contract.Tier0Finding{}}, nil
+func (e *passEngine) Tier0(_ context.Context, _ contract.EngineConfig, req contract.Request, _, _ string) (contract.Tier0Response, error) {
+	r := contract.Tier0Response{SchemaVersion: 1, OK: true, Findings: []contract.Tier0Finding{}}
+	for _, f := range req.ChangedFiles {
+		if e.stuck[f] {
+			line := 1
+			r.OK = false
+			r.Findings = append(r.Findings, contract.Tier0Finding{Kind: contract.Tier0Compile, File: f, Line: &line, Message: "invalid syntax"})
+		}
+	}
+	return r, nil
 }
 func (e *passEngine) Complexity(_ context.Context, _ contract.EngineConfig, req contract.Request, _, _ string) (contract.ComplexityResponse, error) {
 	r := contract.ComplexityResponse{SchemaVersion: 1, Files: []contract.ComplexityFile{}}
@@ -52,6 +70,15 @@ func (e *passEngine) Mutate(context.Context, contract.EngineConfig, contract.Req
 type builder struct {
 	files    func(slice string) map[string]string
 	launches map[string]int
+	mu       sync.Mutex
+	inflight int
+	peak     int
+}
+
+func (b *builder) launched(slice string) int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.launches[slice]
 }
 
 func (b *builder) Launch(_ context.Context, r contract.Role, s a2run.LaunchSpec) (a2run.LaunchResult, error) {
@@ -68,7 +95,15 @@ func (b *builder) Launch(_ context.Context, r contract.Role, s a2run.LaunchSpec)
 	if err := json.Unmarshal(pl.Intent, &in); err != nil {
 		return a2run.LaunchResult{}, err
 	}
+	b.mu.Lock()
 	b.launches[in.SliceID]++
+	b.inflight++
+	if b.inflight > b.peak {
+		b.peak = b.inflight
+	}
+	b.mu.Unlock()
+	time.Sleep(50 * time.Millisecond) // long enough for a slice beside it to start
+	defer func() { b.mu.Lock(); b.inflight--; b.mu.Unlock() }()
 	var touched []string
 	for rel, c := range b.files(in.SliceID) {
 		p := filepath.Join(s.WorkDir, filepath.FromSlash(rel))
@@ -105,7 +140,13 @@ func e2eRepo(t *testing.T) (app.App, string, *passEngine) {
 	}
 	tick := time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)
 	eng := &passEngine{}
-	a := app.App{Repo: repo, Version: "test", Runner: eng, Now: func() time.Time { tick = tick.Add(time.Second); return tick }}
+	var mu sync.Mutex
+	a := app.App{Repo: repo, Version: "test", Runner: eng, Now: func() time.Time {
+		mu.Lock()
+		defer mu.Unlock()
+		tick = tick.Add(time.Second)
+		return tick
+	}}
 	return a, gitRun(t, dir, nil, "rev-parse", "HEAD"), eng
 }
 
@@ -137,7 +178,10 @@ func TestPlanRunEndToEnd(t *testing.T) {
 	p, f := threeSlices()
 	planBytes, _ := json.Marshal(p)
 	b := &builder{files: ownFile, launches: map[string]int{}}
-	r := Runner{Repo: a.Repo, Exec: RunExec{App: a, Launcher: b, Feature: p.FeatureID}, Final: AppFinalCheck(a, f)}
+	ex := RunExec{App: a, Launcher: b, Feature: p.FeatureID}
+	r := Runner{Repo: a.Repo, Exec: ex, Final: AppFinalCheck(a, f), Slots: func(int) (int, *contract.PlanScheduler) {
+		return 2, &contract.PlanScheduler{Jobs: 2, Why: "test", Host: contract.PlanPlace{Name: "test"}}
+	}}
 	st, ran, err := r.Run(context.Background(), planBytes, f, base)
 	if err != nil {
 		t.Fatal(err)
@@ -164,17 +208,34 @@ func TestPlanRunEndToEnd(t *testing.T) {
 	} else if err := json.Unmarshal(b, &final); err != nil || final.Verdict != contract.PASS || final.BaseRef != base || len(final.Targets) != 3 {
 		t.Fatalf("final receipt %v: verdict %s base %s, %d targets", err, final.Verdict, final.BaseRef, len(final.Targets))
 	}
-	runs := eng.runs
+	if b.peak != 2 {
+		t.Fatalf("left and right did not run at the same time (peak %d)", b.peak)
+	}
+	if st.Scheduler == nil || st.Scheduler.Jobs != 2 {
+		t.Fatalf("the scheduler's decision is not in the state: %+v", st.Scheduler)
+	}
+	for _, s := range st.Slices {
+		if s.RunDir == nil || !strings.Contains(filepath.ToSlash(*s.RunDir), "a2dlc-plan/feat/"+s.SliceID) {
+			t.Fatalf("%s did not run in its own worktree: %v", s.SliceID, s.RunDir)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(a.Repo.Dir, ".a2dlc", "verdict.json")); err == nil {
+		t.Fatal("a slice's run wrote the repository's own .a2dlc/verdict.json")
+	}
+	if out := gitRun(t, a.Repo.Dir, nil, "status", "--porcelain", "--untracked-files=all"); strings.Contains(out, "a2dlc-plan") {
+		t.Fatalf("the worktrees show in git status:\n%s", out)
+	}
+	runs := eng.count()
 	st2, ran2, err := r.Run(context.Background(), planBytes, f, base)
-	if err != nil || len(ran2) != 0 || *st2.Outcome != contract.PASS || b.launches["feat.left"] != 1 {
+	if err != nil || len(ran2) != 0 || *st2.Outcome != contract.PASS || b.launched("feat.left") != 1 {
 		t.Fatalf("the second invocation ran %v (%v), outcome %v, launches %v", ran2, err, st2.Outcome, b.launches)
 	}
-	if eng.runs <= runs {
+	if eng.count() <= runs {
 		t.Fatal("the second invocation did not check the merged tree again")
 	}
 	// left's run is tampered with: verify-run fails, so left runs again, and join, on the new base, starts a new run and
 	// moves its old one to superseded/ (P4)
-	cand := filepath.Join(a2run.RunDir(a, "feat.left"), "candidate.json")
+	cand := filepath.Join(*st2.Slices[0].RunDir, "candidate.json")
 	raw, _ := os.ReadFile(cand)
 	os.WriteFile(cand, append(raw, ' '), 0o644)
 	oldJoin := *st2.Slices[2].Base
@@ -220,7 +281,7 @@ func TestPlanRunEscalatesOutsideOwnsAndResumes(t *testing.T) {
 	if strings.Join(got, ",") != "escalated,passed,blocked" || !strings.Contains(st.Slices[0].Reason, "allowed_paths") || *st.Outcome != "escalated" {
 		t.Fatalf("statuses %v, left %q, outcome %v", got, st.Slices[0].Reason, st.Outcome)
 	}
-	if b.launches["feat.join"] != 0 {
+	if b.launched("feat.join") != 0 {
 		t.Fatal("a blocked slice launched a builder")
 	}
 	// The cause is fixed (here, the builder stops straying); the next invocation resumes the escalated run, whose Stage 3
@@ -232,5 +293,35 @@ func TestPlanRunEscalatesOutsideOwnsAndResumes(t *testing.T) {
 	}
 	if *st.Outcome != contract.PASS || strings.Join(ran, ",") != "feat.left,feat.join" {
 		t.Fatalf("resume: outcome %v (%s), ran %v", st.Outcome, st.Reason, ran)
+	}
+}
+
+// A slice whose Builder never gets past Tier 0 ends escalated by CB-02b; the plan state marks it so a replan can answer
+// it (plan.Exhausted), its sibling passes and its dependent is blocked.
+func TestPlanRunMarksExhaustedSlices(t *testing.T) {
+	a, base, eng := e2eRepo(t)
+	eng.stuck = map[string]bool{"src/left.py": true}
+	p, f := threeSlices()
+	planBytes, _ := json.Marshal(p)
+	b := &builder{files: ownFile, launches: map[string]int{}}
+	r := Runner{Repo: a.Repo, Exec: RunExec{App: a, Launcher: b, Feature: p.FeatureID}, Final: AppFinalCheck(a, f)}
+	st, _, err := r.Run(context.Background(), planBytes, f, base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(Exhausted(p, st), ","); got != "feat.left" || !strings.HasPrefix(st.Slices[0].Reason, "CB-02b: ") {
+		t.Fatalf("exhausted %q, left: %s %q", got, st.Slices[0].Status, st.Slices[0].Reason)
+	}
+	if st.Slices[1].Status != contract.PlanPassed || st.Slices[2].Status != contract.PlanBlocked {
+		t.Fatalf("right %s, join %s", st.Slices[1].Status, st.Slices[2].Status)
+	}
+	if b.launched("feat.left") != 3 {
+		t.Fatalf("the builder of left ran %d time(s), want its 3 rounds", b.launched("feat.left"))
+	}
+	if err := RecordReplan(a.Repo.Dir, "feat"); err != nil {
+		t.Fatal(err)
+	}
+	if st, err := LoadState(a.Repo.Dir, "feat"); err != nil || st.Replans != 1 {
+		t.Fatalf("replans %d (%v)", st.Replans, err)
 	}
 }

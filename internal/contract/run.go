@@ -19,6 +19,7 @@ const (
 	RoleBuilderOrthogonal = "builder_orthogonal"
 	RoleSaboteur          = "saboteur"
 	RoleProposeProperties = "propose_properties"
+	RolePlanner           = "planner" // a2dlc plan propose and replan (RFC-0008 section 2): outside the slice machine
 )
 
 // Stages that a2dlc run runs, in order (§5, from −1 to 7). Stage 6 (integration) and Stage 7 (progressive delivery)
@@ -44,6 +45,7 @@ type Roles struct {
 var roleNames = map[string]bool{
 	RoleSpecifierAlpha: true, RoleSpecifierBeta: true, RoleInquisitor: true, RoleBackTranslator: true,
 	RoleBuilderPrimary: true, RoleBuilderOrthogonal: true, RoleSaboteur: true, RoleProposeProperties: true,
+	RolePlanner: true,
 }
 
 type Role struct {

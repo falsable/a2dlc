@@ -1,0 +1,155 @@
+{
+ "schema_version": 1,
+ "run_id": "run-7a1c2e3f4b5d",
+ "slice_id": "billing.discounts",
+ "mode": "greenfield",
+ "role": "planner",
+ "stage": "plan",
+ "attempt": 1,
+ "inputs": [
+  {
+   "path": "/in/request.json",
+   "sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+  }
+ ],
+ "workdir": null,
+ "payload": {
+  "feature_intent": {
+   "schema_version": 1,
+   "slice_id": "billing.discounts",
+   "mode": "greenfield",
+   "goal": "Discount codes at checkout.",
+   "invariants": [
+    "no total is negative"
+   ],
+   "non_goals": [],
+   "criticality": "high",
+   "critical_paths": [
+    "src/billing/**"
+   ],
+   "acceptance": [
+    "a discount above the price leaves a total of 0",
+    "POST /discounts applies a code",
+    "the report lists each applied code",
+    "the docs list every code"
+   ],
+   "budget": {
+    "max_cost_usd": 3.0,
+    "max_inner_iterations": 5,
+    "max_tier1_adversarial_rounds": 3,
+    "max_mutants": 50
+   }
+  },
+  "files": [
+   "README.md",
+   "src/api/checkout.py",
+   "src/billing/total.py",
+   "src/reports/monthly.py"
+  ],
+  "files_truncated": false,
+  "round": 2,
+  "max_rounds": 3,
+  "findings": [
+   {
+    "rule": "G3",
+    "title": "Disjoint concurrent slices",
+    "findings": [
+     "billing.discounts.api and billing.discounts.report can run at the same time and both own src/api/discounts.py"
+    ]
+   }
+  ],
+  "previous_plan": {
+   "schema_version": 1,
+   "feature_id": "billing.discounts",
+   "slices": [
+    {
+     "slice_id": "billing.discounts.model",
+     "goal": "Add the discount rule to the billing model.",
+     "owns": [
+      "src/billing/discount.py"
+     ],
+     "depends_on": [],
+     "criticality": "high",
+     "budget": {
+      "max_cost_usd": 1.0
+     },
+     "acceptance": [
+      "a discount above the price leaves a total of 0"
+     ],
+     "invariants": [
+      "no total is negative"
+     ],
+     "covers": [
+      0
+     ]
+    },
+    {
+     "slice_id": "billing.discounts.api",
+     "goal": "Expose discounts on the checkout API.",
+     "owns": [
+      "src/api/discounts.py"
+     ],
+     "depends_on": [
+      "billing.discounts.model"
+     ],
+     "criticality": "medium",
+     "budget": {
+      "max_cost_usd": 0.8
+     },
+     "acceptance": [
+      "POST /discounts applies a code"
+     ],
+     "invariants": [],
+     "covers": [
+      1
+     ]
+    },
+    {
+     "slice_id": "billing.discounts.report",
+     "goal": "Show discounts in the monthly report.",
+     "owns": [
+      "src/reports/discounts.py"
+     ],
+     "depends_on": [
+      "billing.discounts.model"
+     ],
+     "criticality": "low",
+     "budget": {
+      "max_cost_usd": 0.5
+     },
+     "acceptance": [
+      "the report lists each applied code"
+     ],
+     "invariants": [],
+     "covers": [
+      2
+     ]
+    },
+    {
+     "slice_id": "billing.discounts.docs",
+     "goal": "Document the discount codes.",
+     "owns": [
+      "docs/discounts.md"
+     ],
+     "depends_on": [
+      "billing.discounts.api",
+      "billing.discounts.report"
+     ],
+     "criticality": "low",
+     "budget": {
+      "max_cost_usd": 0.2
+     },
+     "acceptance": [
+      "the docs list every code"
+     ],
+     "invariants": [],
+     "covers": [
+      3
+     ]
+    }
+   ],
+   "shared": []
+  },
+  "replan": null
+ }
+}

@@ -452,6 +452,10 @@ cases = {
     "engine-request__capture-traces-budget-foreign.json": (read("engine-request__py-capture-traces.json"), lambda x: x["budget"].update(retries=2)),
     "engine-request__budget-null.json": (read("engine-request__py-tier0.json"), lambda x: x.update(budget=None)),
     "engine-request__capture-traces-timeout-zero.json": (read("engine-request__py-capture-traces.json"), lambda x: x["budget"].update(timeout_s=0)),
+    "role-request__planner-wrong-stage.json": (read("role-request__planner.json"), lambda x: x.update(stage="3")),
+    "role-request__planner-unknown-rule.json": (read("role-request__planner.json"), lambda x: x["payload"]["findings"][0].update(rule="G9")),
+    "role-request__planner-without-replan.json": (read("role-request__planner.json"), lambda x: x["payload"].pop("replan")),
+    "role-response__planner-plan-cyclic-shape.json": (read("role-response__planner-ok.json"), lambda x: x["payload"]["plan"].pop("slices")),
     "role-request__propose-missing-diff.json": (read("role-request__propose-properties.json"), lambda x: x["payload"].pop("diff")),
     "role-request__propose-language-unknown.json": (read("role-request__propose-properties.json"), lambda x: x["payload"].update(engine_language="rust")),
     # a target is <file>::<symbol>: a bare symbol does not say where the property goes
@@ -500,6 +504,9 @@ cases = {
     "plan-state__outcome-pass-lowercase.json": (read("plan-state__blocked.json"), lambda x: x.update(outcome="pass")),
     "plan-state__plan-sha-short.json": (read("plan-state__blocked.json"), lambda x: x.update(plan_sha256="abc")),
     "plan-state__slice-without-reason.json": (read("plan-state__blocked.json"), lambda x: x["slices"][1].pop("reason")),
+    "plan-state__slice-without-definition.json": (read("plan-state__blocked.json"), lambda x: x["slices"][0].pop("definition_sha256")),
+    "plan-state__scheduler-zero-jobs.json": (read("plan-state__blocked.json"), lambda x: x["scheduler"].update(jobs=0)),
+    "plan-state__replans-negative.json": (read("plan-state__blocked.json"), lambda x: x.update(replans=-1)),
 }
 for name, (base, breaks) in cases.items():
     doc = copy.deepcopy(base)

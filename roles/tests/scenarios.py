@@ -42,6 +42,9 @@ SCENARIOS = {
     # propose_properties: the test files land in /out/files under tests/; a file anywhere else fails the role
     "propose-claude-ok": ("propose_properties", "propose", "claude", "ok", 0),
     "propose-outside-tests": ("propose_properties", "propose", "gemini", "outside_tests", 1),
+    # planner: a plan and nothing in /out but response.json; a delivered file fails the role
+    "planner-claude-ok": ("planner", "plan", "claude", "ok", 0),
+    "planner-files": ("planner", "plan", "gemini", "planner_files", 1),
 }
 # role payload of propose_properties (role-payloads.schema.json propose_request)
 PROPOSE_PAYLOAD = {
@@ -56,6 +59,8 @@ PAYLOADS = {
     "specifier-rust-error": {"engine_language": "rust"},
     "propose-claude-ok": PROPOSE_PAYLOAD,
     "propose-outside-tests": PROPOSE_PAYLOAD,
+    "planner-claude-ok": json.loads((EXAMPLES / "role-request__planner.json").read_text(encoding="utf-8"))["payload"],
+    "planner-files": json.loads((EXAMPLES / "role-request__planner.json").read_text(encoding="utf-8"))["payload"],
 }
 
 
@@ -175,6 +180,11 @@ def check(t: Path) -> int:
             problems.append(f"a bad path left files in /out: {files_out}")
         if name == "role-no-prompt" and "no prompt for role" not in r.get("reason", ""):
             problems.append(f"reason {r.get('reason')}")
+        if role == "planner":
+            if r["status"] == "ok" and (files_out != ["response.json"] or not r["payload"].get("plan", {}).get("slices")):
+                problems.append(f"planner: files in /out {files_out}, payload {json.dumps(r['payload'])[:120]}")
+            if r["status"] != "ok" and files_out != ["response.json"]:
+                problems.append(f"a refused plan left files in /out: {files_out}")
         if role == "propose_properties":
             if r["status"] == "ok":
                 if files_out != ["files/tests/test_media_props.py", "response.json"]:

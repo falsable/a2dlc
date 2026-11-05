@@ -272,6 +272,57 @@
       "required": ["engine_language", "signatures", "diff"],
       "additionalProperties": false
     },
+    "planner_request": {
+      "description": "Stage plan (a2dlc plan propose, RFC-0008 section 2): the Planner reads the feature's intent and the files of the base tree and proposes a plan, which the plan gates judge. findings are the gates the previous round's plan broke, so the next round can fix them. With replan set, the plan to change is the current plan and the Planner decomposes replan.slice_id, whose Builders were exhausted (CB-02b), into slices that own a partition of its owns and keep its edges.",
+      "type": "object",
+      "properties": {
+        "feature_intent": { "$ref": "intent.schema.json" },
+        "files": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Repo-relative paths of the base tree, sorted." },
+        "files_truncated": { "type": "boolean", "description": "Whether files was cut to fit the request." },
+        "round": { "type": "integer", "minimum": 1 },
+        "max_rounds": { "type": "integer", "minimum": 1 },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rule": { "type": "string", "pattern": "^(G[1-8]|R[1-4])$" },
+              "title": { "type": "string", "minLength": 1 },
+              "findings": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+            },
+            "required": ["rule", "title", "findings"],
+            "additionalProperties": false
+          }
+        },
+        "previous_plan": { "oneOf": [{ "type": "null" }, { "$ref": "plan.schema.json" }], "description": "The plan the findings are about (the previous round's), or null in round 1 of a new plan." },
+        "replan": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "plan": { "$ref": "plan.schema.json" },
+                "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
+                "reason": { "type": "string", "minLength": 1, "description": "Why the slice's Builders were exhausted, as its run recorded it." }
+              },
+              "required": ["plan", "slice_id", "reason"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["feature_intent", "files", "files_truncated", "round", "max_rounds", "findings", "previous_plan", "replan"],
+      "additionalProperties": false
+    },
+    "planner_response": {
+      "description": "With status ok: the proposed plan. It is a proposal: the plan gates (and, for a replan, the replan rules) judge it before anything runs.",
+      "type": "object",
+      "properties": {
+        "plan": { "$ref": "plan.schema.json" }
+      },
+      "required": ["plan"],
+      "additionalProperties": false
+    },
     "propose_response": {
       "description": "With status ok: the properties proposed for the changed functions. Each one names its target, the property in prose and the file where it belongs.",
       "type": "object",

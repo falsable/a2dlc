@@ -5,7 +5,7 @@
   "$defs": {
     "role": {
       "description": "Roles of §3 of the protocol that run as a command. The Deterministic Oracle, the Router and the Indexer are the core, not roles.",
-      "enum": ["specifier_alpha", "specifier_beta", "inquisitor", "back_translator", "builder_primary", "builder_orthogonal", "saboteur", "propose_properties"]
+      "enum": ["specifier_alpha", "specifier_beta", "inquisitor", "back_translator", "builder_primary", "builder_orthogonal", "saboteur", "propose_properties", "planner"]
     },
     "family": {
       "description": "Declared model family (claude, gemini, openai, …) or script for a deterministic role. The core records it; it cannot prove which model answered.",
@@ -14,7 +14,7 @@
     },
     "stage": {
       "description": "Protocol stages that a2dlc run runs (§5). 6 (integration: consumer matrix and migration linter, config.integration) and 7 (progressive delivery: the plan as an artifact, intent.delivery) run the part that fits in the binary; the platform executes the plan.",
-      "enum": ["-1", "0", "1", "1.5", "2", "3", "4", "5", "6", "7", "propose"]
+      "enum": ["-1", "0", "1", "1.5", "2", "3", "4", "5", "6", "7", "propose", "plan"]
     },
     "mode": { "enum": ["greenfield", "refactor", "brownfield_facade", "lite"] },
     "slice_id": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,99}$" },

@@ -56,8 +56,14 @@ CALC_NEW = "def add(a, b):\n    return a + b\n\n\ndef subtract(a, b):\n    retur
 MODEL_BUILDER = {"status": "ok", "reason": None, "payload": {"summary": "add subtraction", "files_changed": ["whatever the model says is ignored"]},
                   "files": [{"path": "src/calc.py", "content": CALC_NEW}]}
 MODEL_BUILDER_EMPTY = {"status": "ok", "reason": None, "payload": {"summary": "nothing", "files_changed": []}, "files": []}
+PLAN = json.loads((EXAMPLES / "plan__diamond.json").read_text(encoding="utf-8"))
+MODEL_PLANNER = {"status": "ok", "reason": None, "payload": {"plan": PLAN}, "files": []}
+MODEL_PLANNER_FILES = {"status": "ok", "reason": None, "payload": {"plan": PLAN},
+                       "files": [{"path": "src/billing/discount.py", "content": "def apply():\n    pass\n"}]}
+MODEL_PLANNER_EMPTY = {"status": "ok", "reason": None, "payload": {"plan": dict(PLAN, slices=[])}, "files": []}
 MODELS = {"builder": MODEL_BUILDER, "builder_empty": MODEL_BUILDER_EMPTY, "propose": MODEL_PROPOSE,
-          "propose_bad": MODEL_PROPOSE_BAD}
+          "propose_bad": MODEL_PROPOSE_BAD, "planner": MODEL_PLANNER, "planner_files": MODEL_PLANNER_FILES,
+          "planner_empty": MODEL_PLANNER_EMPTY}
 
 
 class Fake(BaseHTTPRequestHandler):
@@ -157,7 +163,9 @@ def run(t: Path, scenario: str, role: str, stage: str, url: str, payload: dict |
     (d / "out").mkdir()
     req = json.loads((EXAMPLES / "role-request__saboteur.json").read_text(encoding="utf-8"))
     req["role"], req["stage"] = role, stage
-    if payload is not None:
+    if payload is not None and role == "planner":
+        req["payload"] = payload  # its own payload, not the saboteur's with keys added
+    elif payload is not None:
         req["payload"].update(payload)
     # the test owns the environment: no A2DLC_ leftovers, no credential, no proxy variable from the host
     env = {k: v for k, v in os.environ.items()
@@ -270,6 +278,22 @@ def check_propose(t: Path, url: str, failures: list[str]) -> None:
         failures.append(f"propose_bad: exit={code} {json.dumps(r)[:200]}")
 
 
+def check_planner(t: Path, url: str, failures: list[str]) -> None:
+    """planner (a2dlc plan propose): it answers a plan and writes no file. A delivered file, or ok with no slice, is an
+    error that leaves nothing in /out but response.json."""
+    payload = json.loads((EXAMPLES / "role-request__planner.json").read_text(encoding="utf-8"))["payload"]
+    code, r = run(t, "planner", "planner", "plan", url, payload=payload)
+    out = sorted(p.name for p in (t / "planner" / "out").iterdir())
+    if not (code == 0 and r["status"] == "ok" and r["payload"] == {"plan": PLAN} and "# Role: planner" in last_prompt()
+            and '"feature_intent"' in last_prompt() and out == ["response.json"]):
+        failures.append(f"planner: exit={code} out={out} {json.dumps(r)[:200]}")
+    for name, why in (("planner_files", "delivers files"), ("planner_empty", "without slices")):
+        code, r = run(t, name, "planner", "plan", url, payload=payload)
+        out = sorted(p.name for p in (t / name / "out").iterdir())
+        if not (code == 1 and r["status"] == "error" and why in r["reason"] and out == ["response.json"]):
+            failures.append(f"{name}: exit={code} out={out} {json.dumps(r)[:200]}")
+
+
 def check_proxy(t: Path, url: str, failures: list[str]) -> None:
     """The openrouter call goes through HTTPS_PROXY (CONNECT line seen by the proxy, no key on the wire), a scheme-less
     proxy value is the same HTTP proxy, NO_PROXY sends a host direct, and the proxy's password never reaches a reason."""
@@ -322,6 +346,7 @@ def check_prompts(failures: list[str]) -> None:
                                "in a new test file", "no test executed"],
         "builder_orthogonal.md": ["payload.paradigm", "payload.critical", "Postcondition:", "payload.lemmas"],
         "propose_properties.md": ["# Role: propose_properties", "payload.properties", "under `tests/`"],
+        "planner.md": ["# Role: planner", "payload.plan", "**G3.**", "## Replan", "`files` is always empty"],
     }
     for name, wanted in needles.items():
         text = (prompts / name).read_text(encoding="utf-8")
@@ -485,6 +510,7 @@ def main() -> int:
                          ("entropos", lambda: check_entropos(t, url, failures)),
                          ("probe-syntax", lambda: check_probe_syntax(t, url, failures)),
                          ("propose", lambda: check_propose(t, url, failures)),
+                         ("planner", lambda: check_planner(t, url, failures)),
                          ("prompts", lambda: check_prompts(failures)),
                          ("proxy", lambda: check_proxy(t, url, failures)),
                          ("proxy-env", lambda: check_proxy_env(failures)),

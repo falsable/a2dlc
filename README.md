@@ -166,6 +166,7 @@ The AI-DLC column was read from the source code and docs of [awslabs/aidlc-workf
 | `a2dlc verify [--commit HEAD] [--strict]` | <50 ms, the `pre-push`: blocks only on evidence about the pushed tree (a `FAIL`, an unsigned waiver of one, a protected path without approval, `critical_code` left unjudged); no receipt, a stale one or `INCONCLUSIVE` only warn, because on a repo with history "could not judge" is the normal case and a gate that blocks on it gets bypassed. `--strict`: receipt is `PASS`, matches `tree_hash`, waivers signed |
 | `a2dlc approve <file>::<symbol> --key <key>` | Sign an intentional behavior change (`ssh-keygen -Y`) |
 | `a2dlc run --slice <id> --intent <file>` | Full Protocol Mode, Stages −1 to 7 |
+| `a2dlc plan propose\|import\|check\|run\|replan` | Feature plans (RFC-0008, Draft): a planner role or a Spec Kit / Task Master task list proposes slices, deterministic gates judge them, `plan run` runs them in dependency order, side by side when their files are disjoint, as many at once as the host and the Docker daemon hold ([docs/PLAN_MACHINE.md](docs/PLAN_MACHINE.md)) |
 | `a2dlc verify-run --slice <id>` | Verify the hash-chained container ledger |
 | `a2dlc answer --slice <id> --probe <id> --choice alpha` | Answer a human probe and resume |
 | `a2dlc mcp` | Built-in MCP server (JSON-RPC 2.0 over stdio) |

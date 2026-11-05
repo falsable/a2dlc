@@ -1,0 +1,19 @@
+{
+  "master": {
+    "tasks": [
+      {"id": 1, "title": "Discount rule", "description": "Implement the discount rule in src/billing/discount.py so no total is negative.",
+       "status": "pending", "dependencies": [], "priority": "high", "details": "Pure function apply(total, code).",
+       "testStrategy": "Property test in tests/billing/test_discount.py: a discount never makes a total negative.", "subtasks": []},
+      {"id": 2, "title": "Checkout API", "description": "POST /discounts applies a code at checkout.",
+       "status": "pending", "dependencies": [1], "priority": "medium",
+       "details": "Add the endpoint in src/api/discounts.py.", "testStrategy": "tests/api/test_discounts.py covers a valid and an unknown code.",
+       "subtasks": [{"id": 1, "title": "Validate the code", "description": "Reject unknown codes", "status": "pending", "dependencies": []}]},
+      {"id": 3, "title": "Report", "description": "The monthly report lists each applied code.",
+       "status": "pending", "dependencies": ["1"], "priority": "low", "details": "Extend src/reports/discounts.py.", "testStrategy": ""},
+      {"id": 4, "title": "Project setup", "description": "Scaffold.", "status": "done", "dependencies": [], "priority": "low", "details": "", "testStrategy": ""},
+      {"id": 5, "title": "Docs", "description": "Document every code in docs/discounts.md.", "status": "pending", "dependencies": [2, 3, 4],
+       "priority": "low", "details": "", "testStrategy": ""}
+    ],
+    "metadata": {"created": "2026-11-05T10:00:00.000Z", "description": "Tasks for master context"}
+  }
+}

@@ -47,6 +47,42 @@ type PlanState struct {
 	Merged        *string          `json:"merged"`
 	Outcome       *string          `json:"outcome"`
 	Reason        string           `json:"reason"`
+	// Replans counts the slices decomposed again after CB-02b (bounded by plan run --max-replan).
+	Replans int `json:"replans"`
+	// Scheduler is how many slices the last invocation ran at once and why; nil before the first invocation.
+	Scheduler *PlanScheduler `json:"scheduler"`
+}
+
+// PlanAmount is CPUs and bytes of memory.
+type PlanAmount struct {
+	CPUs     float64 `json:"cpus"`
+	MemBytes int64   `json:"mem_bytes"`
+}
+
+// PlanPlace is one place a plan's work runs (the host, the Docker daemon): what it has and what was free.
+type PlanPlace struct {
+	Name  string     `json:"name"`
+	Total PlanAmount `json:"total"`
+	Free  PlanAmount `json:"free"`
+	Note  string     `json:"note,omitempty"`
+	Err   string     `json:"error,omitempty"`
+}
+
+// PlanDemand is a slice's peak in each place.
+type PlanDemand struct {
+	Docker PlanAmount `json:"docker"`
+	Host   PlanAmount `json:"host"`
+}
+
+// PlanScheduler records the decision of how many slices ran at once.
+type PlanScheduler struct {
+	Jobs      int        `json:"jobs"`
+	Requested *int       `json:"requested"`
+	Why       string     `json:"why"`
+	Demand    PlanDemand `json:"demand"`
+	Host      PlanPlace  `json:"host"`
+	Docker    *PlanPlace `json:"docker"`
+	SamePool  bool       `json:"same_pool"`
 }
 
 // PlanSliceState is one slice of a plan run.
@@ -57,4 +93,8 @@ type PlanSliceState struct {
 	Candidate  *string `json:"candidate"`
 	FinishedIn int     `json:"finished_in"`
 	Reason     string  `json:"reason"`
+	// DefinitionSHA256 is the slice as the plan declares it: a replan keeps the state of an unchanged slice.
+	DefinitionSHA256 string `json:"definition_sha256"`
+	// RunDir is the folder of the slice's run, where a person answers an escalation; nil before it ran.
+	RunDir *string `json:"run_dir"`
 }

@@ -13,11 +13,54 @@
     "slices": { "type": "array", "items": { "$ref": "#/$defs/slice" } },
     "merged": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$", "description": "The commit with every passed candidate merged, once every slice passed." },
     "outcome": { "enum": [null, "PASS", "escalated", "INCONCLUSIVE"] },
-    "reason": { "type": "string" }
+    "reason": { "type": "string" },
+    "replans": { "type": "integer", "minimum": 0, "description": "How many times a slice of this feature was decomposed again after its Builders were exhausted (CB-02b); bounded by plan run --max-replan." },
+    "scheduler": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/scheduler" }] }
   },
-  "required": ["schema_version", "feature_id", "plan_sha256", "base_sha", "invocation", "slices", "merged", "outcome", "reason"],
+  "required": ["schema_version", "feature_id", "plan_sha256", "base_sha", "invocation", "slices", "merged", "outcome", "reason", "replans", "scheduler"],
   "additionalProperties": false,
   "$defs": {
+    "amount": {
+      "type": "object",
+      "properties": {
+        "cpus": { "type": "number", "minimum": 0 },
+        "mem_bytes": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["cpus", "mem_bytes"],
+      "additionalProperties": false
+    },
+    "place": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "total": { "$ref": "#/$defs/amount" },
+        "free": { "$ref": "#/$defs/amount" },
+        "note": { "type": "string" },
+        "error": { "type": "string" }
+      },
+      "required": ["name", "total", "free"],
+      "additionalProperties": false
+    },
+    "scheduler": {
+      "type": "object",
+      "description": "How many slices the last invocation ran at once and why: measured on the host that runs a2dlc and on the Docker daemon that runs the containers (with Docker Desktop, its VM), against the peak a slice declares through config.json and roles.json. jobs is what was used; requested is the --jobs or A2DLC_PLAN_JOBS that overrode the measurement, null when it did not.",
+      "properties": {
+        "jobs": { "type": "integer", "minimum": 1 },
+        "requested": { "type": ["integer", "null"], "minimum": 1 },
+        "why": { "type": "string", "minLength": 1 },
+        "demand": {
+          "type": "object",
+          "properties": { "docker": { "$ref": "#/$defs/amount" }, "host": { "$ref": "#/$defs/amount" } },
+          "required": ["docker", "host"],
+          "additionalProperties": false
+        },
+        "host": { "$ref": "#/$defs/place" },
+        "docker": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/place" }] },
+        "same_pool": { "type": "boolean" }
+      },
+      "required": ["jobs", "requested", "why", "demand", "host", "docker", "same_pool"],
+      "additionalProperties": false
+    },
     "slice": {
       "type": "object",
       "properties": {
@@ -26,9 +69,11 @@
         "base": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$", "description": "The commit the slice's run started from." },
         "candidate": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$", "description": "The candidate commit of a passed slice." },
         "finished_in": { "type": "integer", "minimum": 0, "description": "The invocation that last ran it (0: never)." },
-        "reason": { "type": "string" }
+        "reason": { "type": "string" },
+        "definition_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the slice as the plan declares it. A new version of the plan (a replan) keeps the state of a slice whose definition, and that of every slice it depends on, did not change; any other slice starts pending." },
+        "run_dir": { "type": ["string", "null"], "minLength": 1, "description": "The folder of the slice's a2dlc run (in its own worktree), where a person reads and answers an escalation. Null before it ran." }
       },
-      "required": ["slice_id", "status", "base", "candidate", "finished_in", "reason"],
+      "required": ["slice_id", "status", "base", "candidate", "finished_in", "reason", "definition_sha256", "run_dir"],
       "additionalProperties": false
     }
   }

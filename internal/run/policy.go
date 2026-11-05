@@ -64,7 +64,16 @@ var visible = map[string][]string{
 	contract.RoleBuilderOrthogonal: {ArtContract, ArtProbes, ArtTier0Orthogonal, ArtIntent},
 	contract.RoleSaboteur:          {ArtContract, ArtSignatures, ArtEscalations, ArtIntent},
 	ProposeRole:                    {}, // no run artifacts: propose builds its own /in from the diff
+	PlannerRole:                    {}, // no run artifacts: the request carries the feature intent and the base's file list
 }
+
+// PlannerRole and PlannerStage name the call of `a2dlc plan propose` and `a2dlc plan replan` (RFC-0008 section 2). Like
+// propose, it is outside the slice machine: it reads the feature's intent and the base tree's paths, never any code, and
+// answers a plan that the plan gates judge.
+const (
+	PlannerRole  = contract.RolePlanner
+	PlannerStage = "plan"
+)
 
 // Visible returns the artifacts that the policy lets a role see; nil for an unknown role.
 func Visible(role string) []string { return visible[role] }
@@ -101,20 +110,23 @@ func IntegrationVisible(role string, ic *contract.IntegrationConfig, tree []stri
 
 // ProposeRoleConfig returns the propose_properties entry of roles.json, checked the way readRoles checks every role,
 // tier_up included: propose never runs it, but a roles.json that readRoles would refuse must not pass propose.
-func ProposeRoleConfig(rs contract.Roles) (contract.Role, error) {
-	r, ok := rs.Roles[ProposeRole]
+func ProposeRoleConfig(rs contract.Roles) (contract.Role, error) { return RoleConfig(rs, ProposeRole) }
+
+// RoleConfig returns the entry of role in roles.json, checked the way readRoles checks every role, tier_up included.
+func RoleConfig(rs contract.Roles, role string) (contract.Role, error) {
+	r, ok := rs.Roles[role]
 	if !ok {
-		return r, fmt.Errorf("%s has no %s role", pathRoles, ProposeRole)
+		return r, fmt.Errorf("%s has no %s role", pathRoles, role)
 	}
-	if err := validateRoleConfig(ProposeRole, r); err != nil {
+	if err := validateRoleConfig(role, r); err != nil {
 		return r, err
 	}
 	if r.TierUp != nil {
-		if err := validateRoleConfig(ProposeRole+".tier_up", *r.TierUp); err != nil {
+		if err := validateRoleConfig(role+".tier_up", *r.TierUp); err != nil {
 			return r, err
 		}
 		if r.TierUp.TierUp != nil {
-			return r, fmt.Errorf("%s: %s.tier_up cannot have its own tier_up (CB-02b runs only one extra round)", pathRoles, ProposeRole)
+			return r, fmt.Errorf("%s: %s.tier_up cannot have its own tier_up (CB-02b runs only one extra round)", pathRoles, role)
 		}
 	}
 	return r, nil
@@ -123,6 +135,11 @@ func ProposeRoleConfig(rs contract.Roles) (contract.Role, error) {
 // WriteProposeRequest hashes the inputs already in inDir, writes request.json next to them (as Invoke does for a role) and
 // returns the request with its inputs. runID is what the response must echo: run-<12 hex> as in run-defs.
 func WriteProposeRequest(inDir, runID string, payload any) (contract.RoleRequest, error) {
+	return WriteRoleRequest(inDir, runID, "propose", contract.ModeLite, ProposeRole, ProposeStage, payload)
+}
+
+// WriteRoleRequest is WriteProposeRequest for any role called outside the slice machine (the planner).
+func WriteRoleRequest(inDir, runID, sliceID, mode, role, stage string, payload any) (contract.RoleRequest, error) {
 	inputs, err := hashFilesUnder(inDir, "/in")
 	if err != nil {
 		return contract.RoleRequest{}, err
@@ -131,8 +148,8 @@ func WriteProposeRequest(inDir, runID string, payload any) (contract.RoleRequest
 	if err != nil {
 		return contract.RoleRequest{}, err
 	}
-	req := contract.RoleRequest{SchemaVersion: 1, RunID: runID, SliceID: "propose", Mode: contract.ModeLite, Role: ProposeRole,
-		Stage: ProposeStage, Attempt: 1, Inputs: inputs, Payload: pl}
+	req := contract.RoleRequest{SchemaVersion: 1, RunID: runID, SliceID: sliceID, Mode: mode, Role: role,
+		Stage: stage, Attempt: 1, Inputs: inputs, Payload: pl}
 	rb, err := json.MarshalIndent(req, "", " ")
 	if err != nil {
 		return contract.RoleRequest{}, err
@@ -148,11 +165,27 @@ func WriteProposeRequest(inDir, runID string, payload any) (contract.RoleRequest
 // identity of the request (run, role, stage, attempt 1), and the status and cost rules. It returns the reason when the
 // response is not valid, "" otherwise.
 func ValidateProposeResponse(b []byte, runID string) (contract.RoleResponse, string) {
+	resp, why := ValidateRoleResponse(b, runID, ProposeRole, ProposeStage)
+	if why != "" {
+		return resp, why
+	}
+	if resp.Status == contract.RoleOK {
+		if _, err := DecodeProposeProperties(resp); err != nil {
+			return resp, "payload does not match propose_response: " + err.Error()
+		}
+	}
+	return resp, ""
+}
+
+// ValidateRoleResponse reads response.json of a role called outside the slice machine the way Invoke reads a role's:
+// strict decoding, the identity of the request (run, role, stage, attempt 1), and the status and cost rules. The caller
+// decodes the payload of an ok response with its own strict type.
+func ValidateRoleResponse(b []byte, runID, role, stage string) (contract.RoleResponse, string) {
 	var resp contract.RoleResponse
 	if err := contract.DecodeStrictBytes(b, &resp); err != nil {
 		return resp, err.Error()
 	}
-	if resp.RunID != runID || resp.Role != ProposeRole || resp.Stage != ProposeStage || resp.Attempt != 1 {
+	if resp.RunID != runID || resp.Role != role || resp.Stage != stage || resp.Attempt != 1 {
 		return resp, "the response does not answer this request"
 	}
 	if p := bytes.TrimSpace(resp.Payload); len(p) == 0 || p[0] != '{' {
@@ -160,11 +193,6 @@ func ValidateProposeResponse(b []byte, runID string) (contract.RoleResponse, str
 	}
 	if why := invalidResponse(resp); why != "" {
 		return resp, why
-	}
-	if resp.Status == contract.RoleOK {
-		if _, err := DecodeProposeProperties(resp); err != nil {
-			return resp, "payload does not match propose_response: " + err.Error()
-		}
 	}
 	return resp, ""
 }

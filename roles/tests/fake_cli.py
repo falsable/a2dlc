@@ -106,6 +106,13 @@ def main() -> int:
         response = {"status": "ok", "reason": None, "files": [], "payload": {"summary": "Implemented what was asked.", "files_changed": ["EDITED_BY_FAKE.txt"]}}
         if scenario == "no_files_changed":  # the old template shape: outside the contract
             del response["payload"]["files_changed"]
+    elif role == "planner":
+        # a plan and no file (planner_files: the same plan with a file, which the adapter must refuse)
+        plan = {"schema_version": 1, "feature_id": "calc.media", "shared": [], "slices": [
+            {"slice_id": "calc.media.mean", "goal": "Add the mean.", "owns": ["src/media.py"], "depends_on": [], "criticality": "low",
+             "budget": {"max_cost_usd": 0.5}, "acceptance": ["the mean of [2] is 2"], "invariants": [], "covers": [0]}]}
+        files = [{"path": "src/x.py", "content": "x = 1\n"}] if scenario == "planner_files" else []
+        response = {"status": "ok", "reason": None, "files": files, "payload": {"plan": plan}}
     elif role == "propose_properties":
         # one property test under tests/ (outside_tests: the same test written under src/, which the adapter must refuse)
         path = "src/media.py" if scenario == "outside_tests" else "tests/test_media_props.py"
