@@ -1072,7 +1072,12 @@ func (a App) Hook(ctx context.Context, agent string, stdin io.Reader, stdout, st
 		json.NewEncoder(stdout).Encode(markBlock(reason))
 		return 0
 	}
-	json.NewEncoder(stdout).Encode(map[string]string{"systemMessage": Level0Summary(v)})
+	msg := Level0Summary(v)
+	// The person reads systemMessage, the agent does not: what only the person can do is said here, in their words.
+	if r, err := a.Pending(); err == nil && r.Count > 0 {
+		msg += fmt.Sprintf("; %d change(s) wait for your signature: run a2dlc approve --pending", r.Count)
+	}
+	json.NewEncoder(stdout).Encode(map[string]string{"systemMessage": msg})
 	return 0
 }
 

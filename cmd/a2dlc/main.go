@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"flag"
@@ -46,6 +47,9 @@ const usage = `usage: a2dlc <command>
   verify  [--commit HEAD] [--strict]  the pre-push, without running engines: blocks (exit 1) only on evidence, a FAIL or critical
           or protected code left unjudged; no receipt, a stale one or an INCONCLUSIVE one are warnings. --strict blocks on anything but a PASS receipt for this tree
   approve <target> --key <key> [--principal <id>]   signs a target's waiver (run by a person)
+  approve --pending [--json] [--yes] --key <key> [--principal <id>]
+          shows every waiver of the current receipt that waits for a signature, grouped by the reason it gives, and signs
+          them all with one unlock of the key (run by a person); --json lists them for an agent or a UI and signs nothing
   answer  --slice <id> --probe <id> --choice <c> --reason <text> --by <name>
           records a person's answer to a probe of a run (answers.json; 0 written, 2 refused, 64 bad usage)
   hook    <claude|gemini>          adapter for the agent's end-of-turn hook
@@ -267,6 +271,9 @@ func run(args []string) int {
 		fmt.Println("a2dlc verify: ok")
 		return 0
 	case "approve":
+		if len(args) >= 2 && args[1] == "--pending" {
+			return approvePending(a, repo.Config("user.email"), args[2:])
+		}
 		if len(args) < 2 || strings.HasPrefix(args[1], "-") {
 			fmt.Fprintln(os.Stderr, usage)
 			return 64
@@ -362,4 +369,49 @@ func warnHookBinary(a app.App, w io.Writer) {
 	if msg := a.HookBinaryWarning(exe); msg != "" {
 		fmt.Fprintln(w, "a2dlc: warning:", msg)
 	}
+}
+
+// approvePending is `a2dlc approve --pending`: the batch of RFC-0007 Part A. The list is for the person; --json is the same
+// list for an agent, compact and without signing. The confirmation reads a line from stdin; the key's passphrase is asked by
+// ssh-keygen once for the whole batch.
+func approvePending(a app.App, email string, args []string) int {
+	fs := flag.NewFlagSet("approve --pending", flag.ContinueOnError)
+	key := fs.String("key", os.Getenv("A2DLC_SIGNING_KEY"), "private SSH key with passphrase")
+	principal := fs.String("principal", email, "identity in allowed_signers")
+	asJSON := fs.Bool("json", false, "list what waits, for an agent or a UI, and sign nothing")
+	yes := fs.Bool("yes", false, "do not ask for confirmation (the key's passphrase is still asked)")
+	if fs.Parse(args) != nil {
+		return 64
+	}
+	r, err := a.Pending()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "a2dlc approve --pending:", err)
+		return 1
+	}
+	if *asJSON {
+		json.NewEncoder(os.Stdout).Encode(r)
+		return 0
+	}
+	fmt.Println(r.Text())
+	if r.Count == 0 {
+		return 0
+	}
+	if *key == "" || *principal == "" {
+		fmt.Fprintln(os.Stderr, "a2dlc approve --pending: missing --key or --principal")
+		return 64
+	}
+	if !*yes {
+		fmt.Printf("\nSign these %d approval(s) as %s? [y/N] ", r.Count, *principal)
+		line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+		if ans := strings.ToLower(strings.TrimSpace(line)); ans != "y" && ans != "yes" {
+			fmt.Println("Nothing signed.")
+			return 1
+		}
+	}
+	if err := a.ApprovePending(r, *key, *principal); err != nil {
+		fmt.Fprintln(os.Stderr, "a2dlc approve --pending:", err)
+		return 1
+	}
+	fmt.Printf("a2dlc approve: signed %d approval(s); run a2dlc check again so the receipt sees them.\n", r.Count)
+	return 0
 }

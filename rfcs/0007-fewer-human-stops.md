@@ -22,7 +22,7 @@ The rule this RFC must not break is in CLAUDE.md, "Never": an approval signature
 
 `a2dlc approve --pending` reads the current tree's receipt and waivers and lists every target waiting for a signature, grouped by `cluster_id`. For each group it shows the targets, one shrunk counterexample (`args`, `old`, `new`) and the waiver's `reason`. The person confirms once, and the command writes one ordinary approval per target, as §6.4.7 defines it today: same signed text, same namespace, same `file_blob` binding.
 
-Nothing in §6.4 changes. This part is an implementation change and is listed here because it is the cheap half of the same problem. `ssh-keygen -Y sign` takes several files in one call; whether it asks for the passphrase once for all of them, or the person needs `ssh-agent`, is to be measured before the command is documented.
+Nothing in §6.4 changes. This part is an implementation change and is listed here because it is the cheap half of the same problem. `ssh-keygen -Y sign` takes several files in one call, and with OpenSSH 8.9 it asks for the passphrase once for all of them (measured on 2026-11-05 with a counting `SSH_ASKPASS`: one prompt for two files, both signatures valid), so the batch needs no `ssh-agent`. Implemented in the reference as `a2dlc approve --pending` (`internal/app/pending.go`); `--json` gives the same list to an agent or a UI and signs nothing.
 
 ### Part B: pre-authorized behavior changes (normative)
 

@@ -55,6 +55,41 @@ func SignVerdict(keyPath string, payload []byte) (string, error) {
 	return sign(keyPath, VerdictNamespace, payload, nil, nil)
 }
 
+// SignMany signs every payload under Namespace in one ssh-keygen call, so a key with a passphrase is unlocked once for the
+// whole batch (measured with OpenSSH 8.9: one passphrase prompt for N files). The signatures come back in the order of
+// the payloads. A batch either signs everything or returns an error and no signature.
+func SignMany(keyPath string, payloads [][]byte) ([]string, error) {
+	if len(payloads) == 0 {
+		return nil, nil
+	}
+	dir, err := os.MkdirTemp("", "a2dlc-sign-*")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir)
+	files := make([]string, len(payloads))
+	for i, p := range payloads {
+		files[i] = filepath.Join(dir, fmt.Sprintf("payload-%04d", i))
+		if err := os.WriteFile(files[i], p, 0o600); err != nil {
+			return nil, err
+		}
+	}
+	c := exec.Command(keygen(), append([]string{"-Y", "sign", "-f", keyPath, "-n", Namespace}, files...)...)
+	c.Stdin, c.Stderr = os.Stdin, os.Stderr
+	if err := c.Run(); err != nil {
+		return nil, fmt.Errorf("ssh-keygen -Y sign: %v", err)
+	}
+	sigs := make([]string, len(files))
+	for i, f := range files {
+		b, err := os.ReadFile(f + ".sig")
+		if err != nil {
+			return nil, fmt.Errorf("ssh-keygen -Y sign wrote no signature for payload %d: %v", i, err)
+		}
+		sigs[i] = strings.ReplaceAll(string(b), "\r\n", "\n")
+	}
+	return sigs, nil
+}
+
 func sign(keyPath, namespace string, payload []byte, stdin io.Reader, stderr io.Writer) (string, error) {
 	dir, err := os.MkdirTemp("", "a2dlc-sign-*")
 	if err != nil {

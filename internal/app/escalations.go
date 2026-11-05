@@ -81,7 +81,7 @@ func escalations(v contract.Verdict) []contract.Escalation {
 	for _, t := range v.Targets {
 		switch {
 		case t.Waived && pending[t.Target]:
-			out = append(out, escalation("signature_pending", t.Target, "The waiver awaits a signature: a2dlc approve "+t.Target, contract.Evidence{Counterexample: t.Counterexample}))
+			out = append(out, escalation("signature_pending", t.Target, "The waiver awaits a signature: a person runs a2dlc approve --pending (or a2dlc approve "+t.Target+")", contract.Evidence{Counterexample: t.Counterexample}))
 		case t.Note != "":
 			// A note is in the receipt with its counterexample and asks nothing of a person.
 		case t.Verdict == contract.FAIL && !t.Waived:
