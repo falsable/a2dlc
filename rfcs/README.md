@@ -9,6 +9,7 @@ An RFC is a written proposal to change what the protocol requires or what a cont
 | [0003](0003-nop-regression-guards.md) | A new test that passes on the base, next to one that proves the change, is a regression guard | Accepted |
 | [0004](0004-tier0-runs-the-baseline-command.md) | Tier 0 can run the baseline command, so Stage 4 does not run it again on the same tree | Draft |
 | [0005](0005-stage4-takes-the-differential-of-stage3.md) | Stage 4 can take the differential Stage 3 already ran on the same tree | Draft |
+| [0006](0006-contract-first-api-slices.md) | Contract-first API slices: the API contract is part of `S*`, and Stages 1, 1.5, 3 and 4 judge against it | Draft |
 
 ## What needs an RFC
 

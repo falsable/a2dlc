@@ -304,7 +304,7 @@ AI-DLC v2 sensors behind an adapter (`templates/checks/aidlc-sensor/`).
 ### 6.1 `slice_contract.yaml`
 
 ```yaml
-protocol_version: "a2-dlc/3.3"
+protocol_version: "a2-dlc/3.5"
 slice_id: "billing.ledger_settlement.v1"
 mode: "greenfield"            # greenfield | refactor | brownfield_facade
 criticality: "high"           # → N=2
