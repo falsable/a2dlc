@@ -164,6 +164,9 @@ func (a App) VerifyPolicy(commit string) (VerifyReport, error) {
 		return rep, err
 	}
 	approved, reason := a.approved(tree, waivers, approvals)
+	if fresh {
+		a.authorizeReceipt(sha, tree, v, waivers, &cfg).mergeInto(approved, reason)
+	}
 
 	// Protected paths: a change without a valid approval stops the push with or without a receipt.
 	for _, f := range sortedKeys(protectedMatches(cfg.ProtectedPaths, files)) {

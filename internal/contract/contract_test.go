@@ -63,6 +63,7 @@ func exampleTypes() map[string]func() any {
 		"engine-response": func() any { return &Response{} }, "verdict": func() any { return &Verdict{} },
 		"check-response": func() any { return &CheckResponse{} },
 		"waivers":        func() any { return &Waivers{} }, "approvals": func() any { return &Approvals{} },
+		"authorization":        func() any { return &Authorizations{} },
 		"engine-stub-response": func() any { return &StubResponse{} }, "escalation": func() any { return &Escalations{} },
 		"engine-signatures-response": func() any { return &SignaturesResponse{} },
 		"roles":                      func() any { return &Roles{} }, "role-request": func() any { return &RoleRequest{} },

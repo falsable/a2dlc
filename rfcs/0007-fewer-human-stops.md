@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Comment period:** 2026-11-05 to 2026-11-19 (14 days, [README.md](README.md) step 2); comments on the pull request that opened it
 - **Author:** Aldemar Hernández, falsable
-- **Amends:** RFC-0001 §6.4.7 (approvals), §6.4.8 (verification); `contracts/approvals.schema.json`; new `contracts/authorization.schema.json`
+- **Amends:** RFC-0001 §6.2 (the excluded paths), §6.4.7 (approvals), §6.4.8 (verification); `contracts/verdict.schema.json` and `contracts/run-ledger.schema.json` (one optional field each); new `contracts/authorization.schema.json`
 - **Changes `schema_version`:** no
 
 ## Problem
@@ -26,7 +26,7 @@ Nothing in §6.4 changes. This part is an implementation change and is listed he
 
 ### Part B: pre-authorized behavior changes (normative)
 
-A new optional file, `.a2dlc/authorizations.json`, outside the `tree_hash` like `approvals.json`:
+A new optional file, `.a2dlc/authorizations.json`, outside the `tree_hash` like `approvals.json` (it is added to the excluded paths of §6.4.2, so signing one after a receipt does not make the receipt stale):
 
 ```json
 {
@@ -64,15 +64,25 @@ with the targets sorted and deduplicated.
 
 **What it never covers:** protected paths, `accept_finding` on checks, test waivers (`characterization_test`, `quarantine_flaky`), and any target that matches `config.critical_code`. Those keep needing an approval bound to the file's blob.
 
-**What the receipt says.** A target covered this way is reported by verify as `authorized`, not `approved`, so a reviewer can tell a decision made before the code from one made after reading it.
+**What the receipt says.** A target covered this way is `authorized`, not `approved`, so a reviewer can tell a decision made before the code from one made after reading it. The receipt carries it in one optional top-level object, `authorization`: `covered` (target, the authorization's `id`, which is the sha256 of its signed text, its principal and expiry), `refused` (target and reason, for a matching authorization that could not cover it: invalid signature, signer not allowed, expired, critical or protected code) and, for a run, `intent_sha256`. The object only reports. Verify decides again from `authorizations.json`, the allowed signers and the base's config, and believes nothing in the receipt but the intent hash, which the authorization's own signature has to match. A refusal also travels in the `signature_pending` escalation of the target, so the person who reads it sees why the authorization did not stand in for an approval.
+
+**How the reference applies it.** It is a rule of the checks of §6.4.8 and of the check that makes the receipt, in one place, so `a2dlc check`, `a2dlc run`, `verify` and the pre-push cannot disagree.
+
+- *Only engine targets.* The authorization stands in for the approval of a target of an engine result that a waiver exempts from a FAIL. Test results, findings of checks, golden cases and protected paths never reach the rule, so "what it never covers" holds without a list of exceptions. `critical_code` and `protected_paths` are the base's.
+- *The waiver is still needed.* An authorization replaces the signature, not the declaration: the waiver for the target, with the same `decision`, has to be in `waivers.json`. An agent writes it; it cannot write the signature.
+- *Fail closed.* A file that does not decode, a date that does not parse, a receipt with no readable `created_at`, a base config that cannot be read or a signature that does not verify leaves the target waiting for an approval, exactly as without the file.
+- *The intent.* `intent_sha256` is the bare hex sha256 of the bytes of the intent file, without the `sha256:` prefix the run's own artifacts carry. For `a2dlc run` it is the intent the run was bound to, recorded in the receipt as `authorization.intent_sha256`; for `a2dlc check` and for verify it may also be any file committed under `.a2dlc/intents/` in the judged tree. A receipt is a file the agent could edit, so the hash it names counts only if an authorization signed that same hash.
+- *The ledger.* Each use of an authorization by a run is recorded in the run's ledger, in an optional top-level array `authorizations_used`: the stage, the time of use, the target and the whole signed authorization. `a2dlc verify-run` checks every record again against the allowed signers: the signature in the namespace `a2dlc-authorization`, the target among the authorization's, a decision of the two, and `expires_at` not passed at the time of use. The records are outside the hash chain of the entries, like the rest of the ledger they have no anchor outside the folder: verify-run rejects a run that relied on something invalid, it cannot detect a ledger that hides the reliance.
+- *Signing.* `a2dlc authorize --target <path::symbol>... --decision <decision> --intent <file> --expires <RFC 3339> --key <key> [--base <commit>]` refuses globs, any other decision, an expiry in the past and a missing intent, signs with the namespace above (the passphrase is asked by `ssh-keygen` at the terminal and never reaches a2dlc), checks the signature against the allowed signers and only then writes `.a2dlc/authorizations.json`, replacing an entry with the same signed text.
 
 **Why this does not undo the blob rule.** The blob rule exists so that an approval cannot be reused for a later, different change. An authorization cannot be reused either: it dies with its base, its intent and its expiry date, and it names exact symbols. What it gives up is that the person did not see the final code of those symbols. That is the trade, it is opt-in, and it is recorded in the receipt.
 
 ## Compatibility
 
 - A repository without `authorizations.json` verifies exactly as today.
+- `.a2dlc/authorizations.json` joins the paths that do not enter the `tree_hash`. A verifier older than this RFC keeps hashing it, so for a repository that has the file its tree hash differs from the receipt's and it reports the receipt `stale`: it fails closed.
 - `approvals.json` does not change. The new file and schema are additions; per [docs/COMPATIBILITY.md](../docs/COMPATIBILITY.md) no `schema_version` bumps.
-- A verifier older than this RFC ignores the new file and refuses the targets it would cover as `unsigned_waiver`. That fails closed, which is the right direction for an older reader.
+- A verifier older than this RFC ignores the file and refuses the targets it would cover as `unsigned_waiver`, if it gets that far. That fails closed, which is the right direction for an older reader.
 - `conformance/` needs vectors for each rule of "What it covers" and "What it never covers"; the clean-room verifier implements them from this text.
 
 ## Alternatives
@@ -87,9 +97,9 @@ with the targets sorted and deduplicated.
 
 - **Part A:** `a2dlc approve --pending` on a tree with three pending waivers in two clusters writes three approvals that pass today's verify unchanged; a waiver edited after the batch makes its approval `waiver_changed`, as now.
 - **Part B:** conformance vectors and unit tests where verify accepts a target covered by an authorization and reports it `authorized`, and refuses it when the base changed, the intent hash differs, the authorization expired, the target is not named exactly, the target matches `critical_code`, the target is a protected path or a test, or the signature uses the `a2dlc-approval` namespace.
+- **Status of the checks:** the reference has the unit tests (`internal/app` for the rules above, `internal/run` for the run and `verify-run`); the conformance vector for the new excluded path is `V-tree-025`. The per-rule Part B vectors and the clean-room verifier's support for rules 1 to 6 are not written yet.
 - **Measurement:** on the factory chain runs, the number of human stops per slice before and after, with the same intents.
 
 ## Open questions
 
-- Should `a2dlc run` stop at Stage 0 to collect the authorization signature, or should the person sign the intent before launching the run?
-- Should an authorization also cover `spec_divergence` probes whose answer the intent already states, or do probes stay outside, as now?
+- None. The two questions of the first draft are closed in this text. The person signs before launching the run, so Stage 0 gains no stop. Probes (`spec_divergence`, π_S relaxations) stay outside: they are answered with `a2dlc answer`, and an authorization covers waived engine targets only.

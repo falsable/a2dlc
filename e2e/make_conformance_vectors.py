@@ -246,6 +246,10 @@ def group_tree():
     vs.append(vec("V-tree-023", "In a SHA-256 repository the tree hash has 64 digits", "6.4.2", [C(BASE_FILES)], VALID, algo="sha256", tags=["sha256"]))
     two = [C(BASE_FILES), C({"src/m.py": "def f(x):\n    return x + 1\n"})]
     vs.append(vec("V-tree-024", "The tree hash is of the commit asked for, not of an ancestor", "6.4.2", two, invalid("stale"), tree=tree_of([two[0]])))
+    # not in EXCLUDED_FILES: that dict is numbered V-tree-002..007 and V-tree-008 follows it, so a new entry would renumber
+    auth = dict(BASE_FILES, **{".a2dlc/authorizations.json": '{"schema_version":1,"authorizations":[]}\n'})
+    vs.append(vec("V-tree-025", "A file under the excluded path .a2dlc/authorizations.json does not enter the tree hash", "6.4.2", [C(auth)], VALID,
+                  tree=tree_of(base), tags=["exclusion"]))
     return vs
 
 

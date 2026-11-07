@@ -1,0 +1,16 @@
+{
+ "schema_version": 1,
+ "authorizations": [
+  {
+   "base_ref": "0123456789abcdef0123456789abcdef01234567",
+   "targets": [
+    "src/billing.py::apply_discount",
+    "src/billing.py::round_total"
+   ],
+   "decision": "enforce_new_behavior",
+   "expires_at": "2026-11-12T00:00:00Z",
+   "principal": "aldemar",
+   "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg\n-----END SSH SIGNATURE-----\n"
+  }
+ ]
+}

@@ -248,6 +248,41 @@
       "description": "Pluggable deterministic checks (config.checks, protocol §5 Checks, ADR meta/0006), in config order; what did not run stays in view, never silently. A check lowers the verdict, never raises it: blocking with an unwaived finding counts as FAIL; blocking in error or timeout counts as INCONCLUSIVE; advisory is recorded only.",
       "type": "array",
       "items": { "$ref": "#/$defs/check" }
+    },
+    "authorization": {
+      "description": "RFC-0007 Part B. Present only when .a2dlc/authorizations.json mattered to this check. intent_sha256 is the bare sha256 of the intent the run was bound to (a2dlc run), which verify matches against an authorization's intent_sha256 together with the intents committed under .a2dlc/intents/; check sets none. covered lists the waived engine targets that a valid, unexpired authorization stood in for (authorized, not approved: the person decided before the code existed); id is the sha256 of the authorization's signed text. refused says why a matching authorization did not cover a target (invalid signature, signer not allowed, expired); the target then waits for an approval as without the file. The receipt only reports: verify decides again from authorizations.json and the allowed signers.",
+      "type": "object",
+      "properties": {
+        "intent_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "covered": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+              "id": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "principal": { "type": "string", "minLength": 1 },
+              "expires_at": { "type": "string", "format": "date-time" }
+            },
+            "required": ["target", "id", "principal", "expires_at"],
+            "additionalProperties": false
+          }
+        },
+        "refused": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+              "reason": { "type": "string", "minLength": 1 }
+            },
+            "required": ["target", "reason"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["covered", "refused"],
+      "additionalProperties": false
     }
   },
   "$defs": {

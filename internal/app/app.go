@@ -328,6 +328,10 @@ type CheckOptions struct {
 	// instead of running the engine only when the base config sets run_differential "stage3" and its request is the same on
 	// the same tree (RFC-0005); otherwise they are ignored.
 	Differential DiffAnswers
+	// IntentSHA256 is the bare sha256 of the intent a2dlc run is bound to. A signed authorization (RFC-0007 Part B) names
+	// an intent by this hash; check leaves it empty and an authorization can then name only an intent committed under
+	// .a2dlc/intents/.
+	IntentSHA256 string
 	// ReportPath, when set, is where the receipt goes instead of .a2dlc/verdict.json, and no escalations.json or
 	// verdict.sig is written: the background check of the agent hook (background.go) writes its answer there, so the
 	// receipt verify reads is never one the agent did not ask for.
@@ -583,7 +587,22 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	// An engine target that could not judge a file the candidate's tests executed completely does not make the diff
 	// INCONCLUSIVE (note inconclusive_covered_by_tests); without a tests block, coverage or a clean run nothing changes.
 	coveredByTests := a.testCovered(cfg, baseSha, tree, sources, targets, cov, classified)
-	v.Verdict, v.Targets, v.PendingWaivers = verdict.AggregateCovered(targets, waived, approved, len(errs), critical, coveredByTests)
+	// RFC-0007 Part B: a signed authorization stands in for the approval of a waived engine target (and of nothing else:
+	// tests, check findings and protected paths keep reading approved).
+	var failingWaived []string
+	for _, t := range targets {
+		if t.Verdict == contract.FAIL && waived[t.Target] {
+			failingWaived = append(failingWaived, t.Target)
+		}
+	}
+	authz := a.authorize("", waivers, failingWaived, authInputs{baseRef: baseSha, at: a.Now(), intents: a.intentsOf(opts.IntentSHA256, tree), cfg: cfg})
+	engineApproved := map[string]bool{}
+	for t := range approved {
+		engineApproved[t] = true
+	}
+	authz.mergeInto(engineApproved, map[string]string{})
+	v.Authorization = authz.report(opts.IntentSHA256)
+	v.Verdict, v.Targets, v.PendingWaivers = verdict.AggregateCovered(targets, waived, engineApproved, len(errs), critical, coveredByTests)
 	v.BaseRef, v.TreeHash, v.OutOfScope, v.EngineErrors = baseSha, treePrefix+tree, oos, errs
 	v.DiffBudget = diffBudget
 	if cfg.Tests != nil {
@@ -857,6 +876,7 @@ func (a App) Verify(commit string) ([]string, error) {
 		return nil, err
 	}
 	approved, reason := a.approved(tree, waivers, approvals)
+	a.authorizeReceipt(sha, tree, v, waivers, nil).mergeInto(approved, reason)
 	probs = append(probs, a.noteProblems(v)...)
 	waived := []string{}
 	for _, t := range v.Targets {

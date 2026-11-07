@@ -71,6 +71,33 @@ func (l *Ledger) Append(e contract.LedgerEntry) (contract.LedgerEntry, error) {
 	return e, os.WriteFile(l.path, append(b, '\n'), 0o644)
 }
 
+// AppendAuthorizations records the authorizations a check relied on (RFC-0007 Part B). A use already recorded for the same
+// stage, target and signature is not recorded again: a Saboteur round checks the same tree several times.
+func (l *Ledger) AppendAuthorizations(uses []contract.LedgerAuthorization) error {
+	added := false
+	for _, u := range uses {
+		dup := false
+		for _, old := range l.doc.AuthorizationsUsed {
+			dup = dup || (old.Stage == u.Stage && old.Target == u.Target && old.Authorization.Signature == u.Authorization.Signature)
+		}
+		if !dup {
+			l.doc.AuthorizationsUsed = append(l.doc.AuthorizationsUsed, u)
+			added = true
+		}
+	}
+	if !added {
+		return nil
+	}
+	b, err := json.MarshalIndent(l.doc, "", " ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(l.path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(l.path, append(b, '\n'), 0o644)
+}
+
 func hashEntry(e contract.LedgerEntry) string {
 	e.Hash = ""
 	b, _ := json.Marshal(e)

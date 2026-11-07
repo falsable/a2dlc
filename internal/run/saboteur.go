@@ -331,7 +331,7 @@ func (m *Machine) judgeLoop(ctx context.Context, opts app.CheckOptions, artV str
 	var v contract.Verdict
 	for {
 		var err error
-		if v, err = m.app.CheckWith(ctx, m.baseSha, opts); err != nil {
+		if v, err = m.checkWith(ctx, "4", opts); err != nil {
 			return v, "", err
 		}
 		if err := m.seal(&v); err != nil {

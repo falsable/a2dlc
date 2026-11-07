@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/falsable/a2dlc/internal/app"
+	"github.com/falsable/a2dlc/internal/approval"
 	"github.com/falsable/a2dlc/internal/contract"
 )
 
@@ -352,6 +353,67 @@ func (m *Machine) writeArtifact(name string, v any) (string, error) {
 	return name, os.WriteFile(filepath.Join(m.dir, name), append(b, '\n'), 0o644)
 }
 
+// checkWith is the check of a stage of the run. It binds the check to the run's intent, so that a signed authorization
+// (RFC-0007 Part B) can name it by hash, and it records in the ledger each authorization the check relied on to let a
+// waived target pass without an approval.
+func (m *Machine) checkWith(ctx context.Context, stage string, opts app.CheckOptions) (contract.Verdict, error) {
+	if b, err := os.ReadFile(filepath.Join(m.dir, ArtIntent)); err == nil {
+		opts.IntentSHA256 = app.IntentHash(b)
+	}
+	v, err := m.app.CheckWith(ctx, m.baseSha, opts)
+	if err != nil {
+		return v, err
+	}
+	used, err := m.app.LedgerAuthorizations(v, stage, m.now())
+	if err != nil {
+		return v, err
+	}
+	return v, m.ledger.AppendAuthorizations(used)
+}
+
+// authorizationProblems checks again each authorization the ledger says the run relied on: the signature in its own
+// namespace against the allowed signers (never the repo), that the target is one the authorization names, a decision an
+// authorization can carry, and that it had not expired when it was used. The records are not in the hash chain, so this
+// is as strong as the rest of the folder: it rejects a run that relied on something invalid, not a ledger that hides the reliance.
+func authorizationProblems(lg contract.RunLedger) []string {
+	if len(lg.AuthorizationsUsed) == 0 {
+		return nil
+	}
+	signers, cleanup, err := approval.AllowedSigners()
+	defer cleanup()
+	if err != nil || signers == "" {
+		return []string{"the ledger records authorizations used, but no allowed signers are configured: none of them can be checked"}
+	}
+	var problems []string
+	for _, u := range lg.AuthorizationsUsed {
+		au := u.Authorization
+		label := "authorization used for " + u.Target + " (stage " + u.Stage + "): "
+		named := false
+		for _, t := range au.Targets {
+			named = named || t == u.Target
+		}
+		if !named {
+			problems = append(problems, label+"it does not name that target")
+		}
+		if au.Decision != contract.EnforceNewBehavior && au.Decision != contract.PreserveLegacy {
+			problems = append(problems, label+"decision "+au.Decision+" cannot be pre-authorized")
+		}
+		used, errUse := time.Parse(timeRFC, u.At)
+		expires, errExp := time.Parse(timeRFC, au.ExpiresAt)
+		switch {
+		case errUse != nil || errExp != nil:
+			problems = append(problems, label+"the time of use or the expiry is not a date")
+		case used.After(expires):
+			problems = append(problems, label+"it had expired at "+au.ExpiresAt+" when it was used at "+u.At)
+		}
+		text := approval.AuthorizationPayload(au.BaseRef, au.IntentSHA256, au.Decision, au.ExpiresAt, au.Targets)
+		if err := approval.VerifyAuthorization(signers, au.Principal, text, au.Signature); err != nil {
+			problems = append(problems, label+err.Error())
+		}
+	}
+	return problems
+}
+
 // VerifyRun re-reads a slice's state.json and ledger.json and checks the ledger's chain, that it does not record less
 // spend than state.json (deleted or truncated), and the artifacts of the stages that left one (done, but also escalated
 // or failed). It returns the problems; empty means ok. Honest limit: the chain has no anchor outside the folder, so
@@ -378,6 +440,7 @@ func VerifyRun(a app.App, slice string) ([]string, error) {
 		} else if missing := ledgerWithLessSpend(st.Budget, spendOfLedger(lg.Entries)); missing != "" {
 			problems = append(problems, "ledger with fewer launches than state.json (truncated): "+missing)
 		}
+		problems = append(problems, authorizationProblems(lg)...)
 	} else if b := st.Budget; b.SpentUSD > 0 || b.UnreportedRoles > 0 || len(b.ByRole) > 0 {
 		// a run without roles launches nothing and has no ledger; with spend or roles without a report, the ledger must exist
 		problems = append(problems, "ledger.json is missing but state.json records launches")
