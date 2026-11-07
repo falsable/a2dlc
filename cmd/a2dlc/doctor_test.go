@@ -24,6 +24,9 @@ func (downProbe) DockerReachable(context.Context) error { return errors.New("dae
 func (downProbe) ImagePresent(context.Context, string) (bool, error) {
 	return false, errors.New("daemon is down")
 }
+func (downProbe) UnresolvedImports(context.Context, string, string, []string) (map[string][]string, error) {
+	return nil, nil
+}
 func (downProbe) BinaryVersion(context.Context, string) (string, error) {
 	return "", errors.New("no such binary")
 }

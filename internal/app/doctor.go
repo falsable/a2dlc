@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -20,6 +21,9 @@ type DoctorProbe interface {
 	DockerReachable(ctx context.Context) error
 	ImagePresent(ctx context.Context, ref string) (bool, error)
 	BinaryVersion(ctx context.Context, path string) (string, error)
+	// UnresolvedImports says which top-level modules the repo's Python files import that the image cannot resolve
+	// (module → files), asking the engine's own resolver inside the image, with no network.
+	UnresolvedImports(ctx context.Context, image, repoDir string, files []string) (map[string][]string, error)
 }
 
 // DoctorJSON is the report as the contract's document; the CLI's --json and the MCP tool print this same text.
@@ -73,6 +77,7 @@ func (a App) Doctor(ctx context.Context, exe string) (contract.Doctor, error) {
 	if cfgOK {
 		a.doctorEngines(cfg, add)
 		a.doctorDocker(ctx, cfg, add)
+		a.doctorImports(ctx, cfg, add)
 	}
 	a.doctorSigners(cfg, cfgOK, add)
 	d.OK = !d.Blocking()
@@ -312,4 +317,58 @@ func (a App) doctorSigners(cfg contract.Config, cfgOK bool, add addFinding) {
 		}
 		add("signers.ok", contract.DoctorInfo, "", fmt.Sprintf("%d allowed signer(s) configured", keys), "")
 	}
+}
+
+// maxImportProbeFiles bounds the sample doctor sends to the engine image: the probe parses every file it is given.
+const maxImportProbeFiles = 400
+
+// doctorImports: the Python engine's image can import what the repo's Python files import. A missing third-party module
+// makes every target of those files INCONCLUSIVE "could not import", which reads as code the engine cannot judge
+// (a2dlc-pe6.6). It only asks when Docker answered and the image is local; the Docker findings already say otherwise.
+func (a App) doctorImports(ctx context.Context, cfg contract.Config, add addFinding) {
+	if a.Probe == nil {
+		return
+	}
+	var image string
+	for _, e := range cfg.Engines {
+		if strings.EqualFold(e.Language, "python") {
+			image = e.Image
+			break
+		}
+	}
+	if image == "" || a.Probe.DockerReachable(ctx) != nil {
+		return
+	}
+	if present, err := a.Probe.ImagePresent(ctx, image); err != nil || !present {
+		return
+	}
+	var files []string
+	for _, f := range a.sourceFiles() {
+		if strings.HasSuffix(f, ".py") && len(files) < maxImportProbeFiles {
+			files = append(files, f)
+		}
+	}
+	if len(files) == 0 {
+		return
+	}
+	missing, err := a.Probe.UnresolvedImports(ctx, image, a.Repo.Dir, files)
+	if err != nil {
+		add("engines.imports_not_checked", contract.DoctorWarning, image, "could not ask the python engine image which imports it resolves: "+err.Error(), "run docker run --rm --entrypoint python "+image+" -c 'import engine' to see why")
+		return
+	}
+	if len(missing) == 0 {
+		add("engines.imports_ok", contract.DoctorInfo, image, fmt.Sprintf("the python engine image resolves the third-party imports of %d Python file(s)", len(files)), "")
+		return
+	}
+	names := make([]string, 0, len(missing))
+	for m := range missing {
+		names = append(names, m)
+	}
+	sort.Strings(names)
+	shown := names
+	if len(shown) > 8 {
+		shown = append(append([]string{}, shown[:8]...), fmt.Sprintf("and %d more", len(names)-8))
+	}
+	add("engines.imports_unresolved", contract.DoctorWarning, image, fmt.Sprintf("the python engine image %s cannot import %s, which the repo's Python files import: every target in those files is INCONCLUSIVE (could not import), not code the engine cannot judge",
+		image, strings.Join(shown, ", ")), "run a2dlc install (builds an engine image from requirements*.txt or pyproject dependencies; --dev-deps adds requirements-dev.txt), or install the packages in your own image derived from "+enginePyImage)
 }

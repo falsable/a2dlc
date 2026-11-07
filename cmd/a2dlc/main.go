@@ -80,7 +80,8 @@ const usage = `usage: a2dlc <command>
           false, irrelevant, open. list [--open] [--json]: the finding ids. label --id <id> --as false|irrelevant --by <name> [--reason <text>]
           [--json]: the only way a finding becomes false or irrelevant (0 written, 1 no such finding, 2 record unreadable, 64 bad usage)
   hook    <claude|gemini>          adapter for the agent's end-of-turn hook
-  install [--agent claude] [--agent gemini]   config, .gitignore, pre-push and agent hooks
+  install [--agent claude] [--agent gemini] [--no-derive-image] [--dev-deps]   config, .gitignore, pre-push and agent hooks;
+          a Python repo with requirements*.txt or pyproject dependencies gets an engine image derived from them (needs the network once)
   doctor  [--json]                 health check of this repo's setup: pre-push hook binary, config version, engines declared vs
           detected, engine images, Docker, allowed signers. Each finding has a stable id, a severity (blocking, warning, info)
           and a fix; --json prints them (contracts/doctor.schema.json), for an agent. It repairs nothing and writes nothing.
@@ -114,7 +115,7 @@ func run(args []string) int {
 		return 64
 	}
 	a := app.App{Repo: repo, Runner: engine.Docker{CopyIn: engine.CopyInDefault}, Tests: engine.DockerTests{CopyIn: engine.CopyInDefault},
-		Checks: engine.DockerChecks{}, Version: version, Now: time.Now, Memo: app.NewEngineMemo(), Probe: engine.HostProbe{}}
+		Checks: engine.DockerChecks{}, Version: version, Now: time.Now, Memo: app.NewEngineMemo(), Probe: engine.HostProbe{}, Builder: engine.DockerBuilder{}}
 	ctx := context.Background()
 	if args[0] == "check" || args[0] == "verify" {
 		warnHookBinary(a, os.Stderr)
@@ -175,6 +176,9 @@ func run(args []string) int {
 		}
 		fmt.Printf("%s: %d targets, %d tests judged, %d out of scope, %d changed lines examined and %d not examined, %d waivers pending, %d engines with errors\n",
 			v.Verdict, len(v.Targets), len(v.Tests), len(v.OutOfScope), covered, without, len(v.PendingWaivers), len(v.EngineErrors))
+		if n := app.CouldNotImportNote(v); n != "" {
+			fmt.Println(n)
+		}
 		if sig, err := a.VerdictSignature(); err == nil {
 			fmt.Println("note:", sig.Line())
 		}
@@ -409,6 +413,8 @@ func run(args []string) int {
 	case "install":
 		var agents list
 		fs.Var(&agents, "agent", "claude or gemini (repeatable)")
+		noDerive := fs.Bool("no-derive-image", false, "do not build a Python engine image with the repo's dependencies")
+		devDeps := fs.Bool("dev-deps", false, "also install the repo's dev requirements (requirements-dev.txt) in the derived engine image")
 		if fs.Parse(args[1:]) != nil {
 			return 64
 		}
@@ -424,6 +430,13 @@ func run(args []string) int {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "a2dlc install:", err)
 			return 1
+		}
+		derived, derivedWarnings := a.DeriveEngineImage(ctx, app.DeriveOptions{Skip: *noDerive, Dev: *devDeps})
+		for _, m := range derived {
+			fmt.Println("a2dlc install:", m)
+		}
+		for _, w := range derivedWarnings {
+			fmt.Fprintln(os.Stderr, "a2dlc install: warning:", w)
 		}
 		if w, ok := a.CoverageWarning(); ok {
 			fmt.Fprintln(os.Stderr, "a2dlc install: warning:", w)

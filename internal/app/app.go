@@ -43,6 +43,8 @@ type App struct {
 	Memo *EngineMemo
 	// Probe is what doctor asks of the host (Docker, the hook's binary); nil makes doctor skip those checks, saying so.
 	Probe DoctorProbe
+	// Builder builds the engine image that install derives from the repo's dependencies; nil makes install say so and keep the base image.
+	Builder ImageBuilder
 }
 
 func (a App) path(rel string) string { return filepath.Join(a.Repo.Dir, filepath.FromSlash(rel)) }
