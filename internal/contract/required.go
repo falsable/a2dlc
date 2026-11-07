@@ -72,6 +72,7 @@ var schemaOf = map[reflect.Type]string{
 	reflect.TypeFor[LemmasResponse]():        "engine-lemmas-response.schema.json",
 	reflect.TypeFor[DepsResponse]():          "engine-deps-response.schema.json",
 	reflect.TypeFor[GoldenResponse]():        "engine-golden-response.schema.json",
+	reflect.TypeFor[Proposals]():             "proposals.schema.json",
 	reflect.TypeFor[TracesResponse]():        "engine-traces-response.schema.json",
 	reflect.TypeFor[IndexerResponse]():       "indexer-response.schema.json",
 	reflect.TypeFor[Doctor]():                "doctor.schema.json",

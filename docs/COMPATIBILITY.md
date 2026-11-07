@@ -80,10 +80,10 @@ An agent that drives `a2dlc` branches on the exit code, so the codes are part of
 | `plan` | 1 | plan check: not valid. plan run: the plan was refused. propose, replan, import: not written. |
 | `plan` | 2 | plan run: escalated. Any subcommand: a2dlc itself failed. |
 | `plan` | 64 | Bad usage: missing or unknown subcommand or flag, or an unreadable plan or intent file. |
-| `propose` | 0 | The role answered (status ok). |
+| `propose` | 0 | The role answered (status ok). --from-escalations: done, also with nothing new to propose. |
 | `propose` | 1 | The role did not give an answer that holds (status is not ok). |
-| `propose` | 2 | a2dlc itself failed. |
-| `propose` | 64 | Bad usage: missing --out or unknown flag. |
+| `propose` | 2 | a2dlc itself failed (--from-escalations: an unreadable escalations.json, waivers.json or record). |
+| `propose` | 64 | Bad usage: missing --out or unknown flag, or --from-escalations with --base. |
 | `answer` | 0 | The answer was recorded. |
 | `answer` | 2 | The run or the probe is not answerable. |
 | `answer` | 64 | Bad usage: a flag is missing. |

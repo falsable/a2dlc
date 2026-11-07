@@ -1,0 +1,23 @@
+{
+ "schema_version": 1,
+ "created_at": "2026-11-07T10:00:00Z",
+ "proposals": [
+  {
+   "hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+   "target": "pricing.py::apply_discount",
+   "property": "For apply_discount(price=0, pct=100) the function returns 0, as on the base; a candidate that returns -1 there was found by an earlier run.",
+   "file": "pricing.py",
+   "source": { "escalation_id": "esc-0123456789ab", "kind": "behavior_divergence" },
+   "probe": {
+    "id": "ESC-1",
+    "description": "apply_discount keeps the base's result for price=0, pct=100",
+    "input": "price=0, pct=100",
+    "expected": "0",
+    "kind": "example"
+   }
+  }
+ ],
+ "skipped": [
+  { "escalation_id": "esc-0123456789ac", "target": "pricing.py::round_cents", "reason": "a waiver enforce_new_behavior covers the target: the change is intended" }
+ ]
+}

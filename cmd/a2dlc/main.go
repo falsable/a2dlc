@@ -44,6 +44,11 @@ const usage = `usage: a2dlc <command>
   propose [--base <ref>] --out <empty dir outside the repo>
           asks the propose_properties role (roles.json) for the properties of the change from base to the working tree;
           prints the outcome as JSON (0 ok, 1 otherwise). Nothing is written into the repo; the answer goes to --out.
+  propose --from-escalations --out <empty dir outside the repo>
+          no role call: the counterexamples that earlier runs left in .a2dlc/escalations.json and .a2dlc/run/*/escalations.json
+          become properties for the next intent (proposals.json in --out, contracts/proposals.schema.json). Deduplicated by
+          the hash of target, args and old output against .a2dlc/reports/proposals.jsonl; a target waived with
+          enforce_new_behavior is left out. It proposes only: it never edits an intent. 0 done (also with nothing new), 2 failed.
   run     --slice <id> [--intent <intent.json>] [--mode lite|refactor|greenfield|brownfield_facade] [--base <ref>]
           [--max-cost-usd <n>] [--max-rounds <n>] [--max-inner <n>] [--max-spec-rounds <n>] [--z3-image <img>] [--json]
           runs (or resumes) the protocol's state machine over a slice: Stages -1..5, roles from .a2dlc/roles.json
@@ -344,12 +349,27 @@ func run(args []string) int {
 	case "propose":
 		base := fs.String("base", "", "commit base (default: the upstream, else the fork point from origin's default branch, else HEAD)")
 		out := fs.String("out", "", "empty folder outside the repository where the role's answer goes (required)")
+		fromEsc := fs.Bool("from-escalations", false, "propose properties from the counterexamples of earlier runs (no role call)")
 		if fs.Parse(args[1:]) != nil {
 			return 64
 		}
 		if *out == "" {
 			fmt.Fprintln(os.Stderr, "a2dlc propose: --out is required")
 			return 64
+		}
+		if *fromEsc {
+			if *base != "" {
+				fmt.Fprintln(os.Stderr, "a2dlc propose: --from-escalations reads earlier runs, not a change: --base does not apply")
+				return 64
+			}
+			doc, err := runProposeFromEscalations(a, *out, time.Now())
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "a2dlc propose:", err)
+				return 2
+			}
+			b, _ := json.MarshalIndent(doc, "", "  ")
+			fmt.Println(string(b))
+			return 0
 		}
 		res, err := runPropose(ctx, a, a2run.DockerLauncher{}, *base, *out)
 		if err != nil {

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/proposals.schema.json",
+  "title": "Properties that past escalations propose for the next intent (a2dlc propose --from-escalations, written to --out, never into the repo)",
+  "description": "schema_version 1. a2dlc propose --from-escalations reads the counterexamples of earlier runs of the same repo (.a2dlc/escalations.json and .a2dlc/run/*/escalations.json) and turns each one into a property that the next intent could carry: for the arguments of the counterexample the function keeps returning what the base returned. It calls no role. Nothing here is approved: a person (or a signed pre-authorization) decides what goes into the intent; the command never edits an intent. hash is sha256 of target, args and old (each followed by a NUL byte, args and old as the engine wrote them): the same counterexample found by check and by run is one proposal, and a hash already in .a2dlc/reports/proposals.jsonl is not proposed again. probe is the slice-contract probe of that case (kind example, input the arguments, expected the base's result); it has no file or expr, so Tier 0 does not run it until someone writes the assertion in the engine's language. skipped lists what was read and left out, with the reason.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "proposals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "hash": { "$ref": "run-defs.schema.json#/$defs/sha256" },
+          "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+          "property": { "type": "string", "minLength": 1 },
+          "file": { "type": "string", "minLength": 1, "description": "The file of the target: where the property belongs." },
+          "source": {
+            "type": "object",
+            "properties": {
+              "escalation_id": { "type": "string", "pattern": "^esc-[0-9a-f]{12}$" },
+              "kind": { "const": "behavior_divergence" }
+            },
+            "required": ["escalation_id", "kind"],
+            "additionalProperties": false
+          },
+          "probe": { "$ref": "slice-contract.schema.json#/$defs/probe" }
+        },
+        "required": ["hash", "target", "property", "file", "source", "probe"],
+        "additionalProperties": false
+      }
+    },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "escalation_id": { "type": "string", "pattern": "^esc-[0-9a-f]{12}$" },
+          "target": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 }
+        },
+        "required": ["escalation_id", "target", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["schema_version", "created_at", "proposals", "skipped"],
+  "additionalProperties": false
+}
