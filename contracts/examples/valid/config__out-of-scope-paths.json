@@ -1,0 +1,3 @@
+{"schema_version": 1,
+ "engines": [{"language": "python", "image": "a2dlc-engine-py:0.13", "paths": ["app/**"], "budget": {"per_condition_timeout_s": 10}}],
+ "out_of_scope_paths": ["scripts/**", "cmd/**/*.go"]}

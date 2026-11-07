@@ -540,6 +540,7 @@ The `engine` field names one of the engines the schema lists today (`fast-check`
    - `coverage.files[].uncovered` is not empty for some file: a changed line in scope that no engine examined and no test executed. Lines in `coverage.files[].noted` do not count.
    - `diff_budget.cut` is not empty: a function the time budget skipped was not judged.
    - A path matched by `config.protected_paths` changed and has no valid approval.
+   - A changed file with a source-code extension is in `out_of_scope` with reason `no_engine`: no engine judged it. A producer declares the exception in `config.out_of_scope_paths`; a file it matches is recorded with reason `excluded_by_config` and does not lower the verdict. A `no_engine` entry for a doc, data, config or test file does not lower it either. The set of source extensions is the producer's, so a verifier cannot recompute this condition from `out_of_scope` alone and takes the receipt's `INCONCLUSIVE` as given.
 3. Otherwise `PASS`.
 
 `FAIL` wins over `INCONCLUSIVE`; the conditions in item 2 never turn a `FAIL` into `INCONCLUSIVE`. A check lowers the verdict and never raises it. A waived `FAIL` does not count toward `FAIL`, signed or not; an unsigned one is listed in `pending_waivers`, and a verifier refuses it (§6.4.8).

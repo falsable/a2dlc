@@ -123,7 +123,7 @@ func TestInstallWarnsOfSourceNoEngineCovers(t *testing.T) {
 	if got := languages(c); len(got) != 1 || got[0] != "python" {
 		t.Fatalf("engines = %v, want [python]", got)
 	}
-	for _, want := range []string{"3 Go files (.go)", "2 JavaScript files (.js: 1, .jsx: 1)", "out of scope", "config.critical_code"} {
+	for _, want := range []string{"3 Go files (.go)", "2 JavaScript files (.js: 1, .jsx: 1)", "INCONCLUSIVE", "never PASS", "config.out_of_scope_paths"} {
 		if !strings.Contains(w, want) {
 			t.Errorf("warning does not contain %q:\n%s", want, w)
 		}
