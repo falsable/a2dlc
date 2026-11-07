@@ -33,7 +33,7 @@ const usage = `usage: a2dlc <command>
           every turn: it runs no test, informs and never blocks, writes .a2dlc/reports/level0.json and exits 0 (2 only if a2dlc itself fails)
   plan check --plan <plan.json> --intent <feature intent.json> [--base <ref>] [--json]
           judges a feature plan (RFC-0008) before any Builder runs: 0 valid, 1 not valid, 64 bad usage; --json for an agent
-  plan run --plan <plan.json> --intent <feature intent.json> [--base <ref>] [--jobs N] [--max-replan N] [--json]
+  plan run --plan <plan.json> --intent <feature intent.json> [--base <ref>] [--jobs N] [--max-replan N] [--max-cost-usd <n>] [--json]
           runs (or resumes) a valid plan: each slice an a2dlc run in its own worktree, side by side when their files are
           disjoint, as many at once as the host and the Docker daemon hold (measured; --jobs or A2DLC_PLAN_JOBS sets it),
           then a final check of the merge (.a2dlc/run/_plan/<feature>/state.json; 0 PASS, 2 escalated, 1 plan refused).
@@ -45,7 +45,7 @@ const usage = `usage: a2dlc <command>
           asks the propose_properties role (roles.json) for the properties of the change from base to the working tree;
           prints the outcome as JSON (0 ok, 1 otherwise). Nothing is written into the repo; the answer goes to --out.
   run     --slice <id> [--intent <intent.json>] [--mode lite|refactor|greenfield|brownfield_facade] [--base <ref>]
-          [--max-cost-usd <n>] [--max-rounds <n>] [--max-inner <n>] [--max-spec-rounds <n>] [--z3-image <img>]
+          [--max-cost-usd <n>] [--max-rounds <n>] [--max-inner <n>] [--max-spec-rounds <n>] [--z3-image <img>] [--json]
           runs (or resumes) the protocol's state machine over a slice: Stages -1..5, roles from .a2dlc/roles.json
           in their own containers, state and ledger in .a2dlc/run/<slice>/ (0 PASS, 1 FAIL, 2 INCONCLUSIVE or escalated).
           --intent: the Stage 0 (goal, criticality, critical_paths, budget); the run is bound to that file.
@@ -53,6 +53,7 @@ const usage = `usage: a2dlc <command>
           --max-inner (Tier 0 loop, 5), --max-cost-usd (CB-03, no cap; on resume, raises the saved cap)
           --max-spec-rounds: Specifier α/β and Inquisitor rounds in Stage 1 before escalating (2 by default)
           --z3-image: z3 engine of Stage 1.5 (a2dlc-engine-z3:0.1 by default; empty leaves it skipped)
+          --json: prints the run's state (contracts/run-state.schema.json) instead of the stage lines, for an agent
   verify-run --slice <id>          recalculates the ledger chain and the run's artifacts (0 passes, 1 does not)
   verify  [--commit HEAD] [--strict]  the pre-push, without running engines: blocks (exit 1) only on evidence, a FAIL or critical
           or protected code left unjudged; no receipt, a stale one or an INCONCLUSIVE one are warnings. --strict blocks on anything but a PASS receipt for this tree
@@ -206,6 +207,7 @@ func run(args []string) int {
 		inner := fs.Int("max-inner", 0, fmt.Sprintf("Tier 0 loop iterations in Stage 3 (0 = the intent's, or %d)", a2run.MaxInnerDefault))
 		specRounds := fs.Int("max-spec-rounds", a2run.MaxSpecRoundsDefault, "Specifier α/β and Inquisitor rounds in Stage 1 before escalating")
 		z3Image := fs.String("z3-image", "a2dlc-engine-z3:0.1", "z3 engine image for Stage 1.5 (empty: Z3 is skipped)")
+		asJSON := fs.Bool("json", false, "print the run's state as JSON instead of the stage lines, for an agent")
 		if fs.Parse(args[1:]) != nil || *slice == "" {
 			fmt.Fprintln(os.Stderr, "a2dlc run: missing --slice")
 			return 64
@@ -220,18 +222,22 @@ func run(args []string) int {
 			fmt.Fprintln(os.Stderr, "a2dlc run:", err)
 			return 2
 		}
-		for _, s := range st.Stages {
-			reason := ""
-			if s.Reason != "" {
-				reason = ": " + s.Reason
-			}
-			fmt.Printf("  stage %-4s %-9s%s\n", s.ID, s.Status, reason)
-		}
 		out := "no verdict"
 		if st.Outcome != nil {
 			out = *st.Outcome
 		}
-		fmt.Printf("%s: run %s, slice %s, %.4f USD reported (%d roles without a report)\n", out, st.RunID, st.SliceID, st.Budget.SpentUSD, st.Budget.UnreportedRoles)
+		if *asJSON {
+			json.NewEncoder(os.Stdout).Encode(st)
+		} else {
+			for _, s := range st.Stages {
+				reason := ""
+				if s.Reason != "" {
+					reason = ": " + s.Reason
+				}
+				fmt.Printf("  stage %-4s %-9s%s\n", s.ID, s.Status, reason)
+			}
+			fmt.Printf("%s: run %s, slice %s, %.4f USD reported (%d roles without a report)\n", out, st.RunID, st.SliceID, st.Budget.SpentUSD, st.Budget.UnreportedRoles)
+		}
 		if out == "escalated" {
 			return 2
 		}

@@ -81,6 +81,8 @@ with `--implementation <its name>` and it is judged on what the vectors say, so 
   enforce `required`, `enum` or `pattern` (bead a2dlc-5fq). RFC §6.4.11 lists this and the other places where the reference is
   more lenient than the schemas.
 
+A producer's `check` also writes `.a2dlc/escalations.json`, which agents read as an API. When the file exists the runner validates it against `contracts/escalation.schema.json` and requires it to name the receipt's tree; a producer that writes none is not failed.
+
 ## What the kit does not cover
 
 - A verifier is judged on `verify --commit HEAD` in a repository with no remote. The `base_unpushed` problem and the pre-push hook

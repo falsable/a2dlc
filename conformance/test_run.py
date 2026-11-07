@@ -30,3 +30,37 @@ class KnownFailure(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EscalationsAreChecked(unittest.TestCase):
+    """A producer that writes .a2dlc/escalations.json is failed when it does not validate or judges another tree."""
+
+    TREE = "git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+    def problems(self, doc):
+        with run.tempfile.TemporaryDirectory() as d:
+            if doc is not None:
+                run.os.makedirs(run.os.path.join(d, ".a2dlc"))
+                Path(d, ".a2dlc", "escalations.json").write_text(doc if isinstance(doc, str) else run.json.dumps(doc), encoding="utf-8")
+            return run.escalation_problems(d, {"tree_hash": self.TREE})
+
+    def valid(self, **over):
+        return dict({"schema_version": 1, "tree_hash": self.TREE, "created_at": "2026-11-07T10:00:00Z", "items": []}, **over)
+
+    ITEM = {"id": "esc-0123456789ab", "kind": "tooling", "target": "a.py::f", "summary": "s", "evidence": {}, "resolve_with": []}
+
+    def test_a_valid_document_passes(self):
+        self.assertEqual(self.problems(self.valid()), [])
+        self.assertEqual(self.problems(self.valid(items=[self.ITEM])), [])
+
+    def test_no_document_is_not_a_failure(self):
+        self.assertEqual(self.problems(None), [])
+
+    def test_a_kind_outside_the_schema_fails(self):
+        self.assertTrue(any("does not validate" in p for p in self.problems(self.valid(items=[dict(self.ITEM, kind="made_up")]))))
+
+    def test_another_tree_fails(self):
+        self.assertTrue(any("judges" in p for p in self.problems(self.valid(tree_hash="git-tree:" + "0" * 40))))
+
+    def test_not_json_fails(self):
+        self.assertTrue(any("not JSON" in p for p in self.problems("{")))

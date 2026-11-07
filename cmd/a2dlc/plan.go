@@ -20,7 +20,7 @@ import (
 
 const planUsage = `usage: a2dlc plan <check|run|propose|replan|import> ...
   plan check   --plan <plan.json> --intent <feature.json> [--base <ref>] [--json]
-  plan run     --plan <plan.json> --intent <feature.json> [--base <ref>] [--jobs N] [--max-replan N] [--rounds N] [--json]
+  plan run     --plan <plan.json> --intent <feature.json> [--base <ref>] [--jobs N] [--max-replan N] [--rounds N] [--max-cost-usd <n>] [--json]
   plan propose --intent <feature.json> --out <plan.json> [--base <ref>] [--rounds N] [--json]
   plan replan  --plan <plan.json> --intent <feature.json> --slice <id> --out <plan.json> [--reason <text>] [--base <ref>] [--rounds N]
   plan import  --from <tasks.md|tasks.json> --intent <feature.json> --out <plan.json> [--format speckit|taskmaster] [--tag <tag>] [--base <ref>]`
@@ -53,6 +53,7 @@ func planCommand(ctx context.Context, a app.App, repo gitx.Repo, args []string) 
 	jobs := fs.Int("jobs", 0, "run: slices at once (0: measured from the host and the Docker daemon; A2DLC_PLAN_JOBS also sets it)")
 	maxReplan := fs.Int("max-replan", 1, "run: replans the plan may propose for slices whose Builders were exhausted (CB-02b); 0 never")
 	z3Image := fs.String("z3-image", "a2dlc-engine-z3:0.1", "run: z3 engine image for Stage 1.5 of each slice (empty: Z3 is skipped)")
+	maxCost := fs.Float64("max-cost-usd", 0, "run: CB-03 cost cap of each slice's run (0 = the slice intent's, or no cap)")
 	slice := fs.String("slice", "", "replan: the slice to split")
 	reason := fs.String("reason", "", "replan: why its Builders were exhausted (default: what the plan's state recorded)")
 	from := fs.String("from", "", "import: the tasks file")
@@ -99,7 +100,7 @@ func planCommand(ctx context.Context, a app.App, repo gitx.Repo, args []string) 
 	case "check":
 		return report(plan.Check(p, f, files), p, *asJSON)
 	case "run":
-		return planRun(ctx, a, repo, *planPath, planBytes, p, f, sha, files, *z3Image, *jobs, *maxReplan, *rounds, *asJSON)
+		return planRun(ctx, a, repo, *planPath, planBytes, p, f, sha, files, *z3Image, *maxCost, *jobs, *maxReplan, *rounds, *asJSON)
 	case "propose", "replan":
 		pl, code := planner(name, a, *rounds)
 		if code != 0 {
@@ -280,11 +281,12 @@ func stateReason(a app.App, p contract.Plan, slice string) string {
 // replans already proposed and a planner role configured, a slice whose Builders were exhausted (CB-02b) gets a
 // proposed split, written next to the plan: running it is the person's decision.
 func planRun(ctx context.Context, a app.App, repo gitx.Repo, planPath string, planBytes []byte, p contract.Plan, f contract.Intent,
-	base string, files []string, z3Image string, jobs, maxReplan, rounds int, asJSON bool) int {
+	base string, files []string, z3Image string, maxCost float64, jobs, maxReplan, rounds int, asJSON bool) int {
 	opts := a2run.Options{MaxSpecRounds: a2run.MaxSpecRoundsDefault}
 	if z3Image != "" {
 		opts.Z3 = engine.Z3{Image: z3Image}
 	}
+	opts.MaxCostUSD = maxCost
 	cfg, err := a.ConfigAt(base)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "a2dlc plan run:", err)

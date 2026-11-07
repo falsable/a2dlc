@@ -156,7 +156,7 @@ func handleRequest(ctx context.Context, a app.App, req rpcRequest) rpcResponse {
 }
 
 func toolsCatalog() []toolDef {
-	return []toolDef{
+	return append([]toolDef{
 		{
 			Name:        "a2dlc_status",
 			Description: "Inspect the current A2-DLC verification state (.a2dlc/verdict.json and whether its signature .a2dlc/verdict.sig is valid, .a2dlc/escalations.json, .a2dlc/waivers.json) and tree_hash validity without launching Docker containers.",
@@ -313,7 +313,7 @@ func toolsCatalog() []toolDef {
 				"properties": map[string]any{},
 			},
 		},
-	}
+	}, agentToolDefs()...)
 }
 
 func dispatchTool(ctx context.Context, a app.App, params callToolParams) callToolResult {
@@ -386,6 +386,9 @@ func dispatchTool(ctx context.Context, a app.App, params callToolParams) callToo
 	case "a2dlc_format_report":
 		return toolFormatReport(a)
 	default:
+		if res, ok := callAgentTool(ctx, a, params.Name, params.Arguments); ok {
+			return res
+		}
 		return errorResult("unknown tool: " + params.Name)
 	}
 }

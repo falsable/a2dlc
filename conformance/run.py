@@ -242,6 +242,23 @@ def t_verifier(ctx, group, v):
         return problems
 
 
+def escalation_problems(d, receipt):
+    """An agent reads .a2dlc/escalations.json as an API, so a check that writes one must write a document that validates
+    against escalation.schema.json and judges the tree of its receipt. An implementation that writes none is not failed."""
+    path = Path(d, ".a2dlc", "escalations.json")
+    if not path.exists():
+        return []
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as e:
+        return ["escalations.json is not JSON: %s" % e]
+    errs = schema_errors("escalation", doc)
+    problems = ["escalations.json does not validate against escalation.schema.json: %s" % errs] if errs else []
+    if isinstance(doc, dict) and doc.get("tree_hash") != receipt.get("tree_hash"):
+        problems.append("escalations.json judges %r, the receipt %r" % (doc.get("tree_hash"), receipt.get("tree_hash")))
+    return problems
+
+
 def t_producer_check(ctx, group, v):
     with tempfile.TemporaryDirectory(prefix="a2dlc-conf-") as d:
         info = build_repo(d, dict(v["repo"], worktree=True))
@@ -260,6 +277,7 @@ def t_producer_check(ctx, group, v):
             problems.append("the receipt does not validate against verdict.schema.json: %s" % errs)
         if errs is None and ctx.require_schema:
             problems.append("jsonschema is not installed and --require-schema was given")
+        problems += escalation_problems(d, doc)
         want = expand(exp, subs)
         for key in ["verdict", "tree_hash", "base_ref", "pending_waivers"]:
             if key in want and doc.get(key) != want[key]:

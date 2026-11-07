@@ -106,7 +106,7 @@ Plus test gates: *no-op test* detection (passes on the base tree), coverage prec
 | **Claude Code** | `a2dlc install --agent claude` | `.a2dlc/config.json`, `pre-push`, `.claude/settings.json` (`PreToolUse` + `Stop`) |
 | **Gemini CLI / Antigravity** | `a2dlc install --agent gemini` | same + `.gemini/settings.json` (`PreToolUse` + `AfterAgent`) |
 | **Codex / Cursor / Copilot** | `a2dlc install` + [`SKILL.md`](skills/a2dlc/SKILL.md) | `pre-push`; the agent runs `a2dlc check` per the skill |
-| **Any MCP client** | `"a2dlc": { "command": "a2dlc", "args": ["mcp"] }` | `a2dlc_status`, `a2dlc_check`, `a2dlc_verify`, `a2dlc_verify_run`, `a2dlc_format_report` |
+| **Any MCP client** | `"a2dlc": { "command": "a2dlc", "args": ["mcp"] }` | `a2dlc_status`, `a2dlc_check`, `a2dlc_verify`, `a2dlc_verify_run`, `a2dlc_run`, `a2dlc_plan_run`, `a2dlc_approve_pending`, `a2dlc_answer`, `a2dlc_format_report` |
 | **Skill registries** | `npx skills add falsable/a2dlc` · `agy plugin install https://github.com/falsable/a2dlc` | bundled `SKILL.md` |
 
 Or paste this to your agent:
