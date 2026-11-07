@@ -123,7 +123,7 @@ func TestMCPServeProtocolAndTools(t *testing.T) {
 	}
 
 	// 2. Verify tools/list response contains all 6 tools
-	for _, toolName := range []string{"a2dlc_status", "a2dlc_check", "a2dlc_verify", "a2dlc_verify_run", "a2dlc_intent_from_ticket", "a2dlc_intent_from_signal", "a2dlc_format_report", "a2dlc_doctor"} {
+	for _, toolName := range []string{"a2dlc_status", "a2dlc_check", "a2dlc_verify", "a2dlc_verify_run", "a2dlc_intent_from_ticket", "a2dlc_intent_from_signal", "a2dlc_format_report", "a2dlc_doctor", "a2dlc_run", "a2dlc_plan_run", "a2dlc_approve_pending", "a2dlc_answer"} {
 		if !strings.Contains(lines[2], toolName) {
 			t.Fatalf("tools/list missing expected tool %s: %s", toolName, lines[2])
 		}

@@ -126,5 +126,10 @@ Available MCP tools:
 - `a2dlc_verify_run`: Verify the SHA-256 hash-chained `ledger.json` and Stage −1..7 artifacts for a `slice`.
 - `a2dlc_intent_from_ticket`: Convert a ticket or PRD fetched from Jira, Linear, GitHub Issues, GitLab, or Confluence (via Composio or vendor MCP servers) into a schema-validated `.a2dlc/intents/<slice_id>.intent.json` file for Stage 0 (`a2dlc run`).
 - `a2dlc_intent_from_signal`: Close the Stage 7 → Stage 0 loop. A Rollback Sentinel alert (`error_rate_delta`, `latency_p99_ms` or a runtime `invariant` breached on a canary ring of `from_slice`) becomes a schema-validated bugfix intent that inherits the alerted slice's invariants, boundary, delivery and budget cap; the run it starts still stops at probes, circuit breakers and signed waivers.
+- `a2dlc_run`: Run or resume the state machine over a `slice` (`a2dlc run --json`). `max_cost_usd` is required (above zero); the tool refuses without it. Returns `exit_code`, `stdout`, `stderr` and `json` (the run state).
+- `a2dlc_plan_run`: Run or resume a feature plan (`a2dlc plan run --json`) with `plan`, `intent` and a required `max_cost_usd` (the cap of each slice's run).
+- `a2dlc_approve_pending`: List the waivers that wait for a signature (`a2dlc approve --pending --json`). It signs nothing: a person signs with their own key.
+- `a2dlc_answer`: Record a person's answer to a probe of a run (`slice`, `probe`, `choice`, `reason`, `by`).
+- The four tools above launch the CLI itself, so their `exit_code`, `stdout` and `stderr` are the CLI's (codes in `docs/COMPATIBILITY.md`). A tool never asks anything: a refusal is `{"error": {"code", "message", "exit_code": 64}}` with `isError` true.
 - `a2dlc_format_report`: Format `.a2dlc/verdict.json` and counterexamples into a Markdown compliance table ready to post to GitHub PRs, GitLab MRs, Jira, Linear, Slack, or Confluence.
 
