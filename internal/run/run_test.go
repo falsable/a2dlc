@@ -149,7 +149,7 @@ func TestInvokeMountsOnlyVisibleAndRecordsEachAttempt(t *testing.T) {
 			return nil, 0, true // timeout: it is retried
 		}
 		return &contract.RoleResponse{SchemaVersion: 1, RunID: m.state.RunID, Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,
-			Status: contract.RoleOK, Cost: &contract.Cost{USD: 0.05}, Payload: json.RawMessage(`{"ok":true}`)}, 0, false
+			Status: contract.RoleOK, Cost: &contract.Cost{USD: 0.05}, Payload: json.RawMessage(`{"test_files":[],"targets":[]}`)}, 0, false
 	}
 	m.launcher = launcherFake
 	invocation, err := m.Invoke(context.Background(), contract.RoleSaboteur, "4", map[string]any{"uncovered": []int{3}}, "")
@@ -543,7 +543,7 @@ func TestLedgerRecordsTurnsPerCall(t *testing.T) {
 		c := costs[n]
 		n++
 		return &contract.RoleResponse{SchemaVersion: 1, RunID: m.state.RunID, Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,
-			Status: contract.RoleOK, Cost: c, Payload: json.RawMessage(`{}`)}, 0, false
+			Status: contract.RoleOK, Cost: c, Payload: json.RawMessage(`{"test_files":[],"targets":[]}`)}, 0, false
 	}}
 	for i, want := range []int{4, 0} {
 		invocation, err := m.Invoke(context.Background(), contract.RoleSaboteur, "4", nil, "")

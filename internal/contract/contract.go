@@ -621,9 +621,15 @@ type Approvals struct {
 	Approvals     []Approval `json:"approvals"`
 }
 
-// DecodeStrict decodes, rejecting unknown fields, like additionalProperties: false in the schemas.
+// DecodeStrict decodes, rejecting unknown fields (additionalProperties: false in the schemas) and a document that lacks
+// a field its schema requires (required.go), at every depth. v is a pointer to the type of a registered schema; any other
+// type is decoded with the unknown-field check only.
 func DecodeStrict(r io.Reader, v any) error {
-	d := json.NewDecoder(r)
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
 	if err := d.Decode(v); err != nil {
 		return err
@@ -631,7 +637,7 @@ func DecodeStrict(r io.Reader, v any) error {
 	if d.More() {
 		return fmt.Errorf("extra content after the JSON document")
 	}
-	return nil
+	return checkRequired(b, v)
 }
 
 func DecodeStrictBytes(b []byte, v any) error { return DecodeStrict(bytes.NewReader(b), v) }

@@ -295,7 +295,7 @@ func (f *fakeSolver) Solve(_ context.Context, req contract.Z3Request) (contract.
 
 func TestStage15Z3UnsatIsCB02aAndUnknownDoesNotBlock(t *testing.T) {
 	a, dir := repoLite(t)
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],"tests":{"trace_coverage":{"min_branch":0.5}}}`)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],"tests":{"image":"x","paths":["tests/**"],"command":"run","trace_coverage":{"min_branch":0.5}}}`)
 	z := &fakeSolver{states: map[string]string{"mean": contract.Z3Unsat}}
 	m, err := open(a, &fakeLauncher{}, Options{Slice: "calc.media.v1", Mode: contract.ModeRefactor, Z3: z})
 	if err != nil {
@@ -411,7 +411,7 @@ func escalationsOf(t *testing.T, m *Machine) contract.Escalations {
 func TestTraceCoverageGateDecidesOnlyWithADeclaredThreshold(t *testing.T) {
 	const (
 		undeclared = `{"schema_version":1,"engines":[]}`
-		declared   = `{"schema_version":1,"engines":[],"tests":{"trace_coverage":{"min_branch":0.8}}}`
+		declared   = `{"schema_version":1,"engines":[],"tests":{"image":"x","paths":["tests/**"],"command":"run","trace_coverage":{"min_branch":0.8}}}`
 	)
 	c05, c09 := 0.5, 0.9
 	cases := []struct {

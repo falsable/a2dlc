@@ -55,7 +55,7 @@ func TestAnswerNeedsItsFieldsAndAProbe(t *testing.T) {
 func TestAnswerIsBoundToRunAndArtifact(t *testing.T) {
 	a, runDir := liteRun(t)
 	escalations := filepath.Join(runDir, ArtEscalations)
-	if err := os.WriteFile(escalations, []byte(`{"schema_version":1,"items":[{"id":"esc-1"}]}`), 0o644); err != nil {
+	if err := os.WriteFile(escalations, []byte(`{"schema_version":1,"tree_hash":"git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904","created_at":"2026-10-16T12:00:00Z","items":[{"id":"esc-1","kind":"test_without_teeth","target":"tests/test_calc.py::tests.test_calc::test_media_vacia","summary":"The new test passes on the base with stubs: it does not prove the change.","evidence":{"base":"passed","candidate":"passed"},"resolve_with":["characterization_test"]}]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	runID := stateRunID(t, runDir)
@@ -83,10 +83,10 @@ func TestAnswerIsBoundToRunAndArtifact(t *testing.T) {
 	if got, ok, reason, err := m.answerFor("esc-1", ArtEscalations); err != nil || !ok || got.Choice != "beta" || reason != "" {
 		t.Fatalf("applies to its artifact: %v %v %+v %q", err, ok, got, reason)
 	}
-	if err := os.WriteFile(escalations, []byte(`{"schema_version":1,"items":[{"id":"esc-1"}]}`), 0o644); err != nil {
+	if err := os.WriteFile(escalations, []byte(`{"schema_version":1,"tree_hash":"git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904","created_at":"2026-10-16T12:00:00Z","items":[{"id":"esc-1","kind":"test_without_teeth","target":"tests/test_calc.py::tests.test_calc::test_media_vacia","summary":"The new test passes on the base with stubs: it does not prove the change.","evidence":{"base":"passed","candidate":"passed"},"resolve_with":["characterization_test"]}]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(escalations, []byte(`{"schema_version":1,"items":[{"id":"esc-1","summary":"changed after the answer"}]}`), 0o644); err != nil {
+	if err := os.WriteFile(escalations, []byte(`{"schema_version":1,"tree_hash":"git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904","created_at":"2026-10-16T12:00:00Z","items":[{"id":"esc-1","kind":"test_without_teeth","target":"tests/test_calc.py::tests.test_calc::test_media_vacia","summary":"changed after the answer","evidence":{"base":"passed","candidate":"passed"},"resolve_with":["characterization_test"]}]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok, reason, _ := m.answerFor("esc-1", ArtEscalations); ok || !strings.Contains(reason, "escalations.json") {
@@ -106,8 +106,8 @@ func TestAnswerRefusesToDropALiveAnswerOfAnotherArtifact(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	put(ArtEscalations, `{"schema_version":1,"items":[{"id":"esc-1"},{"id":"esc-2"}]}`)
-	put(ArtProbes, `{"schema_version":1,"probes":[{"id":"prb-1"}]}`)
+	put(ArtEscalations, `{"schema_version":1,"tree_hash":"git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904","created_at":"2026-10-16T12:00:00Z","items":[{"id":"esc-1","kind":"test_without_teeth","target":"tests/test_calc.py::tests.test_calc::test_media_vacia","summary":"The new test passes on the base with stubs: it does not prove the change.","evidence":{"base":"passed","candidate":"passed"},"resolve_with":["characterization_test"]},{"id":"esc-2","kind":"test_without_teeth","target":"tests/test_calc.py::tests.test_calc::test_media_vacia","summary":"The new test passes on the base with stubs: it does not prove the change.","evidence":{"base":"passed","candidate":"passed"},"resolve_with":["characterization_test"]}]}`)
+	put(ArtProbes, `{"schema_version":1,"slice_id":"pago.v1","contract_hash":"sha256:5c2b1f6e0a9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b","probes":[{"id":"prb-1","description":"d","input":"f(1)","expected":"1","kind":"example"}]}`)
 	put(ArtContract, `{"schema_version":1}`)
 	for _, probe := range []string{"esc-1", "esc-2"} {
 		if _, err := WriteAnswer(a, "pago.v1", contract.Answer{ProbeID: probe, Choice: "alpha", By: "aldemar", Reason: "x"}); err != nil {
@@ -121,7 +121,7 @@ func TestAnswerRefusesToDropALiveAnswerOfAnotherArtifact(t *testing.T) {
 	if err != nil || !present || len(file.Answers) != 2 {
 		t.Fatalf("the refused write changed the file: %v %+v", err, file)
 	}
-	put(ArtEscalations, `{"schema_version":1,"items":[{"id":"esc-1","summary":"changed after the answers"}]}`)
+	put(ArtEscalations, `{"schema_version":1,"tree_hash":"git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904","created_at":"2026-10-16T12:00:00Z","items":[{"id":"esc-1","kind":"test_without_teeth","target":"tests/test_calc.py::tests.test_calc::test_media_vacia","summary":"changed after the answers","evidence":{"base":"passed","candidate":"passed"},"resolve_with":["characterization_test"]}]}`)
 	if _, err := WriteAnswer(a, "pago.v1", contract.Answer{ProbeID: "prb-1", Choice: "beta", By: "aldemar", Reason: "y"}); err != nil {
 		t.Fatalf("stale answers must not block the write: %v", err)
 	}

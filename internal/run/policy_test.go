@@ -96,7 +96,7 @@ func TestWriteProposeRequestHashesTheInputsAndWritesRequestJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	runID := "run-0123456789ab"
-	req, err := WriteProposeRequest(in, runID, map[string]any{"changed": []string{"f.py"}})
+	req, err := WriteProposeRequest(in, runID, map[string]any{"engine_language": "python", "signatures": []any{}, "diff": ""})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,19 +184,20 @@ func TestValidateProposeResponseChecksIdentityStatusAndPayload(t *testing.T) {
 	}{
 		{"valid", func(m map[string]any) {}, ""},
 		{"another run", func(m map[string]any) { m["run_id"] = "run-ffffffffffff" }, "the response does not answer this request"},
-		{"another role", func(m map[string]any) { m["role"] = "saboteur" }, "the response does not answer this request"},
+		// the schema ties the payload to the role, so a propose payload under another role lacks that role's fields
+		{"another role", func(m map[string]any) { m["role"] = "saboteur" }, "required:$.payload.test_files"},
 		{"another stage", func(m map[string]any) { m["stage"] = "1" }, "the response does not answer this request"},
 		{"another attempt", func(m map[string]any) { m["attempt"] = 2 }, "the response does not answer this request"},
 		{"unknown status", func(m map[string]any) { m["status"] = "maybe" }, `status "maybe" is not ok|refused|error`},
-		{"refused without reason", func(m map[string]any) { m["status"] = "refused" }, "status refused without reason"},
+		{"refused without reason", func(m map[string]any) { m["status"] = "refused" }, "required:$.reason"},
 		{"negative cost", func(m map[string]any) { m["cost"] = map[string]any{"usd": -1} }, "negative cost"},
 		{"payload is a list", func(m map[string]any) { m["payload"] = []any{} }, "payload is not an object"},
 		{"payload is null", func(m map[string]any) { m["payload"] = nil }, "payload is not an object"},
 		{"ok without properties", func(m map[string]any) { m["payload"] = map[string]any{"summary": "x"} },
-			"payload does not match propose_response: properties is required"},
+			"required:$.payload.properties"},
 		{"ok with a property of another shape", func(m map[string]any) {
 			m["payload"] = map[string]any{"properties": []any{map[string]any{"target": "a::b", "property": 1}}}
-		}, anyProposeMismatch},
+		}, "required:$.payload.properties[0].file"},
 		{"ok with an empty property", func(m map[string]any) {
 			m["payload"] = map[string]any{"properties": []any{map[string]any{"target": "a.py::f", "property": " ", "file": "tests/test_a.py"}}}
 		}, "payload does not match propose_response: properties[0].property is empty"},
@@ -220,6 +221,12 @@ func TestValidateProposeResponseChecksIdentityStatusAndPayload(t *testing.T) {
 			if c.reason == anyProposeMismatch {
 				if !strings.HasPrefix(why, "payload does not match propose_response: ") {
 					t.Fatalf("reason = %q, want a propose_response mismatch", why)
+				}
+				return
+			}
+			if path, ok := strings.CutPrefix(c.reason, "required:"); ok {
+				if !strings.Contains(why, "required field missing") || !strings.Contains(why, path) {
+					t.Fatalf("reason = %q, want a required-field error naming %s", why, path)
 				}
 				return
 			}

@@ -461,6 +461,11 @@ cases = {
     # a target is <file>::<symbol>: a bare symbol does not say where the property goes
     "role-response__propose-target-missing-separator.json": (read("role-response__propose-properties-ok.json"), lambda x: x["payload"]["properties"][0].update(target="media")),
     "role-response__builder-lemma-missing-postcondition.json": (read("role-response__builder-lemmas-ok.json"), lambda x: x["payload"]["lemmas"][0].pop("postcondition")),
+    # a2dlc-5fq: a builder answer that omits a required field (the core's decode used to fill in a zero value)
+    "role-response__builder-missing-files-changed.json": (read("role-response__builder-ok.json"), lambda x: x["payload"].pop("files_changed")),
+    "role-response__builder-missing-summary.json": (read("role-response__builder-ok.json"), lambda x: x["payload"].pop("summary")),
+    "role-response__builder-missing-cost.json": (read("role-response__builder-ok.json"), lambda x: x.pop("cost")),
+    "role-response__builder-missing-attempt.json": (read("role-response__builder-ok.json"), lambda x: x.pop("attempt")),
     "engine-stub-response__modified-tests-duplicate.json": (read("engine-stub-response__py-modified-tests.json"), lambda x: x.update(modified_tests=["tests/t.py::a", "tests/t.py::a"])),
     "engine-fuzz-response__unsupported-missing-reason.json": (read("engine-fuzz-response__unsupported.json"), lambda x: x["unsupported"][0].pop("reason")),
     "engine-deps-response__error-not-string.json": (read("engine-deps-response__error.json"), lambda x: x.update(error=5)),
