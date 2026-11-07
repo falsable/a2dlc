@@ -24,7 +24,7 @@ Order: P1 → P2 → P4 → P3. P1 first because a false `PASS` voids the other 
 | README sentence | Gate | Current evidence |
 |---|---|---|
 | SWE-bench Verified: 38 real agent patches, 18/18 rejected caught with peer | P1 | `docs/COVERAGE_AND_BENCHMARKS.md`, frozen fixtures pinned by SHA-256 |
-| TypeScript engine 8/8, black-box 5/5, test & property gates 12/12, self-verification 3/5 vs `check` | P1 | `e2e/testdata/`, seeds 1–3 |
+| TypeScript engine 8/8, black-box 4/4 behavior-changing mutants (`mutantes-bb-2`, 2026-11-07; the fifth is equivalent under the surface's schema), test & property gates 12/12, self-verification 3/5 vs `check` | P1 | `e2e/testdata/`, seeds 1–3 |
 | Greenfield slice converges in 84–127 s at $0.025–$0.069 | P3 (cost/latency of `run`, not of `check`) | measured run, see README §Measured |
 | `a2dlc verify` runs no engine and no Docker at `pre-push` | P4 | `internal/app` verify path; no latency figure is published until P3 measures it (one Windows sample on 2026-11-07: about 1 s wall with the unsigned dev build) |
 | "How it compares" table, AI-DLC column | — (descriptive, read from source at 11daa8ff) | this document, §What is not adopted |

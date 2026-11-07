@@ -130,7 +130,7 @@ All numbers come from frozen mutants (`e2e/testdata/`, pinned by SHA-256) and fi
 | **Multi-issue `a2dlc run` chains** (`rung: "critical_code"`, Stage 4 `diff_from_stage3` + `guard: true` base stubs, round-2 file anchoring) | **`tinylinks` (`#1 → #2 → #5`)**: **3/3 PASS** in **117.4 s** (`3/3` hidden suites green, final `a2dlc check` `PASS` in `14.5 s`). **`click` (`#1 → #5 → #6`)**: **3/3 PASS** in **425.6 s** (`28/28` sealed holdout tests green, final `a2dlc check` `PASS` in `73.9 s`) |
 | **"Every session verifies its own work"** (rule from the ADLC infographic, not AI-DLC) vs `a2dlc check`, 9 frozen trees | Self-verification lets **3/5** blocking cases through; the gate blocks **5/5**, passes **4/4** |
 | TypeScript engine — 8 frozen mutants + 1 equivalent refactor, seeds 1–3 | **8/8** caught on every seed; refactor `PASS` |
-| Black-box engine — 5 mutants of `internal/verdict` + 1 equivalent refactor | **5/5** caught in 8–12 s; refactor `PASS` |
+| Black-box engine (self-gate, engine 0.2, 2026-11-07) — 5 mutants of `internal/verdict` frozen in `mutantes-bb-2` + 1 equivalent refactor, seeds 1–3 | **4/4** behavior-changing mutants caught in 21–26 s; the fifth (one crashed engine no longer counts) and the refactor give `PASS`, because today's core already makes that case `INCONCLUSIVE` by another rule |
 | Equivalent-mutant pruning (`mutmut`, `billing.py`) | kill rate **48.9% → 65.6%** after pruning 13 equivalent mutants |
 | Test & property gates — 12 frozen cases | **12/12** judged as expected; every receipt validates against the JSON Schemas |
 

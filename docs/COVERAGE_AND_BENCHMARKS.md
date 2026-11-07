@@ -855,7 +855,7 @@ The CI is designed to cost little and to scale with risk, not with the number of
 
 ## Measured results
 
-All figures were measured on 2026-10-16 with frozen mutants and fixed seeds. They are small-sample evidence, not
+All figures were measured on 2026-10-16, unless the row gives another date, with frozen mutants and fixed seeds. They are small-sample evidence, not
 benchmarks.
 
 | Engine | Setup | Result |
@@ -863,7 +863,8 @@ benchmarks.
 | TypeScript, `repo_override` | 8 frozen mutants from a pilot repository, plus 1 equivalent refactor; seeds 1, 2, 3 | 8/8 detected with every seed; the equivalent gives `PASS`. |
 | TypeScript, `typed_default` (v1) | Same set, seed 1 | 5/8 detected. Generator v2 was tuned after seeing the escapes, so its figure is in-sample and is not reported as evidence. |
 | Python | Known-bad and equivalent pairs from the CrossHair smoke test | Bugs give `FAIL`, the equivalent refactor gives `PASS`, and an untyped base gives `INCONCLUSIVE`. About 45 s per check with two targets. |
-| Black box (self-gate) | 5 mutants of `internal/verdict` plus 1 equivalent, frozen by sha256 and committed before the engine existed; seeds 1, 2, 3 | 5/5 `FAIL`; the equivalent gives `PASS`. `FAIL` takes 8–12 s and `PASS` 24–27 s. |
+| Black box (self-gate, 2026-10-16, `mutantes-bb`) | 5 mutants of `internal/verdict` plus 1 equivalent, frozen by sha256 and committed before the engine existed; seeds 1, 2, 3 | 5/5 `FAIL`; the equivalent gives `PASS`. `FAIL` takes 8–12 s and `PASS` 24–27 s. Not reproducible today: that set was frozen on a tree older than this repo's history and its mutants no longer compile (bead a2dlc-pe6.1.1). |
+| Black box (self-gate, 2026-11-07, `mutantes-bb-2`, `a2dlc-engine-bb-go:0.2`) | The same 5 mutations plus the equivalent, frozen by sha256 over that day's tree before measuring; `internal/verdict/**` declared critical in the base; seeds 1, 2, 3; `FIXTURE=mutantes-bb-2 bash e2e/measure_bb.sh <folder>` | B1, B3, B4, B5 `FAIL` on every seed (21–26 s). B2 (`engineErrors > 0` → `> 1`) and the equivalent give `PASS` (35–44 s). B2 is equivalent within the surface's input schema, which has no tests section: an engine that errors leaves its changed lines unexamined, and that alone makes the verdict `INCONCLUSIVE` (checked by hand: a crashed engine on a modified file, garbage on a docs file and a crashed engine next to a working one give the same verdict with and without the mutation; a deleted file never reaches an engine). With a tests section that covers those lines the mutation could change the verdict; the surface does not generate that case. |
 | CI self-gate | Pinned release (v0.1.2 at the time; now v0.5.0), engine pulled by digest | `PASS` with 10 targets in 37 s. A mutant branch gives `FAIL` (exit 1) with the mutant's counterexample in 67 s. |
 
 | Test gates (pytest 8.3.3) | 9 cases frozen by sha256 and committed before the gates existed: feature with a good test, test without teeth, bug fix with waiver, refactor with characterization test, new red test, regression, new method the engine cannot stub, killed run, modified test file | 9/9 as expected, 7–27 s per case. The 18 verdicts and escalation files written by the binary validate against the schemas. Flaky detection and intermittent candidate reds are covered by unit tests with a fake runner, since pytest cannot make them deterministic. |
@@ -872,7 +873,7 @@ benchmarks.
 | Diff-scoped mutation (`e2e/measure_mutate.sh`, 2026-10-18, `a2dlc-engine-py:0.5`, two runs) | Frozen Python fixture, pruning on and off | On: 32 mutants, kill rate 0.656 (21/11). Off: 45 mutants, 0.489 (22/23). 13 pruned, 1 false prune (a `negate_condition` a test could have killed). Tier 0 on the fixture took 8.4 s and 9.4 s against the protocol's 2 s target. |
 
 Reproduce with `e2e/measure_ts.sh`, `e2e/measure_py.sh`, `e2e/measure_bb.sh`, `e2e/measure_gates.sh` (with `FIXTURE=gates-prop` for the
-property cases) and `e2e/measure_mutate.sh`. The frozen cases live in `e2e/testdata/mutantes-bb/`, `e2e/testdata/gates-py/` (Spanish keys,
+property cases) and `e2e/measure_mutate.sh`. The frozen cases live in `e2e/testdata/mutantes-bb/`, `e2e/testdata/mutantes-bb-2/`, `e2e/testdata/gates-py/` (Spanish keys,
 normalized by `e2e/normalize_manifest.py` before the judge reads them) and `e2e/testdata/gates-prop/`.
 
 **SWE-ABS benchmark** (2026-10-16 → 2026-10-17, bar frozen before running in `e2e/bench-swe-abs/VARA.md` and `VARA-2.md`,
