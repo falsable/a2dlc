@@ -529,6 +529,15 @@ cases = {
     "plan-state__slice-without-definition.json": (read("plan-state__blocked.json"), lambda x: x["slices"][0].pop("definition_sha256")),
     "plan-state__scheduler-zero-jobs.json": (read("plan-state__blocked.json"), lambda x: x["scheduler"].update(jobs=0)),
     "plan-state__replans-negative.json": (read("plan-state__blocked.json"), lambda x: x.update(replans=-1)),
+    "findings__label-outcome-fixed.json": (read("findings__labeled.json"), lambda x: x.update(outcome="fixed")),
+    "findings__label-without-by.json": (read("findings__labeled.json"), lambda x: x.pop("by")),
+    "findings__label-via-unknown.json": (read("findings__labeled.json"), lambda x: x.update(via="inferred")),
+    "findings__label-extra-field.json": (read("findings__labeled.json"), lambda x: x.update(confidence=0.9)),
+    "findings__id-free.json": (read("findings__raised.json"), lambda x: x.update(id="finding-7")),
+    "findings__raised-without-target.json": (read("findings__raised.json"), lambda x: x.pop("target")),
+    "findings__raised-source-unknown.json": (read("findings__raised.json"), lambda x: x.update(source="model:judge")),
+    "findings__fixed-with-label.json": (read("findings__fixed.json"), lambda x: x.update(outcome="false", by="x", via="cli")),
+    "findings__intentional-without-decision.json": (read("findings__intentional.json"), lambda x: x.pop("decision")),
 }
 for name, (base, breaks) in cases.items():
     doc = copy.deepcopy(base)

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.dev/contracts/findings.schema.json",
+  "title": "A2-DLC finding event",
+  "description": "One line of .a2dlc/reports/findings.jsonl: an append-only record of what happened to each finding a check raised. The file is under .a2dlc/reports, so it is out of the tree_hash (gitx.Excluded) and never changes a verdict. A finding is identified by id (kind, source and target) and, within one base_ref, lives from its `raised` event until a `fixed` one. fixed and intentional are derived by the core with no model; false and irrelevant exist only in a `labeled` event that a person or an agent wrote through a2dlc finding label (or the MCP tool), which records who.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "const": 1 },
+    "event": { "enum": ["raised", "fixed", "intentional", "labeled"] },
+    "at": { "type": "string", "format": "date-time" },
+    "id": { "type": "string", "pattern": "^fnd-[0-9a-f]{12}$" },
+    "base_ref": { "description": "The commit the check compared against: findings are followed only between checks with the same base.", "type": "string", "minLength": 1 },
+    "tree_hash": { "description": "The tree the event was observed on; absent in a `labeled` event.", "type": "string", "minLength": 1 },
+    "kind": { "description": "raised only. What was found (behavior_divergence, check_finding, test_nop_oracle, uncovered_change, protected_path, tooling...).", "type": "string", "minLength": 1 },
+    "source": { "description": "raised only. Who raised it: engine:<engine>, check:<id> or gate:<name>.", "type": "string", "pattern": "^(engine|check|gate):.+$" },
+    "target": { "description": "raised only. The finding's target as the receipt names it.", "type": "string", "minLength": 1 },
+    "state": { "description": "raised only. parked: an open escalation waits for a person; open: nobody was asked.", "enum": ["open", "parked"] },
+    "decision": { "description": "intentional only. The signed waiver that made it intentional.", "enum": ["accept_finding", "enforce_new_behavior", "preserve_legacy", "characterization_test", "quarantine_flaky"] },
+    "outcome": { "description": "labeled only. Never derived: only a label says a finding was false or irrelevant.", "enum": ["false", "irrelevant"] },
+    "by": { "description": "labeled only. Who set the label (recorded, not authenticated).", "type": "string", "minLength": 1 },
+    "via": { "description": "labeled only. The surface it came through.", "enum": ["cli", "mcp"] },
+    "reason": { "description": "labeled only. Optional: why.", "type": "string" }
+  },
+  "required": ["schema_version", "event", "at", "id", "base_ref"],
+  "allOf": [
+    {
+      "if": { "properties": { "event": { "const": "raised" } }, "required": ["event"] },
+      "then": { "required": ["tree_hash", "kind", "source", "target", "state"], "not": { "anyOf": [{ "required": ["decision"] }, { "required": ["outcome"] }, { "required": ["by"] }, { "required": ["via"] }, { "required": ["reason"] }] } }
+    },
+    {
+      "if": { "properties": { "event": { "const": "fixed" } }, "required": ["event"] },
+      "then": { "required": ["tree_hash"], "not": { "anyOf": [{ "required": ["kind"] }, { "required": ["source"] }, { "required": ["target"] }, { "required": ["state"] }, { "required": ["decision"] }, { "required": ["outcome"] }, { "required": ["by"] }, { "required": ["via"] }, { "required": ["reason"] }] } }
+    },
+    {
+      "if": { "properties": { "event": { "const": "intentional" } }, "required": ["event"] },
+      "then": { "required": ["tree_hash", "decision"], "not": { "anyOf": [{ "required": ["kind"] }, { "required": ["source"] }, { "required": ["target"] }, { "required": ["state"] }, { "required": ["outcome"] }, { "required": ["by"] }, { "required": ["via"] }, { "required": ["reason"] }] } }
+    },
+    {
+      "if": { "properties": { "event": { "const": "labeled" } }, "required": ["event"] },
+      "then": { "required": ["outcome", "by", "via"], "not": { "anyOf": [{ "required": ["tree_hash"] }, { "required": ["kind"] }, { "required": ["source"] }, { "required": ["target"] }, { "required": ["state"] }, { "required": ["decision"] }] } }
+    }
+  ],
+  "additionalProperties": false
+}

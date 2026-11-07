@@ -66,6 +66,10 @@ const usage = `usage: a2dlc <command>
           them all with one unlock of the key (run by a person); --json lists them for an agent or a UI and signs nothing
   answer  --slice <id> --probe <id> --choice <c> --reason <text> --by <name>
           records a person's answer to a probe of a run (answers.json; 0 written, 2 refused, 64 bad usage)
+  finding report|list|label        what happened to each finding a check raised (.a2dlc/reports/findings.jsonl, out of the tree_hash;
+          never changes a verdict; A2DLC_FINDINGS=off stops writing it). report [--json]: per check and engine, raised, fixed, intentional,
+          false, irrelevant, open. list [--open] [--json]: the finding ids. label --id <id> --as false|irrelevant --by <name> [--reason <text>]
+          [--json]: the only way a finding becomes false or irrelevant (0 written, 1 no such finding, 2 record unreadable, 64 bad usage)
   hook    <claude|gemini>          adapter for the agent's end-of-turn hook
   install [--agent claude] [--agent gemini]   config, .gitignore, pre-push and agent hooks
   doctor  [--json]                 health check of this repo's setup: pre-push hook binary, config version, engines declared vs
@@ -358,6 +362,8 @@ func run(args []string) int {
 		return 0
 	case "answer":
 		return answerCommand(a, args[1:], os.Stderr)
+	case "finding":
+		return findingCommand(a, args[1:], os.Stdout, os.Stderr)
 	case "hook":
 		if len(args) < 2 || (args[1] != "claude" && args[1] != "gemini") {
 			fmt.Fprintln(os.Stderr, usage)
