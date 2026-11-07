@@ -50,7 +50,7 @@ jobs:
           r="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
           printf '%s' "$GHCR_LOGIN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           fuente="org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY"
-          docker build -q --label "$fuente" -t a2dlc-engine-bb:0.1 -t "$r/a2dlc-engine-bb:$v" -f engines/blackbox/Dockerfile .
+          docker build -q --label "$fuente" -t a2dlc-engine-bb:0.2 -t "$r/a2dlc-engine-bb:$v" -f engines/blackbox/Dockerfile .
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-bb-go:$v" -f engines/blackbox/go.Dockerfile engines/blackbox
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-ts:$v" engines/ts
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-py:$v" engines/py

@@ -50,10 +50,12 @@ jobs:
           GHCR_LOGIN: ${{ github.token }}
           ENGINE: ghcr.io/falsable/a2dlc-engine-bb-go@sha256:ff11f67287d4104e2afe20280867809c953ed15985ff32281a7a5ff08a7adb3f
         # The digest comes from the release's IMAGENES.txt; it is retagged to the name .a2dlc/config.json asks for.
+        # shortcut: this digest is the released engine 0.1.0 (no base rerun on a divergence) under the 0.2 name the config
+        # asks for; replace it with the digest of the next release, which publishes engine 0.2.0.
         run: |
           printf '%s' "$GHCR_LOGIN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           docker pull -q "$ENGINE"
-          docker tag "$ENGINE" a2dlc-engine-bb-go:0.1
+          docker tag "$ENGINE" a2dlc-engine-bb-go:0.2
       - name: a2dlc check
         env:
           A2DLC_ALLOWED_SIGNERS_DATA: ${{ vars.A2DLC_ALLOWED_SIGNERS }}

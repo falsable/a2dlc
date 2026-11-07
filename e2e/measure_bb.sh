@@ -21,8 +21,10 @@ for s in $SEEDS; do
 		sed -i "s/\"seed\": [0-9]*/\"seed\": $s/" .a2dlc/config.json
 		git init -q && git config user.email m@a2dlc && git config user.name m && git config core.autocrlf false
 		git add -A && git commit -qm base
-		line=$(python -c "import json,sys;m=[x for x in json.load(open(sys.argv[1],encoding='utf-8'))['mutantes'] if x['id']==sys.argv[2]][0];print(m['file'],m['expected'],m['sha256'])" "$MAN" "$m")
+		line=$(python -c "import json,sys;m=[x for x in json.load(open(sys.argv[1],encoding='utf-8'))['mutantes'] if x['id']==sys.argv[2]][0];print(m.get('file',m.get('archivo','')),m.get('expected',m.get('esperado','')),m['sha256'])" "$MAN" "$m")
 		read -r file expected sha <<<"$line"
+		# The frozen manifest keeps its Spanish keys (archivo, esperado); an empty field means a key was not read.
+		[ -n "$file" ] && [ -n "$expected" ] && [ -n "$sha" ] || { echo "manifest entry $m: file, expected or sha256 is empty"; exit 1; }
 		cp "$R/e2e/testdata/mutantes-bb/$m/$file" "$file"
 		[ "$(sha256sum "$file" | cut -d' ' -f1)" = "$sha" ] || { echo "sha256 does not match in $m"; exit 1; }
 		# The mutants were frozen with the `a2dlc` module; since the move to falsable (2026-10-16) the module is
