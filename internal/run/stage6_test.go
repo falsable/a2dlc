@@ -278,7 +278,7 @@ func TestStage6PartlySkippedConsumerStillPasses(t *testing.T) {
 // carries its path). They are listed, and the verdict does not depend on them.
 func TestStage6ListsDiscoveredContractEdges(t *testing.T) {
 	a, dir, _ := repoIntegration(t, map[string]string{"web": "t_a passed\nt_b passed", "tasks": "t_c passed"})
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],"integration":{"generated_clients":["clients/gen/**"],`+
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],"out_of_scope_paths":["src/**","clients/**"],"integration":{"generated_clients":["clients/gen/**"],`+
 		`"consumers":[{"name":"web","image":"web:1","command":"run","contracts":["src/**"]},{"name":"tasks","image":"tasks:1","command":"run"}]}}`)
 	write(t, dir, "api/openapi.yaml", "openapi: 3.0.3\npaths:\n  /orders:\n    get: {}\n")
 	write(t, dir, "clients/gen/orders.ts", "export const path = '/orders'\n")
@@ -318,7 +318,7 @@ func TestStage6ConsumerAllSkippedIsInconclusive(t *testing.T) {
 // not run, and the edge does not decide the verdict by itself.
 func TestStage6AutoConsumerRunsWhenDiscoveryReachesAChange(t *testing.T) {
 	a, dir, _ := repoIntegration(t, map[string]string{"web": "t_a passed"})
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],"integration":{"generated_clients":["clients/gen/**"],`+
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],"out_of_scope_paths":["src/**","clients/**"],"integration":{"generated_clients":["clients/gen/**"],`+
 		`"consumers":[{"name":"web","image":"web:1","command":"run","contracts":["docs/**"],"auto":true},`+
 		`{"name":"crm","image":"crm:1","command":"run","contracts":["docs/**"]}]}}`)
 	write(t, dir, "api/openapi.yaml", "openapi: 3.0.3\npaths:\n  /orders:\n    get: {}\n")
@@ -368,8 +368,8 @@ func TestStages6and7SkipWithoutConfigOrIntent(t *testing.T) {
 // A consumer with auto runs when the Code Graph Indexer (ChronosGraph) discovers an edge to a changed file.
 func TestStage6AutoConsumerRunsWhenCodeGraphReachesAChange(t *testing.T) {
 	a, dir, _ := repoIntegration(t, map[string]string{"billing": "t_a passed"})
-	script := filepath.Join(dir, "mock_idx.py")
-	write(t, dir, "mock_idx.py", `import json, os
+	script := filepath.Join(dir, "src", "mock_idx.py")
+	write(t, dir, "src/mock_idx.py", `import json, os
 io = os.environ.get("A2DLC_IO")
 resp = {
     "schema_version": 1,
@@ -383,7 +383,7 @@ with open(os.path.join(io, "response.json"), "w") as f:
     json.dump(resp, f)
 `)
 	cmd := fmt.Sprintf("%s %s", pythonBin(t), filepath.ToSlash(script))
-	write(t, dir, ".a2dlc/config.json", fmt.Sprintf(`{"schema_version":1,"engines":[],"integration":{`+
+	write(t, dir, ".a2dlc/config.json", fmt.Sprintf(`{"schema_version":1,"engines":[],"out_of_scope_paths":["src/**","clients/**"],"integration":{`+
 		`"indexer":{"command":%q,"max_depth":3},`+
 		`"consumers":[{"name":"billing","image":"billing:1","command":"run","contracts":["docs/**"],"auto":true},`+
 		`{"name":"crm","image":"crm:1","command":"run","contracts":["docs/**"]}]}}`, cmd))

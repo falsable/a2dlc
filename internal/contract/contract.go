@@ -64,6 +64,10 @@ const (
 type Config struct {
 	// ProtectedPaths are globs an agent cannot change without a signed approval (protected_path).
 	ProtectedPaths []string `json:"protected_paths,omitempty"`
+	// OutOfScopePaths are globs of source files the repo declares it does not judge: a changed source file no engine covers
+	// is INCONCLUSIVE (out_of_scope no_engine) unless one of these matches it, and then it is PASS with reason
+	// excluded_by_config (a2dlc-bt9).
+	OutOfScopePaths []string `json:"out_of_scope_paths,omitempty"`
 	// CriticalCode are globs over "file" or "file::symbol" naming the code where a behavior divergence stays FAIL until a
 	// signed waiver. Absent means nothing is critical: every divergence is a note in the receipt (VerdictTarget.Note).
 	CriticalCode []string `json:"critical_code,omitempty"`

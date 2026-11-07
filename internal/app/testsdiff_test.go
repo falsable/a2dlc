@@ -215,7 +215,8 @@ func TestOverlayGoesThroughNOPAndRedOnlyInCandidate(t *testing.T) {
 		kinds[e.Kind] = append(kinds[e.Kind], e.Target[strings.LastIndex(e.Target, "::")+2:])
 	}
 	if strings.Join(kinds["behavior_divergence"], ",") != "t_red" || strings.Join(kinds["test_without_teeth"], ",") != "t_toothless" ||
-		strings.Join(kinds["tooling"], ",") != "t_green" {
+		// "*" is src/other.ts::*: a source file no engine covers is a tooling escalation of its own (a2dlc-bt9).
+		strings.Join(kinds["tooling"], ",") != "t_green,*" {
 		t.Fatalf("%v", kinds)
 	}
 	for _, e := range esc.Items {

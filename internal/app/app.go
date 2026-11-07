@@ -412,8 +412,19 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	byEngine, noEngine := verdict.Assign(cfg.Engines, sources)
 	targets := []contract.TargetResult{}
 	oos := []contract.OutOfScope{}
+	// A source file no engine covers was judged by nothing: the verdict cannot be PASS (a2dlc-bt9), unless the repo declares
+	// the path out of scope, and then the receipt says so. Docs, data, config and test files stay out of scope as before.
+	noEngineSrc, declaredSrc := noEngineSources(cfg, sources)
+	declaredSet := map[string]bool{}
+	for _, f := range declaredSrc {
+		declaredSet[f] = true
+	}
 	for _, f := range noEngine {
-		oos = append(oos, contract.OutOfScope{File: f, Reason: "no_engine"})
+		reason := "no_engine"
+		if declaredSet[f] {
+			reason = "excluded_by_config"
+		}
+		oos = append(oos, contract.OutOfScope{File: f, Reason: reason})
 	}
 	for _, f := range deleted {
 		oos = append(oos, contract.OutOfScope{File: f, Reason: "deleted"})
@@ -641,6 +652,14 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	if v.Verdict == contract.PASS && hasUncovered(v.Coverage) {
 		v.Verdict = contract.INCONCLUSIVE
 	}
+	// A source file no engine covers was not judged: the diff cannot PASS. The escalation names the file and the way out.
+	noEngineEsc := []contract.Escalation{}
+	for _, f := range noEngineSrc {
+		if v.Verdict == contract.PASS {
+			v.Verdict = contract.INCONCLUSIVE
+		}
+		noEngineEsc = append(noEngineEsc, escalation("tooling", f+"::*", fmt.Sprintf("%s is %s source and no engine in %s covers it, so this change was not judged: add an engine for it, or list the path under config.out_of_scope_paths", f, sourceLanguage[filepath.Ext(f)], pathConfig), contract.Evidence{}))
+	}
 	// A function the per-diff budget cut and no engine answered was not judged: the diff cannot PASS.
 	if v.Verdict == contract.PASS && verdict.HasCut(v.DiffBudget) {
 		v.Verdict = contract.INCONCLUSIVE
@@ -670,7 +689,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 		return v, err
 	}
 	if err := a.write(pathEscalations, contract.Escalations{SchemaVersion: contract.SchemaVersion, TreeHash: v.TreeHash,
-		CreatedAt: v.CreatedAt, Items: append(escalations(v), protectedEsc...)}); err != nil {
+		CreatedAt: v.CreatedAt, Items: append(append(escalations(v), protectedEsc...), noEngineEsc...)}); err != nil {
 		return v, err
 	}
 	// The record of findings comes last and cannot fail the check: it reads the verdict and changes nothing in it.

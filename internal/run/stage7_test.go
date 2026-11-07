@@ -296,7 +296,7 @@ func TestStage7ChangedReadOnlyPathEscalates(t *testing.T) {
 		in.Delivery = &contract.Delivery{Writes: b(false), ReadOnlyPaths: []string{"legacy/**"}}
 	})
 	// an uncommitted change inside the read-only glob is in the candidate tree (the working tree is judged)
-	write(t, dir, "legacy/report.go", "package legacy\n")
+	write(t, dir, "legacy/report.md", "legacy notes\n") // not source: an engine-less source change would be INCONCLUSIVE (a2dlc-bt9)
 	st, err := Run(context.Background(), a, &fakeLauncher{}, Options{Slice: "report.v1", Intent: intent})
 	if err != nil {
 		t.Fatal(err)
@@ -308,7 +308,7 @@ func TestStage7ChangedReadOnlyPathEscalates(t *testing.T) {
 	escalations := readEscalations(t, dir, "report.v1")
 	found := false
 	for _, e := range escalations.Items {
-		if e.Kind == "protected_boundary" && e.Target == "report.v1::delivery" && strings.Contains(e.Evidence.Message, "legacy/report.go") {
+		if e.Kind == "protected_boundary" && e.Target == "report.v1::delivery" && strings.Contains(e.Evidence.Message, "legacy/report.md") {
 			found = true
 		}
 	}

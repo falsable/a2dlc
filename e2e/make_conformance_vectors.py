@@ -544,8 +544,8 @@ def group_check():
         return [C(dict(base_ts, **{".a2dlc/config.json": cfg}, **(extra_base or {}))), C(dict({"src/lib/f.ts": head}, **(extra_head or {})))]
 
     plain = [C(BASE_FILES), C({"src/m.py": "def f(x):\n    return x + 1\n"})]
-    vs.append(prod("P-check-001", "With no engine a changed file is out of scope and the receipt is a PASS", "6.4.3", plain,
-                   {"exit": 0, "verdict": "PASS", "targets": [], "out_of_scope": [{"file": "src/m.py", "reason": "no_engine"}], "pending_waivers": [], "tree_hash": tree_of(plain), "base_ref": "$BASE"}))
+    vs.append(prod("P-check-001", "With no engine a changed source file was judged by nothing: the receipt is INCONCLUSIVE (exit 2), never PASS", "6.4.4", plain,
+                   {"exit": 2, "verdict": "INCONCLUSIVE", "targets": [], "out_of_scope": [{"file": "src/m.py", "reason": "no_engine"}], "pending_waivers": [], "tree_hash": tree_of(plain), "base_ref": "$BASE"}))
     same = [C(BASE_FILES)]
     vs.append(prod("P-check-002", "Nothing changed: PASS, and tree_hash is the tree of HEAD", "6.4.2", same,
                    {"exit": 0, "verdict": "PASS", "targets": [], "out_of_scope": [], "tree_hash": tree_of(same), "base_ref": "$BASE"}))
@@ -599,6 +599,12 @@ def group_check():
     c[1]["files"]["README.md"] = "bye\n"
     vs.append(prod("P-check-015", "A changed file no engine covers is listed out of scope next to the judged ones", "6.4.3", c,
                    exp(0, "PASS", [note_t], out_of_scope=[{"file": "README.md", "reason": "no_engine"}]), requires=NEED_FAKE))
+    docs = [C(BASE_FILES), C({"README.md": "bye\n"})]
+    vs.append(prod("P-check-016", "With no engine a changed doc is out of scope and the receipt stays a PASS", "6.4.4", docs,
+                   {"exit": 0, "verdict": "PASS", "targets": [], "out_of_scope": [{"file": "README.md", "reason": "no_engine"}], "pending_waivers": [], "tree_hash": tree_of(docs), "base_ref": "$BASE"}))
+    declared = [C(dict(BASE_FILES, **{".a2dlc/config.json": '{"schema_version":1,"engines":[],"out_of_scope_paths":["src/**"]}\n'})), C({"src/m.py": "def f(x):\n    return x + 1\n"})]
+    vs.append(prod("P-check-017", "A source file the config declares in out_of_scope_paths is a PASS, recorded as excluded_by_config", "6.4.4", declared,
+                   {"exit": 0, "verdict": "PASS", "targets": [], "out_of_scope": [{"file": "src/m.py", "reason": "excluded_by_config"}], "pending_waivers": [], "tree_hash": tree_of(declared), "base_ref": "$BASE"}))
     return vs
 
 

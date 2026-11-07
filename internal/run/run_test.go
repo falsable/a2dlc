@@ -46,7 +46,8 @@ func repoLite(t *testing.T) (app.App, string) {
 	t.Helper()
 	dir := t.TempDir()
 	git(t, dir, "init", "-q", "-b", "main")
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[]}`)
+	// src/ is declared out of scope: with no engine and no tests, an undeclared source change is INCONCLUSIVE (a2dlc-bt9).
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],"out_of_scope_paths":["src/**","clients/**"]}`)
 	write(t, dir, "src/f.py", "def f(x):\n    return x\n")
 	git(t, dir, "add", "-A")
 	git(t, dir, "commit", "-qm", "base")
@@ -100,8 +101,8 @@ func TestRunLiteRunsOracleAndResumes(t *testing.T) {
 	if byStage["2"].Status != contract.StageDone || byStage["3"].Status != contract.StageSkipped || !strings.Contains(byStage["3"].Reason, "builder_primary") {
 		t.Fatalf("%+v %+v", byStage["2"], byStage["3"])
 	}
-	// without engines or tests the scope is empty: everything stays out_of_scope and the oracle gives PASS (the repo
-	// declared that nothing is the gate's concern). The run's outcome is the Stage 4 verdict as it is.
+	// without engines or tests the scope is empty and the repo declares src/ out of scope (out_of_scope_paths), so the oracle
+	// gives PASS. The run's outcome is the Stage 4 verdict as it is.
 	if st.Outcome == nil || *st.Outcome != contract.PASS {
 		t.Fatalf("outcome %v", st.Outcome)
 	}

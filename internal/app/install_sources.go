@@ -40,6 +40,50 @@ func isTestFile(rel string) bool {
 		strings.HasSuffix(stem, ".test") || strings.HasSuffix(stem, ".spec")
 }
 
+// isOwnSource says whether a repo-relative path is source code the repo owns: a known source extension, not a declaration
+// file, not test code and not under a vendored directory. It is the one definition of "source" that install, doctor and
+// check share, so what they report and what the verdict does agree (a2dlc-bt9).
+func isOwnSource(f string) bool {
+	if _, ok := sourceLanguage[path.Ext(f)]; !ok || strings.HasSuffix(f, ".d.ts") || isTestFile(f) {
+		return false
+	}
+	for _, dir := range strings.Split(path.Dir(f), "/") {
+		if vendoredDirs[dir] {
+			return false
+		}
+	}
+	return true
+}
+
+// noEngineSources splits the own-source files among files that no engine covers: unjudged ones, a change to which makes a
+// check INCONCLUSIVE (out_of_scope no_engine), and declared ones, which config.out_of_scope_paths says the repo does not
+// judge (reason excluded_by_config). A file under tests.source_paths is neither: the coverage precondition judges it.
+func noEngineSources(cfg contract.Config, files []string) (unjudged, declared []string) {
+	_, noEngine := verdict.Assign(cfg.Engines, files)
+	for _, f := range noEngine {
+		if !isOwnSource(f) {
+			continue
+		}
+		switch {
+		case cfg.Tests != nil && matchesAny(cfg.Tests.SourcePaths, f):
+		case matchesAny(cfg.OutOfScopePaths, f):
+			declared = append(declared, f)
+		default:
+			unjudged = append(unjudged, f)
+		}
+	}
+	return unjudged, declared
+}
+
+func matchesAny(globs []string, f string) bool {
+	for _, g := range globs {
+		if verdict.Match(g, f) {
+			return true
+		}
+	}
+	return false
+}
+
 // sourceFiles lists the repo's own source files that are not tests, with / separators: by extension, outside the vendored
 // and ignored directories. An unreadable listing is no files, so install never fails for want of this report.
 func (a App) sourceFiles() []string {
@@ -49,19 +93,13 @@ func (a App) sourceFiles() []string {
 	}
 	out := []string{}
 	for _, f := range all {
-		if _, ok := sourceLanguage[path.Ext(f)]; !ok || strings.HasSuffix(f, ".d.ts") || isTestFile(f) {
+		if !isOwnSource(f) {
 			continue
 		}
 		if _, err := os.Stat(a.path(f)); err != nil { // tracked but deleted in the working tree
 			continue
 		}
-		vendored := false
-		for _, dir := range strings.Split(path.Dir(f), "/") {
-			vendored = vendored || vendoredDirs[dir]
-		}
-		if !vendored {
-			out = append(out, f)
-		}
+		out = append(out, f)
 	}
 	return out
 }
@@ -79,14 +117,14 @@ func hasSource(files []string, under string, exts ...string) bool {
 }
 
 // CoverageWarning says which source files no engine of the config covers, by language, extension and count (a2dlc-fjl).
-// A change to them is out of scope for every engine, so a check can only be INCONCLUSIVE about them. It reads the config
+// A change to them is out of scope for every engine, so check gives INCONCLUSIVE unless config.out_of_scope_paths declares them. It reads the config
 // on disk, written by install or by hand, and is false when everything is covered or there is no source at all.
 func (a App) CoverageWarning() (string, bool) {
 	cfg, err := a.config()
 	if err != nil {
 		return "", false
 	}
-	_, without := verdict.Assign(cfg.Engines, a.sourceFiles())
+	without, _ := noEngineSources(cfg, a.sourceFiles())
 	if len(without) == 0 {
 		return "", false
 	}
@@ -94,9 +132,9 @@ func (a App) CoverageWarning() (string, bool) {
 	for _, g := range uncoveredByLanguage(without) {
 		parts = append(parts, g.Part)
 	}
-	return fmt.Sprintf("%s: no engine in %s covers them, so no engine examines a change there and check reports it as out of scope "+
-		"(a PASS with 0 targets), not as judged. Add an engine for those paths, or list them under config.critical_code so that "+
-		"pre-push blocks a push that leaves them unjudged.",
+	return fmt.Sprintf("%s: no engine in %s covers them, so a change there makes the verdict INCONCLUSIVE (out_of_scope no_engine), never PASS. "+
+		"Add an engine for those paths, or list the paths you do not judge under config.out_of_scope_paths: a change there is then PASS "+
+		"and the receipt records it as excluded_by_config.",
 		strings.Join(parts, "; "), pathConfig), true
 }
 

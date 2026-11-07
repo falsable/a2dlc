@@ -330,7 +330,9 @@ func unjudgedOf(v contract.Verdict) unjudged {
 		}
 	}
 	for _, o := range v.OutOfScope {
-		set(&u.outOf, o.File)
+		if o.Reason != "excluded_by_config" { // the repo declared it does not judge that path
+			set(&u.outOf, o.File)
+		}
 	}
 	for _, e := range v.EngineErrors {
 		for _, f := range e.Files {

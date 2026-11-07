@@ -404,6 +404,8 @@ cases = {
     "config__trace-coverage-over-one.json": (read("config__v3-gates.json"), lambda x: x["tests"]["trace_coverage"].update(min_branch=1.5)),
     "config__golden-master-missing-cases.json": (read("config__v3-gates.json"), lambda x: x["tests"]["golden_master"].pop("cases")),
     "config__protected-paths-duplicate.json": (read("config__v3-gates.json"), lambda x: x.update(protected_paths=["a/**", "a/**"])),
+    "config__out-of-scope-paths-duplicate.json": (read("config__out-of-scope-paths.json"), lambda x: x.update(out_of_scope_paths=["a/**", "a/**"])),
+    "config__out-of-scope-paths-empty-glob.json": (read("config__out-of-scope-paths.json"), lambda x: x.update(out_of_scope_paths=[""])),
     "escalation__lemma-failed-missing-counterexample.json": (read("escalation__v3-kinds.json"), lambda x: x["items"][2]["evidence"].pop("counterexample")),
     "escalation__protected-path-missing-message.json": (read("escalation__v3-kinds.json"), lambda x: x["items"][0]["evidence"].pop("message")),
     "escalation__answer-id-empty.json": (read("escalation__v3-kinds.json"), lambda x: x["items"][4].update(answer_id="")),

@@ -12,7 +12,6 @@ import (
 
 	"github.com/falsable/a2dlc/internal/approval"
 	"github.com/falsable/a2dlc/internal/contract"
-	"github.com/falsable/a2dlc/internal/verdict"
 )
 
 // DoctorProbe is what doctor asks of the host. The real one (engine.HostProbe) runs docker and the hook's binary;
@@ -160,24 +159,24 @@ func (a App) doctorEngines(cfg contract.Config, add addFinding) {
 		}
 		reported = true
 		skip[strings.ToLower(e.Language)] = true
-		fix := fmt.Sprintf("add a %s engine to %s (a2dlc install writes one into a new config), or list the code under config.critical_code", e.Language, pathConfig)
+		fix := fmt.Sprintf("add a %s engine to %s (a2dlc install writes one into a new config), or list the code you do not judge under config.out_of_scope_paths", e.Language, pathConfig)
 		if len(cfg.Engines) == 0 {
-			add("engines.none_declared", contract.DoctorBlocking, e.Language, fmt.Sprintf("config.engines is empty and the tree has %s sources: a check on a behavior change would say PASS with 0 targets", e.Language), fix)
+			add("engines.none_declared", contract.DoctorBlocking, e.Language, fmt.Sprintf("config.engines is empty and the tree has %s sources: a check on a change there is INCONCLUSIVE (no_engine), never PASS", e.Language), fix)
 		} else {
-			add("engines.language_not_declared", contract.DoctorWarning, e.Language, fmt.Sprintf("the tree has %s sources and config.engines has no %s engine: changes there are out of scope for every engine", e.Language, e.Language), fix)
+			add("engines.language_not_declared", contract.DoctorWarning, e.Language, fmt.Sprintf("the tree has %s sources and config.engines has no %s engine: a change there is INCONCLUSIVE (no_engine), never PASS", e.Language, e.Language), fix)
 		}
 	}
-	_, without := verdict.Assign(cfg.Engines, files)
+	without, outDeclared := noEngineSources(cfg, files)
 	for _, g := range uncoveredByLanguage(without) {
 		if skip[strings.ToLower(g.Language)] {
 			continue
 		}
 		reported = true
-		add("engines.sources_uncovered", contract.DoctorWarning, g.Language, g.Part+": no engine in config.engines covers them, so a change there is out of scope (a PASS with 0 targets), not judged",
-			"add an engine whose paths cover them, or list them under config.critical_code so that pre-push blocks a push that leaves them unjudged")
+		add("engines.sources_uncovered", contract.DoctorWarning, g.Language, g.Part+": no engine in config.engines covers them, so a change there is INCONCLUSIVE (out_of_scope no_engine), never PASS",
+			"add an engine whose paths cover them, or list the paths you do not judge under config.out_of_scope_paths (a change there is then PASS, recorded as excluded_by_config)")
 	}
 	if !reported {
-		add("engines.ok", contract.DoctorInfo, "", fmt.Sprintf("%s; %d of %d source files are covered", engineSummary(cfg), len(files)-len(without), len(files)), "")
+		add("engines.ok", contract.DoctorInfo, "", fmt.Sprintf("%s; %d of %d source files are covered, %d declared out of scope", engineSummary(cfg), len(files)-len(without)-len(outDeclared), len(files), len(outDeclared)), "")
 	}
 }
 
