@@ -1,6 +1,8 @@
 """Generates and freezes the core's mutants to measure the black-box engine (step 4). It runs ONCE, before writing the
 engine; mutantes.json stores the sha256 of each file and measure_bb.sh refuses to run if it does not match.
-Usage: python e2e/gen_mutants_bb.py  (writes e2e/testdata/mutantes-bb/)"""
+Usage: python e2e/gen_mutants_bb.py [set name]  (writes e2e/testdata/<set name>/, default mutantes-bb)
+mutantes-bb was frozen on a tree older than this repo's history; mutantes-bb-2 was frozen on 2026-11-07 over the tree of
+that day, before it was measured."""
 import hashlib
 import json
 import sys
@@ -20,13 +22,13 @@ MUTANTS = [
     ("B4-estrella-cruza", "FAIL", "* crosses folders",
      "\t\tcase c == '*':\n\t\t\tb.WriteString(\"[^/]*\")", "\t\tcase c == '*':\n\t\t\tb.WriteString(\".*\")"),
     ("B5-asigna-a-todos", "FAIL", "a file goes to every engine whose glob matches, not only the first",
-     "\t\t\tif asignado {\n\t\t\t\tbreak\n\t\t\t}\n", ""),
+     "\t\t\tif assigned {\n\t\t\t\tbreak\n\t\t\t}\n", ""),
     ("E1-exitcode-ifs", "PASS", "equivalent refactor of ExitCode",
      "\tswitch v {\n\tcase contract.PASS:\n\t\treturn 0\n\tcase contract.FAIL:\n\t\treturn 1\n\t}\n\treturn 2",
      "\tif v == contract.PASS {\n\t\treturn 0\n\t}\n\tif v == contract.FAIL {\n\t\treturn 1\n\t}\n\treturn 2"),
 ]
 
-dest = R / "e2e" / "testdata" / "mutantes-bb"
+dest = R / "e2e" / "testdata" / (sys.argv[1] if len(sys.argv) > 1 else "mutantes-bb")
 if (dest / "mutantes.json").exists():
     sys.exit("already frozen: not regenerated")
 manifest = []

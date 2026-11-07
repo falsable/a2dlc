@@ -1,0 +1,47 @@
+{
+ "base_sha256": "0654ebbe5930668520e3b96cc5e9b44944edb2637f4fd75dcf0b034bdd4c392e",
+ "mutantes": [
+  {
+   "id": "B1-waiver-cualquiera",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "the waiver covers any verdict, not only FAIL",
+   "sha256": "48ca2a2f18d2fd7c5f535ff309c70ef25c1cb2f10d400f9bf1faa53e1ef0fe5e"
+  },
+  {
+   "id": "B2-motores-caidos",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "a single crashed engine no longer gives INCONCLUSIVE",
+   "sha256": "680b5d9e63afd672fe7ae022e5ff85619863be3dc383437cf7e1e2a6dcb2eb48"
+  },
+  {
+   "id": "B3-exit-inconcluso",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "INCONCLUSIVE exits 1 instead of 2",
+   "sha256": "1d4c4864ba67801ed00ca367f856b681d77851a1ba9049ba7c657f4d947ddc92"
+  },
+  {
+   "id": "B4-estrella-cruza",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "* crosses folders",
+   "sha256": "9f57b0fd60667ddb378f0ba78fe3f82d9b0f31e3289abc042e4bba2f4f08070c"
+  },
+  {
+   "id": "B5-asigna-a-todos",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "FAIL",
+   "que": "a file goes to every engine whose glob matches, not only the first",
+   "sha256": "12949303c031671df6638d4655eff1d6f1366d29afa2a62244ae025bbc990c12"
+  },
+  {
+   "id": "E1-exitcode-ifs",
+   "archivo": "internal/verdict/verdict.go",
+   "esperado": "PASS",
+   "que": "equivalent refactor of ExitCode",
+   "sha256": "dae953dd30854aeee12ebb001e2b2820124ad228d2efe00686761e3da84a29cd"
+  }
+ ]
+}
