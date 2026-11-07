@@ -382,3 +382,16 @@ func TestStatusReportsTheVerdictSignature(t *testing.T) {
 		t.Fatalf("tampered verdict: %v", got)
 	}
 }
+
+// The skill lists every MCP tool the server offers, so an agent that reads the skill knows the whole catalog.
+func TestSkillNamesEveryTool(t *testing.T) {
+	b, err := os.ReadFile("../../skills/a2dlc/SKILL.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range toolsCatalog() {
+		if !strings.Contains(string(b), "`"+d.Name+"`") {
+			t.Errorf("skills/a2dlc/SKILL.md does not name the MCP tool `%s`", d.Name)
+		}
+	}
+}

@@ -180,7 +180,7 @@ func toolsCatalog() []toolDef {
 		},
 		{
 			Name:        "a2dlc_verify",
-			Description: "Verify in <50ms that .a2dlc/verdict.json is PASS, matches the current git tree_hash, and has valid SSH signatures for any waivers.",
+			Description: "Verify, without Docker, that .a2dlc/verdict.json is PASS, matches the current git tree_hash, and has valid SSH signatures for any waivers.",
 			InputSchema: map[string]any{
 				"type": "object",
 				"properties": map[string]any{

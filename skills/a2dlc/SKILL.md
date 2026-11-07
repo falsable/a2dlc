@@ -1,7 +1,7 @@
 ---
 name: a2dlc
 description: >-
-  Deterministic verification gate and autonomous state machine (A2-DLC v3.5) for AI coding agents.
+  Deterministic verification gate and state machine (A2-DLC v3.5) for AI coding agents.
   Activate this skill whenever working in a repository with `.a2dlc/config.json`, installing a2dlc,
   running `a2dlc check` / `a2dlc verify` / `a2dlc run`, interpreting `.a2dlc/verdict.json` or
   `.a2dlc/escalations.json`, or managing intentional behavioral changes via `.a2dlc/waivers.json`.
@@ -19,6 +19,29 @@ You are operating in a repository guarded by **a2dlc** (Autonomous Agentic Devel
 2. **Never edit `.a2dlc/verdict.json` or `.a2dlc/approvals.json` by hand:** `a2dlc verify` recomputes the git `tree_hash` and validates cryptographic SSH signatures. Forged receipts fail immediately.
 3. **Never modify `protected_paths`:** Files matching globs in `.a2dlc/config.json -> protected_paths` (such as human benchmark or compliance suites) are off-limits to agents.
 4. **Every changed line in scope must be exercised:** `PASS` requires 0 uncovered changed lines (`uncovered_change`) and 0 engine errors. Functions must have explicit type annotations (`typed: false` yields `INCONCLUSIVE`).
+
+---
+
+## Contract at a glance
+
+Branch on exit codes and read JSON files; never parse prose. Every command's exit codes are in the table of [`docs/COMPATIBILITY.md`](https://github.com/falsable/a2dlc/blob/main/docs/COMPATIBILITY.md) (`cmd/a2dlc/exitcodes.go`, drift-tested). For `check`, `run`: `0` PASS, `1` FAIL, `2` INCONCLUSIVE, `64` bad usage.
+
+| Command | Reads | Writes |
+|---|---|---|
+| `a2dlc install` | the repo's sources | `.a2dlc/config.json` (if missing), `.gitignore`, `pre-push`, agent hook settings |
+| `a2dlc check` | `.a2dlc/config.json`, `.a2dlc/waivers.json`, `.a2dlc/approvals.json` | `.a2dlc/verdict.json`, `.a2dlc/escalations.json` |
+| `a2dlc verify` | `.a2dlc/verdict.json`, `.a2dlc/approvals.json`, the allowed signers from outside the repo | nothing |
+| `a2dlc run` / `a2dlc plan` | intent or plan, `roles.json`, `.a2dlc/authorizations.json` | `.a2dlc/run/<slice>/` (state, ledger) |
+| `a2dlc verify-run` | the run's ledger | nothing |
+| `a2dlc answer` | a pending probe | the run's answers, under `.a2dlc/run/` |
+| `a2dlc propose` | escalations and waivers (`--from-escalations`) | the `--out` folder, outside the repo |
+| `a2dlc doctor` | config, images, Docker, hooks | nothing (`--json`) |
+| `a2dlc hook` | the agent's hook event | `.a2dlc/reports/level0.json`, `.a2dlc/reports/background.json` |
+| `a2dlc finding` | `.a2dlc/reports/findings.jsonl` | the label of one finding |
+| `a2dlc approve` / `a2dlc authorize` | a person's key | `.a2dlc/approvals.json` / `.a2dlc/authorizations.json` (never run by an agent) |
+| `a2dlc mcp` | JSON-RPC on stdio | the files of the command each tool wraps |
+
+MCP tools: `a2dlc_status`, `a2dlc_check`, `a2dlc_verify`, `a2dlc_verify_run`, `a2dlc_doctor`, `a2dlc_intent_from_ticket`, `a2dlc_intent_from_signal`, `a2dlc_format_report`, `a2dlc_run`, `a2dlc_plan_run`, `a2dlc_approve_pending`, `a2dlc_answer`.
 
 ---
 
@@ -88,7 +111,7 @@ When a task intentionally changes a function's behavior (`behavior_divergence`) 
    a2dlc approve src/module.py::my_function --key ~/.config/a2dlc/firma
    ```
 
-### E. Running the Full Autonomous State Machine (`a2dlc run`)
+### E. Running the Full State Machine (`a2dlc run`)
 When executing a full slice through Stages −1 to 7:
 
 ```bash
@@ -122,7 +145,7 @@ In MCP-enabled IDEs (Cursor, Windsurf, Claude Desktop, Cline), you can also regi
 Available MCP tools:
 - `a2dlc_status`: Inspect `.a2dlc/verdict.json`, `.a2dlc/escalations.json`, `.a2dlc/waivers.json`, and `HEAD` verification status without launching Docker containers.
 - `a2dlc_check`: Execute the differential and property verification gate (`optional: base`).
-- `a2dlc_verify`: Verify in `<50 ms` that `.a2dlc/verdict.json` matches the git `tree_hash` (`optional: commit`).
+- `a2dlc_verify`: Verify, without Docker, that `.a2dlc/verdict.json` matches the git `tree_hash` (`optional: commit`).
 - `a2dlc_verify_run`: Verify the SHA-256 hash-chained `ledger.json` and Stage −1..7 artifacts for a `slice`.
 - `a2dlc_intent_from_ticket`: Convert a ticket or PRD fetched from Jira, Linear, GitHub Issues, GitLab, or Confluence (via Composio or vendor MCP servers) into a schema-validated `.a2dlc/intents/<slice_id>.intent.json` file for Stage 0 (`a2dlc run`).
 - `a2dlc_intent_from_signal`: Close the Stage 7 → Stage 0 loop. A Rollback Sentinel alert (`error_rate_delta`, `latency_p99_ms` or a runtime `invariant` breached on a canary ring of `from_slice`) becomes a schema-validated bugfix intent that inherits the alerted slice's invariants, boundary, delivery and budget cap; the run it starts still stops at probes, circuit breakers and signed waivers.

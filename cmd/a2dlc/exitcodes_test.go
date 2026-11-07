@@ -209,6 +209,23 @@ func sorted(m map[int]bool) []int {
 	return s
 }
 
+// The skill is the agent's contract: every command with exit codes appears in its table, so an agent never meets a
+// command the skill does not name.
+func TestSkillNamesEveryCommand(t *testing.T) {
+	b, err := os.ReadFile("../../skills/a2dlc/SKILL.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for cmd := range tableCodes() {
+		if cmd == "usage" || cmd == "version" {
+			continue
+		}
+		if !strings.Contains(string(b), "`a2dlc "+cmd+"`") {
+			t.Errorf("skills/a2dlc/SKILL.md does not name `a2dlc %s` in its contract", cmd)
+		}
+	}
+}
+
 // A command returns a code the table does not list, or the table lists a code that no command returns.
 func TestExitTableMatchesWhatTheCommandsReturn(t *testing.T) {
 	obs, tab := observed(t), tableCodes()
