@@ -17,10 +17,12 @@ import (
 
 // fakeProbe stands in for the host: no test of doctor runs Docker or another a2dlc binary.
 type fakeProbe struct {
-	dockerErr error
-	images    map[string]bool
-	versions  map[string]string
-	asked     []string
+	dockerErr  error
+	images     map[string]bool
+	versions   map[string]string
+	asked      []string
+	unresolved map[string][]string
+	importsErr error
 }
 
 func (f *fakeProbe) DockerReachable(context.Context) error {
@@ -36,6 +38,11 @@ func (f *fakeProbe) BinaryVersion(_ context.Context, path string) (string, error
 		return v, nil
 	}
 	return "", errors.New("cannot run " + path)
+}
+
+func (f *fakeProbe) UnresolvedImports(_ context.Context, image, _ string, files []string) (map[string][]string, error) {
+	f.asked = append(f.asked, "imports:"+image)
+	return f.unresolved, f.importsErr
 }
 
 type doctorFix struct {
