@@ -70,7 +70,7 @@ test('a rejected promise is a result: two versions that reject the same way agre
 });
 
 test('an async function whose every call raises is INCONCLUSIVE: nothing was compared', () => {
-  const mk = (tag) => ({ 'x.ts': `export async function never(n: number): Promise<number> { // ${tag}\n  throw new Error('always');\n}\n` });
+  const mk = (tag) => ({ 'x.ts': `export async function never(n: number): Promise<number> {\n  const tag = '${tag}'; // a code change that is not behavior; a comment alone would be equivalent by AST\n  throw new Error('always');\n}\n` });
   const { byName } = diff(mk('a'), mk('b'), ['x.ts']);
   assert.equal(byName.never.verdict, 'INCONCLUSIVE');
   assert.match(byName.never.reason, /every one raised/);
@@ -105,7 +105,7 @@ test('a call that never settles is INCONCLUSIVE with the time limit, and the eng
 test('a function that returns a server is INCONCLUSIVE for network, one that returns a function for not being data', () => {
   const mk = (k) => ({ 's.ts': [
     "import { createServer } from 'node:http';",
-    `export function mkServer(n: number) { return createServer(() => { /* ${k} */ }); }`,
+    `export function mkServer(n: number) { return createServer(() => { void '${k}'; }); }`,
     `export function mkFn(n: number) { return () => n + ${k.length}; }`,
     '',
   ].join('\n') });

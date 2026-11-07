@@ -31,9 +31,20 @@ const FC_VERSION: string = createRequire(import.meta.url)('fast-check/package.js
 
 // ---------- target discovery ----------
 
+// The code of a node without comments and layout: the printer writes it from the AST, so two texts that print the same parse
+// to the same tree. Shortcut: the printer keeps whether a block was written on one line or on several, a literal keeps its
+// source spelling ('a' and "a" differ) and type annotations stay in, so those changes are judged as before; upgrade to a
+// token comparison only if a measured case needs them folded.
+const printer = ts.createPrinter({ removeComments: true });
+const codeOf = (n: ts.Node, sf: ts.SourceFile) => printer.printNode(ts.EmitHint.Unspecified, n, sf);
+const linesOf = (n: ts.Node, sf: ts.SourceFile): [number, number] =>
+  [sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, sf.getLineAndCharacterOfPosition(n.getEnd()).line + 1];
+
 interface Decl {
   name: string;
-  text: string;
+  text: string; // codeOf: what targetsOf compares
+  raw: string; // the source text, comments included
+  lines: [number, number];
   exported: boolean;
   isFunction: boolean;
   refs: Set<string>;
@@ -59,14 +70,14 @@ function topLevel(sf: ts.SourceFile): Map<string, Decl> {
       continue;
     }
     const add = (name: string, node: ts.Node, isFunction: boolean) =>
-      out.set(name, { name, text: node.getText(sf), exported: isExported(node), isFunction, refs: refsOf(node) });
+      out.set(name, { name, text: codeOf(node, sf), raw: node.getText(sf), lines: linesOf(node, sf), exported: isExported(node), isFunction, refs: refsOf(node) });
     if (ts.isFunctionDeclaration(st) && st.name) add(st.name.text, st, true);
     else if (ts.isVariableStatement(st)) {
       for (const d of st.declarationList.declarations) {
         if (!ts.isIdentifier(d.name)) continue;
         const init = d.initializer;
         const fn = !!init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init));
-        out.set(d.name.text, { name: d.name.text, text: st.getText(sf), exported: isExported(st), isFunction: fn, refs: refsOf(d) });
+        out.set(d.name.text, { name: d.name.text, text: codeOf(st, sf), raw: st.getText(sf), lines: linesOf(st, sf), exported: isExported(st), isFunction: fn, refs: refsOf(d) });
       }
     } else if (ts.isClassDeclaration(st) && st.name) add(st.name.text, st, false);
     else if (ts.isEnumDeclaration(st) || ts.isTypeAliasDeclaration(st) || ts.isInterfaceDeclaration(st)) add(st.name.text, st, false);
@@ -94,6 +105,19 @@ function targetsOf(baseSf: ts.SourceFile, candSf: ts.SourceFile): string[] {
     }
   }
   return [...c.values()].filter((d) => d.exported && d.isFunction && changed.has(d.name) && b.get(d.name)?.isFunction).map((d) => d.name);
+}
+
+// The exported functions whose source text changed but whose code did not (a comment, the layout): nothing to run, they go out
+// as PASS with EQUIVALENT_AST and their own lines. A function that targetsOf already returns (it reads something that
+// changed) is judged, not listed here.
+const EQUIVALENT_AST = 'equivalent by AST: the code is the same without comments and layout, so the engine did not run it';
+function equivalentOf(baseSf: ts.SourceFile, candSf: ts.SourceFile): Decl[] {
+  const b = topLevel(baseSf);
+  const judged = new Set(targetsOf(baseSf, candSf));
+  return [...topLevel(candSf).values()].filter((d) => {
+    const old = b.get(d.name);
+    return d.exported && d.isFunction && old?.isFunction && !judged.has(d.name) && old.text === d.text && old.raw !== d.raw;
+  });
 }
 
 // ---------- generadores ----------
@@ -432,8 +456,16 @@ for (const file of req.changed_files as string[]) {
   const candSf = program.getSourceFile(candPath)!;
   const baseSf = ts.createSourceFile(basePath, readFileSync(basePath, 'utf-8'), ts.ScriptTarget.ES2022, true);
   const names = targetsOf(baseSf, candSf);
+  const same = equivalentOf(baseSf, candSf);
+  for (const d of same) {
+    targets.push({
+      target: `${file}::${d.name}`, engine: 'fast-check', engine_version: FC_VERSION, verdict: 'PASS', reason: EQUIVALENT_AST,
+      search_budget: { examples: EXAMPLES, seed: SEED }, generators: 'typed_default', typed: true, domain_guard: null,
+      equivalence: 'strict', counterexample: null, lines: d.lines,
+    });
+  }
   if (!names.length) {
-    outOfScope.push({ file, reason: 'not_exported' });
+    if (!same.length) outOfScope.push({ file, reason: 'not_exported' });
     continue;
   }
   const literals = harvest([baseSf, candSf]);

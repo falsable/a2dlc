@@ -434,7 +434,7 @@ func TestInstallDevBuildWritesTheCurrentPythonEngineTag(t *testing.T) {
 }
 
 func TestInstallDevBuildWritesTheCurrentTypeScriptEngineTag(t *testing.T) {
-	const current = "a2dlc-engine-ts:0.3"
+	const current = "a2dlc-engine-ts:0.4"
 	if engineTSImage != current {
 		t.Fatalf("engineTSImage = %q, want %q", engineTSImage, current)
 	}
