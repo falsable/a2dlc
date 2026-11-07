@@ -1,8 +1,9 @@
 """a2dlc Python engine: CrossHair diffbehavior between the base (/base) and the candidate (/cand).
 
 Contract: reads /io/request.json and writes /io/response.json (contracts/engine-*.schema.json).
-Targets: top-level functions that exist in both versions and whose AST changed, plus the ones that call them
-within the same file (transitive closure). Methods and new functions are out of scope in v0.1. Test code (is_test_code)
+Targets: top-level functions that exist in both versions and whose AST changed, docstrings aside, plus the ones that call
+them within the same file (transitive closure). A function whose text changed but whose code did not (a comment, a docstring,
+layout) is a PASS target with the reason EQUIVALENT_AST and is not run. Methods and new functions are out of scope in v0.1. Test code (is_test_code)
 is out of scope as test_code: the test gates run it with the repo's runner and dev dependencies, which this image does
 not have, and a weakened test (its assert dropped) behaves the same as the old one, so a diff of it would say PASS.
 Both versions are copied to /tmp/a2dlc/a2dlc_base and a2dlc_cand so they can be imported at the same time; absolute
@@ -15,6 +16,7 @@ from __future__ import annotations  # the `X | None` annotations must be valid o
 
 import ast
 import bisect
+import copy
 import dataclasses
 import difflib
 import importlib.util
@@ -173,11 +175,41 @@ def functions(text: str) -> dict[str, ast.AST]:
     return out
 
 
+EQUIVALENT_AST = ("equivalent by AST: the code is the same once docstrings are dropped (only comments, docstrings or "
+                  "layout differ), so the engine did not run it")
+
+
+def _is_docstring(stmt: ast.stmt) -> bool:
+    return isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str)
+
+
+def _code_dump(node: ast.AST) -> str:
+    """ast.dump of `node` without the docstring of any module, class or function inside it (the first statement of a body
+    that is a str constant; a string in any other position is code). Comments and layout never reach the AST. Shortcut:
+    a docstring is run-time visible (`__doc__`: click help text, FastAPI's OpenAPI description), and a change in it is
+    judged as no change of behavior, the same call a2dlc-dj0 made for the coverage notes; annotations are NOT dropped
+    (`__annotations__` is read by pydantic, FastAPI and dataclasses), so a change only in them is still judged."""
+    node = copy.deepcopy(node)
+    for n in ast.walk(node):
+        if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and n.body and _is_docstring(n.body[0]):
+            del n.body[0]
+    return ast.dump(node)
+
+
+def equivalent_of(base_txt: str, cand_txt: str) -> list[str]:
+    """The functions (as `functions` names them) whose source text differs between base and candidate but whose code does
+    not: same _code_dump. Nothing to run and nothing to judge; the engine reports them as PASS with EQUIVALENT_AST."""
+    vb, vc = functions(base_txt), functions(cand_txt)
+    return [n for n in vc if n in vb and _code_dump(vb[n]) == _code_dump(vc[n])
+            and ast.get_source_segment(base_txt, vb[n]) != ast.get_source_segment(cand_txt, vc[n])]
+
+
 def targets_of(base_txt: str, cand_txt: str) -> tuple[list[str], list[str]]:
-    """(changed, callers): the ones whose AST changed and the ones that call them in the same file (transitive closure)."""
+    """(changed, callers): the ones whose code changed (docstrings aside, _code_dump) and the ones that call them in the
+    same file (transitive closure)."""
     vb, vc = functions(base_txt), functions(cand_txt)
     common = [n for n in vc if n in vb]
-    direct = {n for n in common if ast.dump(vb[n]) != ast.dump(vc[n])}
+    direct = {n for n in common if _code_dump(vb[n]) != _code_dump(vc[n])}
     closure = set(direct)
     uses = {n: {x.id for x in ast.walk(vc[n]) if isinstance(x, ast.Name)} for n in common}
     grew = True
@@ -1874,22 +1906,28 @@ def diff(req: dict, clock=time.monotonic) -> int:
         try:
             base_txt, cand_txt = read_py(bp), read_py(cp)
             direct, callers = targets_of(base_txt, cand_txt)
+            same = equivalent_of(base_txt, cand_txt)
             identical += [f"{file}::{s}" for s in identical_of(base_txt, cand_txt)]
         except (SyntaxError, ValueError, RecursionError) as e:  # ValueError includes UnicodeDecodeError
             t = new_target(f"{file}::{file.rsplit('/', 1)[-1]}", timeout_s)
             t["verdict"], t["reason"] = "INCONCLUSIVE", f"could not read or parse: {type(e).__name__}: {e}"[:300]
             layout.append(t)
             continue
-        if not direct:
+        if not direct and not same:
             outside.append({"file": file, "reason": "not_exported"})
             continue
         mod = module(file)
         vc = functions(cand_txt)
-        counts = intra_callers(vc)
-        rc_imp, out_imp = run([sys.executable, "-c", f"import a2dlc_base.{mod}, a2dlc_cand.{mod}"], 120)
-        layout.append(Block(
-            direct=[Job(file, mod, n, vc[n], rc_imp, out_imp, counts[n]) for n in direct],
-            indirect=[Job(file, mod, n, vc[n], rc_imp, out_imp, counts[n]) for n in callers]))
+        if direct:
+            counts = intra_callers(vc)
+            rc_imp, out_imp = run([sys.executable, "-c", f"import a2dlc_base.{mod}, a2dlc_cand.{mod}"], 120)
+            layout.append(Block(
+                direct=[Job(file, mod, n, vc[n], rc_imp, out_imp, counts[n]) for n in direct],
+                indirect=[Job(file, mod, n, vc[n], rc_imp, out_imp, counts[n]) for n in callers]))
+        for n in same:  # a finished target: nothing to run
+            t = new_target(f"{file}::{n}", timeout_s)
+            t["lines"], t["reason"], t["typed"] = lines_of(vc[n]), EQUIVALENT_AST, typed(vc[n], "." in n)
+            layout.append(t)
 
     def run_job(j: Job) -> dict:
         now = clock()

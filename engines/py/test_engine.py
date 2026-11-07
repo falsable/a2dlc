@@ -366,6 +366,108 @@ class Budget(Directory):
         self.assertEqual(engine.MAX_WORKERS, 2)
 
 
+class AstEquivalent(Directory):
+    """a2dlc-aln: a function whose code is the same once docstrings are dropped (comments never reach the AST) is not sent to
+    CrossHair: it goes out as a PASS target with the reason EQUIVALENT_AST, so the receipt tells "equivalent by AST" from
+    "judged by the engine", and an untyped or otherwise unjudgeable function no longer makes the verdict INCONCLUSIVE for a
+    docstring or a comment. CrossHair is faked; `self.runs` lists the commands that reached it."""
+
+    def setUp(self):
+        super().setUp()
+        self.runs = []
+        patcher = mock.patch.object(engine, "WORK", self.io.parent / "work")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        patcher = mock.patch.object(engine, "run", side_effect=self.fake_run)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def fake_run(self, cmd, timeout):
+        if cmd[1] != "-c":
+            self.runs.append(cmd)
+        return 0, "No differences found. (attempted 3 iterations)"
+
+    def diff(self, base, cand, files=("m.py",)):
+        for tree, text in ((self.base, base), (self.cand, cand)):
+            (tree / "m.py").write_text(text, encoding="utf-8")
+            # a file outside the requested set that imports the changed module, as in a real repo
+            (tree / "service.py").write_text("from m import clamp\n\n\ndef run(x: int) -> int:\n    return clamp(x, 0, 9)\n",
+                                             encoding="utf-8")
+        engine.diff(self.req(list(files), budget={}))
+        return self.response()
+
+    CLAMP = ('def clamp(x: int, lo: int, hi: int) -> int:\n    """Clamp x into [lo, hi]."""\n'
+             '    # keep the bounds ordered\n    if x < lo:\n        return lo\n    return min(x, hi)\n')
+
+    def test_a_docstring_only_edit_is_not_a_changed_target(self):
+        cand = self.CLAMP.replace("Clamp x into [lo, hi].", "Clamp x into the closed range [lo, hi].")
+        self.assertEqual(engine.targets_of(self.CLAMP, cand), ([], []))
+
+    def test_a_comment_only_edit_is_not_a_changed_target(self):
+        cand = self.CLAMP.replace("# keep the bounds ordered", "# keep the bounds in order")
+        self.assertEqual(engine.targets_of(self.CLAMP, cand), ([], []))
+
+    def test_equivalent_of_lists_the_functions_whose_text_changed_but_not_their_code(self):
+        doc = self.CLAMP.replace("Clamp x into [lo, hi].", "Clamp.")
+        comment = self.CLAMP.replace("# keep the bounds ordered", "# ordered")
+        layout = self.CLAMP.replace("    if x < lo:\n        return lo\n", "    if x < lo:\n\n        return lo\n")
+        for cand in (doc, comment, layout):
+            self.assertEqual(engine.equivalent_of(self.CLAMP, cand), ["clamp"])
+        self.assertEqual(engine.equivalent_of(self.CLAMP, self.CLAMP), [])
+
+    def test_a_docstring_added_or_dropped_is_equivalent_but_a_string_in_the_code_is_not(self):
+        bare = "def f(x: int) -> int:\n    return x\n"
+        documented = 'def f(x: int) -> int:\n    """Identity."""\n    return x\n'
+        self.assertEqual(engine.equivalent_of(bare, documented), ["f"])
+        self.assertEqual(engine.equivalent_of(documented, bare), ["f"])
+        old, new = "def g(x: int) -> str:\n    return 'a'\n", "def g(x: int) -> str:\n    return 'b'\n"
+        self.assertEqual((engine.targets_of(old, new), engine.equivalent_of(old, new)), ((["g"], []), []))
+        # a string that is the second statement is not a docstring
+        old = 'def h(x: int) -> int:\n    y = x\n    """not a docstring"""\n    return y\n'
+        self.assertEqual(engine.targets_of(old, old.replace("not a", "still not a"))[0], ["h"])
+
+    def test_a_docstring_change_of_an_unjudgeable_function_is_a_pass_with_the_reason_and_never_reaches_crosshair(self):
+        base = 'def label(n):\n    """Label."""\n    return str(n)\n\n\ndef user(x: int) -> str:\n    return label(x)\n'
+        r = self.diff(base, base.replace('"""Label."""', '"""Label a number as text."""'))
+        self.assertEqual(self.runs, [])
+        self.assertEqual(r["out_of_scope"], [])
+        [t] = r["targets"]
+        self.assertEqual((t["target"], t["verdict"], t["reason"], t["lines"]), ("m.py::label", "PASS", engine.EQUIVALENT_AST, [1, 3]))
+        self.assertIsNone(t["counterexample"])
+
+    def test_a_comment_inside_an_async_function_is_equivalent_by_ast(self):
+        base = ("import asyncio\n\n\nasync def patch(store: dict, key: str) -> dict:\n    # keep it consistent\n"
+                "    store[key] = 1\n    await asyncio.sleep(0)\n    return store\n")
+        r = self.diff(base, base.replace("consistent", "consistent and tidy"))
+        self.assertEqual(self.runs, [])
+        self.assertEqual([(t["target"], t["verdict"], t["reason"]) for t in r["targets"]],
+                         [("m.py::patch", "PASS", engine.EQUIVALENT_AST)])
+
+    def test_the_callers_of_an_equivalent_function_are_not_targets_and_the_importer_is_left_alone(self):
+        base = ("def clamp(x: int, lo: int, hi: int) -> int:\n    \"\"\"Clamp.\"\"\"\n    return max(lo, min(x, hi))\n\n\n"
+                "def normalize(x: int) -> int:\n    return clamp(x, 0, 10)\n")
+        r = self.diff(base, base.replace("Clamp.", "Clamp x."))
+        self.assertEqual([t["target"] for t in r["targets"]], ["m.py::clamp"])
+        self.assertEqual(self.runs, [])
+
+    def test_a_comment_next_to_a_real_change_is_still_judged_by_the_engine(self):
+        cand = (self.CLAMP.replace("# keep the bounds ordered", "# keep the bounds in order")
+                .replace("return min(x, hi)", "return min(x, hi + 1)"))
+        r = self.diff(self.CLAMP, cand)
+        [t] = r["targets"]
+        self.assertEqual((t["target"], t.get("reason")), ("m.py::clamp", None))
+        self.assertEqual(len(self.runs), 1)
+
+    def test_an_annotation_only_change_is_judged_by_the_engine_not_treated_as_a_comment(self):
+        # __annotations__ is read at run time (pydantic, FastAPI, dataclasses), so the AST differs and so does the verdict path
+        cand = self.CLAMP.replace("x: int, lo: int, hi: int) -> int", "x: float, lo: float, hi: float) -> float")
+        self.assertEqual(engine.targets_of(self.CLAMP, cand)[0], ["clamp"])
+        self.assertEqual(engine.equivalent_of(self.CLAMP, cand), [])
+        r = self.diff(self.CLAMP, cand)
+        self.assertEqual(len(self.runs), 1)
+        self.assertNotEqual(r["targets"][0].get("reason"), engine.EQUIVALENT_AST)
+
+
 class HarnessErrors(Directory):
     """a2dlc-qb1: when either side of CrossHair's difference is a failure of CrossHair or of its argument builder, the target
     is INCONCLUSIVE with the reason and no counterexample; a real divergence stays FAIL. CrossHair is faked with the
