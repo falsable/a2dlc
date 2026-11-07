@@ -24,9 +24,8 @@
 
 ```
 $ a2dlc check
-FAIL: 1 target, 6 changed lines examined
-  ✗ src/pricing.py::apply_discount   (crosshair diffbehavior, 10.4s)
-    counterexample: args=(100, 101) -> old=0, new=-1
+FAIL: 1 targets, 0 tests judged, 0 out of scope, 2 changed lines examined and 0 not examined, 0 waivers pending, 0 engines with errors
+  FAIL src/pricing.py::apply_discount: args=price=-1, discount=0 old=returns 0 new=returns -1
 ```
 
 That is a real refactor an agent called "equivalent". Its own tests were green. The old version clamped negative totals to 0; the new one returns `-1`. No LLM graded this — a symbolic execution engine searched for an input where `old(x) ≠ new(x)` inside a `--network none` container, and found one.
@@ -91,7 +90,7 @@ Measured: a greenfield slice converges in **84–127 s** across 6–8 role conta
 
 Plus test gates: *no-op test* detection (passes on the base tree), coverage precondition on changed lines, dependency allowlist. Output is `.a2dlc/verdict.json`, hash-bound to the Git tree it judged.
 
-**3. Agent lifecycle hooks** — `PreToolUse` blocks edits to `protected_paths` and `git push --no-verify` *before* they run; the `Stop` / `AfterAgent` hook runs level 0 (`a2dlc check --level 0`) at the end of every turn: no test runs, it informs and never blocks, and it writes `.a2dlc/reports/level0.json`. Level 1 (`a2dlc check`, which runs the tests) is the gate: the agent runs it when it says "done", `pre-push` verifies its receipt (`a2dlc verify`, <50 ms), and CI runs it on the PR. `pre-push` blocks a push only on evidence about the pushed tree: a `FAIL`, a waiver without a valid signed approval, a protected path without approval, `critical_code` left unjudged. A missing or stale receipt (its `tree_hash` is not the commit's tree), one based on commits that were not pushed, or an `INCONCLUSIVE` verdict only warns; `a2dlc verify --strict` blocks on all of them. Closing the authorship gap takes `a2dlc check --require-signatures` in CI over the same commit ([RFC-0001 §6.4.9](docs/A2-DLC_v3.5_protocol.md#649-what-a-receipt-does-not-claim), [SECURITY.md](SECURITY.md)).
+**3. Agent lifecycle hooks** — `PreToolUse` blocks edits to `protected_paths` and `git push --no-verify` *before* they run; the `Stop` / `AfterAgent` hook runs level 0 (`a2dlc check --level 0`) at the end of every turn: no test runs, it informs and never blocks, and it writes `.a2dlc/reports/level0.json`. Level 1 (`a2dlc check`, which runs the tests) is the gate: the agent runs it when it says "done", `pre-push` verifies its receipt (`a2dlc verify`, which runs no engine), and CI runs it on the PR. `pre-push` blocks a push only on evidence about the pushed tree: a `FAIL`, a waiver without a valid signed approval, a protected path without approval, `critical_code` left unjudged. A missing or stale receipt (its `tree_hash` is not the commit's tree), one based on commits that were not pushed, or an `INCONCLUSIVE` verdict only warns; `a2dlc verify --strict` blocks on all of them. Closing the authorship gap takes `a2dlc check --require-signatures` in CI over the same commit ([RFC-0001 §6.4.9](docs/A2-DLC_v3.5_protocol.md#649-what-a-receipt-does-not-claim), [SECURITY.md](SECURITY.md)).
 
 **4. Intentional changes are signed, not argued** — the agent declares the change in `.a2dlc/waivers.json`; a human signs it with `a2dlc approve src/pricing.py::apply_discount --key ~/.ssh/id_ed25519`. Agents never hold the key. A behavior change the engines find in code your `.a2dlc/config.json` does not list under `critical_code` is only a note in the receipt, with its counterexample; on critical code it fails until signed ([docs/DIVERGENCE_NOTES.md](docs/DIVERGENCE_NOTES.md)).
 
@@ -160,7 +159,7 @@ The AI-DLC column was read from the source code and docs of [awslabs/aidlc-workf
 |---|---|
 | `a2dlc install [--agent claude] [--agent gemini]` | Config, `pre-push` hook, agent lifecycle hooks; when it finds a test runner (vitest, `node --test`, pytest, or a `test` script) and the config has no `tests` section, it warns that changes to code no engine examines stay INCONCLUSIVE and prints a `tests` section to edit, with a `baseline_command` that runs the whole suite, without writing it |
 | `a2dlc check [--base <ref>] [--peer <ref>]` | Differential + test gates → `.a2dlc/verdict.json` |
-| `a2dlc verify [--commit HEAD] [--strict]` | <50 ms, the `pre-push`: blocks only on evidence about the pushed tree (a `FAIL`, an unsigned waiver of one, a protected path without approval, `critical_code` left unjudged); no receipt, a stale one or `INCONCLUSIVE` only warn, because on a repo with history "could not judge" is the normal case and a gate that blocks on it gets bypassed. `--strict`: receipt is `PASS`, matches `tree_hash`, waivers signed |
+| `a2dlc verify [--commit HEAD] [--strict]` | The `pre-push`, with no engine and no Docker: blocks only on evidence about the pushed tree (a `FAIL`, an unsigned waiver of one, a protected path without approval, `critical_code` left unjudged); no receipt, a stale one or `INCONCLUSIVE` only warn, because on a repo with history "could not judge" is the normal case and a gate that blocks on it gets bypassed. `--strict`: receipt is `PASS`, matches `tree_hash`, waivers signed |
 | `a2dlc approve <file>::<symbol> --key <key>` | Sign an intentional behavior change (`ssh-keygen -Y`) |
 | `a2dlc run --slice <id> --intent <file>` | Full Protocol Mode, Stages −1 to 7 |
 | `a2dlc plan propose\|import\|check\|run\|replan` | Feature plans (RFC-0008, Draft): a planner role or a Spec Kit / Task Master task list proposes slices, deterministic gates judge them, `plan run` runs them in dependency order, side by side when their files are disjoint, as many at once as the host and the Docker daemon hold ([docs/PLAN_MACHINE.md](docs/PLAN_MACHINE.md)) |

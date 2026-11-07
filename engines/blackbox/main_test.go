@@ -452,6 +452,29 @@ func TestRunClearsTheStaleTree(t *testing.T) {
 	}
 }
 
+// A base that does not reproduce its own observable on the same input makes the target INCONCLUSIVE, never a FAIL with a
+// counterexample: the difference may be noise (a timer, a random id), not the change.
+func TestNondeterministicBaseIsInconclusive(t *testing.T) {
+	useScratch(t)
+	noisy := "od -An -N8 -tu8 /dev/urandom\n"
+	base := fixture(t, noisy, nil)
+	cand := fixture(t, noisy+"true\n", nil)
+	req := goldenRequest(base, cand, "diff", `{"examples": 3, "seed": 1}`)
+	req.ChangedFiles = []string{"prog.sh"}
+	v, err := answer(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp := v.(contract.Response)
+	if resp.Error != nil || len(resp.Targets) != 1 {
+		t.Fatalf("unexpected response: error %v, targets %+v", resp.Error, resp.Targets)
+	}
+	got := resp.Targets[0]
+	if got.Verdict != contract.INCONCLUSIVE || got.Counterexample != nil || !strings.HasPrefix(got.Reason, "nondeterministic:") {
+		t.Fatalf("a noisy base must give INCONCLUSIVE nondeterministic, got %+v", got)
+	}
+}
+
 // An operation the engine does not perform is answered with an error; a golden failure is in-band, not a Go error.
 func TestAnswerRoutesOperations(t *testing.T) {
 	useScratch(t)

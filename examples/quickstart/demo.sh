@@ -9,9 +9,11 @@ command -v docker >/dev/null || { echo "docker not found (engines run in --netwo
 WORK="$(mktemp -d)"
 cp -r "$(dirname "$0")/repo/." "$WORK"
 cd "$WORK"
-git init -q && git add -A && git -c user.name=demo -c user.email=demo@a2dlc commit -qm "base: apply_discount clamps negative totals to 0"
-
-a2dlc install >/dev/null
+git init -q
+a2dlc install >/dev/null 2>&1
+# A divergence fails the verdict only on code the base's config declares critical; elsewhere it is a note.
+python3 -c 'import json,sys; p=".a2dlc/config.json"; c=json.load(open(p)); c["critical_code"]=["src/pricing.py"]; json.dump(c,open(p,"w"),indent=1)'
+git add -A && git -c user.name=demo -c user.email=demo@a2dlc commit -qm "base: apply_discount clamps negative totals to 0"
 
 step() { printf '\n\033[1;36m%s\033[0m\n' "$*"; }
 

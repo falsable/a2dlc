@@ -12,5 +12,5 @@ The text of RFC-0001 is not duplicated here. This page records the status and wh
 ## What "draft" means here
 
 - The measured claims are those of §12 of the RFC text. Everything else in it (thresholds, times per tier, budgets) is not validated, as §10 states.
-- No implementation other than the reference one exists, and there is no conformance suite yet ([docs/NAME_AND_CONFORMANCE.md](../docs/NAME_AND_CONFORMANCE.md)).
+- The reference implementation is the only producer. A conformance kit ([`conformance/`](../conformance/README.md)) and a clean-room verifier written from this RFC ([`verifiers/python/`](../verifiers/python/README.md)) exist; no third-party implementation has been run against the kit ([docs/NAME_AND_CONFORMANCE.md](../docs/NAME_AND_CONFORMANCE.md)).
 - Changes to the text follow the process in [README.md](README.md). A change to the shape of a document is classified by [docs/COMPATIBILITY.md](../docs/COMPATIBILITY.md), which says when `schema_version` bumps.

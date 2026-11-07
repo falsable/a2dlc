@@ -12,7 +12,8 @@
    "argv": ["$A2DLC_OUT/a2dlc", "check"],
    "timeout_s": 60,
    "compare": {"exit_code": true, "stdout": true, "stderr": true, "files": [".a2dlc/verdict.json"]},
-   "normalize": [{"pattern": "\"created_at\": \"[^\"]*\"", "replace": "\"created_at\": \"-\""}]
+   "normalize": [{"pattern": "\"created_at\": \"[^\"]*\"", "replace": "\"created_at\": \"-\""},
+                 {"pattern": "\"(\\w*ms)\": [0-9]+", "replace": "\"${1}\": 0"}]
   }
  ]
 }

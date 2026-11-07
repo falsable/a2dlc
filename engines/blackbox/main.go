@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	version = "0.1.0"
+	version = "0.2.0"
 	spec    = ".a2dlc/blackbox.json"
 )
 
@@ -266,31 +266,46 @@ func checkSurface(s surface, cand string, bins map[string]string, harness string
 			return contract.INCONCLUSIVE, "input_schema: " + err.Error(), nil
 		}
 		input, _ := json.Marshal(inst)
-		obs := map[string]string{}
-		ok := true
-		for _, side := range []string{"base", "cand"} {
-			work := filepath.Join(tmp, "run", fmt.Sprint(i), side)
+		// side runs one tree on this input in a fresh work folder (dir names the folder, so the base can run twice).
+		side := func(bin, dir string) (string, error) {
+			work := filepath.Join(tmp, "run", fmt.Sprint(i), dir)
 			_ = os.RemoveAll(work)
 			_ = os.MkdirAll(work, 0o755)
 			in := filepath.Join(work, "input.json")
 			_ = os.WriteFile(in, input, 0o644)
-			env := map[string]string{"A2DLC_WORK": work, "A2DLC_INPUT": in, "A2DLC_OUT": bins[side], "PATH": harness + ":" + os.Getenv("PATH")}
+			env := map[string]string{"A2DLC_WORK": work, "A2DLC_INPUT": in, "A2DLC_OUT": bins[bin], "PATH": harness + ":" + os.Getenv("PATH")}
 			if len(s.Setup) > 0 {
 				if o, err := execute(context.Background(), work, s.Setup, env, limit); err != nil {
-					ok, lastError = false, fmt.Sprintf("setup: %v: %s", err, tail(o))
-					break
+					return "", fmt.Errorf("setup: %v: %s", err, tail(o))
 				}
 			}
-			obs[side] = observe(s, filepath.Join(work, s.Cwd), env, limit, clean)
+			return observe(s, filepath.Join(work, s.Cwd), env, limit, clean), nil
 		}
-		_ = os.RemoveAll(filepath.Join(tmp, "run", fmt.Sprint(i)))
-		if !ok {
+		old, err := side("base", "base")
+		var cand string
+		if err == nil {
+			cand, err = side("cand", "cand")
+		}
+		if err != nil {
+			_ = os.RemoveAll(filepath.Join(tmp, "run", fmt.Sprint(i)))
+			lastError = err.Error()
 			continue
 		}
 		valid++
-		if obs["base"] != obs["cand"] {
-			return contract.FAIL, "", &contract.Counterexample{Args: string(input), Old: obs["base"], New: obs["cand"]}
+		if old != cand {
+			// A divergence counts only if the base reproduces itself: otherwise the difference may be noise, not the change.
+			again, err := side("base", "base-again")
+			_ = os.RemoveAll(filepath.Join(tmp, "run", fmt.Sprint(i)))
+			if err != nil {
+				return contract.INCONCLUSIVE, fmt.Sprintf("the base could not run again on input %s to confirm the divergence: %v", input, err), nil
+			}
+			if again != old {
+				return contract.INCONCLUSIVE, fmt.Sprintf("nondeterministic: the base gave two different observables for input %s;"+
+					" declare the volatile part under the surface's normalize", input), nil
+			}
+			return contract.FAIL, "", &contract.Counterexample{Args: string(input), Old: old, New: cand}
 		}
+		_ = os.RemoveAll(filepath.Join(tmp, "run", fmt.Sprint(i)))
 	}
 	if valid == 0 {
 		return contract.INCONCLUSIVE, "no input passed the setup; the last error: " + lastError, nil

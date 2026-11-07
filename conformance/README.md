@@ -20,6 +20,8 @@ also validated against `contracts/`; `--require-schema` makes its absence a fail
 | engine | Judges changed files inside a container | `docker run` with `/io`, `/base`, `/cand` as in RFC §4.4 | `vectors/engine/` |
 | run | Decides whether a run folder verifies: the ledger chain, the authorizations the run used, the acceptance of a plan | `<binary> verify-run --slice <id>` or `--plan <feature>`, exit 0 means it verifies | `vectors/run/` |
 
+The `verifier`, `producer` and `engine` classes are the Core profile of RFC-0009 (Draft): an implementation that passes them can claim Core without implementing `run`. The `run` class is the Run profile.
+
 A verifier written from the RFC has its own CLI. Wrap it in a script that accepts `verify --commit HEAD`, runs in the
 repository's directory, reads the allowed signers from the `A2DLC_ALLOWED_SIGNERS` file, and exits 0 only when the receipt is
 valid. Pass `--reasons none` when its messages differ from the reference binary's: the vector is then judged on valid or

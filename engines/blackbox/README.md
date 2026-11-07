@@ -28,6 +28,11 @@ A surface compares what its `compare` declares, and nothing else:
 
 The diff and the golden operations use the same function for this (`observation` in `main.go`), so they cannot drift.
 
+When the diff finds an input where base and candidate differ, it runs the base once more on the same input. If the two
+base observations differ, the target is `INCONCLUSIVE` with a reason that starts with `nondeterministic:`, never a
+`FAIL` with a counterexample: the program prints something volatile (a timer, a random id) that `normalize` does not
+cover. Declaring that part under `normalize` makes the comparison decisive again.
+
 ## Golden hash encoding
 
 `output_hash` is `sha256:` followed by the hex digest of the observation bytes. The bytes are the canonical JSON of the
