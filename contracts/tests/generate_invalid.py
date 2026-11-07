@@ -534,6 +534,7 @@ cases = {
     "findings__label-via-unknown.json": (read("findings__labeled.json"), lambda x: x.update(via="inferred")),
     "findings__label-extra-field.json": (read("findings__labeled.json"), lambda x: x.update(confidence=0.9)),
     "findings__id-free.json": (read("findings__raised.json"), lambda x: x.update(id="finding-7")),
+    "findings__without-base-ref.json": (read("findings__raised.json"), lambda x: x.pop("base_ref")),
     "findings__raised-without-target.json": (read("findings__raised.json"), lambda x: x.pop("target")),
     "findings__raised-source-unknown.json": (read("findings__raised.json"), lambda x: x.update(source="model:judge")),
     "findings__fixed-with-label.json": (read("findings__fixed.json"), lambda x: x.update(outcome="false", by="x", via="cli")),

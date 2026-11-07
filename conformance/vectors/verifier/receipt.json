@@ -246,8 +246,7 @@
      "receipt_invalid"
     ]
    },
-   "receipt_valid_shape": false,
-   "known_failure": "a2dlc-5fq"
+   "receipt_valid_shape": false
   },
   {
    "id": "V-receipt-008",

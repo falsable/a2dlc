@@ -18,7 +18,9 @@ import (
 //
 // shortcut: only `required` is enforced (not type, pattern, minimum...), and a oneOf/anyOf is enforced only on the
 // alternative the value selects; where it selects none the value is left to the field-level checks that exist
-// (Validate methods, invalidResponse). Upgrade to a full JSON Schema validator if a second keyword needs enforcing.
+// (Validate methods, invalidResponse). `not` is never enforced (findings.schema.json uses it inside its allOf/if-then
+// branches to forbid the fields of another event kind): the `required` of an if-then branch is.
+// Upgrade to a full JSON Schema validator if a second keyword needs enforcing.
 
 // schemaOf maps a decoded type to the schema (file#pointer) that is its contract. A type that is not here is decoded
 // as before, with no required check; TestSchemaOfCoversTheExampleTypes ties the top-level documents to their files.
@@ -73,6 +75,7 @@ var schemaOf = map[reflect.Type]string{
 	reflect.TypeFor[TracesResponse]():        "engine-traces-response.schema.json",
 	reflect.TypeFor[IndexerResponse]():       "indexer-response.schema.json",
 	reflect.TypeFor[Doctor]():                "doctor.schema.json",
+	reflect.TypeFor[FindingEvent]():          "findings.schema.json",
 	// The payload of an ok role response, decoded on its own by the stage that reads it.
 	reflect.TypeFor[BuilderResponse]():      "role-payloads.schema.json#/$defs/builder_response",
 	reflect.TypeFor[SaboteurResponse]():     "role-payloads.schema.json#/$defs/saboteur_response",

@@ -213,7 +213,8 @@ def group_tree():
     vs.append(vec("V-tree-001", "A receipt whose tree_hash is the commit's tree is valid", "6.4.2", base, VALID))
     for i, (excl, sample) in enumerate(EXCLUDED_FILES.items(), 2):
         path = sample if sample.startswith(".a2dlc/") else excl
-        content = "{}\n" if path.endswith(".json") else "x\n"
+        # An excluded file that is a contract document (approvals.json) carries its own valid content in its entry.
+        content = sample if path == excl else ("{}\n" if path.endswith(".json") else "x\n")
         files = dict(BASE_FILES, **{path: content})
         vs.append(vec("V-tree-%03d" % i, "A file under the excluded path %s does not enter the tree hash" % excl, "6.4.2", [C(files)], VALID,
                       tree=tree_of(base), tags=["exclusion"]))
@@ -268,7 +269,7 @@ def group_receipt():
     vs.append(vec("V-receipt-006", "A field the schema does not name is refused", "6.4.3", two, invalid("receipt_invalid"), set_={"surprise": 1},
                   receipt_valid_shape=False))
     vs.append(vec("V-receipt-007", "A required field missing is refused", "6.4.3", two, invalid("receipt_invalid"), unset=["created_at"],
-                  receipt_valid_shape=False, known_failure="a2dlc-5fq"))
+                  receipt_valid_shape=False))
     vs.append(vec("V-receipt-008", "A tree_hash in the v3.4 form is refused", "6.4.2", two, invalid(any_of=["stale", "receipt_invalid"]),
                   set_={"tree_hash": "sha256:" + "0" * 64}, receipt_valid_shape=False))
     vs.append(vec("V-receipt-009", "A document that is not JSON is refused", "6.4.8", two, invalid("receipt_invalid"), receipt="this is not json\n"))

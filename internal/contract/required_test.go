@@ -34,6 +34,10 @@ var missingRequiredInvalid = map[string]string{
 	"authorization__missing-expires-at.json":                        "expires_at",
 	"authorization__missing-intent-sha256.json":                     "intent_sha256",
 	"run-ledger__authorization-used-unsigned.json":                  "signature",
+	"findings__without-base-ref.json":                               "$.base_ref",
+	"findings__raised-without-target.json":                          "$.target",
+	"findings__label-without-by.json":                               "$.by",
+	"findings__intentional-without-decision.json":                   "$.decision",
 }
 
 // Each document of the list lacks a required field: DecodeStrict rejects it and the error names the field.
@@ -57,9 +61,9 @@ func TestDecodeStrictRejectsMissingRequiredField(t *testing.T) {
 // that omits files_changed is rejected there as well as in the response that carries it.
 func TestDecodeStrictBytesRejectsBuilderPayloadWithoutFilesChanged(t *testing.T) {
 	for payload, want := range map[string]string{
-		`{"summary":"s"}`:                                            "$.files_changed",
-		`{"files_changed":[]}`:                                       "$.summary",
-		`{"summary":"s","files_changed":[]}`:                         "",
+		`{"summary":"s"}`:                    "$.files_changed",
+		`{"files_changed":[]}`:               "$.summary",
+		`{"summary":"s","files_changed":[]}`: "",
 		`{"summary":"s","files_changed":[],"lemmas":[{"name":"f"}]}`: "$.lemmas[0].postcondition",
 	} {
 		var r BuilderResponse

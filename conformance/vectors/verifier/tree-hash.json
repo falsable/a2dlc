@@ -112,7 +112,7 @@
        ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
        "src/m.py": "def f(x):\n    return x\n",
        "README.md": "hello\n",
-       ".a2dlc/approvals.json": "{}\n"
+       ".a2dlc/approvals.json": "{\"schema_version\":1,\"approvals\":[]}\n"
       }
      }
     ]
