@@ -4,6 +4,7 @@
 FROM golang:1.23-bookworm AS build
 WORKDIR /src
 COPY go.mod ./
+COPY contracts ./contracts
 COPY internal ./internal
 COPY engines/blackbox ./engines/blackbox
 RUN CGO_ENABLED=0 GOFLAGS=-buildvcs=false go build -o /a2dlc-bb ./engines/blackbox

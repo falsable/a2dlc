@@ -411,11 +411,11 @@ func TestInstallWritesTheEngineImagesOfTheBuild(t *testing.T) {
 	}
 }
 
-// A dev build keeps the local tag of the Python engine built from this tree (the one that leaves test code to the test
-// gates, 0.12): a repo installed with an older tag would not get it. Bump the tag here and in CLAUDE.md when
-// engines/py is rebuilt.
+// A dev build keeps the local tag of the Python engine built from this tree (the one that judges the methods of
+// module-level classes, 0.14): a repo installed with an older tag would not get it. Bump the tag here and in
+// CLAUDE.md when engines/py is rebuilt.
 func TestInstallDevBuildWritesTheCurrentPythonEngineTag(t *testing.T) {
-	const current = "a2dlc-engine-py:0.12"
+	const current = "a2dlc-engine-py:0.14"
 	if enginePyImage != current {
 		t.Fatalf("enginePyImage = %q, want %q", enginePyImage, current)
 	}
@@ -434,7 +434,7 @@ func TestInstallDevBuildWritesTheCurrentPythonEngineTag(t *testing.T) {
 }
 
 func TestInstallDevBuildWritesTheCurrentTypeScriptEngineTag(t *testing.T) {
-	const current = "a2dlc-engine-ts:0.3"
+	const current = "a2dlc-engine-ts:0.4"
 	if engineTSImage != current {
 		t.Fatalf("engineTSImage = %q, want %q", engineTSImage, current)
 	}
@@ -461,10 +461,12 @@ func TestInstallPythonEnginePathsFollowTheLayout(t *testing.T) {
 			t.Fatal(err)
 		}
 		write(t, dir, "pyproject.toml", "[project]\nname = \"x\"\n")
-		if layout == "" { // newRepo seeds src/lib for its TypeScript fixture
-			if err := os.RemoveAll(filepath.Join(dir, "src")); err != nil {
-				t.Fatal(err)
-			}
+		// newRepo seeds src/lib/f.ts for its TypeScript fixture; that .ts file would now add the TypeScript engine
+		if err := os.RemoveAll(filepath.Join(dir, "src")); err != nil {
+			t.Fatal(err)
+		}
+		if layout == "src" {
+			write(t, dir, "src/pkg/a.py", "x = 1\n")
 		}
 		if _, err := a.Install("/opt/a2dlc", nil); err != nil {
 			t.Fatal(err)

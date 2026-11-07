@@ -106,7 +106,7 @@ Plus test gates: *no-op test* detection (passes on the base tree), coverage prec
 | **Claude Code** | `a2dlc install --agent claude` | `.a2dlc/config.json`, `pre-push`, `.claude/settings.json` (`PreToolUse` + `Stop`) |
 | **Gemini CLI / Antigravity** | `a2dlc install --agent gemini` | same + `.gemini/settings.json` (`PreToolUse` + `AfterAgent`) |
 | **Codex / Cursor / Copilot** | `a2dlc install` + [`SKILL.md`](skills/a2dlc/SKILL.md) | `pre-push`; the agent runs `a2dlc check` per the skill |
-| **Any MCP client** | `"a2dlc": { "command": "a2dlc", "args": ["mcp"] }` | `a2dlc_status`, `a2dlc_check`, `a2dlc_verify`, `a2dlc_verify_run`, `a2dlc_format_report` |
+| **Any MCP client** | `"a2dlc": { "command": "a2dlc", "args": ["mcp"] }` | `a2dlc_status`, `a2dlc_check`, `a2dlc_verify`, `a2dlc_verify_run`, `a2dlc_run`, `a2dlc_plan_run`, `a2dlc_approve_pending`, `a2dlc_answer`, `a2dlc_format_report` |
 | **Skill registries** | `npx skills add falsable/a2dlc` · `agy plugin install https://github.com/falsable/a2dlc` | bundled `SKILL.md` |
 
 Or paste this to your agent:
@@ -166,6 +166,7 @@ The AI-DLC column was read from the source code and docs of [awslabs/aidlc-workf
 | `a2dlc plan propose\|import\|check\|run\|replan` | Feature plans (RFC-0008, Draft): a planner role or a Spec Kit / Task Master task list proposes slices, deterministic gates judge them, `plan run` runs them in dependency order, side by side when their files are disjoint, as many at once as the host and the Docker daemon hold ([docs/PLAN_MACHINE.md](docs/PLAN_MACHINE.md)) |
 | `a2dlc verify-run --slice <id>` | Verify the hash-chained container ledger |
 | `a2dlc answer --slice <id> --probe <id> --choice alpha` | Answer a human probe and resume |
+| `a2dlc propose --from-escalations --out <empty dir outside the repo>` | No role call: the counterexamples that earlier runs left in `.a2dlc/escalations.json` and `.a2dlc/run/*/escalations.json` become properties for the next intent, each with a probe (the arguments and the base's result), in `proposals.json` ([schema](contracts/proposals.schema.json)). Deduplicated by the hash of target, args and old output, against `.a2dlc/reports/proposals.jsonl`; a target waived with `enforce_new_behavior` is left out. It proposes only and never edits an intent. Implemented, not measured |
 | `a2dlc mcp` | Built-in MCP server (JSON-RPC 2.0 over stdio) |
 
 `a2dlc` (`cmd/a2dlc`) is both the clean-room protocol orchestrator (`a2dlc run`, Stages −1 to 7) and the differential verification gate (`a2dlc check` / `a2dlc verify`), governed by the JSON Schema contracts under `contracts/` and RFC-0001.

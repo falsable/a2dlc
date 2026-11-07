@@ -127,7 +127,7 @@ func (noTier0) Tier0(context.Context, contract.EngineConfig, contract.Request, s
 
 // The classification is Stage 4's: lines the engine calls declaration-only are not findings, the rest are.
 func TestTier0CoverageUsesTheClassificationOfStage4(t *testing.T) {
-	config := `{"schema_version":1,"engines":[{"language":"python","image":"fake","paths":["app/**"]}],` +
+	config := `{"schema_version":1,"engines":[{"language":"python","image":"fake","paths":["app/**"],"budget":{}}],` +
 		`"tests":{"image":"fake","paths":["test/**"],"source_paths":["app/**"],"command":"run-all"}}`
 	a, _ := coverageRepo(t, config, withCoverage(junitRun(0, "test/a.test.ts ok"), "app/f.py:1,0,0,0"))
 	fe := &classifying{fakeEngine: &fakeEngine{}, answer: answering("app/f.py", map[string][]int{contract.NoteDeclarativeOnly: {3, 4}})}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """a2dlc conformance runner, v0.
 
-  python conformance/run.py --binary <path to a verifier/producer> [--engine-image <image>] [--class verifier,producer,engine]
+  python conformance/run.py --binary <path to a verifier/producer> [--engine-image <image>] [--class verifier,producer,engine,run]
                             [--id <prefix>] [--strict] [--reasons a2dlc|none] [--implementation <name>] [--verify-arg <arg>]
 
 Every vector under conformance/vectors/<class>/ declares its class. The runner builds each repository a vector describes,
@@ -11,6 +11,8 @@ runs the entrypoint under test and compares its behavior with what the vector (a
             Whether it is valid, and (with --reasons a2dlc) why not, is compared with the vector.
   producer  `<binary> check --base <sha>` and `<binary> approve <target> --key <key> --principal <p>` in the repository.
   engine    A Docker image, run the way the core runs an engine (--engine-image).
+  run       `<binary> verify-run --slice <id>` or `--plan <feature>` in a repository whose working tree holds the run's folder
+            (the ledger, the state, the acceptance of a plan). Exit status 0 means the run verifies.
 
 Standard library only. Optional: `jsonschema` (with `referencing`) to also validate every document against contracts/."""
 import argparse
@@ -28,7 +30,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 VECTORS = HERE / "vectors"
-CLASSES = ["verifier", "producer", "engine"]
+CLASSES = ["verifier", "producer", "engine", "run"]
 REFERENCE = "a2dlc"  # the implementation the known_failure markers of the vectors are about, unless they name another
 
 # What the reference binary prints, mapped to the abstract kinds of RFC §6.4.8. An implementation with other messages
@@ -49,6 +51,26 @@ WHY = {
     "file_changed": r"the file changed after signing",
     "signature_invalid": r"invalid signature for|no allowed signers configured",
     "unsigned": r"unsigned: approve it",
+}
+
+# The same for `verify-run` (RFC-0007 Part B and RFC-0008 section 4).
+REASONS_RUN = {
+    "ledger_chain": r"ledger: entry \d+: (seq|prev_hash|hash)",
+    "ledger_run": r"ledger\.json belongs to another run",
+    "authorization_unbound": r"ledger: (entry \d+: (a check entry binds no authorization|only an entry of role check binds an authorization)|entry \d+ binds the authorization used for|authorizations_used records the use for)",
+    "authorization_invalid": r"authorization used for .+ \(stage .+\): |no allowed signers are configured",
+    "artifact_changed": r"stage \S+: artifact .+ changed or is missing|stage \S+ done without an artifact",
+    "acceptance_invalid": r"acceptance|records no acceptance",
+}
+WHY_RUN = {
+    "expired": r"it (had )?expired at",
+    "not_named": r"it does not name that target",
+    "decision": r"cannot be pre-authorized",
+    "another_plan": r"it approves another plan",
+    "other_base": r"it approves a run on base|it is for base",
+    "no_plan_accept": r"it does not carry plan\.accept for",
+    "missing": r"records no acceptance",
+    "kind": r"does not match what the record holds",
 }
 
 
@@ -242,6 +264,40 @@ def t_verifier(ctx, group, v):
         return problems
 
 
+def escalation_problems(d, receipt):
+    """An agent reads .a2dlc/escalations.json as an API, so a check that writes one must write a document that validates
+    against escalation.schema.json and judges the tree of its receipt. An implementation that writes none is not failed."""
+    path = Path(d, ".a2dlc", "escalations.json")
+    if not path.exists():
+        return []
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as e:
+        return ["escalations.json is not JSON: %s" % e]
+    errs = schema_errors("escalation", doc)
+    problems = ["escalations.json does not validate against escalation.schema.json: %s" % errs] if errs else []
+    if isinstance(doc, dict) and doc.get("tree_hash") != receipt.get("tree_hash"):
+        problems.append("escalations.json judges %r, the receipt %r" % (doc.get("tree_hash"), receipt.get("tree_hash")))
+    return problems
+
+
+def t_run(ctx, group, v):
+    with tempfile.TemporaryDirectory(prefix="a2dlc-conf-") as d:
+        build_repo(d, v["repo"])
+        for path, text in v["files"].items():
+            f = Path(d, path)
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(text, encoding="utf-8", newline="")
+        rc, out = run_bin(ctx, v["args"], d, allowed_env(ctx, d, v))
+        exp = v["expect"]
+        if (rc == 0) != exp["valid"]:
+            return ["expected the run to be %s, the entrypoint exited %d: %s" % ("valid" if exp["valid"] else "invalid", rc, out.strip()[:300])]
+        if exp["valid"] or ctx.reasons != "a2dlc":
+            return []
+        bad = ["expected the problem kind %s; output: %s" % (k, out.strip()[:300]) for k in exp.get("kinds", []) if not re.search(REASONS_RUN[k], out)]
+        return bad + ["expected the reason %s; output: %s" % (w, out.strip()[:300]) for w in exp.get("why", []) if not re.search(WHY_RUN[w], out)]
+
+
 def t_producer_check(ctx, group, v):
     with tempfile.TemporaryDirectory(prefix="a2dlc-conf-") as d:
         info = build_repo(d, dict(v["repo"], worktree=True))
@@ -260,6 +316,7 @@ def t_producer_check(ctx, group, v):
             problems.append("the receipt does not validate against verdict.schema.json: %s" % errs)
         if errs is None and ctx.require_schema:
             problems.append("jsonschema is not installed and --require-schema was given")
+        problems += escalation_problems(d, doc)
         want = expand(exp, subs)
         for key in ["verdict", "tree_hash", "base_ref", "pending_waivers"]:
             if key in want and doc.get(key) != want[key]:
@@ -366,7 +423,7 @@ def t_engine(ctx, group, v):
         return problems
 
 
-RUNNERS = {"verifier": t_verifier, "producer": t_producer, "engine": t_engine}
+RUNNERS = {"verifier": t_verifier, "producer": t_producer, "engine": t_engine, "run": t_run}
 
 
 # ----- fixtures pins and the main loop --------------------------------------------------------------------------------
@@ -430,7 +487,7 @@ def main(argv=None):
                     continue
                 label = "%-8s %s" % (cls, v["id"])
                 try:
-                    if cls in ("verifier", "producer") and not ctx.binary:
+                    if cls in ("verifier", "producer", "run") and not ctx.binary:
                         raise Skip("no --binary")
                     for req in v.get("requires", []):
                         if not available(req):

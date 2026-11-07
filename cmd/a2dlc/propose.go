@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/app"
 	"github.com/falsable/a2dlc/internal/contract"
@@ -43,16 +45,8 @@ type proposeOutcome struct {
 // so its verdict stays deterministic. With no changes it makes no call.
 func runPropose(ctx context.Context, a app.App, l a2run.Launcher, base, out string) (proposeOutcome, error) {
 	var res proposeOutcome
-	absOut, err := filepath.Abs(out)
+	absOut, err := checkProposeOut(a.Repo.Dir, out)
 	if err != nil {
-		return res, err
-	}
-	if inside(a.Repo.Dir, absOut) {
-		return res, fmt.Errorf("--out %s is inside the repository: proposals never go into the tree", out)
-	}
-	if entries, err := os.ReadDir(absOut); err == nil && len(entries) > 0 {
-		return res, fmt.Errorf("--out %s is not empty", out)
-	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return res, err
 	}
 	b, err := os.ReadFile(filepath.Join(a.Repo.Dir, filepath.FromSlash(".a2dlc/roles.json")))
@@ -196,6 +190,49 @@ func runPropose(ctx context.Context, a app.App, l a2run.Launcher, base, out stri
 	}
 	res.Files, err = listUnder(filepath.Join(absOut, "files"))
 	return res, err
+}
+
+// checkProposeOut is the --out rule of both propose modes: an empty folder (or none yet) outside the repository.
+func checkProposeOut(repoDir, out string) (string, error) {
+	absOut, err := filepath.Abs(out)
+	if err != nil {
+		return "", err
+	}
+	if inside(repoDir, absOut) {
+		return "", fmt.Errorf("--out %s is inside the repository: proposals never go into the tree", out)
+	}
+	if entries, err := os.ReadDir(absOut); err == nil && len(entries) > 0 {
+		return "", fmt.Errorf("--out %s is not empty", out)
+	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return "", err
+	}
+	return absOut, nil
+}
+
+// runProposeFromEscalations is `propose --from-escalations`: the counterexamples that earlier runs left in escalations.json
+// become proposals.json in out (see contracts/proposals.schema.json). No role is called and nothing is written into the
+// repository except the record of what was handed out (.a2dlc/reports/proposals.jsonl, outside the tree_hash), which is
+// appended only after proposals.json is on disk. It never edits an intent: the person (or a pre-authorization) accepts.
+func runProposeFromEscalations(a app.App, out string, now time.Time) (contract.Proposals, error) {
+	absOut, err := checkProposeOut(a.Repo.Dir, out)
+	if err != nil {
+		return contract.Proposals{}, err
+	}
+	doc, err := a.ProposeFromEscalations(now)
+	if err != nil {
+		return doc, err
+	}
+	b, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return doc, err
+	}
+	if err := os.MkdirAll(absOut, 0o755); err != nil {
+		return doc, err
+	}
+	if err := os.WriteFile(filepath.Join(absOut, "proposals.json"), append(b, byte(10)), 0o644); err != nil {
+		return doc, err
+	}
+	return doc, a.RecordProposals(doc)
 }
 
 // proposeLanguage is the engine language that the request names: the one of the engines that own the changed sources.

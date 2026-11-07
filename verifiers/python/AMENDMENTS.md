@@ -134,3 +134,35 @@ An `INCONCLUSIVE` target on code that is not critical, whose changed lines the t
 §6.4.5 alone (`_lines_executed` in `a2dlc_verify.py`): it refuses the note unless the target is `INCONCLUSIVE` with `waived: false`
 and the receipt's own coverage ran and has no unexamined line of the target's file (within the target's `lines` when it has them),
 and refuses any other note value. Vectors `V-note-018` to `V-note-023`.
+
+## D. `verify-run` (RFC-0007 Part B, RFC-0008 section 4)
+
+Not clean room. The RFC said a run has "a hash-chained ledger (`verify-run`)" and nothing about how the chain is computed, so no one could write the check from the text. The text of RFC-0007 now has the rules ("The run ledger and `verify-run` (normative)"), written after reading `internal/run/ledger.go`, `internal/run/machine.go` and `internal/plan/accept.go`; the verifier was written from that text. The conformance class `run` (`V-run-001` to `-027` and `-101` to `-117`) is what shows the Go binary and this verifier agree. What the Go code did that no text said, now in the RFC:
+
+### D1. The text that is hashed
+
+The entry's `hash` is the SHA-256 of `prev_hash` followed by the compact JSON of the entry, with the keys in the order of the schema, `hash` present as an empty string (not left out), `null` for an absent `image_digest` and `cost`, `[]` for absent lists, a zero left out of `cost` except `usd`, `egress_proxy` and `authorization` only when present, and Go's escaping of `<`, `>`, `&`, U+2028 and U+2029.
+
+### D2. The binding is a multiset match on stage, time and the reference
+
+A record and an entry match on `stage`, `at` compared as written, and the reference (`target`, `id`, `sha256`); a record matches at most one entry. `id` is the bare hex of the SHA-256 of the signed text, as the receipt writes it, and `sha256` has the `sha256:` prefix.
+
+### D3. The ledger schema asked for a prefix the reference never wrote
+
+`run-ledger.schema.json` gave `authorization.id` the pattern of `sha256:<hex>`; the Go code writes the bare hex that the receipt calls the id (`verdict.authorization.covered[].id`). The schema and its example now say bare hex. The reference decodes strictly without checking patterns, so only a validating reader (this verifier) saw the difference.
+
+### D4. Every record is checked, whatever the chain said
+
+When the chain or the binding fails, the records of `authorizations_used` are still checked one by one, and each problem is reported. A use at the very second of `expires_at` passes.
+
+### D5. `verify-run --plan` does not compare the intent
+
+The state does not hold the feature intent's hash, so the authorization's `intent_sha256` is not compared by `verify-run`, only by `plan run` when it accepts. The checks run in a fixed order and the first that fails is the one reported.
+
+### D6. Not implemented: the spend of state.json against the ledger
+
+The reference also fails a run whose ledger records less spend, fewer tokens, fewer unreported roles or less spend per role than state.json (a deleted or truncated ledger). It is not in the text yet and this verifier does not do it. The conformance vectors have no case for it.
+
+### D7. Dates
+
+The verifier reads RFC 3339 date-times with a zone and fractions of a second and compares instants to the nanosecond; a seconds field of 60 is treated as not a date. That last point was written to match Go's parser and has not been run against it.

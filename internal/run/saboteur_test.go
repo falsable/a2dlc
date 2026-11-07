@@ -73,7 +73,7 @@ func TestStage4SaboteurRejectsInvalidDeliveries(t *testing.T) {
 		{"payload out of contract", "out of contract", func(t *testing.T) func(LaunchSpec) (*contract.RoleResponse, int, bool) {
 			return func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
 				return &contract.RoleResponse{SchemaVersion: 1, RunID: readRunID(t, s), Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,
-					Status: contract.RoleOK, Payload: json.RawMessage(`{"extra":1}`)}, 0, false
+					Status: contract.RoleOK, Cost: &contract.Cost{USD: 0.01}, Payload: json.RawMessage(`{"test_files":[],"targets":[],"extra":1}`)}, 0, false
 			}
 		}},
 		{"no tests", "delivered no tests", func(t *testing.T) func(LaunchSpec) (*contract.RoleResponse, int, bool) {

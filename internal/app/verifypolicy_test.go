@@ -300,7 +300,7 @@ func TestVerifyPolicyProtectedPathWithoutApprovalBlocksWithOrWithoutVerdict(t *t
 
 // Row 6: an unsigned waiver blocks where what it exempts would block.
 func TestVerifyPolicyUnsignedWaiverBlocksWhereWhatItExemptsWouldBlock(t *testing.T) {
-	cfg := cfgOf(t, `{"schema_version":1,"critical_code":["src/core/**"]}`)
+	cfg := cfgOf(t, `{"schema_version":1,"engines":[],"critical_code":["src/core/**"]}`)
 	tgt := func(name, verdictOf string) contract.VerdictTarget {
 		return contract.VerdictTarget{TargetResult: contract.TargetResult{Target: name, Verdict: verdictOf}, Waived: true}
 	}

@@ -31,10 +31,17 @@ func TestAnswerCommandExitCodes(t *testing.T) {
 	if err := os.MkdirAll(runDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(runDir, "state.json"), []byte(`{"run_id":"run-000000000000"}`), 0o644); err != nil {
+	// state.json must satisfy its schema: the valid example of the contract, with this test's run and slice
+	state, err := os.ReadFile("../../contracts/examples/valid/run-state__stage4.json")
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(runDir, "escalations.json"), []byte(`{"schema_version":1,"items":[{"id":"esc-1"}]}`), 0o644); err != nil {
+	state = bytes.ReplaceAll(bytes.ReplaceAll(state, []byte("run-3f9a1c2b7d4e"), []byte("run-000000000000")), []byte("core.relational.as_set.v1"), []byte("pago.v1"))
+	if err := os.WriteFile(filepath.Join(runDir, "state.json"), state, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	item := `{"id":"esc-1","kind":"test_without_teeth","target":"tests/test_calc.py::tests.test_calc::test_media_vacia","summary":"s","evidence":{"base":"passed","candidate":"passed"},"resolve_with":["characterization_test"]}`
+	if err := os.WriteFile(filepath.Join(runDir, "escalations.json"), []byte(`{"schema_version":1,"tree_hash":"git-tree:4b825dc642cb6eb9a060e54bf8d69288fbee4904","created_at":"2026-10-16T12:00:00Z","items":[`+item+`]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	stderr.Reset()

@@ -25,7 +25,10 @@ import subprocess
 import sys
 
 NAMESPACE = "a2dlc-approval"
-EXCLUDED = (b".a2dlc/verdict.json", b".a2dlc/verdict.sig", b".a2dlc/reports", b".a2dlc/approvals.json", b".a2dlc/escalations.json", b".a2dlc/run")
+AUTHORIZATION_NAMESPACE = "a2dlc-authorization"
+PLAN_NAMESPACE = "a2dlc-plan"
+RUN_DIR = ".a2dlc/run"
+EXCLUDED = (b".a2dlc/verdict.json", b".a2dlc/verdict.sig", b".a2dlc/reports", b".a2dlc/approvals.json", b".a2dlc/authorizations.json", b".a2dlc/escalations.json", b".a2dlc/run")
 RECEIPT = ".a2dlc/verdict.json"
 WAIVERS = ".a2dlc/waivers.json"
 APPROVALS = ".a2dlc/approvals.json"
@@ -248,8 +251,8 @@ def load_allowed_signers(environ=None):
         return None
 
 
-def check_signature(signers_text, principal, signature_text, message):
-    """(ok, reason) for an armored SSH signature over `message` by `principal` in namespace a2dlc-approval."""
+def check_signature(signers_text, principal, signature_text, message, namespace_name=NAMESPACE):
+    """(ok, reason) for an armored SSH signature over `message` by `principal` in the namespace `namespace_name`."""
     if signers_text is None:
         return False, "no allowed signers configured"
     blob = parse_armored_signature(signature_text)
@@ -274,8 +277,8 @@ def check_signature(signers_text, principal, signature_text, message):
         sig_type, sig_raw = sr.string(), sr.string()
     except (ValueError, struct.error):
         return False, "malformed signature"
-    if namespace != NAMESPACE.encode():
-        return False, "signature namespace is %r, not %s" % (namespace.decode("utf-8", "replace"), NAMESPACE)
+    if namespace != namespace_name.encode():
+        return False, "signature namespace is %r, not %s" % (namespace.decode("utf-8", "replace"), namespace_name)
     if pub_type != b"ssh-ed25519" or sig_type != b"ssh-ed25519":
         return False, "key type %s is not supported (only ssh-ed25519)" % pub_type.decode("utf-8", "replace")
     if hash_alg == b"sha512":
@@ -291,12 +294,12 @@ def check_signature(signers_text, principal, signature_text, message):
             continue
         if not _pattern_list_matches(principals, principal):
             continue
-        if "namespaces" in options and not _pattern_list_matches(options["namespaces"], NAMESPACE):
+        if "namespaces" in options and not _pattern_list_matches(options["namespaces"], namespace_name):
             continue
         allowed = True
         break
     if not allowed:
-        return False, "no allowed-signers line lists this key for %s in namespace %s" % (principal, NAMESPACE)
+        return False, "no allowed-signers line lists this key for %s in namespace %s" % (principal, namespace_name)
     if not ed25519_verify(pub_key, signed, sig_raw):
         return False, "the signature does not verify"
     return True, ""
@@ -800,6 +803,310 @@ def _approval_valid(approval, waiver, waivers_err, blobs, signers):
     return True, ""
 
 
+# ----- verify-run: the run ledger, the authorizations a run used and the acceptance of a plan (RFC-0007 Part B, RFC-0008 section 4) --
+
+
+def _go_float(x):
+    """Shortest text that reads back as x, without an exponent from 1e-6 up to below 1e21 (how the ledger writes a float)."""
+    if x == int(x) and abs(x) < 1e21:
+        return str(int(x))
+    r = repr(float(x))
+    if "e" not in r:
+        return r
+    mant, exp = r.split("e")
+    e = int(exp)
+    digits = mant.replace(".", "").replace("-", "")
+    sign = "-" if mant.startswith("-") else ""
+    if -6 <= e < 0:
+        return sign + "0." + "0" * (-e - 1) + digits
+    if 0 <= e < 21:
+        return sign + digits + "0" * (e + 1 - len(digits))
+    return mant + "e" + ("-" if e < 0 else "+") + "%02d" % abs(e)
+
+
+def _compact(v):
+    """Compact JSON of a value read from a document: strings written as in the waiver hash, no spaces."""
+    if v is None:
+        return "null"
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, str):
+        return _go_json_string(v)
+    if isinstance(v, int):
+        return str(v)
+    if isinstance(v, float):
+        return _go_float(v)
+    if isinstance(v, list):
+        return "[" + ",".join(_compact(x) for x in v) + "]"
+    raise ValueError("unexpected value in a ledger entry")
+
+
+def _object_text(obj, keys, omit_zero=()):
+    parts = []
+    for k in keys:
+        value = obj.get(k)
+        if k in omit_zero and (value is None or (not isinstance(value, bool) and value == 0)):
+            continue
+        parts.append("%s:%s" % (_go_json_string(k), _compact(value)))
+    return "{" + ",".join(parts) + "}"
+
+
+_ENTRY_KEYS = ("seq", "prev_hash", "hash", "at", "stage", "role", "attempt", "family", "image", "image_digest", "argv_sha256", "inputs", "outputs", "network", "env_keys", "exit", "status", "cost")
+_COST_KEYS = ("usd", "input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "output_tokens", "turns")
+_AUTH_KEYS = ("base_ref", "intent_sha256", "targets", "decision", "expires_at", "principal", "signature")
+
+
+def entry_text(entry):
+    """The text of a ledger entry that is hashed: keys in the order of the schema, `hash` written as an empty string."""
+    parts = []
+    for k in _ENTRY_KEYS:
+        v = "" if k == "hash" else entry.get(k)
+        if k == "cost":
+            parts.append('"cost":' + ("null" if v is None else _object_text(v, _COST_KEYS, omit_zero=_COST_KEYS[1:])))
+        elif k in ("inputs", "outputs"):
+            parts.append("%s:[%s]" % (_go_json_string(k), ",".join(_object_text(f, ("path", "sha256")) for f in v or [])))
+        elif k == "env_keys":
+            parts.append('"env_keys":' + _compact(v or []))
+        else:
+            parts.append("%s:%s" % (_go_json_string(k), _compact(v)))
+    if "egress_proxy" in entry:
+        parts.append('"egress_proxy":' + _object_text(entry["egress_proxy"], ("image", "image_digest")))
+    if "authorization" in entry:
+        parts.append('"authorization":' + _object_text(entry["authorization"], ("target", "id", "sha256")))
+    return "{" + ",".join(parts) + "}"
+
+
+def entry_hash(entry):
+    return "sha256:" + hashlib.sha256(((entry.get("prev_hash") or "") + entry_text(entry)).encode("utf-8")).hexdigest()
+
+
+def authorization_payload(au):
+    """The signed text of an authorization (RFC-0007 Part B): targets sorted and without repeats."""
+    return ("a2dlc-authorization/1\n%s\n%s\n%s\n%s\n" % (au["base_ref"], au["intent_sha256"], au["decision"], au["expires_at"]) + "".join(t + "\n" for t in sorted(set(au["targets"])))).encode("utf-8")
+
+
+def authorization_ref(record):
+    """What the chained entry holds for a record of authorizations_used."""
+    au = record["authorization"]
+    return {"target": record["target"], "id": hashlib.sha256(authorization_payload(au)).hexdigest(),
+            "sha256": "sha256:" + hashlib.sha256(_object_text(au, _AUTH_KEYS).encode("utf-8")).hexdigest()}
+
+
+def plan_payload(plan_sha256, base_ref, expires_at):
+    return ("a2dlc-plan/1\n%s\n%s\n%s\n" % (plan_sha256, base_ref, expires_at)).encode("utf-8")
+
+
+def _instant(text):
+    """(whole seconds since the epoch, nanoseconds) of an RFC 3339 date-time; None when it is not one the verifier reads."""
+    m = _DATE_TIME.match(text) if isinstance(text, str) else None
+    if not m or not _valid_date_time(text) or int(m[6]) > 59:
+        return None
+    offset = 0 if m[8] in ("Z", "z") else (1 if m[8][0] == "+" else -1) * (int(m[8][1:3]) * 3600 + int(m[8][4:6]) * 60)
+    when = datetime.datetime(int(m[1]), int(m[2]), int(m[3]), int(m[4]), int(m[5]), int(m[6]), tzinfo=datetime.timezone.utc)
+    nanos = int((m[7] or ".0")[1:].ljust(9, "0")[:9])
+    return int(when.timestamp()) - offset, nanos
+
+
+def _expired(expires_at, used_at):
+    """True when `used_at` is after `expires_at`; None when either is not a date."""
+    a, b = _instant(used_at), _instant(expires_at)
+    return None if a is None or b is None else a > b
+
+
+def _read_json(path):
+    with open(path, "rb") as f:
+        return _strict_json(f.read())
+
+
+def _contract_problem(schemas, name, doc, label):
+    errors = schemas.validate(name, doc)
+    return "%s does not match the contract: %s" % (label, errors[0]) if errors else None
+
+
+def check_ledger(ledger):
+    """The first problem with the chain of a ledger or with the binding of the authorizations used, as a `ledger: ...` message."""
+    prev = None
+    for i, e in enumerate(ledger.get("entries", []), 1):
+        if e.get("seq") != i:
+            return ["ledger: entry %d: seq %s" % (i, e.get("seq"))]
+        if prev is None and e.get("prev_hash") is not None:
+            return ["ledger: entry 1: prev_hash must be null"]
+        if prev is not None and e.get("prev_hash") != prev:
+            return ["ledger: entry %d: prev_hash is not the hash of entry %d" % (i, i - 1)]
+        if entry_hash(e) != e.get("hash"):
+            return ["ledger: entry %d: hash does not match the recorded one" % i]
+        prev = e["hash"]
+    pool = list(ledger.get("authorizations_used") or [])
+    for e in ledger.get("entries", []):
+        bound = e.get("authorization")
+        if bound is None:
+            if e.get("role") == "check":
+                return ["ledger: entry %d: a check entry binds no authorization" % e["seq"]]
+            continue
+        if e.get("role") != "check":
+            return ["ledger: entry %d: only an entry of role check binds an authorization" % e["seq"]]
+        match = next((i for i, u in enumerate(pool) if u["stage"] == e["stage"] and u["at"] == e["at"] and authorization_ref(u) == bound), None)
+        if match is None:
+            return ["ledger: entry %d binds the authorization used for %s, but authorizations_used has no such record (deleted or edited)" % (e["seq"], bound["target"])]
+        del pool[match]
+    if pool:
+        return ["ledger: authorizations_used records the use for %s (stage %s) that no chained entry binds (added or edited)" % (pool[0]["target"], pool[0]["stage"])]
+    return []
+
+
+def check_authorizations_used(ledger, signers):
+    """Each record of authorizations_used checked again: target named, a decision that can be pre-authorized, not expired when used, signature."""
+    uses = ledger.get("authorizations_used") or []
+    if not uses:
+        return []
+    if not signers:
+        return ["the ledger records authorizations used, but no allowed signers are configured: none of them can be checked"]
+    problems = []
+    for u in uses:
+        au = u["authorization"]
+        label = "authorization used for %s (stage %s): " % (u["target"], u["stage"])
+        if u["target"] not in au["targets"]:
+            problems.append(label + "it does not name that target")
+        if au["decision"] not in ("enforce_new_behavior", "preserve_legacy"):
+            problems.append(label + "decision %s cannot be pre-authorized" % au["decision"])
+        late = _expired(au["expires_at"], u["at"])
+        if late is None:
+            problems.append(label + "the time of use or the expiry is not a date")
+        elif late:
+            problems.append(label + "it had expired at %s when it was used at %s" % (au["expires_at"], u["at"]))
+        ok, why = check_signature(signers, au["principal"], au["signature"], authorization_payload(au), AUTHORIZATION_NAMESPACE)
+        if not ok:
+            problems.append(label + why)
+    return problems
+
+
+def verify_slice_run(top, slice_id, schemas, environ=None):
+    """The problems of `verify-run --slice`; a ValueError message when state.json cannot be read."""
+    directory = os.path.join(top, *RUN_DIR.split("/"), slice_id)
+    try:
+        state = _read_json(os.path.join(directory, "state.json"))
+    except (OSError, ValueError) as e:
+        raise ValueError("cannot read state.json of the slice: %s" % e)
+    bad = _contract_problem(schemas, "run-state", state, "state.json")
+    if bad:
+        raise ValueError(bad)
+    problems = []
+    ledger_path = os.path.join(directory, "ledger.json")
+    if os.path.exists(ledger_path):
+        try:
+            ledger = _read_json(ledger_path)
+        except (OSError, ValueError) as e:
+            ledger = None
+            problems.append("ledger.json does not match the contract: %s" % e)
+        if ledger is not None:
+            bad = _contract_problem(schemas, "run-ledger", ledger, "ledger.json")
+            if bad:
+                problems.append(bad)
+            else:
+                if ledger["run_id"] != state["run_id"]:
+                    problems.append("ledger.json belongs to another run: %s" % ledger["run_id"])
+                else:
+                    problems += check_ledger(ledger)
+                problems += check_authorizations_used(ledger, load_allowed_signers(environ))
+    else:
+        budget = state["budget"]
+        if budget.get("spent_usd", 0) > 0 or budget.get("unreported_roles", 0) > 0 or budget.get("by_role"):
+            problems.append("ledger.json is missing but state.json records launches")
+    for stage in state["stages"]:
+        artifact = stage.get("artifact")
+        if artifact is None:
+            if stage["status"] == "done":
+                problems.append("stage %s done without an artifact" % stage["id"])
+            continue
+        try:
+            with open(os.path.join(directory, *artifact["path"].split("/")), "rb") as f:
+                digest = "sha256:" + hashlib.sha256(f.read()).hexdigest()
+        except OSError:
+            digest = None
+        if digest != artifact["sha256"]:
+            problems.append("stage %s: artifact %s changed or is missing" % (stage["id"], artifact["path"]))
+    return problems
+
+
+def _expiry_problem(expires_at, at):
+    late = _expired(expires_at, at)
+    if late is None:
+        return "expires_at %r is not a date" % (expires_at,)
+    return "it expired at %s" % expires_at if late else None
+
+
+def _signature_problem(signers, principal, signature, message, namespace_name):
+    ok, why = check_signature(signers, principal, signature, message, namespace_name)
+    return None if ok else why
+
+
+def _plan_authorization_problem(au, signers, feature, base, at):
+    target = "plan::" + feature
+    if au["decision"] != "plan.accept" or target not in au["targets"]:
+        return "it does not carry plan.accept for %s" % target
+    if au["base_ref"] != base:
+        return "it is for base %.12s, not %.12s" % (au["base_ref"], base)
+    return _expiry_problem(au["expires_at"], at) or _signature_problem(signers, au["principal"], au["signature"], authorization_payload(au), AUTHORIZATION_NAMESPACE)
+
+
+def verify_plan_run(top, feature, schemas, environ=None):
+    """The problems of `verify-run --plan`; a ValueError message when the plan state cannot be read."""
+    try:
+        state = _read_json(os.path.join(top, *RUN_DIR.split("/"), "_plan", feature, "state.json"))
+    except (OSError, ValueError) as e:
+        raise ValueError("cannot read the plan state: %s" % e)
+    bad = _contract_problem(schemas, "plan-state", state, "state.json")
+    if bad:
+        raise ValueError(bad)
+    acceptance = state.get("acceptance")
+    if acceptance is None:
+        return ["the plan state records no acceptance: no signed approval and no authorization covered plan.accept"]
+    if _instant(acceptance["at"]) is None:
+        return ["acceptance: the time of use is not a date"]
+    signers = load_allowed_signers(environ)
+    if not signers:
+        return ["acceptance: no allowed signers are configured, so it cannot be checked"]
+    kind, approval, authorization = acceptance["kind"], acceptance.get("approval"), acceptance.get("authorization")
+    if kind == "approval" and approval is not None and authorization is None:
+        if approval["plan_sha256"] != state["plan_sha256"]:
+            why = "it approves another plan (sha256 %.12s, this one is %.12s): a plan edited after its approval needs a new one" % (approval["plan_sha256"], state["plan_sha256"])
+        elif approval["base_ref"] != state["base_sha"]:
+            why = "it approves a run on base %.12s, not %.12s" % (approval["base_ref"], state["base_sha"])
+        else:
+            why = _expiry_problem(approval["expires_at"], acceptance["at"]) or _signature_problem(
+                signers, approval["principal"], approval["signature"], plan_payload(approval["plan_sha256"], approval["base_ref"], approval["expires_at"]), PLAN_NAMESPACE)
+        return ["acceptance: approval: " + why] if why else []
+    if kind == "authorization" and authorization is not None and approval is None:
+        why = _plan_authorization_problem(authorization, signers, state["feature_id"], state["base_sha"], acceptance["at"])
+        return ["acceptance: authorization: " + why] if why else []
+    return ["acceptance: kind %s does not match what the record holds" % kind]
+
+
+def _main_verify_run(a):
+    if bool(a.slice) == bool(a.plan):
+        print("a2dlc verify-run: exactly one of --slice or --plan is required", file=sys.stderr)
+        return 64
+    try:
+        schemas = Schemas(a.contracts or default_contracts())
+        top = Repo(os.getcwd()).top
+        problems = verify_plan_run(top, a.plan, schemas) if a.plan else verify_slice_run(top, a.slice, schemas)
+    except VerifierError as e:
+        print("a2dlc verify-run: %s" % e, file=sys.stderr)
+        return 2
+    except ValueError as e:  # a document the run cannot be judged without
+        print("a2dlc verify-run: %s" % e, file=sys.stderr)
+        return 1
+    except Exception as e:  # a crash must not look like an invalid run
+        print("a2dlc verify-run: internal error: %s: %s" % (type(e).__name__, e), file=sys.stderr)
+        return 2
+    for p in problems:
+        print("a2dlc verify-run: %s" % p, file=sys.stderr)
+    if problems:
+        return 1
+    print("a2dlc verify-run: ok")
+    return 0
+
+
 def default_contracts():
     here = os.path.dirname(os.path.abspath(__file__))
     for candidate in (os.environ.get("A2DLC_CONTRACTS"), os.path.join(here, "contracts"), os.path.join(here, "..", "..", "contracts")):
@@ -814,7 +1121,13 @@ def main(argv=None):
     v = sub.add_parser("verify", help="verify the receipt in .a2dlc/verdict.json for a commit")
     v.add_argument("--commit", default="HEAD")
     v.add_argument("--contracts", help="directory with the *.schema.json files (default: $A2DLC_CONTRACTS, or contracts/ of this checkout)")
+    r = sub.add_parser("verify-run", help="verify the ledger of a run or the acceptance of a plan run")
+    r.add_argument("--slice", help="slice id of a run: the ledger chain, the authorizations it used, the artifacts of its stages")
+    r.add_argument("--plan", help="feature id of a plan run: that a signed approval or a plan.accept authorization accepted it")
+    r.add_argument("--contracts", help="directory with the *.schema.json files")
     a = ap.parse_args(argv)
+    if a.command == "verify-run":
+        return _main_verify_run(a)
     try:
         schemas = Schemas(a.contracts or default_contracts())
         problems = verify(Repo(os.getcwd()), a.commit, schemas)

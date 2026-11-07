@@ -413,6 +413,7 @@ Three roles appear below. A **producer** runs the gates and writes a receipt (`a
 | `.a2dlc/config.json` | `config` | yes | What is judged. A producer reads it at the receipt's `base_ref`, not from the working tree. |
 | `.a2dlc/waivers.json` | `waivers` | yes | Decisions the agent declares. Declaring is not approving. |
 | `.a2dlc/approvals.json` | `approvals` | no | Signatures over waivers (§6.4.7). |
+| `.a2dlc/authorizations.json` | `authorization` | no | Signed pre-authorizations of waived behavior changes (RFC-0007 Part B). Optional. |
 | `.a2dlc/verdict.json` | `verdict` | no | The receipt. A producer writes it; it is not committed by default. |
 | `.a2dlc/verdict.sig` | none | no | Optional signature over the exact bytes of `verdict.json` (§6.4.7). |
 | `.a2dlc/escalations.json` | `escalation` | no | What a person has to decide. |
@@ -438,6 +439,7 @@ The excluded paths are the gate outputs and the signatures:
 .a2dlc/verdict.sig
 .a2dlc/reports
 .a2dlc/approvals.json
+.a2dlc/authorizations.json
 .a2dlc/escalations.json
 .a2dlc/run
 ```
@@ -482,6 +484,7 @@ sub/.a2dlc/verdict.json
 | `coverage` | no | Which changed lines something examined. |
 | `tests` | no | Test cases the gates judged. |
 | `checks` | no | Pluggable checks (§5, Checks). |
+| `authorization` | no | Which signed pre-authorizations stood in for an approval (RFC-0007 Part B): `intent_sha256`, `covered`, `refused`. Reports only; a verifier decides again from `authorizations.json`. |
 | `level` | no | `0` for the static receipt (`a2dlc check --level 0`, never a pass); absent means `1`. |
 | `static` | no | Level 0 only: what the diff shows without running anything of the repo. |
 | `timings` | no | Milliseconds the check spent per step, measured by the core. |
@@ -537,6 +540,7 @@ The `engine` field names one of the engines the schema lists today (`fast-check`
    - `coverage.files[].uncovered` is not empty for some file: a changed line in scope that no engine examined and no test executed. Lines in `coverage.files[].noted` do not count.
    - `diff_budget.cut` is not empty: a function the time budget skipped was not judged.
    - A path matched by `config.protected_paths` changed and has no valid approval.
+   - A changed file with a source-code extension is in `out_of_scope` with reason `no_engine`: no engine judged it. A producer declares the exception in `config.out_of_scope_paths`; a file it matches is recorded with reason `excluded_by_config` and does not lower the verdict. A `no_engine` entry for a doc, data, config or test file does not lower it either. The set of source extensions is the producer's, so a verifier cannot recompute this condition from `out_of_scope` alone and takes the receipt's `INCONCLUSIVE` as given.
 3. Otherwise `PASS`.
 
 `FAIL` wins over `INCONCLUSIVE`; the conditions in item 2 never turn a `FAIL` into `INCONCLUSIVE`. A check lowers the verdict and never raises it. A waived `FAIL` does not count toward `FAIL`, signed or not; an unsigned one is listed in `pending_waivers`, and a verifier refuses it (§6.4.8).

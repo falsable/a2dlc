@@ -196,6 +196,24 @@ class NonStatementLines(unittest.TestCase):
         # line 6 is `def f(x):` and line 10 is `return x + 1`: both stay unexamined
         self.assertEqual(notes_of(src, everything(src)), {classify.DECLARATIVE: [1, 2, 3, 4, 5, 7, 8, 9]})
 
+    def test_a_comment_inside_an_async_method_and_a_module_docstring_line_are_noted(self):
+        # a2dlc-aln: the lines that cost an INCONCLUSIVE on a real repo (a comment in `async def`, a module docstring line)
+        src = textwrap.dedent('''\
+            """Members.
+
+            Second docstring line."""
+            import asyncio
+
+
+            class Members:
+                async def patch(self, key: str) -> str:
+                    # keep the store consistent
+                    await asyncio.sleep(0)
+                    return key
+            ''')
+        self.assertEqual(notes_of(src, everything(src)),
+                         {classify.DECLARATIVE: [1, 2, 3, 4, 5, 6, 9]})
+
     def test_class_docstring_and_blank_lines_inside_a_class_with_real_code(self):
         src = textwrap.dedent('''\
             class C:

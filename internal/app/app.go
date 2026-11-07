@@ -41,6 +41,8 @@ type App struct {
 	Now     func() time.Time
 	// Memo keeps the engines' decisive answers for the life of the process (enginememo.go); nil remembers nothing.
 	Memo *EngineMemo
+	// Probe is what doctor asks of the host (Docker, the hook's binary); nil makes doctor skip those checks, saying so.
+	Probe DoctorProbe
 }
 
 func (a App) path(rel string) string { return filepath.Join(a.Repo.Dir, filepath.FromSlash(rel)) }
@@ -328,6 +330,10 @@ type CheckOptions struct {
 	// instead of running the engine only when the base config sets run_differential "stage3" and its request is the same on
 	// the same tree (RFC-0005); otherwise they are ignored.
 	Differential DiffAnswers
+	// IntentSHA256 is the bare sha256 of the intent a2dlc run is bound to. A signed authorization (RFC-0007 Part B) names
+	// an intent by this hash; check leaves it empty and an authorization can then name only an intent committed under
+	// .a2dlc/intents/.
+	IntentSHA256 string
 	// ReportPath, when set, is where the receipt goes instead of .a2dlc/verdict.json, and no escalations.json or
 	// verdict.sig is written: the background check of the agent hook (background.go) writes its answer there, so the
 	// receipt verify reads is never one the agent did not ask for.
@@ -406,8 +412,19 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	byEngine, noEngine := verdict.Assign(cfg.Engines, sources)
 	targets := []contract.TargetResult{}
 	oos := []contract.OutOfScope{}
+	// A source file no engine covers was judged by nothing: the verdict cannot be PASS (a2dlc-bt9), unless the repo declares
+	// the path out of scope, and then the receipt says so. Docs, data, config and test files stay out of scope as before.
+	noEngineSrc, declaredSrc := noEngineSources(cfg, sources)
+	declaredSet := map[string]bool{}
+	for _, f := range declaredSrc {
+		declaredSet[f] = true
+	}
 	for _, f := range noEngine {
-		oos = append(oos, contract.OutOfScope{File: f, Reason: "no_engine"})
+		reason := "no_engine"
+		if declaredSet[f] {
+			reason = "excluded_by_config"
+		}
+		oos = append(oos, contract.OutOfScope{File: f, Reason: reason})
 	}
 	for _, f := range deleted {
 		oos = append(oos, contract.OutOfScope{File: f, Reason: "deleted"})
@@ -583,7 +600,22 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	// An engine target that could not judge a file the candidate's tests executed completely does not make the diff
 	// INCONCLUSIVE (note inconclusive_covered_by_tests); without a tests block, coverage or a clean run nothing changes.
 	coveredByTests := a.testCovered(cfg, baseSha, tree, sources, targets, cov, classified)
-	v.Verdict, v.Targets, v.PendingWaivers = verdict.AggregateCovered(targets, waived, approved, len(errs), critical, coveredByTests)
+	// RFC-0007 Part B: a signed authorization stands in for the approval of a waived engine target (and of nothing else:
+	// tests, check findings and protected paths keep reading approved).
+	var failingWaived []string
+	for _, t := range targets {
+		if t.Verdict == contract.FAIL && waived[t.Target] {
+			failingWaived = append(failingWaived, t.Target)
+		}
+	}
+	authz := a.authorize("", waivers, failingWaived, authInputs{baseRef: baseSha, at: a.Now(), intents: a.intentsOf(opts.IntentSHA256, tree), cfg: cfg})
+	engineApproved := map[string]bool{}
+	for t := range approved {
+		engineApproved[t] = true
+	}
+	authz.mergeInto(engineApproved, map[string]string{})
+	v.Authorization = authz.report(opts.IntentSHA256)
+	v.Verdict, v.Targets, v.PendingWaivers = verdict.AggregateCovered(targets, waived, engineApproved, len(errs), critical, coveredByTests)
 	v.BaseRef, v.TreeHash, v.OutOfScope, v.EngineErrors = baseSha, treePrefix+tree, oos, errs
 	v.DiffBudget = diffBudget
 	if cfg.Tests != nil {
@@ -620,6 +652,14 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	if v.Verdict == contract.PASS && hasUncovered(v.Coverage) {
 		v.Verdict = contract.INCONCLUSIVE
 	}
+	// A source file no engine covers was not judged: the diff cannot PASS. The escalation names the file and the way out.
+	noEngineEsc := []contract.Escalation{}
+	for _, f := range noEngineSrc {
+		if v.Verdict == contract.PASS {
+			v.Verdict = contract.INCONCLUSIVE
+		}
+		noEngineEsc = append(noEngineEsc, escalation("tooling", f+"::*", fmt.Sprintf("%s is %s source and no engine in %s covers it, so this change was not judged: add an engine for it, or list the path under config.out_of_scope_paths", f, sourceLanguage[filepath.Ext(f)], pathConfig), contract.Evidence{}))
+	}
 	// A function the per-diff budget cut and no engine answered was not judged: the diff cannot PASS.
 	if v.Verdict == contract.PASS && verdict.HasCut(v.DiffBudget) {
 		v.Verdict = contract.INCONCLUSIVE
@@ -648,8 +688,18 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	if err := a.writeVerdict(v); err != nil {
 		return v, err
 	}
-	return v, a.write(pathEscalations, contract.Escalations{SchemaVersion: contract.SchemaVersion, TreeHash: v.TreeHash,
-		CreatedAt: v.CreatedAt, Items: append(escalations(v), protectedEsc...)})
+	if err := a.write(pathEscalations, contract.Escalations{SchemaVersion: contract.SchemaVersion, TreeHash: v.TreeHash,
+		CreatedAt: v.CreatedAt, Items: append(append(escalations(v), protectedEsc...), noEngineEsc...)}); err != nil {
+		return v, err
+	}
+	// The record of findings comes last and cannot fail the check: it reads the verdict and changes nothing in it.
+	if recordsFindings(opts) {
+		in := findingInput{waivers: waivers, approved: approved, guarded: guarded, protectedEsc: protectedEsc}
+		if err := a.recordFindings(v, in); err != nil {
+			fmt.Fprintln(os.Stderr, "a2dlc: warning: the findings record was not updated:", err)
+		}
+	}
+	return v, nil
 }
 
 // waiverFlags splits the waivers in two: the engine targets they waive (a test waiver covers no engine target, and the
@@ -857,6 +907,7 @@ func (a App) Verify(commit string) ([]string, error) {
 		return nil, err
 	}
 	approved, reason := a.approved(tree, waivers, approvals)
+	a.authorizeReceipt(sha, tree, v, waivers, nil).mergeInto(approved, reason)
 	probs = append(probs, a.noteProblems(v)...)
 	waived := []string{}
 	for _, t := range v.Targets {

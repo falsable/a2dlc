@@ -18,6 +18,7 @@ also validated against `contracts/`; `--require-schema` makes its absence a fail
 | verifier | Decides whether a receipt is valid for a commit | `<binary> verify --commit HEAD`, exit 0 means valid | `vectors/verifier/` |
 | producer | Writes receipts and approvals | `<binary> check --base <sha>`, `<binary> approve <target> --key <k> --principal <p>` | `vectors/producer/` |
 | engine | Judges changed files inside a container | `docker run` with `/io`, `/base`, `/cand` as in RFC §4.4 | `vectors/engine/` |
+| run | Decides whether a run folder verifies: the ledger chain, the authorizations the run used, the acceptance of a plan | `<binary> verify-run --slice <id>` or `--plan <feature>`, exit 0 means it verifies | `vectors/run/` |
 
 A verifier written from the RFC has its own CLI. Wrap it in a script that accepts `verify --commit HEAD`, runs in the
 repository's directory, reads the allowed signers from the `A2DLC_ALLOWED_SIGNERS` file, and exits 0 only when the receipt is
@@ -28,7 +29,7 @@ invalid only. With `--reasons a2dlc` the runner also looks for the problem kind 
 
 Each file under `vectors/<class>/` is `{"class", "about", "template"?, "vectors": [...]}`. A vector has an `id`, a `title`, the RFC
 section it exercises (`rfc`) and `expect`. The id prefixes are `V-tree`, `V-receipt`, `V-gates`, `V-note`, `V-approval`,
-`V-waiversha` (verifier), `P-check`, `P-approve` (producer) and `E-protocol` (engine).
+`V-waiversha` (verifier), `P-check`, `P-approve` (producer), `E-protocol` (engine) and `V-run` (run).
 
 `repo` describes the repository to build: `{"object_format": "sha1"|"sha256", "commits": [{"files": {path: spec}}]}`. A spec is a
 string (a regular file), `{"text"|"b64", "mode"?}`, `{"symlink": target}` or `{"gitlink": oid}`; `null` deletes the path. Each
@@ -43,6 +44,8 @@ vector. Waivers and approvals are committed in the head commit, as RFC §6.4.7 r
 
 `expect` of a verifier vector is `{"valid": bool, "kinds"?: [...], "kinds_any"?: [...], "why"?: [...]}`: `kinds` are the problem
 kinds that must appear, `why` the reasons of an `unsigned_waiver`.
+
+Run vectors build the same kind of repository (one commit, so that the entrypoint finds a repository), then write each file of `files` into the working tree, which is where `.a2dlc/run/` lives (it is not committed), and call the entrypoint with `args`. `expect` is `{"valid": bool, "kinds"?: [...], "why"?: [...]}`: the kinds are those of RFC-0007 Part B (`ledger_run`, `ledger_chain`, `authorization_unbound`, `authorization_invalid`, `artifact_changed`, `acceptance_invalid`) and `why` narrows one (`expired`, `not_named`, `decision`, `another_plan`, `other_base`, `no_plan_accept`, `missing`). With `--reasons none` only valid or invalid is compared. The ledgers are chained and the signatures made by `e2e/make_conformance_vectors.py` from the text of RFC-0007 (`e2e/rfc_reference.py`), with `keys/test_ed25519` (allowed) and `keys/stranger_ed25519` (not allowed).
 
 Producer `check` vectors give the expected exit status and the fields of the receipt the producer must write (`verdict`,
 `tree_hash`, `base_ref`, `targets`, `out_of_scope`, `pending_waivers`, `engine_errors`); `verify` says what the verifier must
@@ -80,6 +83,8 @@ with `--implementation <its name>` and it is judged on what the vectors say, so 
 - `V-receipt-007`: a receipt with a required field missing is accepted. `DecodeStrict` rejects unknown fields but does not
   enforce `required`, `enum` or `pattern` (bead a2dlc-5fq). RFC §6.4.11 lists this and the other places where the reference is
   more lenient than the schemas.
+
+A producer's `check` also writes `.a2dlc/escalations.json`, which agents read as an API. When the file exists the runner validates it against `contracts/escalation.schema.json` and requires it to name the receipt's tree; a producer that writes none is not failed.
 
 ## What the kit does not cover
 

@@ -63,6 +63,7 @@ func exampleTypes() map[string]func() any {
 		"engine-response": func() any { return &Response{} }, "verdict": func() any { return &Verdict{} },
 		"check-response": func() any { return &CheckResponse{} },
 		"waivers":        func() any { return &Waivers{} }, "approvals": func() any { return &Approvals{} },
+		"authorization":        func() any { return &Authorizations{} },
 		"engine-stub-response": func() any { return &StubResponse{} }, "escalation": func() any { return &Escalations{} },
 		"engine-signatures-response": func() any { return &SignaturesResponse{} },
 		"roles":                      func() any { return &Roles{} }, "role-request": func() any { return &RoleRequest{} },
@@ -71,6 +72,7 @@ func exampleTypes() map[string]func() any {
 		"intent":     func() any { return &Intent{} }, "route": func() any { return &Route{} },
 		"plan":       func() any { return &Plan{} },
 		"plan-state": func() any { return &PlanState{} },
+		"findings":   func() any { return &FindingEvent{} },
 		// block 3
 		"engine-tier0-response": func() any { return &Tier0Response{} }, "candidate": func() any { return &Candidate{} },
 		// block 5
@@ -99,6 +101,10 @@ func exampleTypes() map[string]func() any {
 		"engine-traces-response": func() any { return &TracesResponse{} },
 		// Code Graph Indexer (Stage 6)
 		"indexer-response": func() any { return &IndexerResponse{} },
+		// a2dlc doctor
+		"doctor": func() any { return &Doctor{} },
+		// a2dlc propose --from-escalations
+		"proposals": func() any { return &Proposals{} },
 	}
 }
 
@@ -128,6 +134,8 @@ var unknownPropertyInvalid = []string{
 	"engine-signatures-response__symbol-with-body.json",
 	"run-state__by-role-unknown.json",
 	"waivers__approved-by-of-the-pilot.json",
+	"doctor__extra-field.json",
+	"findings__label-extra-field.json",
 }
 
 // knownLooseDecodes names invalid examples that the struct accepts although the schema rejects them. They are

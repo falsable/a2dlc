@@ -15,11 +15,40 @@
     "outcome": { "enum": [null, "PASS", "escalated", "INCONCLUSIVE"] },
     "reason": { "type": "string" },
     "replans": { "type": "integer", "minimum": 0, "description": "How many times a slice of this feature was decomposed again after its Builders were exhausted (CB-02b); bounded by plan run --max-replan." },
-    "scheduler": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/scheduler" }] }
+    "scheduler": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/scheduler" }] },
+    "acceptance": { "$ref": "#/$defs/acceptance", "description": "What let this plan run (RFC-0008 section 4): a person's signed approval or an authorization that covers plan.accept. plan run refuses without one; a2dlc verify-run --plan checks it again. Absent in states written before section 4 was implemented, which verify-run --plan rejects." }
   },
   "required": ["schema_version", "feature_id", "plan_sha256", "base_sha", "invocation", "slices", "merged", "outcome", "reason", "replans", "scheduler"],
   "additionalProperties": false,
   "$defs": {
+    "plan_approval": {
+      "title": "Approval of a plan (.a2dlc/run/_plan/<feature>/approval.json)",
+      "description": "An SSH signature (ssh-keygen -Y sign, namespace a2dlc-plan) made by a person over the text a2dlc-plan/1, then plan_sha256, base_ref and expires_at, one per line, each line ended by a newline. A plan edited after approval has another plan_sha256 and no longer matches.",
+      "type": "object",
+      "properties": {
+        "plan_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "base_ref": { "$ref": "defs.schema.json#/$defs/git_sha" },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "principal": { "type": "string", "minLength": 1 },
+        "signature": { "type": "string", "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[\\s\\S]+\\n-----END SSH SIGNATURE-----\\n?$" }
+      },
+      "required": ["plan_sha256", "base_ref", "expires_at", "principal", "signature"],
+      "additionalProperties": false
+    },
+    "acceptance": {
+      "type": "object",
+      "properties": {
+        "kind": { "enum": ["approval", "authorization"] },
+        "at": { "type": "string", "format": "date-time", "description": "When plan run used it: it must not have expired by then." },
+        "approval": { "$ref": "#/$defs/plan_approval" },
+        "authorization": { "$ref": "authorization.schema.json#/properties/authorizations/items", "description": "The whole signed authorization, decision plan.accept and target plan::<feature_id>, the base the plan runs on." }
+      },
+      "required": ["kind", "at"],
+      "if": { "properties": { "kind": { "const": "approval" } } },
+      "then": { "required": ["approval"], "not": { "required": ["authorization"] } },
+      "else": { "required": ["authorization"], "not": { "required": ["approval"] } },
+      "additionalProperties": false
+    },
     "amount": {
       "type": "object",
       "properties": {

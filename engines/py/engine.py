@@ -1,8 +1,11 @@
 """a2dlc Python engine: CrossHair diffbehavior between the base (/base) and the candidate (/cand).
 
 Contract: reads /io/request.json and writes /io/response.json (contracts/engine-*.schema.json).
-Targets: top-level functions that exist in both versions and whose AST changed, plus the ones that call them
-within the same file (transitive closure). Methods and new functions are out of scope in v0.1. Test code (is_test_code)
+Targets: top-level functions that exist in both versions and whose AST changed, docstrings aside, plus the ones that call
+them within the same file (transitive closure). A function whose text changed but whose code did not (a comment, a docstring,
+layout) is a PASS target with the reason EQUIVALENT_AST and is not run. The methods of public classes are targets named Class.method:
+each side builds its own instance from the same constructor arguments (methoddrive), or the target is INCONCLUSIVE with the reason.
+New functions are out of scope in v0.1. Test code (is_test_code)
 is out of scope as test_code: the test gates run it with the repo's runner and dev dependencies, which this image does
 not have, and a weakened test (its assert dropped) behaves the same as the old one, so a diff of it would say PASS.
 Both versions are copied to /tmp/a2dlc/a2dlc_base and a2dlc_cand so they can be imported at the same time; absolute
@@ -15,6 +18,7 @@ from __future__ import annotations  # the `X | None` annotations must be valid o
 
 import ast
 import bisect
+import copy
 import dataclasses
 import difflib
 import importlib.util
@@ -32,6 +36,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import asyncdrive
+import methoddrive
 
 IO = Path("/io")
 WORK = Path("/tmp/a2dlc")
@@ -135,9 +140,9 @@ def rewrite_imports(tree: Path, package: str) -> None:
             p.write_text("".join(lines), encoding="utf-8")
 
 
-# Decorators that make a method something CrossHair cannot call as Class.method: a property is not a function, and an
-# overload or a setter shares its name with the definition that runs.
-NOT_A_PLAIN_METHOD = {"property", "cached_property", "overload", "setter", "getter", "deleter"}
+# A method with one of these decorators shares its name with another definition (an overload, a property and its setter): which
+# definition runs is not what the name says, so it cannot be compared; if it changed it is reported INCONCLUSIVE (unjudged_of).
+NOT_A_PLAIN_METHOD = {"overload", "setter", "getter", "deleter"}
 
 
 def _decorator_names(fn: ast.AST) -> set[str]:
@@ -148,22 +153,25 @@ def _decorator_names(fn: ast.AST) -> set[str]:
     return out
 
 
+def _method_defs(cls: ast.ClassDef) -> dict[str, list[ast.AST]]:
+    defs: dict[str, list[ast.AST]] = {}
+    for m in cls.body:
+        if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            defs.setdefault(m.name, []).append(m)
+    return defs
+
+
 def methods_of(cls: ast.ClassDef) -> dict[str, ast.AST]:
-    """The public synchronous methods of a class that can be named as Class.method, keyed by that name. A name defined
-    more than once in the class body is left out (overloads, a property and its setter): which definition runs is not
-    what the name says. Underscore-private methods are out, like private functions of the module signatures list;
-    async methods stay out of scope for now (the async driver compares coroutine functions by their module name)."""
-    defs = [m for m in cls.body if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))]
-    seen: dict[str, int] = {}
-    for m in defs:
-        seen[m.name] = seen.get(m.name, 0) + 1
-    return {f"{cls.name}.{m.name}": m for m in defs
-            if isinstance(m, ast.FunctionDef) and _public(m.name) and seen[m.name] == 1
-            and not _decorator_names(m) & NOT_A_PLAIN_METHOD}
+    """The methods of a class that can be named as Class.method, keyed by that name: public or private (the module-level
+    private functions are judged too), sync or async, properties included (methoddrive reads them as the value). A name
+    defined more than once in the class body, or decorated as an overload or a setter, is left to unjudged_of."""
+    return {f"{cls.name}.{name}": ms[0] for name, ms in _method_defs(cls).items()
+            if len(ms) == 1 and not _decorator_names(ms[0]) & NOT_A_PLAIN_METHOD}
 
 
 def functions(text: str) -> dict[str, ast.AST]:
-    """The top-level functions by name, and the public methods of the public top-level classes as Class.method."""
+    """The top-level functions by name, and the methods of the public top-level classes as Class.method. A private class
+    (underscore) and a nested one are outside the declared scope, like in the signatures operation."""
     out: dict[str, ast.AST] = {}
     for n in ast.parse(text).body:
         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -173,13 +181,93 @@ def functions(text: str) -> dict[str, ast.AST]:
     return out
 
 
+def _classes(text: str) -> dict[str, ast.ClassDef]:
+    return {n.name: n for n in ast.parse(text).body if isinstance(n, ast.ClassDef) and _public(n.name)}
+
+
+def _residue(cls: ast.ClassDef) -> str:
+    """The class without its methods: decorators, bases, keywords, class attributes and nested classes."""
+    rest = copy.copy(cls)
+    rest.body = [s for s in cls.body if not isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    return _code_dump(rest)
+
+
+def touched_classes(base_txt: str, cand_txt: str) -> set[str]:
+    """Public classes whose part that is not a method changed. Every method of one can behave differently (it reads
+    the class attribute, runs under the new bases or decorator), so all of them are targets and none is equivalent by AST."""
+    cb, cc = _classes(base_txt), _classes(cand_txt)
+    return {n for n in cc if n in cb and _residue(cb[n]) != _residue(cc[n])}
+
+
+def unjudged_of(base_txt: str, cand_txt: str) -> dict[str, tuple[ast.AST, str]]:
+    """Methods that changed but cannot be named for a comparison: {Class.method: (candidate node, reason)}. They are
+    reported INCONCLUSIVE with that reason, never as out of scope."""
+    cb, cc = _classes(base_txt), _classes(cand_txt)
+    out = {}
+    for cname, cls in cc.items():
+        for name, ms in _method_defs(cls).items():
+            plain = len(ms) == 1 and not _decorator_names(ms[0]) & NOT_A_PLAIN_METHOD
+            if plain:
+                continue
+            before = [_code_dump(m) for m in _method_defs(cb[cname]).get(name, [])] if cname in cb else []
+            if before != [_code_dump(m) for m in ms]:
+                why = ("is defined more than once in the class body" if len(ms) > 1
+                       else "is an overload, a setter or a deleter, which shares its name with the definition that runs")
+                out[f"{cname}.{name}"] = (ms[0], f"{name} {why}: the engine cannot name which definition to compare")
+    return out
+
+
+EQUIVALENT_AST = ("equivalent by AST: the code is the same once docstrings are dropped (only comments, docstrings or "
+                  "layout differ), so the engine did not run it")
+
+
+def _is_docstring(stmt: ast.stmt) -> bool:
+    return isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str)
+
+
+def _code_dump(node: ast.AST) -> str:
+    """ast.dump of `node` without the docstring of any module, class or function inside it (the first statement of a body
+    that is a str constant; a string in any other position is code). Comments and layout never reach the AST. Shortcut:
+    a docstring is run-time visible (`__doc__`: click help text, FastAPI's OpenAPI description), and a change in it is
+    judged as no change of behavior, the same call a2dlc-dj0 made for the coverage notes; annotations are NOT dropped
+    (`__annotations__` is read by pydantic, FastAPI and dataclasses), so a change only in them is still judged."""
+    node = copy.deepcopy(node)
+    for n in ast.walk(node):
+        if isinstance(n, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and n.body and _is_docstring(n.body[0]):
+            del n.body[0]
+    return ast.dump(node)
+
+
+def equivalent_of(base_txt: str, cand_txt: str) -> list[str]:
+    """The functions (as `functions` names them) whose source text differs between base and candidate but whose code does
+    not: same _code_dump. Nothing to run and nothing to judge; the engine reports them as PASS with EQUIVALENT_AST."""
+    vb, vc = functions(base_txt), functions(cand_txt)
+    touched = touched_classes(base_txt, cand_txt)
+    return [n for n in vc if n in vb and _code_dump(vb[n]) == _code_dump(vc[n]) and n.split(".")[0] not in touched
+            and ast.get_source_segment(base_txt, vb[n]) != ast.get_source_segment(cand_txt, vc[n])]
+
+
+def _uses(name: str, fn: ast.AST) -> set[str]:
+    """The names a function reads: module-level names, and for a method also the Class.other of `self.other` / `cls.other`."""
+    out = set()
+    cls = name.split(".")[0] if "." in name else None
+    for x in ast.walk(fn):
+        if isinstance(x, ast.Name):
+            out.add(x.id)
+        elif cls and isinstance(x, ast.Attribute) and isinstance(x.value, ast.Name) and x.value.id in ("self", "cls", cls):
+            out.add(f"{cls}.{x.attr}")
+    return out
+
+
 def targets_of(base_txt: str, cand_txt: str) -> tuple[list[str], list[str]]:
-    """(changed, callers): the ones whose AST changed and the ones that call them in the same file (transitive closure)."""
+    """(changed, callers): the ones whose code changed (docstrings aside, _code_dump) and the ones that call them in the
+    same file (transitive closure)."""
     vb, vc = functions(base_txt), functions(cand_txt)
     common = [n for n in vc if n in vb]
-    direct = {n for n in common if ast.dump(vb[n]) != ast.dump(vc[n])}
+    touched = touched_classes(base_txt, cand_txt)
+    direct = {n for n in common if _code_dump(vb[n]) != _code_dump(vc[n]) or n.split(".")[0] in touched}
     closure = set(direct)
-    uses = {n: {x.id for x in ast.walk(vc[n]) if isinstance(x, ast.Name)} for n in common}
+    uses = {n: _uses(n, vc[n]) for n in common}
     grew = True
     while grew:
         grew = False
@@ -307,6 +395,26 @@ _wrappers = itertools.count()
 
 def install_async_driver() -> None:
     shutil.copyfile(asyncdrive.__file__, WORK / "a2dlc_asyncdrive.py")
+    shutil.copyfile(methoddrive.__file__, WORK / "a2dlc_methoddrive.py")
+
+
+# A method needs an instance, which methoddrive builds per side from the same constructor arguments: old and new are plain
+# functions of (constructor arguments, method arguments). When it cannot build one it prints METHOD_UNSUPPORTED and raises.
+METHOD_WRAPPER = '''import a2dlc_base.{mod} as _base
+import a2dlc_cand.{mod} as _cand
+from a2dlc_methoddrive import pair
+
+old, new = pair(_base.{cls}, _cand.{cls}, {name!r})
+'''
+METHOD_UNSUPPORTED = re.compile("^" + re.escape(methoddrive.PREFIX) + "(.*)$", re.M)
+
+
+def method_wrapper(mod: str, qualified: str) -> str:
+    """Name of the module that exposes `old` and `new` for the method `Class.name` of module `mod`."""
+    cls, name = qualified.split(".", 1)
+    wrapper = f"a2dlc_method_{next(_wrappers)}"
+    (WORK / f"{wrapper}.py").write_text(METHOD_WRAPPER.format(mod=mod, cls=cls, name=name), encoding="utf-8")
+    return wrapper
 
 
 def async_wrapper(mod: str, name: str) -> str:
@@ -406,7 +514,11 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
         t["typed"] = False
         return inconclusive("no type annotations on the parameters: CrossHair has no domain")
     is_async = isinstance(fn, ast.AsyncFunctionDef)
-    if is_async:  # compared through the module that runs each version to completion (asyncdrive)
+    method = "." in n
+    if method:  # each side builds its own instance (methoddrive); a coroutine method is also run to completion
+        wrapper = method_wrapper(mod, n)
+        old_ref, new_ref, target = f"{wrapper}.old", f"{wrapper}.new", (wrapper, wrapper, "old,new")
+    elif is_async:  # compared through the module that runs each version to completion (asyncdrive)
         wrapper = async_wrapper(mod, n)
         old_ref, new_ref, target = f"{wrapper}.old", f"{wrapper}.new", (wrapper, wrapper, "old,new")
     else:
@@ -415,9 +527,12 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
     rc, out = run([sys.executable, "-m", "crosshair", "diffbehavior", "--per_condition_timeout", str(timeout_s),
                       UNBLOCK_TERMINAL_SIZE, old_ref, new_ref], limit)
     m_dif, m_ok = DIFFERENCE.search(out), WITHOUT_DIFFERENCE.search(out)
+    cannot = METHOD_UNSUPPORTED.search(out) if method else None
     harness = [f"{side}: {h}" for side, h in (("old", harness_error(m_dif["old"].strip())),
                                                ("new", harness_error(m_dif["new"].strip()))) if h] if m_dif else []
-    if harness:
+    if cannot:
+        inconclusive(cannot[1])
+    elif harness:
         inconclusive(f"CrossHair/harness error, not the function's behavior ({'; '.join(harness)})")
     elif m_dif and is_async and "Suspended" in m_dif["old"] + m_dif["new"]:
         inconclusive(f"the two versions differ only in a call that did not finish within {asyncdrive.STEP_TIMEOUT_S:g} s "
@@ -433,7 +548,7 @@ def compare(file: str, mod: str, n: str, fn: ast.AST, rc_imp: int | None, out_im
         shrink_s = SHRINK_BUDGET_S if remaining is None else min(SHRINK_BUDGET_S, remaining)
         t["counterexample"] = shrink_counterexample(mod, n, found, rel or {}, shrink_s, target)
     elif m_ok:
-        doubt = asyncdrive.doubt_of(out) if is_async else None
+        doubt = asyncdrive.doubt_of(out, "coroutine" if is_async else "method") if (is_async or method) else None
         if doubt:  # a PASS needs completed calls on both sides: not one reached by exceptions or by paths nobody ran
             opaque = opaque_params(fn)
             if doubt.startswith(asyncdrive.NOTHING_RAN) and opaque:
@@ -1874,22 +1989,33 @@ def diff(req: dict, clock=time.monotonic) -> int:
         try:
             base_txt, cand_txt = read_py(bp), read_py(cp)
             direct, callers = targets_of(base_txt, cand_txt)
+            same = equivalent_of(base_txt, cand_txt)
+            unjudged = unjudged_of(base_txt, cand_txt)
             identical += [f"{file}::{s}" for s in identical_of(base_txt, cand_txt)]
         except (SyntaxError, ValueError, RecursionError) as e:  # ValueError includes UnicodeDecodeError
             t = new_target(f"{file}::{file.rsplit('/', 1)[-1]}", timeout_s)
             t["verdict"], t["reason"] = "INCONCLUSIVE", f"could not read or parse: {type(e).__name__}: {e}"[:300]
             layout.append(t)
             continue
-        if not direct:
+        if not direct and not same and not unjudged:
             outside.append({"file": file, "reason": "not_exported"})
             continue
         mod = module(file)
         vc = functions(cand_txt)
-        counts = intra_callers(vc)
-        rc_imp, out_imp = run([sys.executable, "-c", f"import a2dlc_base.{mod}, a2dlc_cand.{mod}"], 120)
-        layout.append(Block(
-            direct=[Job(file, mod, n, vc[n], rc_imp, out_imp, counts[n]) for n in direct],
-            indirect=[Job(file, mod, n, vc[n], rc_imp, out_imp, counts[n]) for n in callers]))
+        if direct:
+            counts = intra_callers(vc)
+            rc_imp, out_imp = run([sys.executable, "-c", f"import a2dlc_base.{mod}, a2dlc_cand.{mod}"], 120)
+            layout.append(Block(
+                direct=[Job(file, mod, n, vc[n], rc_imp, out_imp, counts[n]) for n in direct],
+                indirect=[Job(file, mod, n, vc[n], rc_imp, out_imp, counts[n]) for n in callers]))
+        for n, (node, why) in unjudged.items():  # a finished target: INCONCLUSIVE with the reason, nothing to run
+            t = new_target(f"{file}::{n}", timeout_s)
+            t["lines"], t["verdict"], t["reason"] = lines_of(node), "INCONCLUSIVE", why
+            layout.append(t)
+        for n in same:  # a finished target: nothing to run
+            t = new_target(f"{file}::{n}", timeout_s)
+            t["lines"], t["reason"], t["typed"] = lines_of(vc[n]), EQUIVALENT_AST, typed(vc[n], "." in n)
+            layout.append(t)
 
     def run_job(j: Job) -> dict:
         now = clock()

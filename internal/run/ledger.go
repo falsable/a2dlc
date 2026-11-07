@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/falsable/a2dlc/internal/approval"
 	"github.com/falsable/a2dlc/internal/contract"
 )
 
@@ -71,6 +72,76 @@ func (l *Ledger) Append(e contract.LedgerEntry) (contract.LedgerEntry, error) {
 	return e, os.WriteFile(l.path, append(b, '\n'), 0o644)
 }
 
+// AppendAuthorizations records the authorizations a check relied on (RFC-0007 Part B). A use already recorded for the same
+// stage, target and signature is not recorded again: a Saboteur round checks the same tree several times. Each new use is
+// recorded in authorizations_used and bound into the chain by an entry of role check, so a ledger cannot drop or edit it.
+func (l *Ledger) AppendAuthorizations(uses []contract.LedgerAuthorization) error {
+	for _, u := range uses {
+		dup := false
+		for _, old := range l.doc.AuthorizationsUsed {
+			dup = dup || (old.Stage == u.Stage && old.Target == u.Target && old.Authorization.Signature == u.Authorization.Signature)
+		}
+		if dup {
+			continue
+		}
+		l.doc.AuthorizationsUsed = append(l.doc.AuthorizationsUsed, u)
+		if _, err := l.Append(authorizationEntry(u)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// authorizationRef is what the chained entry commits to for one use: see LedgerAuthorizationRef.
+func authorizationRef(u contract.LedgerAuthorization) contract.LedgerAuthorizationRef {
+	au := u.Authorization
+	b, _ := json.Marshal(au)
+	return contract.LedgerAuthorizationRef{Target: u.Target, SHA256: hashBytes(b),
+		ID: approval.AuthorizationID(approval.AuthorizationPayload(au.BaseRef, au.IntentSHA256, au.Decision, au.ExpiresAt, au.Targets))}
+}
+
+// authorizationEntry is the entry that binds a use: it launches nothing, so it has no image, network or cost.
+func authorizationEntry(u contract.LedgerAuthorization) contract.LedgerEntry {
+	ref := authorizationRef(u)
+	return contract.LedgerEntry{At: u.At, Stage: u.Stage, Role: RoleCheck, Attempt: 1, Family: "script", Image: "a2dlc-core",
+		ArgvSHA256: hashBytes([]byte(RoleCheck)), Network: "none", Status: contract.LedgerOK, Authorization: &ref}
+}
+
+// RoleCheck is the role of the ledger entry that binds one use of an authorization.
+const RoleCheck = "check"
+
+// verifyAuthorizations checks that authorizations_used and the entries of role check say the same thing, one to one: a
+// record whose entry was removed or edited, or an entry whose record was deleted, is a chain error.
+func verifyAuthorizations(l contract.RunLedger) error {
+	pool := append([]contract.LedgerAuthorization(nil), l.AuthorizationsUsed...)
+	for _, e := range l.Entries {
+		if e.Authorization == nil {
+			if e.Role == RoleCheck {
+				return fmt.Errorf("entry %d: a check entry binds no authorization", e.Seq)
+			}
+			continue
+		}
+		if e.Role != RoleCheck {
+			return fmt.Errorf("entry %d: only an entry of role check binds an authorization", e.Seq)
+		}
+		found := -1
+		for i, u := range pool {
+			if u.Stage == e.Stage && u.At == e.At && authorizationRef(u) == *e.Authorization {
+				found = i
+				break
+			}
+		}
+		if found < 0 {
+			return fmt.Errorf("entry %d binds the authorization used for %s, but authorizations_used has no such record (deleted or edited)", e.Seq, e.Authorization.Target)
+		}
+		pool = append(pool[:found], pool[found+1:]...)
+	}
+	if len(pool) > 0 {
+		return fmt.Errorf("authorizations_used records the use for %s (stage %s) that no chained entry binds (added or edited)", pool[0].Target, pool[0].Stage)
+	}
+	return nil
+}
+
 func hashEntry(e contract.LedgerEntry) string {
 	e.Hash = ""
 	b, _ := json.Marshal(e)
@@ -83,7 +154,7 @@ func hashEntry(e contract.LedgerEntry) string {
 }
 
 // Verify recalculates the chain: consecutive seq from 1, prev_hash equal to the previous hash and hash equal to the
-// recalculated one.
+// recalculated one, and that the entries of role check and authorizations_used match one to one.
 func Verify(l contract.RunLedger) error {
 	var prev *string
 	for i, e := range l.Entries {
@@ -102,7 +173,7 @@ func Verify(l contract.RunLedger) error {
 		h := e.Hash
 		prev = &h
 	}
-	return nil
+	return verifyAuthorizations(l)
 }
 
 // HashFile is the sha256 of a file in the contractJSON format.

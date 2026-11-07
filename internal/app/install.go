@@ -22,20 +22,25 @@ const (
 // ghcr.io name@digest built from the same commit as the binary: a local tag does not exist outside the machine
 // that built it, and the engine would fail with "pull access denied". Dev builds keep the local tags.
 var (
-	enginePyImage = "a2dlc-engine-py:0.12"
-	engineTSImage = "a2dlc-engine-ts:0.3"
+	enginePyImage = "a2dlc-engine-py:0.14"
+	engineTSImage = "a2dlc-engine-ts:0.4"
 )
 
 // Install leaves the repo ready: config if missing, .gitignore, the pre-push block and the hooks of the requested agents.
 // exe is the binary's absolute path: if it is missing, the hook fails and blocks, instead of skipping the gate.
+// It says which engines the config has; CoverageWarning (printed by the command, exit code 0 either way) says which source
+// files they leave out: a warning and not a failure, because a repo may rightly hold code that no engine examines.
 func (a App) Install(exe string, agents []string) ([]string, error) {
 	exe = filepath.ToSlash(exe)
 	done := []string{}
 	if _, err := os.Stat(a.path(pathConfig)); errors.Is(err, os.ErrNotExist) {
-		if err := a.write(pathConfig, a.initialConfig()); err != nil {
+		c := a.initialConfig()
+		if err := a.write(pathConfig, c); err != nil {
 			return done, err
 		}
-		done = append(done, "wrote "+pathConfig)
+		done = append(done, "wrote "+pathConfig+" with "+engineSummary(c))
+	} else if c, err := a.config(); err == nil {
+		done = append(done, "kept "+pathConfig+" with "+engineSummary(c))
 	}
 	if n, err := a.gitignore(); err != nil {
 		return done, err
@@ -64,18 +69,35 @@ func (a App) Install(exe string, agents []string) ([]string, error) {
 	return done, nil
 }
 
+// initialConfig picks the engines by manifest and, since a2dlc-fjl, by the source files themselves: a repo with
+// src/pricing.py and no pyproject.toml got engines: [] and a check that said PASS with 0 targets. A manifest keeps the
+// paths install always wrote for it; without one the paths follow where the files are.
 func (a App) initialConfig() contract.Config {
 	c := contract.Config{SchemaVersion: contract.SchemaVersion, Engines: []contract.EngineConfig{},
 		AgentHook: &contract.AgentHook{MaxBlocks: 4}}
 	exists := func(rel string) bool { _, err := os.Stat(a.path(rel)); return err == nil }
-	if exists("package.json") {
-		c.Engines = append(c.Engines, contract.EngineConfig{Language: "typescript", Image: engineTSImage,
-			Paths: []string{"src/**/*.ts"}, Budget: json.RawMessage(`{"examples":2000,"seed":42}`)})
+	files := a.sourceFiles()
+	layout := func(ext string) string { // src layout: leave tests/ out of the engine; declare config.tests to gate them
+		if hasSource(files, "src/", ext) {
+			return "src/**/*" + ext
+		}
+		return "**/*" + ext
 	}
-	if exists("pyproject.toml") || exists("setup.py") {
-		paths := "**/*.py"
-		if exists("src") { // src layout: leave tests/ out of the engine; declare config.tests to gate them
-			paths = "src/**/*.py"
+	if exists("package.json") || hasSource(files, "", ".ts") {
+		paths := "src/**/*.ts"
+		if !exists("package.json") {
+			paths = layout(".ts")
+		}
+		c.Engines = append(c.Engines, contract.EngineConfig{Language: "typescript", Image: engineTSImage,
+			Paths: []string{paths}, Budget: json.RawMessage(`{"examples":2000,"seed":42}`)})
+	}
+	if exists("pyproject.toml") || exists("setup.py") || hasSource(files, "", ".py") {
+		paths := layout(".py")
+		if exists("pyproject.toml") || exists("setup.py") {
+			paths = "**/*.py"
+			if exists("src") {
+				paths = "src/**/*.py"
+			}
 		}
 		c.Engines = append(c.Engines, contract.EngineConfig{Language: "python", Image: enginePyImage,
 			Paths: []string{paths}, Budget: json.RawMessage(`{"per_condition_timeout_s":10}`)})
@@ -385,18 +407,36 @@ func (a App) hookAgent(agent, exe string) (string, error) {
 // a2dlc leaves the push gated by an older build (a2dlc-31w). It is a warning for check and verify, never a failure: ""
 // when the paths match, there is no hook or the hook has no a2dlc block.
 func (a App) HookBinaryWarning(exe string) string {
+	hook, state := a.hookBinary()
+	if state != hookFound || samePath(hook, exe) {
+		return ""
+	}
+	return fmt.Sprintf("the pre-push hook runs %s but this is %s: a push is gated by the hook's build, not by this one; run a2dlc install with the build you want", filepath.ToSlash(hook), filepath.ToSlash(exe))
+}
+
+// What hookBinary found in the pre-push hook.
+type hookState int
+
+const (
+	hookNone     hookState = iota // no pre-push file, or it has no a2dlc block
+	hookUnparsed                  // an a2dlc block with no readable line that runs verify
+	hookFound
+)
+
+// hookBinary reads, from the a2dlc block of the pre-push hook, the binary that runs `verify`.
+func (a App) hookBinary() (string, hookState) {
 	dir, err := a.Repo.HooksDir()
 	if err != nil {
-		return ""
+		return "", hookNone
 	}
 	b, err := os.ReadFile(filepath.Join(dir, "pre-push"))
 	if err != nil {
-		return ""
+		return "", hookNone
 	}
 	text := strings.ReplaceAll(string(b), "\r\n", "\n")
 	i, j := strings.Index(text, blockStart), strings.Index(text, blockEnd)
 	if i < 0 || j < i {
-		return ""
+		return "", hookNone
 	}
 	for _, line := range strings.Split(text[i:j], "\n") {
 		if !strings.HasPrefix(line, `"`) || !strings.Contains(line, " verify ") {
@@ -404,15 +444,15 @@ func (a App) HookBinaryWarning(exe string) string {
 		}
 		q := strings.Index(line[1:], `"`)
 		if q < 0 {
-			return ""
+			return "", hookUnparsed
 		}
 		hook, err := strconv.Unquote(line[:q+2])
-		if err != nil || samePath(hook, exe) {
-			return ""
+		if err != nil {
+			return "", hookUnparsed
 		}
-		return fmt.Sprintf("the pre-push hook runs %s but this is %s: a push is gated by the hook's build, not by this one; run a2dlc install with the build you want", filepath.ToSlash(hook), filepath.ToSlash(exe))
+		return hook, hookFound
 	}
-	return ""
+	return "", hookUnparsed
 }
 
 func samePath(a, b string) bool {

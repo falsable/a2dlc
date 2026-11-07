@@ -17,7 +17,7 @@
           "hash": { "$ref": "run-defs.schema.json#/$defs/sha256" },
           "at": { "type": "string", "format": "date-time" },
           "stage": { "$ref": "run-defs.schema.json#/$defs/stage" },
-          "role": { "$ref": "run-defs.schema.json#/$defs/role" },
+          "role": { "oneOf": [{ "$ref": "run-defs.schema.json#/$defs/role" }, { "const": "check" }], "description": "A launched role, or `check` in the entry that binds one use of an authorization: it launches nothing (family script, network none, no cost) and carries `authorization`." },
           "attempt": { "type": "integer", "minimum": 1 },
           "family": { "$ref": "run-defs.schema.json#/$defs/family" },
           "image": { "type": "string", "minLength": 1 },
@@ -39,11 +39,37 @@
             },
             "required": ["image", "image_digest"],
             "additionalProperties": false
+          },
+          "authorization": {
+            "description": "Only in an entry of role check: the chained binding of one record of authorizations_used, which has the same stage and at. id is the sha256 of the authorization's signed text (what the receipt calls its id); sha256 is the sha256 of the record's `authorization` object (keys in the order of authorization.schema.json, no spaces, signature included).",
+            "type": "object",
+            "properties": {
+              "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+              "id": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "sha256": { "$ref": "run-defs.schema.json#/$defs/sha256" }
+            },
+            "required": ["target", "id", "sha256"],
+            "additionalProperties": false
           }
         },
         "if": { "properties": { "network": { "not": { "const": "proxy-allowlist" } } } },
         "then": { "not": { "required": ["egress_proxy"] } },
         "required": ["seq", "prev_hash", "hash", "at", "stage", "role", "attempt", "family", "image", "image_digest", "argv_sha256", "inputs", "outputs", "network", "env_keys", "exit", "status", "cost"],
+        "additionalProperties": false
+      }
+    },
+    "authorizations_used": {
+      "description": "RFC-0007 Part B. One record per waived target that a run let pass because a signed authorization (.a2dlc/authorizations.json) covered it instead of stopping for an approval: the stage whose check relied on it, the time of use, the target and the whole signed authorization. a2dlc verify-run checks each record again against the allowed signers (never the repo): the signature in namespace a2dlc-authorization, the target among the authorization's, and expires_at not passed at `at`. Each record is bound into the hash chain by exactly one entry of role check (its `authorization`, same stage and at), so deleting or editing a record breaks verify-run's chain check. Limit: the chain has no anchor outside the folder, so removing the last entries of the chain together with their records is not detected.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": { "$ref": "run-defs.schema.json#/$defs/stage" },
+          "at": { "type": "string", "format": "date-time" },
+          "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+          "authorization": { "$ref": "authorization.schema.json#/properties/authorizations/items" }
+        },
+        "required": ["stage", "at", "target", "authorization"],
         "additionalProperties": false
       }
     }

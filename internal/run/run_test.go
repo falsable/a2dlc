@@ -46,7 +46,8 @@ func repoLite(t *testing.T) (app.App, string) {
 	t.Helper()
 	dir := t.TempDir()
 	git(t, dir, "init", "-q", "-b", "main")
-	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[]}`)
+	// src/ is declared out of scope: with no engine and no tests, an undeclared source change is INCONCLUSIVE (a2dlc-bt9).
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],"out_of_scope_paths":["src/**","clients/**"]}`)
 	write(t, dir, "src/f.py", "def f(x):\n    return x\n")
 	git(t, dir, "add", "-A")
 	git(t, dir, "commit", "-qm", "base")
@@ -100,8 +101,8 @@ func TestRunLiteRunsOracleAndResumes(t *testing.T) {
 	if byStage["2"].Status != contract.StageDone || byStage["3"].Status != contract.StageSkipped || !strings.Contains(byStage["3"].Reason, "builder_primary") {
 		t.Fatalf("%+v %+v", byStage["2"], byStage["3"])
 	}
-	// without engines or tests the scope is empty: everything stays out_of_scope and the oracle gives PASS (the repo
-	// declared that nothing is the gate's concern). The run's outcome is the Stage 4 verdict as it is.
+	// without engines or tests the scope is empty and the repo declares src/ out of scope (out_of_scope_paths), so the oracle
+	// gives PASS. The run's outcome is the Stage 4 verdict as it is.
 	if st.Outcome == nil || *st.Outcome != contract.PASS {
 		t.Fatalf("outcome %v", st.Outcome)
 	}
@@ -149,7 +150,7 @@ func TestInvokeMountsOnlyVisibleAndRecordsEachAttempt(t *testing.T) {
 			return nil, 0, true // timeout: it is retried
 		}
 		return &contract.RoleResponse{SchemaVersion: 1, RunID: m.state.RunID, Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,
-			Status: contract.RoleOK, Cost: &contract.Cost{USD: 0.05}, Payload: json.RawMessage(`{"ok":true}`)}, 0, false
+			Status: contract.RoleOK, Cost: &contract.Cost{USD: 0.05}, Payload: json.RawMessage(`{"test_files":[],"targets":[]}`)}, 0, false
 	}
 	m.launcher = launcherFake
 	invocation, err := m.Invoke(context.Background(), contract.RoleSaboteur, "4", map[string]any{"uncovered": []int{3}}, "")
@@ -543,7 +544,7 @@ func TestLedgerRecordsTurnsPerCall(t *testing.T) {
 		c := costs[n]
 		n++
 		return &contract.RoleResponse{SchemaVersion: 1, RunID: m.state.RunID, Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,
-			Status: contract.RoleOK, Cost: c, Payload: json.RawMessage(`{}`)}, 0, false
+			Status: contract.RoleOK, Cost: c, Payload: json.RawMessage(`{"test_files":[],"targets":[]}`)}, 0, false
 	}}
 	for i, want := range []int{4, 0} {
 		invocation, err := m.Invoke(context.Background(), contract.RoleSaboteur, "4", nil, "")

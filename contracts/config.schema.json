@@ -33,6 +33,12 @@
       "uniqueItems": true,
       "description": "Globs of paths an agent cannot change without a signed approval: tests written by a person and other human-owned paths. A changed file that matches with no valid approval escalates protected_path."
     },
+    "out_of_scope_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "description": "Globs of source files the repo declares it does not judge. A changed source file (by extension: .go, .rs, .java, .py, .ts ...) that no engine covers and that matches none of these globs gives INCONCLUSIVE, never PASS (out_of_scope reason no_engine, and a tooling escalation naming this key). One that matches is PASS and is recorded in out_of_scope with reason excluded_by_config, so a reader can audit what was left out. Only files no engine covers are affected: an engine path wins. Docs, data, config and test files need no declaration; they were never INCONCLUSIVE for lack of an engine. Read from the base's config, like protected_paths."
+    },
     "critical_code": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 },

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/falsable/a2dlc/main/contracts/doctor.schema.json",
+  "title": "Health report of a2dlc doctor --json (stdout, never written to the repo)",
+  "description": "schema_version 1. One finding per thing doctor looked at, healthy or not, so an agent sees that a check ran. id is stable and names the check (the part before the dot) and its outcome; subject says what it is about (an image, a language, a path) and is empty when the check has none. severity blocking means a2dlc cannot do its job as configured (doctor exits 1); warning is a risk that does not stop a check; info is healthy or not applicable. fix is the command or edit that removes the finding and is never empty for blocking or warning. ok is true exactly when no finding is blocking. doctor repairs nothing and writes nothing.",
+  "type": "object",
+  "properties": {
+    "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
+    "ok": { "type": "boolean" },
+    "binary": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "required": ["path", "version"],
+      "additionalProperties": false
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+$" },
+          "severity": { "enum": ["blocking", "warning", "info"] },
+          "subject": { "type": "string" },
+          "message": { "type": "string", "minLength": 1 },
+          "fix": { "type": "string" }
+        },
+        "required": ["id", "severity", "subject", "message", "fix"],
+        "additionalProperties": false,
+        "if": { "properties": { "severity": { "enum": ["blocking", "warning"] } } },
+        "then": { "properties": { "fix": { "minLength": 1 } } }
+      }
+    }
+  },
+  "required": ["schema_version", "ok", "binary", "findings"],
+  "additionalProperties": false
+}

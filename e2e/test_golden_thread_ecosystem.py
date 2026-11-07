@@ -236,6 +236,8 @@ class GoldenThreadEcosystemTest(unittest.TestCase):
                 config_doc = {
                     "schema_version": 1,
                     "engines": [],
+                    # no engine here: without this a change to the Python sources is INCONCLUSIVE, never PASS (a2dlc-bt9)
+                    "out_of_scope_paths": ["src/**", "services/**"],
                     "integration": {
                         "indexer": {
                             "command": f"{py_exe} {indexer_script}",

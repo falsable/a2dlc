@@ -156,7 +156,7 @@ func handleRequest(ctx context.Context, a app.App, req rpcRequest) rpcResponse {
 }
 
 func toolsCatalog() []toolDef {
-	return []toolDef{
+	return append([]toolDef{
 		{
 			Name:        "a2dlc_status",
 			Description: "Inspect the current A2-DLC verification state (.a2dlc/verdict.json and whether its signature .a2dlc/verdict.sig is valid, .a2dlc/escalations.json, .a2dlc/waivers.json) and tree_hash validity without launching Docker containers.",
@@ -298,6 +298,14 @@ func toolsCatalog() []toolDef {
 			},
 		},
 		{
+			Name:        "a2dlc_doctor",
+			Description: "Health check of this repo's a2dlc setup, the same report as `a2dlc doctor --json` (contracts/doctor.schema.json): pre-push hook binary, config schema version, engines declared vs detected, engine images present, Docker reachable, allowed signers. Each finding has a stable id, a severity (blocking, warning, info) and a fix. isError is true when any finding is blocking. Read-only.",
+			InputSchema: map[string]any{
+				"type":       "object",
+				"properties": map[string]any{},
+			},
+		},
+		{
 			Name:        "a2dlc_format_report",
 			Description: "Format the current .a2dlc/verdict.json, escalations, and waivers as a Markdown compliance & counterexample report ready to post to GitHub PRs, GitLab MRs, Jira, Linear, Slack, or Confluence.",
 			InputSchema: map[string]any{
@@ -305,7 +313,7 @@ func toolsCatalog() []toolDef {
 				"properties": map[string]any{},
 			},
 		},
-	}
+	}, agentToolDefs()...)
 }
 
 func dispatchTool(ctx context.Context, a app.App, params callToolParams) callToolResult {
@@ -365,9 +373,22 @@ func dispatchTool(ctx context.Context, a app.App, params callToolParams) callToo
 		return toolIntentFromTicket(a, params.Arguments)
 	case "a2dlc_intent_from_signal":
 		return toolIntentFromSignal(a, params.Arguments)
+	case "a2dlc_doctor":
+		exe, err := os.Executable()
+		if err != nil {
+			return errorResult("a2dlc doctor error: " + err.Error())
+		}
+		d, err := a.Doctor(ctx, exe)
+		if err != nil {
+			return errorResult("a2dlc doctor error: " + err.Error())
+		}
+		return callToolResult{Content: []contentBlock{{Type: "text", Text: app.DoctorJSON(d)}}, IsError: d.Blocking()}
 	case "a2dlc_format_report":
 		return toolFormatReport(a)
 	default:
+		if res, ok := callAgentTool(ctx, a, params.Name, params.Arguments); ok {
+			return res
+		}
 		return errorResult("unknown tool: " + params.Name)
 	}
 }

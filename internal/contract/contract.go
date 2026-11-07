@@ -64,6 +64,10 @@ const (
 type Config struct {
 	// ProtectedPaths are globs an agent cannot change without a signed approval (protected_path).
 	ProtectedPaths []string `json:"protected_paths,omitempty"`
+	// OutOfScopePaths are globs of source files the repo declares it does not judge: a changed source file no engine covers
+	// is INCONCLUSIVE (out_of_scope no_engine) unless one of these matches it, and then it is PASS with reason
+	// excluded_by_config (a2dlc-bt9).
+	OutOfScopePaths []string `json:"out_of_scope_paths,omitempty"`
 	// CriticalCode are globs over "file" or "file::symbol" naming the code where a behavior divergence stays FAIL until a
 	// signed waiver. Absent means nothing is critical: every divergence is a note in the receipt (VerdictTarget.Note).
 	CriticalCode []string `json:"critical_code,omitempty"`
@@ -443,6 +447,8 @@ type Verdict struct {
 	Tests          []TestResult    `json:"tests,omitempty"`
 	// Checks are the pluggable checks (config.checks) in config order; what did not run stays in view.
 	Checks []VerdictCheck `json:"checks,omitempty"`
+	// Authorization is RFC-0007 Part B's account of the pre-authorizations that mattered to this check (omitted otherwise).
+	Authorization *VerdictAuthorization `json:"authorization,omitempty"`
 	// Timings says where the check spent its time (ms); optional, the verdict does not depend on it.
 	Timings *Timings `json:"timings,omitempty"`
 	// Level and Static mark a level 0 receipt (a2dlc check --level 0). Level is a pointer because 0 is a value: omitempty
@@ -587,6 +593,9 @@ type Evidence struct {
 // Waiver decisions: the first two cover engine targets; the next two, tests; the last one, a finding of a pluggable
 // check (<file>::<check id> or <file>::L<line>).
 const (
+	// PlanAccept is the change class an authorization may carry to accept a feature plan (RFC-0008 section 4): it names
+	// plan::<feature_id> as its target and never covers a waived engine target.
+	PlanAccept           = "plan.accept"
 	EnforceNewBehavior   = "enforce_new_behavior"
 	PreserveLegacy       = "preserve_legacy"
 	CharacterizationTest = "characterization_test"
@@ -621,9 +630,51 @@ type Approvals struct {
 	Approvals     []Approval `json:"approvals"`
 }
 
-// DecodeStrict decodes, rejecting unknown fields, like additionalProperties: false in the schemas.
+// Authorization is a person's signed pre-authorization of behavior changes (authorization.schema.json, RFC-0007 Part B).
+type Authorization struct {
+	BaseRef      string   `json:"base_ref"`
+	IntentSHA256 string   `json:"intent_sha256"`
+	Targets      []string `json:"targets"`
+	Decision     string   `json:"decision"`
+	ExpiresAt    string   `json:"expires_at"`
+	Principal    string   `json:"principal"`
+	Signature    string   `json:"signature"`
+}
+
+// VerdictAuthorization is the receipt's account of Part B: the run-bound intent, the targets an authorization covered and
+// the ones it was refused for.
+type VerdictAuthorization struct {
+	IntentSHA256 string                 `json:"intent_sha256,omitempty"`
+	Covered      []AuthorizedTarget     `json:"covered"`
+	Refused      []AuthorizationRefusal `json:"refused"`
+}
+
+type AuthorizedTarget struct {
+	Target    string `json:"target"`
+	ID        string `json:"id"`
+	Principal string `json:"principal"`
+	ExpiresAt string `json:"expires_at"`
+}
+
+type AuthorizationRefusal struct {
+	Target string `json:"target"`
+	Reason string `json:"reason"`
+}
+
+type Authorizations struct {
+	SchemaVersion  int             `json:"schema_version"`
+	Authorizations []Authorization `json:"authorizations"`
+}
+
+// DecodeStrict decodes, rejecting unknown fields (additionalProperties: false in the schemas) and a document that lacks
+// a field its schema requires (required.go), at every depth. v is a pointer to the type of a registered schema; any other
+// type is decoded with the unknown-field check only.
 func DecodeStrict(r io.Reader, v any) error {
-	d := json.NewDecoder(r)
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
 	if err := d.Decode(v); err != nil {
 		return err
@@ -631,7 +682,7 @@ func DecodeStrict(r io.Reader, v any) error {
 	if d.More() {
 		return fmt.Errorf("extra content after the JSON document")
 	}
-	return nil
+	return checkRequired(b, v)
 }
 
 func DecodeStrictBytes(b []byte, v any) error { return DecodeStrict(bytes.NewReader(b), v) }

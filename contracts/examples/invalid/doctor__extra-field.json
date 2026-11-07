@@ -1,0 +1,53 @@
+{
+ "schema_version": 1,
+ "ok": true,
+ "binary": {
+  "path": "/usr/local/bin/a2dlc",
+  "version": "0.1.0"
+ },
+ "findings": [
+  {
+   "id": "config.ok",
+   "severity": "info",
+   "subject": "",
+   "message": "config schema_version 1 is the one this binary reads",
+   "fix": "",
+   "hint": "x"
+  },
+  {
+   "id": "hook.ok",
+   "severity": "info",
+   "subject": "/usr/local/bin/a2dlc",
+   "message": "the pre-push hook runs this binary",
+   "fix": ""
+  },
+  {
+   "id": "engines.ok",
+   "severity": "info",
+   "subject": "",
+   "message": "engine python (src/**/*.py) covers 4 source files",
+   "fix": ""
+  },
+  {
+   "id": "docker.ok",
+   "severity": "info",
+   "subject": "",
+   "message": "the Docker daemon answers",
+   "fix": ""
+  },
+  {
+   "id": "images.ok",
+   "severity": "info",
+   "subject": "",
+   "message": "1 image is present locally",
+   "fix": ""
+  },
+  {
+   "id": "signers.not_configured",
+   "severity": "info",
+   "subject": "",
+   "message": "no allowed signers, and no signed document in use",
+   "fix": ""
+  }
+ ]
+}

@@ -4,8 +4,8 @@
  "vectors": [
   {
    "id": "P-check-001",
-   "title": "With no engine a changed file is out of scope and the receipt is a PASS",
-   "rfc": "6.4.3",
+   "title": "With no engine a changed source file was judged by nothing: the receipt is INCONCLUSIVE (exit 2), never PASS",
+   "rfc": "6.4.4",
    "repo": {
     "object_format": "sha1",
     "commits": [
@@ -24,8 +24,8 @@
     ]
    },
    "expect": {
-    "exit": 0,
-    "verdict": "PASS",
+    "exit": 2,
+    "verdict": "INCONCLUSIVE",
     "targets": [],
     "out_of_scope": [
      {
@@ -621,6 +621,78 @@
     "docker",
     "image:a2dlc-engine-fake:0.1"
    ]
+  },
+  {
+   "id": "P-check-016",
+   "title": "With no engine a changed doc is out of scope and the receipt stays a PASS",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "README.md": "bye\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [],
+    "out_of_scope": [
+     {
+      "file": "README.md",
+      "reason": "no_engine"
+     }
+    ],
+    "pending_waivers": [],
+    "tree_hash": "git-tree:faaa415c58e6acd2755da4cc71b070d438f7723d",
+    "base_ref": "$BASE"
+   }
+  },
+  {
+   "id": "P-check-017",
+   "title": "A source file the config declares in out_of_scope_paths is a PASS, recorded as excluded_by_config",
+   "rfc": "6.4.4",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       ".a2dlc/config.json": "{\"schema_version\":1,\"engines\":[],\"out_of_scope_paths\":[\"src/**\"]}\n",
+       "src/m.py": "def f(x):\n    return x\n",
+       "README.md": "hello\n"
+      }
+     },
+     {
+      "files": {
+       "src/m.py": "def f(x):\n    return x + 1\n"
+      }
+     }
+    ]
+   },
+   "expect": {
+    "exit": 0,
+    "verdict": "PASS",
+    "targets": [],
+    "out_of_scope": [
+     {
+      "file": "src/m.py",
+      "reason": "excluded_by_config"
+     }
+    ],
+    "pending_waivers": [],
+    "tree_hash": "git-tree:7c99dd58da1ff30f002de485d3056075d64dee58",
+    "base_ref": "$BASE"
+   }
   }
  ]
 }

@@ -206,7 +206,7 @@ func (m *Machine) judgmentN2(ctx context.Context, p, o contract.CandidateEntry) 
 		if err != nil {
 			return "", "", "", err
 		}
-		if verdictP, err = m.app.CheckWith(ctx, m.baseSha, app.CheckOptions{CandidateTree: p.Commit, Peers: []string{o.Commit}, TestsOverlay: overlay,
+		if verdictP, err = m.checkWith(ctx, "4", app.CheckOptions{CandidateTree: p.Commit, Peers: []string{o.Commit}, TestsOverlay: overlay,
 			EquivalenceRelaxations: m.relaxations(), StrictDivergence: true, CriticalRoute: critRoute}); err != nil {
 			return "", "", "", err
 		}

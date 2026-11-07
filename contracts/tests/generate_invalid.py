@@ -22,6 +22,9 @@ r = read("engine-response__ts-fail.json")
 verdict = read("verdict__pending.json")
 w = read("waivers__entropos.json")
 a = read("approvals__signed.json")
+auth = read("authorization__signed.json")
+proposals = read("proposals__escalations.json")
+ledger_auth = read("run-ledger__authorization-used.json")
 verdict_engine_down = read("verdict__engine-down.json")
 c = read("config__entropos.json")
 b = read("blackbox__a2dlc.json")
@@ -60,8 +63,25 @@ cases = {
     # approved_by written by the agent was the pilot's approval: no longer valid (an approval is a signature)
     "waivers__approved-by-of-the-pilot.json": (w, lambda x: x["waivers"][0].update(approved_by="aldemar")),
     # without file_blob the signature does not bind the approval to the code: it would be valid for any future change
+    "doctor__finding-without-fix.json": (read("doctor__blocked.json"), lambda x: x["findings"][0].pop("fix")),
+    "doctor__extra-field.json": (read("doctor__healthy.json"), lambda x: x["findings"][0].update(hint="x")),
+    "doctor__blocking-with-empty-fix.json": (read("doctor__blocked.json"), lambda x: x["findings"][1].update(fix="")),
+    "doctor__severity-unknown.json": (read("doctor__healthy.json"), lambda x: x["findings"][0].update(severity="error")),
     "approvals__missing-file-blob.json": (a, lambda x: x["approvals"][0].pop("file_blob")),
     "approvals__signature-no-ssh.json": (a, lambda x: x["approvals"][0].update(signature="aldemar")),
+    # an authorization names exact symbols: a glob or <file>::* would let the agent move a change into any matching function
+    "authorization__target-glob.json": (auth, lambda x: x["authorizations"][0].update(targets=["src/billing.py::*"])),
+    # only the two decisions of a behavior waiver can be pre-authorized; test waivers and accept_finding never are
+    "authorization__decision-accept-finding.json": (auth, lambda x: x["authorizations"][0].update(decision="accept_finding")),
+    # without expires_at the authorization would never die
+    "authorization__missing-expires-at.json": (auth, lambda x: x["authorizations"][0].pop("expires_at")),
+    # without intent_sha256 an intent edited after signing would still match
+    "authorization__missing-intent-sha256.json": (auth, lambda x: x["authorizations"][0].pop("intent_sha256")),
+    "authorization__signature-no-ssh.json": (auth, lambda x: x["authorizations"][0].update(signature="aldemar")),
+    # a ledger record without the signed authorization cannot be checked again by verify-run
+    "run-ledger__authorization-used-unsigned.json": (ledger_auth, lambda x: x["authorizations_used"][0]["authorization"].pop("signature")),
+    # the chained entry that binds a use of an authorization must commit to the whole signed record
+    "run-ledger__authorization-binding-without-sha256.json": (ledger_auth, lambda x: x["entries"][2]["authorization"].pop("sha256")),
     "verdict__error-of-engine-missing-files.json": (verdict_engine_down, lambda x: x["engine_errors"][0].update(files=[])),
     # a cap of 0 would make check never run engines
     "config__max-files-zero.json": (c, lambda x: x.update(max_files=0)),
@@ -93,6 +113,10 @@ cases = {
     # a gate that did not run must say why
     "verdict__gate-error-missing-reason.json": (verdict_tests, lambda x: x["test_gates"]["baseline"].update(status="error")),
     "verdict__gates-missing-baseline.json": (verdict_tests, lambda x: x["test_gates"].pop("baseline")),
+    "proposals__hash-not-sha256.json": (proposals, lambda x: x["proposals"][0].update(hash="abc123")),
+    "proposals__kind-not-divergence.json": (proposals, lambda x: x["proposals"][0]["source"].update(kind="mutant_survived")),
+    "proposals__probe-id-free.json": (proposals, lambda x: x["proposals"][0]["probe"].update(id="probe-one")),
+    "proposals__skipped-missing.json": (proposals, lambda x: x.pop("skipped")),
     "escalation__kind-unknown.json": (escalation, lambda x: x["items"][0].update(kind="cb-01")),
     "escalation__resolve-with-unknown.json": (escalation, lambda x: x["items"][1].update(resolve_with=["ignore"])),
     "escalation__id-free.json": (escalation, lambda x: x["items"][0].update(id="div-07")),
@@ -387,6 +411,8 @@ cases = {
     "config__trace-coverage-over-one.json": (read("config__v3-gates.json"), lambda x: x["tests"]["trace_coverage"].update(min_branch=1.5)),
     "config__golden-master-missing-cases.json": (read("config__v3-gates.json"), lambda x: x["tests"]["golden_master"].pop("cases")),
     "config__protected-paths-duplicate.json": (read("config__v3-gates.json"), lambda x: x.update(protected_paths=["a/**", "a/**"])),
+    "config__out-of-scope-paths-duplicate.json": (read("config__out-of-scope-paths.json"), lambda x: x.update(out_of_scope_paths=["a/**", "a/**"])),
+    "config__out-of-scope-paths-empty-glob.json": (read("config__out-of-scope-paths.json"), lambda x: x.update(out_of_scope_paths=[""])),
     "escalation__lemma-failed-missing-counterexample.json": (read("escalation__v3-kinds.json"), lambda x: x["items"][2]["evidence"].pop("counterexample")),
     "escalation__protected-path-missing-message.json": (read("escalation__v3-kinds.json"), lambda x: x["items"][0]["evidence"].pop("message")),
     "escalation__answer-id-empty.json": (read("escalation__v3-kinds.json"), lambda x: x["items"][4].update(answer_id="")),
@@ -461,6 +487,11 @@ cases = {
     # a target is <file>::<symbol>: a bare symbol does not say where the property goes
     "role-response__propose-target-missing-separator.json": (read("role-response__propose-properties-ok.json"), lambda x: x["payload"]["properties"][0].update(target="media")),
     "role-response__builder-lemma-missing-postcondition.json": (read("role-response__builder-lemmas-ok.json"), lambda x: x["payload"]["lemmas"][0].pop("postcondition")),
+    # a2dlc-5fq: a builder answer that omits a required field (the core's decode used to fill in a zero value)
+    "role-response__builder-missing-files-changed.json": (read("role-response__builder-ok.json"), lambda x: x["payload"].pop("files_changed")),
+    "role-response__builder-missing-summary.json": (read("role-response__builder-ok.json"), lambda x: x["payload"].pop("summary")),
+    "role-response__builder-missing-cost.json": (read("role-response__builder-ok.json"), lambda x: x.pop("cost")),
+    "role-response__builder-missing-attempt.json": (read("role-response__builder-ok.json"), lambda x: x.pop("attempt")),
     "engine-stub-response__modified-tests-duplicate.json": (read("engine-stub-response__py-modified-tests.json"), lambda x: x.update(modified_tests=["tests/t.py::a", "tests/t.py::a"])),
     "engine-fuzz-response__unsupported-missing-reason.json": (read("engine-fuzz-response__unsupported.json"), lambda x: x["unsupported"][0].pop("reason")),
     "engine-deps-response__error-not-string.json": (read("engine-deps-response__error.json"), lambda x: x.update(error=5)),
@@ -505,8 +536,22 @@ cases = {
     "plan-state__plan-sha-short.json": (read("plan-state__blocked.json"), lambda x: x.update(plan_sha256="abc")),
     "plan-state__slice-without-reason.json": (read("plan-state__blocked.json"), lambda x: x["slices"][1].pop("reason")),
     "plan-state__slice-without-definition.json": (read("plan-state__blocked.json"), lambda x: x["slices"][0].pop("definition_sha256")),
+    # an acceptance holds exactly the record its kind names; an approval is unusable without its signature
+    "plan-state__acceptance-approval-and-authorization.json": (read("plan-state__accepted-by-approval.json"), lambda x: x["acceptance"].update(authorization=read("plan-state__accepted-by-authorization.json")["acceptance"]["authorization"])),
+    "plan-state__acceptance-kind-without-record.json": (read("plan-state__accepted-by-approval.json"), lambda x: x["acceptance"].pop("approval")),
+    "plan-state__approval-without-signature.json": (read("plan-state__accepted-by-approval.json"), lambda x: x["acceptance"]["approval"].pop("signature")),
     "plan-state__scheduler-zero-jobs.json": (read("plan-state__blocked.json"), lambda x: x["scheduler"].update(jobs=0)),
     "plan-state__replans-negative.json": (read("plan-state__blocked.json"), lambda x: x.update(replans=-1)),
+    "findings__label-outcome-fixed.json": (read("findings__labeled.json"), lambda x: x.update(outcome="fixed")),
+    "findings__label-without-by.json": (read("findings__labeled.json"), lambda x: x.pop("by")),
+    "findings__label-via-unknown.json": (read("findings__labeled.json"), lambda x: x.update(via="inferred")),
+    "findings__label-extra-field.json": (read("findings__labeled.json"), lambda x: x.update(confidence=0.9)),
+    "findings__id-free.json": (read("findings__raised.json"), lambda x: x.update(id="finding-7")),
+    "findings__without-base-ref.json": (read("findings__raised.json"), lambda x: x.pop("base_ref")),
+    "findings__raised-without-target.json": (read("findings__raised.json"), lambda x: x.pop("target")),
+    "findings__raised-source-unknown.json": (read("findings__raised.json"), lambda x: x.update(source="model:judge")),
+    "findings__fixed-with-label.json": (read("findings__fixed.json"), lambda x: x.update(outcome="false", by="x", via="cli")),
+    "findings__intentional-without-decision.json": (read("findings__intentional.json"), lambda x: x.pop("decision")),
 }
 for name, (base, breaks) in cases.items():
     doc = copy.deepcopy(base)

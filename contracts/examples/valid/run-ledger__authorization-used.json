@@ -1,0 +1,121 @@
+{
+ "schema_version": 1,
+ "run_id": "run-3f9a1c2b7d4e",
+ "entries": [
+  {
+   "seq": 1,
+   "prev_hash": null,
+   "hash": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+   "at": "2026-10-17T18:02:15Z",
+   "stage": "4",
+   "role": "saboteur",
+   "attempt": 1,
+   "family": "gemini",
+   "image": "a2dlc-role-gemini:0.1",
+   "image_digest": "sha256:d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+   "argv_sha256": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+   "inputs": [
+    {
+     "path": "/in/request.json",
+     "sha256": "sha256:9c1185a5c5e9fc54612808977ee8f548b2258d31f9e3b7a8a1b1c2d3e4f50617"
+    },
+    {
+     "path": "/in/signatures.json",
+     "sha256": "sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    }
+   ],
+   "outputs": [
+    {
+     "path": "/out/response.json",
+     "sha256": "sha256:4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a"
+    },
+    {
+     "path": "/out/tests/sympy/core/tests/test_relational_saboteur.py",
+     "sha256": "sha256:ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+    }
+   ],
+   "network": "provider",
+   "env_keys": [
+    "GEMINI_API_KEY"
+   ],
+   "exit": 0,
+   "status": "ok",
+   "cost": {
+    "usd": 0.0412,
+    "input_tokens": 18422,
+    "output_tokens": 1210
+   }
+  },
+  {
+   "seq": 2,
+   "prev_hash": "sha256:6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+   "hash": "sha256:e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683",
+   "at": "2026-10-17T18:06:02Z",
+   "stage": "4",
+   "role": "saboteur",
+   "attempt": 2,
+   "family": "gemini",
+   "image": "a2dlc-role-gemini:0.1",
+   "image_digest": null,
+   "argv_sha256": "sha256:4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce",
+   "inputs": [
+    {
+     "path": "/in/request.json",
+     "sha256": "sha256:7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+    }
+   ],
+   "outputs": [],
+   "network": "provider",
+   "env_keys": [
+    "GEMINI_API_KEY"
+   ],
+   "exit": 124,
+   "status": "timeout",
+   "cost": null
+  },
+  {
+   "seq": 3,
+   "prev_hash": "sha256:e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683",
+   "hash": "sha256:92e60aa6052582c06c0d729aae6c8ca80618786f8ee2ed398f56f5f332fb4e55",
+   "at": "2026-11-08T10:00:00Z",
+   "stage": "4",
+   "role": "check",
+   "attempt": 1,
+   "family": "script",
+   "image": "a2dlc-core",
+   "image_digest": null,
+   "argv_sha256": "sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50",
+   "inputs": [],
+   "outputs": [],
+   "network": "none",
+   "env_keys": [],
+   "exit": 0,
+   "status": "ok",
+   "cost": null,
+   "authorization": {
+    "target": "src/billing.py::apply_discount",
+    "id": "1c8a1ecd71fb9cccaad9ac9e1683f2e4adf15581cccabd8c7f9a722e61ee75a7",
+    "sha256": "sha256:76949353466d45601294e3552da987f522fee48b4bb8d4cd6403367eb47df6f1"
+   }
+  }
+ ],
+ "authorizations_used": [
+  {
+   "stage": "4",
+   "at": "2026-11-08T10:00:00Z",
+   "target": "src/billing.py::apply_discount",
+   "authorization": {
+    "base_ref": "0123456789abcdef0123456789abcdef01234567",
+    "intent_sha256": "3b7e2f1c0d9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c",
+    "targets": [
+     "src/billing.py::apply_discount",
+     "src/billing.py::round_total"
+    ],
+    "decision": "enforce_new_behavior",
+    "expires_at": "2026-11-12T00:00:00Z",
+    "principal": "aldemar",
+    "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg\n-----END SSH SIGNATURE-----\n"
+   }
+  }
+ ]
+}
