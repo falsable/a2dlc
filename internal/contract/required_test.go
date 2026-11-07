@@ -30,6 +30,7 @@ var missingRequiredInvalid = map[string]string{
 	"baseline__missing-cached.json":                                 "cached",
 	"capture__missing-selection.json":                               "selection",
 	"approvals__missing-file-blob.json":                             "file_blob",
+	"doctor__finding-without-fix.json":                              "fix",
 }
 
 // Each document of the list lacks a required field: DecodeStrict rejects it and the error names the field.

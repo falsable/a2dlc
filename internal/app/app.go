@@ -41,6 +41,8 @@ type App struct {
 	Now     func() time.Time
 	// Memo keeps the engines' decisive answers for the life of the process (enginememo.go); nil remembers nothing.
 	Memo *EngineMemo
+	// Probe is what doctor asks of the host (Docker, the hook's binary); nil makes doctor skip those checks, saying so.
+	Probe DoctorProbe
 }
 
 func (a App) path(rel string) string { return filepath.Join(a.Repo.Dir, filepath.FromSlash(rel)) }

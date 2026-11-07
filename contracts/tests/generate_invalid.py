@@ -60,6 +60,10 @@ cases = {
     # approved_by written by the agent was the pilot's approval: no longer valid (an approval is a signature)
     "waivers__approved-by-of-the-pilot.json": (w, lambda x: x["waivers"][0].update(approved_by="aldemar")),
     # without file_blob the signature does not bind the approval to the code: it would be valid for any future change
+    "doctor__finding-without-fix.json": (read("doctor__blocked.json"), lambda x: x["findings"][0].pop("fix")),
+    "doctor__extra-field.json": (read("doctor__healthy.json"), lambda x: x["findings"][0].update(hint="x")),
+    "doctor__blocking-with-empty-fix.json": (read("doctor__blocked.json"), lambda x: x["findings"][1].update(fix="")),
+    "doctor__severity-unknown.json": (read("doctor__healthy.json"), lambda x: x["findings"][0].update(severity="error")),
     "approvals__missing-file-blob.json": (a, lambda x: x["approvals"][0].pop("file_blob")),
     "approvals__signature-no-ssh.json": (a, lambda x: x["approvals"][0].update(signature="aldemar")),
     "verdict__error-of-engine-missing-files.json": (verdict_engine_down, lambda x: x["engine_errors"][0].update(files=[])),

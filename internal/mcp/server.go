@@ -298,6 +298,14 @@ func toolsCatalog() []toolDef {
 			},
 		},
 		{
+			Name:        "a2dlc_doctor",
+			Description: "Health check of this repo's a2dlc setup, the same report as `a2dlc doctor --json` (contracts/doctor.schema.json): pre-push hook binary, config schema version, engines declared vs detected, engine images present, Docker reachable, allowed signers. Each finding has a stable id, a severity (blocking, warning, info) and a fix. isError is true when any finding is blocking. Read-only.",
+			InputSchema: map[string]any{
+				"type":       "object",
+				"properties": map[string]any{},
+			},
+		},
+		{
 			Name:        "a2dlc_format_report",
 			Description: "Format the current .a2dlc/verdict.json, escalations, and waivers as a Markdown compliance & counterexample report ready to post to GitHub PRs, GitLab MRs, Jira, Linear, Slack, or Confluence.",
 			InputSchema: map[string]any{
@@ -365,6 +373,16 @@ func dispatchTool(ctx context.Context, a app.App, params callToolParams) callToo
 		return toolIntentFromTicket(a, params.Arguments)
 	case "a2dlc_intent_from_signal":
 		return toolIntentFromSignal(a, params.Arguments)
+	case "a2dlc_doctor":
+		exe, err := os.Executable()
+		if err != nil {
+			return errorResult("a2dlc doctor error: " + err.Error())
+		}
+		d, err := a.Doctor(ctx, exe)
+		if err != nil {
+			return errorResult("a2dlc doctor error: " + err.Error())
+		}
+		return callToolResult{Content: []contentBlock{{Type: "text", Text: app.DoctorJSON(d)}}, IsError: d.Blocking()}
 	case "a2dlc_format_report":
 		return toolFormatReport(a)
 	default:

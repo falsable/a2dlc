@@ -64,6 +64,10 @@ const usage = `usage: a2dlc <command>
           records a person's answer to a probe of a run (answers.json; 0 written, 2 refused, 64 bad usage)
   hook    <claude|gemini>          adapter for the agent's end-of-turn hook
   install [--agent claude] [--agent gemini]   config, .gitignore, pre-push and agent hooks
+  doctor  [--json]                 health check of this repo's setup: pre-push hook binary, config version, engines declared vs
+          detected, engine images, Docker, allowed signers. Each finding has a stable id, a severity (blocking, warning, info)
+          and a fix; --json prints them (contracts/doctor.schema.json), for an agent. It repairs nothing and writes nothing.
+          Exit 0 with no blocking finding, 1 with any, 2 if doctor itself fails, 64 on bad usage
   mcp                              runs the Model Context Protocol (MCP) JSON-RPC 2.0 server over stdio
   version`
 
@@ -93,7 +97,7 @@ func run(args []string) int {
 		return 64
 	}
 	a := app.App{Repo: repo, Runner: engine.Docker{CopyIn: engine.CopyInDefault}, Tests: engine.DockerTests{CopyIn: engine.CopyInDefault},
-		Checks: engine.DockerChecks{}, Version: version, Now: time.Now, Memo: app.NewEngineMemo()}
+		Checks: engine.DockerChecks{}, Version: version, Now: time.Now, Memo: app.NewEngineMemo(), Probe: engine.HostProbe{}}
 	ctx := context.Background()
 	if args[0] == "check" || args[0] == "verify" {
 		warnHookBinary(a, os.Stderr)
@@ -363,7 +367,15 @@ func run(args []string) int {
 				fmt.Println(hint.Stub)
 			}
 		}
+		fmt.Println("a2dlc install: next, run a2dlc doctor (--json for an agent) to see what is left to fix")
 		return 0
+	case "doctor":
+		exe, err := os.Executable()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "a2dlc doctor:", err)
+			return 2
+		}
+		return doctorCommand(ctx, a, exe, args[1:], os.Stdout, os.Stderr)
 	case "mcp":
 		if err := mcp.Serve(ctx, a, os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, "a2dlc mcp:", err)

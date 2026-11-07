@@ -99,6 +99,8 @@ func exampleTypes() map[string]func() any {
 		"engine-traces-response": func() any { return &TracesResponse{} },
 		// Code Graph Indexer (Stage 6)
 		"indexer-response": func() any { return &IndexerResponse{} },
+		// a2dlc doctor
+		"doctor": func() any { return &Doctor{} },
 	}
 }
 
@@ -128,6 +130,7 @@ var unknownPropertyInvalid = []string{
 	"engine-signatures-response__symbol-with-body.json",
 	"run-state__by-role-unknown.json",
 	"waivers__approved-by-of-the-pilot.json",
+	"doctor__extra-field.json",
 }
 
 // knownLooseDecodes names invalid examples that the struct accepts although the schema rejects them. They are

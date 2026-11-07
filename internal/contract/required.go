@@ -71,6 +71,7 @@ var schemaOf = map[reflect.Type]string{
 	reflect.TypeFor[GoldenResponse]():        "engine-golden-response.schema.json",
 	reflect.TypeFor[TracesResponse]():        "engine-traces-response.schema.json",
 	reflect.TypeFor[IndexerResponse]():       "indexer-response.schema.json",
+	reflect.TypeFor[Doctor]():                "doctor.schema.json",
 	// The payload of an ok role response, decoded on its own by the stage that reads it.
 	reflect.TypeFor[BuilderResponse]():      "role-payloads.schema.json#/$defs/builder_response",
 	reflect.TypeFor[SaboteurResponse]():     "role-payloads.schema.json#/$defs/saboteur_response",

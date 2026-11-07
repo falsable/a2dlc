@@ -407,18 +407,36 @@ func (a App) hookAgent(agent, exe string) (string, error) {
 // a2dlc leaves the push gated by an older build (a2dlc-31w). It is a warning for check and verify, never a failure: ""
 // when the paths match, there is no hook or the hook has no a2dlc block.
 func (a App) HookBinaryWarning(exe string) string {
+	hook, state := a.hookBinary()
+	if state != hookFound || samePath(hook, exe) {
+		return ""
+	}
+	return fmt.Sprintf("the pre-push hook runs %s but this is %s: a push is gated by the hook's build, not by this one; run a2dlc install with the build you want", filepath.ToSlash(hook), filepath.ToSlash(exe))
+}
+
+// What hookBinary found in the pre-push hook.
+type hookState int
+
+const (
+	hookNone     hookState = iota // no pre-push file, or it has no a2dlc block
+	hookUnparsed                  // an a2dlc block with no readable line that runs verify
+	hookFound
+)
+
+// hookBinary reads, from the a2dlc block of the pre-push hook, the binary that runs `verify`.
+func (a App) hookBinary() (string, hookState) {
 	dir, err := a.Repo.HooksDir()
 	if err != nil {
-		return ""
+		return "", hookNone
 	}
 	b, err := os.ReadFile(filepath.Join(dir, "pre-push"))
 	if err != nil {
-		return ""
+		return "", hookNone
 	}
 	text := strings.ReplaceAll(string(b), "\r\n", "\n")
 	i, j := strings.Index(text, blockStart), strings.Index(text, blockEnd)
 	if i < 0 || j < i {
-		return ""
+		return "", hookNone
 	}
 	for _, line := range strings.Split(text[i:j], "\n") {
 		if !strings.HasPrefix(line, `"`) || !strings.Contains(line, " verify ") {
@@ -426,15 +444,15 @@ func (a App) HookBinaryWarning(exe string) string {
 		}
 		q := strings.Index(line[1:], `"`)
 		if q < 0 {
-			return ""
+			return "", hookUnparsed
 		}
 		hook, err := strconv.Unquote(line[:q+2])
-		if err != nil || samePath(hook, exe) {
-			return ""
+		if err != nil {
+			return "", hookUnparsed
 		}
-		return fmt.Sprintf("the pre-push hook runs %s but this is %s: a push is gated by the hook's build, not by this one; run a2dlc install with the build you want", filepath.ToSlash(hook), filepath.ToSlash(exe))
+		return hook, hookFound
 	}
-	return ""
+	return "", hookUnparsed
 }
 
 func samePath(a, b string) bool {

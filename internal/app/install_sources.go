@@ -90,6 +90,25 @@ func (a App) CoverageWarning() (string, bool) {
 	if len(without) == 0 {
 		return "", false
 	}
+	parts := []string{}
+	for _, g := range uncoveredByLanguage(without) {
+		parts = append(parts, g.Part)
+	}
+	return fmt.Sprintf("%s: no engine in %s covers them, so no engine examines a change there and check reports it as out of scope "+
+		"(a PASS with 0 targets), not as judged. Add an engine for those paths, or list them under config.critical_code so that "+
+		"pre-push blocks a push that leaves them unjudged.",
+		strings.Join(parts, "; "), pathConfig), true
+}
+
+// languageGap is the source files of one language that no engine covers; Part reads "2 Go files (.go)".
+type languageGap struct {
+	Language string
+	Count    int
+	Part     string
+}
+
+// uncoveredByLanguage groups files by language, sorted by language, with the count per extension when there are several.
+func uncoveredByLanguage(without []string) []languageGap {
 	byLang := map[string]map[string]int{}
 	for _, f := range without {
 		lang := sourceLanguage[path.Ext(f)]
@@ -103,7 +122,7 @@ func (a App) CoverageWarning() (string, bool) {
 		langs = append(langs, l)
 	}
 	sort.Strings(langs)
-	parts := []string{}
+	gaps := []languageGap{}
 	for _, l := range langs {
 		exts := make([]string, 0, len(byLang[l]))
 		n := 0
@@ -123,12 +142,9 @@ func (a App) CoverageWarning() (string, bool) {
 		if n == 1 {
 			noun = "file"
 		}
-		parts = append(parts, fmt.Sprintf("%d %s %s (%s)", n, l, noun, label))
+		gaps = append(gaps, languageGap{Language: l, Count: n, Part: fmt.Sprintf("%d %s %s (%s)", n, l, noun, label)})
 	}
-	return fmt.Sprintf("%s: no engine in %s covers them, so no engine examines a change there and check reports it as out of scope "+
-		"(a PASS with 0 targets), not as judged. Add an engine for those paths, or list them under config.critical_code so that "+
-		"pre-push blocks a push that leaves them unjudged.",
-		strings.Join(parts, "; "), pathConfig), true
+	return gaps
 }
 
 // engineSummary names the engines of a config and their paths, for what install reports.

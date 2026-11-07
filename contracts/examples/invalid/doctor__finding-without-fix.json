@@ -1,0 +1,30 @@
+{
+ "schema_version": 1,
+ "ok": false,
+ "binary": {
+  "path": "/usr/local/bin/a2dlc",
+  "version": "0.1.0"
+ },
+ "findings": [
+  {
+   "id": "hook.binary_mismatch",
+   "severity": "warning",
+   "subject": "/opt/old/a2dlc",
+   "message": "the pre-push hook runs /opt/old/a2dlc (0.0.9) but this is /usr/local/bin/a2dlc (0.1.0): a push is gated by the hook's build"
+  },
+  {
+   "id": "images.missing",
+   "severity": "blocking",
+   "subject": "a2dlc-engine-py:0.13",
+   "message": "the image of the python engine is not present locally",
+   "fix": "docker build -t a2dlc-engine-py:0.13 <a2dlc source>/engines/py, or point config.engines[].image at an image you can pull"
+  },
+  {
+   "id": "signers.missing",
+   "severity": "blocking",
+   "subject": "",
+   "message": "the repo has signed documents (.a2dlc/approvals.json) and no allowed signers are configured",
+   "fix": "set A2DLC_ALLOWED_SIGNERS to an allowed_signers file, or create ~/.config/a2dlc/allowed_signers"
+  }
+ ]
+}
