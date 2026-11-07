@@ -255,7 +255,9 @@ func tokensOf(b contract.Budget) int {
 func spendOfLedger(entries []contract.LedgerEntry) contract.Budget {
 	var b contract.Budget
 	for _, e := range entries {
-		sumSpend(&b, e)
+		if e.Authorization == nil { // a binding entry launched nothing: it is neither a cost nor an unreported role
+			sumSpend(&b, e)
+		}
 	}
 	return b
 }

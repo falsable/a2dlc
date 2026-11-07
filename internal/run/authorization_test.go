@@ -2,6 +2,7 @@ package run
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -152,7 +153,12 @@ func TestVerifyRunRejectsAnAuthorizationThatIsNoLongerValid(t *testing.T) {
 	}
 	cases := map[string]func(){
 		"a text edited after signing": func() { edit(authExpires, "2027-01-01T00:00:00Z") },
-		"an expiry before the use":    func() { edit(r.m.now().UTC().Format("2006-01-02"), "2030-01-01") },
+		"an expiry before the use": func() {
+			// the time of use in the record, the entry that binds it keeps the old one
+			i := strings.Index(string(original), `"authorizations_used"`)
+			day := r.m.now().UTC().Format("2006-01-02")
+			os.WriteFile(ledgerPath, []byte(string(original)[:i]+strings.Replace(string(original)[i:], day, "2030-01-01", 1)), 0o644)
+		},
 		"a signer no longer allowed": func() {
 			os.WriteFile(ledgerPath, original, 0o644)
 			empty := filepath.Join(t.TempDir(), "allowed")
@@ -171,6 +177,63 @@ func TestVerifyRunRejectsAnAuthorizationThatIsNoLongerValid(t *testing.T) {
 			problems, err := VerifyRun(r.a, "auth")
 			if err != nil || len(problems) == 0 || !strings.Contains(strings.Join(problems, "\n"), "authorization") {
 				t.Fatalf("problems %v err %v", problems, err)
+			}
+		})
+	}
+}
+
+// The authorization that covered a step is bound into the chained entry of that step: a ledger that deletes or edits the
+// record of its use no longer verifies, with a chain error and not only with an authorization one.
+func TestVerifyRunRejectsAHiddenOrEditedAuthorizationUse(t *testing.T) {
+	r := newAuthRun(t, true)
+	r.check(t)
+	// a launch after the check, so the use is in the middle of the chain as in a real run
+	if _, err := r.m.ledger.Append(contract.LedgerEntry{At: "2026-11-07T10:00:00Z", Stage: "4", Role: "saboteur", Attempt: 1, Family: "claude",
+		Image: "x", ArgvSHA256: hashBytes([]byte("argv")), Network: "none", Status: contract.LedgerOK}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.m.save(); err != nil {
+		t.Fatal(err)
+	}
+	if problems, err := VerifyRun(r.a, "auth"); err != nil || len(problems) != 0 {
+		t.Fatalf("a valid run: %v %v", problems, err)
+	}
+	ledgerPath := filepath.Join(r.m.dir, "ledger.json")
+	original, _ := os.ReadFile(ledgerPath)
+	cases := map[string]func(map[string]any){
+		"the records deleted": func(doc map[string]any) { delete(doc, "authorizations_used") },
+		"the records emptied": func(doc map[string]any) { doc["authorizations_used"] = []any{} },
+		"the time of use edited": func(doc map[string]any) {
+			doc["authorizations_used"].([]any)[0].(map[string]any)["at"] = "2026-11-07T09:00:00Z"
+		},
+		"the stage edited": func(doc map[string]any) {
+			doc["authorizations_used"].([]any)[0].(map[string]any)["stage"] = "5"
+		},
+		"the binding of the entry edited": func(doc map[string]any) {
+			for _, e := range doc["entries"].([]any) {
+				if bound, ok := e.(map[string]any)["authorization"].(map[string]any); ok {
+					bound["id"] = "sha256:" + strings.Repeat("0", 64)
+				}
+			}
+		},
+		"the binding of the entry deleted": func(doc map[string]any) {
+			for _, e := range doc["entries"].([]any) {
+				delete(e.(map[string]any), "authorization")
+			}
+		},
+	}
+	for name, edit := range cases {
+		t.Run(name, func(t *testing.T) {
+			var doc map[string]any
+			if err := json.Unmarshal(original, &doc); err != nil {
+				t.Fatal(err)
+			}
+			edit(doc)
+			b, _ := json.MarshalIndent(doc, "", " ")
+			os.WriteFile(ledgerPath, b, 0o644)
+			problems, err := VerifyRun(r.a, "auth")
+			if err != nil || !strings.Contains(strings.Join(problems, "\n"), "ledger: ") {
+				t.Fatalf("a ledger that hides or edits the use of an authorization must fail the chain: %v %v", problems, err)
 			}
 		})
 	}

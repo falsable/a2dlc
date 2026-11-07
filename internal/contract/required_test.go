@@ -34,6 +34,7 @@ var missingRequiredInvalid = map[string]string{
 	"authorization__missing-expires-at.json":                        "expires_at",
 	"authorization__missing-intent-sha256.json":                     "intent_sha256",
 	"run-ledger__authorization-used-unsigned.json":                  "signature",
+	"run-ledger__authorization-binding-without-sha256.json":         "sha256",
 	"findings__without-base-ref.json":                               "$.base_ref",
 	"findings__raised-without-target.json":                          "$.target",
 	"findings__label-without-by.json":                               "$.by",

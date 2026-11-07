@@ -373,8 +373,9 @@ func (m *Machine) checkWith(ctx context.Context, stage string, opts app.CheckOpt
 
 // authorizationProblems checks again each authorization the ledger says the run relied on: the signature in its own
 // namespace against the allowed signers (never the repo), that the target is one the authorization names, a decision an
-// authorization can carry, and that it had not expired when it was used. The records are not in the hash chain, so this
-// is as strong as the rest of the folder: it rejects a run that relied on something invalid, not a ledger that hides the reliance.
+// authorization can carry, and that it had not expired when it was used. Each record is bound into the hash chain by an
+// entry of role check (Verify), so a ledger that hides or edits a use fails the chain; removing the tail of the chain
+// together with its records goes undetected, as for any entry.
 func authorizationProblems(lg contract.RunLedger) []string {
 	if len(lg.AuthorizationsUsed) == 0 {
 		return nil

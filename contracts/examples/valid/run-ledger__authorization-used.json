@@ -72,6 +72,31 @@
    "exit": 124,
    "status": "timeout",
    "cost": null
+  },
+  {
+   "seq": 3,
+   "prev_hash": "sha256:e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683",
+   "hash": "sha256:92e60aa6052582c06c0d729aae6c8ca80618786f8ee2ed398f56f5f332fb4e55",
+   "at": "2026-11-08T10:00:00Z",
+   "stage": "4",
+   "role": "check",
+   "attempt": 1,
+   "family": "script",
+   "image": "a2dlc-core",
+   "image_digest": null,
+   "argv_sha256": "sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50",
+   "inputs": [],
+   "outputs": [],
+   "network": "none",
+   "env_keys": [],
+   "exit": 0,
+   "status": "ok",
+   "cost": null,
+   "authorization": {
+    "target": "src/billing.py::apply_discount",
+    "id": "sha256:1c8a1ecd71fb9cccaad9ac9e1683f2e4adf15581cccabd8c7f9a722e61ee75a7",
+    "sha256": "sha256:76949353466d45601294e3552da987f522fee48b4bb8d4cd6403367eb47df6f1"
+   }
   }
  ],
  "authorizations_used": [

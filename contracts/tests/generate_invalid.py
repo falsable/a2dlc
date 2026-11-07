@@ -79,6 +79,8 @@ cases = {
     "authorization__signature-no-ssh.json": (auth, lambda x: x["authorizations"][0].update(signature="aldemar")),
     # a ledger record without the signed authorization cannot be checked again by verify-run
     "run-ledger__authorization-used-unsigned.json": (ledger_auth, lambda x: x["authorizations_used"][0]["authorization"].pop("signature")),
+    # the chained entry that binds a use of an authorization must commit to the whole signed record
+    "run-ledger__authorization-binding-without-sha256.json": (ledger_auth, lambda x: x["entries"][2]["authorization"].pop("sha256")),
     "verdict__error-of-engine-missing-files.json": (verdict_engine_down, lambda x: x["engine_errors"][0].update(files=[])),
     # a cap of 0 would make check never run engines
     "config__max-files-zero.json": (c, lambda x: x.update(max_files=0)),

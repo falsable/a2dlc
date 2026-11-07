@@ -286,4 +286,15 @@ type LedgerEntry struct {
 	Cost        *Cost        `json:"cost"`
 	// EgressProxy is set only for network proxy-allowlist.
 	EgressProxy *EgressProxy `json:"egress_proxy,omitempty"`
+	// Authorization is set only in the entry that binds one use of a signed authorization (role "check", family
+	// "script"): the chain then covers the record in authorizations_used it points to.
+	Authorization *LedgerAuthorizationRef `json:"authorization,omitempty"`
+}
+
+// LedgerAuthorizationRef is what the chained entry commits to for one use of an authorization: the target it let pass,
+// the authorization's id (sha256 of its signed text) and the sha256 of the whole signed record, signature included.
+type LedgerAuthorizationRef struct {
+	Target string `json:"target"`
+	ID     string `json:"id"`
+	SHA256 string `json:"sha256"`
 }
