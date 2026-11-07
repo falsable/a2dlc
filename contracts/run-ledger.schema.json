@@ -46,6 +46,21 @@
         "required": ["seq", "prev_hash", "hash", "at", "stage", "role", "attempt", "family", "image", "image_digest", "argv_sha256", "inputs", "outputs", "network", "env_keys", "exit", "status", "cost"],
         "additionalProperties": false
       }
+    },
+    "authorizations_used": {
+      "description": "RFC-0007 Part B. One record per waived target that a run let pass because a signed authorization (.a2dlc/authorizations.json) covered it instead of stopping for an approval: the stage whose check relied on it, the time of use, the target and the whole signed authorization. a2dlc verify-run checks each record again against the allowed signers (never the repo): the signature in namespace a2dlc-authorization, the target among the authorization's, and expires_at not passed at `at`. Not part of the hash chain of entries, like the rest of the ledger it has no anchor outside the folder.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stage": { "$ref": "run-defs.schema.json#/$defs/stage" },
+          "at": { "type": "string", "format": "date-time" },
+          "target": { "$ref": "defs.schema.json#/$defs/target_id" },
+          "authorization": { "$ref": "authorization.schema.json#/properties/authorizations/items" }
+        },
+        "required": ["stage", "at", "target", "authorization"],
+        "additionalProperties": false
+      }
     }
   },
   "required": ["schema_version", "run_id", "entries"],

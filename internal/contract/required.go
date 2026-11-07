@@ -30,6 +30,7 @@ var schemaOf = map[reflect.Type]string{
 	reflect.TypeFor[CheckResponse]():         "check-response.schema.json",
 	reflect.TypeFor[Waivers]():               "waivers.schema.json",
 	reflect.TypeFor[Approvals]():             "approvals.schema.json",
+	reflect.TypeFor[Authorizations]():        "authorization.schema.json",
 	reflect.TypeFor[StubResponse]():          "engine-stub-response.schema.json",
 	reflect.TypeFor[Escalations]():           "escalation.schema.json",
 	reflect.TypeFor[SignaturesResponse]():    "engine-signatures-response.schema.json",

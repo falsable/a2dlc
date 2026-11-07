@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/falsable/a2dlc/internal/contract"
@@ -206,4 +207,41 @@ func verify(allowedSigners, principal, namespace string, payload []byte, signatu
 		return fmt.Errorf("invalid signature for %s: %s", principal, strings.TrimSpace(out.String()))
 	}
 	return nil
+}
+
+// AuthorizationNamespace is the ssh signature namespace of .a2dlc/authorizations.json (RFC-0007 Part B). It is neither
+// Namespace nor VerdictNamespace, so a signature made for an approval or a verdict never verifies as an authorization.
+const AuthorizationNamespace = "a2dlc-authorization"
+
+// AuthorizationPayload is the signed text of an authorization, with the targets sorted and deduplicated. expiresAt is
+// signed as written in the file, byte for byte.
+func AuthorizationPayload(baseRef, intentSHA256, decision, expiresAt string, targets []string) []byte {
+	ts := append([]string(nil), targets...)
+	sort.Strings(ts)
+	var b strings.Builder
+	fmt.Fprintf(&b, "a2dlc-authorization/1\n%s\n%s\n%s\n%s\n", baseRef, intentSHA256, decision, expiresAt)
+	for i, t := range ts {
+		if i > 0 && t == ts[i-1] {
+			continue
+		}
+		b.WriteString(t + "\n")
+	}
+	return []byte(b.String())
+}
+
+// AuthorizationID is the sha256 of the signed text: what the receipt and the ledger call the authorization.
+func AuthorizationID(payload []byte) string {
+	s := sha256.Sum256(payload)
+	return hex.EncodeToString(s[:])
+}
+
+// SignAuthorization signs under AuthorizationNamespace. Like Sign, ssh-keygen asks for the passphrase through the
+// process's own terminal; the passphrase is never passed to this code.
+func SignAuthorization(keyPath string, payload []byte) (string, error) {
+	return sign(keyPath, AuthorizationNamespace, payload, os.Stdin, os.Stderr)
+}
+
+// VerifyAuthorization checks the signature of principal over payload in AuthorizationNamespace against allowedSigners.
+func VerifyAuthorization(allowedSigners, principal string, payload []byte, signature string) error {
+	return verify(allowedSigners, principal, AuthorizationNamespace, payload, signature)
 }

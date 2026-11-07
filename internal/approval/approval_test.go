@@ -93,3 +93,51 @@ func TestSignAndVerifyVerdict(t *testing.T) {
 		t.Fatal("an approval signature verifies as a verdict")
 	}
 }
+
+func TestAuthorizationPayloadSortsAndDedupesTargets(t *testing.T) {
+	got := string(AuthorizationPayload("b", "i", "enforce_new_behavior", "2026-11-12T00:00:00Z", []string{"z.py::f", "a.py::g", "z.py::f"}))
+	want := "a2dlc-authorization/1\nb\ni\nenforce_new_behavior\n2026-11-12T00:00:00Z\na.py::g\nz.py::f\n"
+	if got != want {
+		t.Fatalf("payload %q, want %q", got, want)
+	}
+}
+
+// An authorization verifies in its own namespace only: the same payload signed as an approval, and a signature made for
+// an authorization offered as an approval, are refused.
+func TestSignAndVerifyAuthorization(t *testing.T) {
+	if _, err := exec.LookPath("ssh-keygen"); err != nil {
+		t.Skip("no ssh-keygen")
+	}
+	dir := t.TempDir()
+	key := filepath.Join(dir, "k")
+	if out, err := exec.Command("ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", "tester", "-f", key).CombinedOutput(); err != nil {
+		t.Fatalf("%v %s", err, out)
+	}
+	pub, _ := os.ReadFile(key + ".pub")
+	signers := filepath.Join(dir, "allowed")
+	os.WriteFile(signers, []byte("tester@a2dlc "+strings.TrimSpace(string(pub))+"\n"), 0o600)
+	p := AuthorizationPayload(strings.Repeat("a", 40), strings.Repeat("b", 64), "enforce_new_behavior", "2026-11-12T00:00:00Z", []string{"a.py::f"})
+	sig, err := SignAuthorization(key, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyAuthorization(signers, "tester@a2dlc", p, sig); err != nil {
+		t.Fatalf("the good signature does not verify: %v", err)
+	}
+	if err := VerifyAuthorization(signers, "tester@a2dlc", append(p, 'x'), sig); err == nil {
+		t.Fatal("the signature is valid for another text")
+	}
+	if err := Verify(signers, "tester@a2dlc", p, sig); err == nil {
+		t.Fatal("an authorization signature verifies as an approval")
+	}
+	asApproval, err := Sign(key, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyAuthorization(signers, "tester@a2dlc", p, asApproval); err == nil {
+		t.Fatal("an approval signature verifies as an authorization")
+	}
+	if err := VerifyAuthorization("", "tester@a2dlc", p, sig); err == nil {
+		t.Fatal("no allowed signers must authorize nothing")
+	}
+}

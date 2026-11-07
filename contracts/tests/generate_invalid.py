@@ -22,6 +22,8 @@ r = read("engine-response__ts-fail.json")
 verdict = read("verdict__pending.json")
 w = read("waivers__entropos.json")
 a = read("approvals__signed.json")
+auth = read("authorization__signed.json")
+ledger_auth = read("run-ledger__authorization-used.json")
 verdict_engine_down = read("verdict__engine-down.json")
 c = read("config__entropos.json")
 b = read("blackbox__a2dlc.json")
@@ -66,6 +68,17 @@ cases = {
     "doctor__severity-unknown.json": (read("doctor__healthy.json"), lambda x: x["findings"][0].update(severity="error")),
     "approvals__missing-file-blob.json": (a, lambda x: x["approvals"][0].pop("file_blob")),
     "approvals__signature-no-ssh.json": (a, lambda x: x["approvals"][0].update(signature="aldemar")),
+    # an authorization names exact symbols: a glob or <file>::* would let the agent move a change into any matching function
+    "authorization__target-glob.json": (auth, lambda x: x["authorizations"][0].update(targets=["src/billing.py::*"])),
+    # only the two decisions of a behavior waiver can be pre-authorized; test waivers and accept_finding never are
+    "authorization__decision-accept-finding.json": (auth, lambda x: x["authorizations"][0].update(decision="accept_finding")),
+    # without expires_at the authorization would never die
+    "authorization__missing-expires-at.json": (auth, lambda x: x["authorizations"][0].pop("expires_at")),
+    # without intent_sha256 an intent edited after signing would still match
+    "authorization__missing-intent-sha256.json": (auth, lambda x: x["authorizations"][0].pop("intent_sha256")),
+    "authorization__signature-no-ssh.json": (auth, lambda x: x["authorizations"][0].update(signature="aldemar")),
+    # a ledger record without the signed authorization cannot be checked again by verify-run
+    "run-ledger__authorization-used-unsigned.json": (ledger_auth, lambda x: x["authorizations_used"][0]["authorization"].pop("signature")),
     "verdict__error-of-engine-missing-files.json": (verdict_engine_down, lambda x: x["engine_errors"][0].update(files=[])),
     # a cap of 0 would make check never run engines
     "config__max-files-zero.json": (c, lambda x: x.update(max_files=0)),

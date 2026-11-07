@@ -236,6 +236,16 @@ type RunLedger struct {
 	SchemaVersion int           `json:"schema_version"`
 	RunID         string        `json:"run_id"`
 	Entries       []LedgerEntry `json:"entries"`
+	// AuthorizationsUsed: the signed authorizations a run relied on instead of stopping for an approval (RFC-0007 Part B).
+	AuthorizationsUsed []LedgerAuthorization `json:"authorizations_used,omitempty"`
+}
+
+// LedgerAuthorization records that Stage `Stage` let Target pass at At on the strength of Authorization.
+type LedgerAuthorization struct {
+	Stage         string        `json:"stage"`
+	At            string        `json:"at"`
+	Target        string        `json:"target"`
+	Authorization Authorization `json:"authorization"`
 }
 
 const (

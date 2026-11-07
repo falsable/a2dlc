@@ -443,6 +443,8 @@ type Verdict struct {
 	Tests          []TestResult    `json:"tests,omitempty"`
 	// Checks are the pluggable checks (config.checks) in config order; what did not run stays in view.
 	Checks []VerdictCheck `json:"checks,omitempty"`
+	// Authorization is RFC-0007 Part B's account of the pre-authorizations that mattered to this check (omitted otherwise).
+	Authorization *VerdictAuthorization `json:"authorization,omitempty"`
 	// Timings says where the check spent its time (ms); optional, the verdict does not depend on it.
 	Timings *Timings `json:"timings,omitempty"`
 	// Level and Static mark a level 0 receipt (a2dlc check --level 0). Level is a pointer because 0 is a value: omitempty
@@ -619,6 +621,42 @@ type Approval struct {
 type Approvals struct {
 	SchemaVersion int        `json:"schema_version"`
 	Approvals     []Approval `json:"approvals"`
+}
+
+// Authorization is a person's signed pre-authorization of behavior changes (authorization.schema.json, RFC-0007 Part B).
+type Authorization struct {
+	BaseRef      string   `json:"base_ref"`
+	IntentSHA256 string   `json:"intent_sha256"`
+	Targets      []string `json:"targets"`
+	Decision     string   `json:"decision"`
+	ExpiresAt    string   `json:"expires_at"`
+	Principal    string   `json:"principal"`
+	Signature    string   `json:"signature"`
+}
+
+// VerdictAuthorization is the receipt's account of Part B: the run-bound intent, the targets an authorization covered and
+// the ones it was refused for.
+type VerdictAuthorization struct {
+	IntentSHA256 string                 `json:"intent_sha256,omitempty"`
+	Covered      []AuthorizedTarget     `json:"covered"`
+	Refused      []AuthorizationRefusal `json:"refused"`
+}
+
+type AuthorizedTarget struct {
+	Target    string `json:"target"`
+	ID        string `json:"id"`
+	Principal string `json:"principal"`
+	ExpiresAt string `json:"expires_at"`
+}
+
+type AuthorizationRefusal struct {
+	Target string `json:"target"`
+	Reason string `json:"reason"`
+}
+
+type Authorizations struct {
+	SchemaVersion  int             `json:"schema_version"`
+	Authorizations []Authorization `json:"authorizations"`
 }
 
 // DecodeStrict decodes, rejecting unknown fields (additionalProperties: false in the schemas) and a document that lacks
