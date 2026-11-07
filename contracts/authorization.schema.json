@@ -19,7 +19,7 @@
             "uniqueItems": true,
             "items": { "type": "string", "pattern": "^[^\\\\*]+::[^*]+$", "description": "An exact <path>::<symbol>: no glob, no <file>::*." }
           },
-          "decision": { "enum": ["enforce_new_behavior", "preserve_legacy"] },
+          "decision": { "enum": ["enforce_new_behavior", "preserve_legacy", "plan.accept"], "description": "plan.accept accepts a feature plan to run (RFC-0008 section 4): its target is plan::<feature_id>, its intent_sha256 the feature intent and its base_ref the feature base; it never covers a waived engine target." },
           "expires_at": { "type": "string", "format": "date-time" },
           "principal": { "type": "string", "minLength": 1 },
           "signature": { "type": "string", "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[\\s\\S]+\\n-----END SSH SIGNATURE-----\\n?$" }

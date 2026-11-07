@@ -593,6 +593,9 @@ type Evidence struct {
 // Waiver decisions: the first two cover engine targets; the next two, tests; the last one, a finding of a pluggable
 // check (<file>::<check id> or <file>::L<line>).
 const (
+	// PlanAccept is the change class an authorization may carry to accept a feature plan (RFC-0008 section 4): it names
+	// plan::<feature_id> as its target and never covers a waived engine target.
+	PlanAccept           = "plan.accept"
 	EnforceNewBehavior   = "enforce_new_behavior"
 	PreserveLegacy       = "preserve_legacy"
 	CharacterizationTest = "characterization_test"

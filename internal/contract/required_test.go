@@ -27,6 +27,7 @@ var missingRequiredInvalid = map[string]string{
 	"plan__without-shared.json":                                     "$.shared",
 	"plan-state__slice-without-reason.json":                         "reason",
 	"plan-state__slice-without-definition.json":                     "definition_sha256",
+	"plan-state__approval-without-signature.json":                   "signature",
 	"baseline__missing-cached.json":                                 "cached",
 	"capture__missing-selection.json":                               "selection",
 	"approvals__missing-file-blob.json":                             "file_blob",

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/gitx"
@@ -49,6 +50,10 @@ type Runner struct {
 	Exec  SliceExec
 	Final FinalCheck
 	Slots Slots
+	// Accept decides whether the plan may run (section 4 of RFC-0008); nil is DefaultAccept over the repository.
+	// IntentSHA256 is the bare sha256 of the feature intent file, which a plan.accept authorization must name.
+	Accept       AcceptFunc
+	IntentSHA256 string
 }
 
 // pathPlan is under .a2dlc/run, which gitx.Excluded keeps out of the tree_hash: the plan state and the final receipt are
@@ -133,13 +138,21 @@ func (r Runner) Run(ctx context.Context, planBytes []byte, feature contract.Inte
 	if rep := Check(p, feature, files); !rep.Valid {
 		return contract.PlanState{}, nil, fmt.Errorf("the plan does not pass its gates; run a2dlc plan check:\n%s", rep.Text(p))
 	}
-	sum := sha256.Sum256(planBytes)
-	planSHA := hex.EncodeToString(sum[:])
+	planSHA := PlanSHA(planBytes)
+	accept := r.Accept
+	if accept == nil {
+		accept = DefaultAccept(r.Repo.Dir, time.Now)
+	}
+	acceptance, err := accept(p, planSHA, baseSha, r.IntentSHA256)
+	if err != nil {
+		return contract.PlanState{}, nil, err
+	}
 	dir := StateDir(r.Repo.Dir, p.FeatureID)
 	st, err := r.load(dir, p, planSHA, baseSha)
 	if err != nil {
 		return st, nil, err
 	}
+	st.Acceptance = &acceptance
 	st.Invocation++
 	jobs := 1
 	st.Scheduler = nil

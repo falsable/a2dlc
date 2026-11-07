@@ -17,6 +17,7 @@ import (
 	"github.com/falsable/a2dlc/internal/engine"
 	"github.com/falsable/a2dlc/internal/gitx"
 	"github.com/falsable/a2dlc/internal/mcp"
+	"github.com/falsable/a2dlc/internal/plan"
 	a2run "github.com/falsable/a2dlc/internal/run"
 	"github.com/falsable/a2dlc/internal/verdict"
 )
@@ -55,6 +56,8 @@ const usage = `usage: a2dlc <command>
           --z3-image: z3 engine of Stage 1.5 (a2dlc-engine-z3:0.1 by default; empty leaves it skipped)
           --json: prints the run's state (contracts/run-state.schema.json) instead of the stage lines, for an agent
   verify-run --slice <id>          recalculates the ledger chain and the run's artifacts (0 passes, 1 does not)
+  verify-run --plan <feature>      checks that a plan run was accepted: the plan's signed approval or a plan.accept authorization
+  plan approve --plan <plan.json> --expires <RFC 3339> --key <key>   sign a plan so plan run accepts it
   verify  [--commit HEAD] [--strict]  the pre-push, without running engines: blocks (exit 1) only on evidence, a FAIL or critical
           or protected code left unjudged; no receipt, a stale one or an INCONCLUSIVE one are warnings. --strict blocks on anything but a PASS receipt for this tree
   approve <target> --key <key> [--principal <id>]   signs a target's waiver (run by a person)
@@ -244,11 +247,18 @@ func run(args []string) int {
 		return verdict.ExitCode(out)
 	case "verify-run":
 		slice := fs.String("slice", "", "slice id")
-		if fs.Parse(args[1:]) != nil || *slice == "" {
-			fmt.Fprintln(os.Stderr, "a2dlc verify-run: missing --slice")
+		featurePlan := fs.String("plan", "", "feature id of a plan run (a2dlc plan run): checks the plan's signed approval or authorization")
+		if fs.Parse(args[1:]) != nil || (*slice == "") == (*featurePlan == "") {
+			fmt.Fprintln(os.Stderr, "a2dlc verify-run: exactly one of --slice or --plan is required")
 			return 64
 		}
-		problems, err := a2run.VerifyRun(a, *slice)
+		var problems []string
+		var err error
+		if *featurePlan != "" {
+			problems, err = plan.VerifyRun(a.Repo.Dir, *featurePlan)
+		} else {
+			problems, err = a2run.VerifyRun(a, *slice)
+		}
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "a2dlc verify-run:", err)
 			return 1

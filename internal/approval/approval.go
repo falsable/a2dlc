@@ -229,6 +229,24 @@ func AuthorizationPayload(baseRef, intentSHA256, decision, expiresAt string, tar
 	return []byte(b.String())
 }
 
+// PlanNamespace is the ssh signature namespace of a plan approval (RFC-0008 section 4).
+const PlanNamespace = "a2dlc-plan"
+
+// PlanPayload is the signed text of a plan approval: the plan's sha256 (bare hex), the base commit and the expiry as written.
+func PlanPayload(planSHA256, baseRef, expiresAt string) []byte {
+	return []byte("a2dlc-plan/1\n" + planSHA256 + "\n" + baseRef + "\n" + expiresAt + "\n")
+}
+
+// SignPlan signs a plan approval payload with the person's key in PlanNamespace.
+func SignPlan(keyPath string, payload []byte) (string, error) {
+	return sign(keyPath, PlanNamespace, payload, os.Stdin, os.Stderr)
+}
+
+// VerifyPlan checks the signature of principal over payload in PlanNamespace against allowedSigners.
+func VerifyPlan(allowedSigners, principal string, payload []byte, signature string) error {
+	return verify(allowedSigners, principal, PlanNamespace, payload, signature)
+}
+
 // AuthorizationID is the sha256 of the signed text: what the receipt and the ledger call the authorization.
 func AuthorizationID(payload []byte) string {
 	s := sha256.Sum256(payload)

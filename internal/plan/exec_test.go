@@ -179,7 +179,7 @@ func TestPlanRunEndToEnd(t *testing.T) {
 	planBytes, _ := json.Marshal(p)
 	b := &builder{files: ownFile, launches: map[string]int{}}
 	ex := RunExec{App: a, Launcher: b, Feature: p.FeatureID}
-	r := Runner{Repo: a.Repo, Exec: ex, Final: AppFinalCheck(a, f), Slots: func(int) (int, *contract.PlanScheduler) {
+	r := Runner{Repo: a.Repo, Accept: acceptAll, Exec: ex, Final: AppFinalCheck(a, f), Slots: func(int) (int, *contract.PlanScheduler) {
 		return 2, &contract.PlanScheduler{Jobs: 2, Why: "test", Host: contract.PlanPlace{Name: "test"}}
 	}}
 	st, ran, err := r.Run(context.Background(), planBytes, f, base)
@@ -272,7 +272,7 @@ func TestPlanRunEscalatesOutsideOwnsAndResumes(t *testing.T) {
 		}
 		return m
 	}}
-	r := Runner{Repo: a.Repo, Exec: RunExec{App: a, Launcher: b, Feature: p.FeatureID}, Final: AppFinalCheck(a, f)}
+	r := Runner{Repo: a.Repo, Accept: acceptAll, Exec: RunExec{App: a, Launcher: b, Feature: p.FeatureID}, Final: AppFinalCheck(a, f)}
 	st, _, err := r.Run(context.Background(), planBytes, f, base)
 	if err != nil {
 		t.Fatal(err)
@@ -304,7 +304,7 @@ func TestPlanRunMarksExhaustedSlices(t *testing.T) {
 	p, f := threeSlices()
 	planBytes, _ := json.Marshal(p)
 	b := &builder{files: ownFile, launches: map[string]int{}}
-	r := Runner{Repo: a.Repo, Exec: RunExec{App: a, Launcher: b, Feature: p.FeatureID}, Final: AppFinalCheck(a, f)}
+	r := Runner{Repo: a.Repo, Accept: acceptAll, Exec: RunExec{App: a, Launcher: b, Feature: p.FeatureID}, Final: AppFinalCheck(a, f)}
 	st, _, err := r.Run(context.Background(), planBytes, f, base)
 	if err != nil {
 		t.Fatal(err)

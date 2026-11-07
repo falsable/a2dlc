@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/falsable/a2dlc/internal/app"
 	"github.com/falsable/a2dlc/internal/contract"
@@ -18,9 +19,10 @@ import (
 	"github.com/falsable/a2dlc/internal/verdict"
 )
 
-const planUsage = `usage: a2dlc plan <check|run|propose|replan|import> ...
+const planUsage = `usage: a2dlc plan <check|run|approve|propose|replan|import> ...
   plan check   --plan <plan.json> --intent <feature.json> [--base <ref>] [--json]
   plan run     --plan <plan.json> --intent <feature.json> [--base <ref>] [--jobs N] [--max-replan N] [--rounds N] [--max-cost-usd <n>] [--json]
+  plan approve --plan <plan.json> --expires <RFC 3339> --key <private key> [--principal <id>] [--base <ref>]
   plan propose --intent <feature.json> --out <plan.json> [--base <ref>] [--rounds N] [--json]
   plan replan  --plan <plan.json> --intent <feature.json> --slice <id> --out <plan.json> [--reason <text>] [--base <ref>] [--rounds N]
   plan import  --from <tasks.md|tasks.json> --intent <feature.json> --out <plan.json> [--format speckit|taskmaster] [--tag <tag>] [--base <ref>]`
@@ -37,7 +39,7 @@ func planCommand(ctx context.Context, a app.App, repo gitx.Repo, args []string) 
 	}
 	sub := args[0]
 	switch sub {
-	case "check", "run", "propose", "replan", "import":
+	case "check", "run", "approve", "propose", "replan", "import":
 	default:
 		fmt.Fprintln(os.Stderr, planUsage)
 		return 64
@@ -59,17 +61,23 @@ func planCommand(ctx context.Context, a app.App, repo gitx.Repo, args []string) 
 	from := fs.String("from", "", "import: the tasks file")
 	format := fs.String("format", "", "import: speckit or taskmaster (default: by extension, .md or .json)")
 	tag := fs.String("tag", "", "import: the Task Master tag (default master)")
+	key := fs.String("key", os.Getenv("A2DLC_SIGNING_KEY"), "approve: private SSH key with passphrase")
+	principal := fs.String("principal", a.Repo.Config("user.email"), "approve: identity in allowed_signers")
+	expires := fs.String("expires", "", "approve: when the approval stops counting, RFC 3339 (2026-11-12T00:00:00Z)")
 	if fs.Parse(args[1:]) != nil {
 		return 64
 	}
 	need := map[string][]string{"check": {"plan", "intent"}, "run": {"plan", "intent"}, "propose": {"intent", "out"},
-		"replan": {"plan", "intent", "slice", "out"}, "import": {"from", "intent", "out"}}
+		"replan": {"plan", "intent", "slice", "out"}, "import": {"from", "intent", "out"}, "approve": {"plan", "expires"}}
 	vals := map[string]string{"plan": *planPath, "intent": *intentPath, "out": *out, "slice": *slice, "from": *from}
 	for _, k := range need[sub] {
 		if vals[k] == "" {
 			fmt.Fprintf(os.Stderr, "%s --%s is required\n%s\n", name, k, planUsage)
 			return 64
 		}
+	}
+	if sub == "approve" {
+		return planApprove(name, repo, *planPath, plan.ApproveOptions{Key: *key, Principal: *principal, Base: *base, Expires: *expires}, a.Now())
 	}
 	f, code := readFeature(name, *intentPath)
 	if code != 0 {
@@ -100,7 +108,8 @@ func planCommand(ctx context.Context, a app.App, repo gitx.Repo, args []string) 
 	case "check":
 		return report(plan.Check(p, f, files), p, *asJSON)
 	case "run":
-		return planRun(ctx, a, repo, *planPath, planBytes, p, f, sha, files, *z3Image, *maxCost, *jobs, *maxReplan, *rounds, *asJSON)
+		intentBytes, _ := os.ReadFile(*intentPath) // readFeature read it already
+		return planRun(ctx, a, repo, *planPath, planBytes, p, f, app.IntentHash(intentBytes), sha, files, *z3Image, *maxCost, *jobs, *maxReplan, *rounds, *asJSON)
 	case "propose", "replan":
 		pl, code := planner(name, a, *rounds)
 		if code != 0 {
@@ -174,6 +183,25 @@ func readFeature(name, path string) (contract.Intent, int) {
 		return f, 1
 	}
 	return f, 0
+}
+
+// planApprove signs the plan as the person (RFC-0008 section 4). Exit 0 signed, 1 refused or not signed, 64 an unreadable plan.
+func planApprove(name string, repo gitx.Repo, planPath string, o plan.ApproveOptions, now time.Time) int {
+	if o.Key == "" || o.Principal == "" {
+		fmt.Fprintln(os.Stderr, name, "missing --key or --principal")
+		return 64
+	}
+	planBytes, _, code := readPlan(name, planPath)
+	if code != 0 {
+		return code
+	}
+	ap, err := plan.Approve(repo, planBytes, o, now)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, name, err)
+		return 1
+	}
+	fmt.Println(name, "signed plan", ap.PlanSHA256[:12], "on base", ap.BaseRef[:12], "until", ap.ExpiresAt)
+	return 0
 }
 
 func readPlan(name, path string) ([]byte, contract.Plan, int) {
@@ -280,7 +308,7 @@ func stateReason(a app.App, p contract.Plan, slice string) string {
 // INCONCLUSIVE, 1 for a plan that does not pass its gates or a state on another base. With --max-replan above the
 // replans already proposed and a planner role configured, a slice whose Builders were exhausted (CB-02b) gets a
 // proposed split, written next to the plan: running it is the person's decision.
-func planRun(ctx context.Context, a app.App, repo gitx.Repo, planPath string, planBytes []byte, p contract.Plan, f contract.Intent,
+func planRun(ctx context.Context, a app.App, repo gitx.Repo, planPath string, planBytes []byte, p contract.Plan, f contract.Intent, intentSHA string,
 	base string, files []string, z3Image string, maxCost float64, jobs, maxReplan, rounds int, asJSON bool) int {
 	opts := a2run.Options{MaxSpecRounds: a2run.MaxSpecRoundsDefault}
 	if z3Image != "" {
@@ -300,7 +328,7 @@ func planRun(ctx context.Context, a app.App, repo gitx.Repo, planPath string, pl
 		}
 	}
 	r := plan.Runner{Repo: repo, Exec: plan.RunExec{App: a, Launcher: a2run.DockerLauncher{}, Options: opts, Feature: p.FeatureID},
-		Final: plan.AppFinalCheck(a, f), Slots: plan.AutoSlots(ctx, cfg, roles, jobs, "")}
+		Final: plan.AppFinalCheck(a, f), Slots: plan.AutoSlots(ctx, cfg, roles, jobs, ""), IntentSHA256: intentSHA}
 	st, ran, err := r.Run(ctx, planBytes, f, base)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "a2dlc plan run:", err)

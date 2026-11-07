@@ -205,14 +205,17 @@ type AuthorizeOptions struct {
 func (a App) Authorize(o AuthorizeOptions) (contract.Authorization, error) {
 	var au contract.Authorization
 	switch {
-	case o.Decision != contract.EnforceNewBehavior && o.Decision != contract.PreserveLegacy:
-		return au, fmt.Errorf("--decision %q: only %s and %s can be pre-authorized", o.Decision, contract.EnforceNewBehavior, contract.PreserveLegacy)
+	case o.Decision != contract.EnforceNewBehavior && o.Decision != contract.PreserveLegacy && o.Decision != contract.PlanAccept:
+		return au, fmt.Errorf("--decision %q: only %s, %s and %s can be pre-authorized", o.Decision, contract.EnforceNewBehavior, contract.PreserveLegacy, contract.PlanAccept)
 	case len(o.Targets) == 0:
 		return au, fmt.Errorf("--target is missing: name each function that may change")
 	case o.IntentFile == "":
 		return au, fmt.Errorf("--intent is missing: an authorization is bound to the intent it was signed for")
 	}
 	for _, t := range o.Targets {
+		if (o.Decision == contract.PlanAccept) != strings.HasPrefix(t, "plan::") {
+			return au, fmt.Errorf("--target %q: plan::<feature_id> goes with --decision %s and only with it", t, contract.PlanAccept)
+		}
 		if !strings.Contains(t, "::") || strings.ContainsAny(t, "*\\") || strings.HasSuffix(t, "::") || strings.HasPrefix(t, "::") {
 			return au, fmt.Errorf("--target %q: an exact <path>::<symbol>, no globs and no <file>::*", t)
 		}

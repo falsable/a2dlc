@@ -531,6 +531,10 @@ cases = {
     "plan-state__plan-sha-short.json": (read("plan-state__blocked.json"), lambda x: x.update(plan_sha256="abc")),
     "plan-state__slice-without-reason.json": (read("plan-state__blocked.json"), lambda x: x["slices"][1].pop("reason")),
     "plan-state__slice-without-definition.json": (read("plan-state__blocked.json"), lambda x: x["slices"][0].pop("definition_sha256")),
+    # an acceptance holds exactly the record its kind names; an approval is unusable without its signature
+    "plan-state__acceptance-approval-and-authorization.json": (read("plan-state__accepted-by-approval.json"), lambda x: x["acceptance"].update(authorization=read("plan-state__accepted-by-authorization.json")["acceptance"]["authorization"])),
+    "plan-state__acceptance-kind-without-record.json": (read("plan-state__accepted-by-approval.json"), lambda x: x["acceptance"].pop("approval")),
+    "plan-state__approval-without-signature.json": (read("plan-state__accepted-by-approval.json"), lambda x: x["acceptance"]["approval"].pop("signature")),
     "plan-state__scheduler-zero-jobs.json": (read("plan-state__blocked.json"), lambda x: x["scheduler"].update(jobs=0)),
     "plan-state__replans-negative.json": (read("plan-state__blocked.json"), lambda x: x.update(replans=-1)),
     "findings__label-outcome-fixed.json": (read("findings__labeled.json"), lambda x: x.update(outcome="fixed")),

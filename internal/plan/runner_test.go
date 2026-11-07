@@ -141,7 +141,7 @@ func TestRunnerConformsToTheModel(t *testing.T) {
 			ex := &scripted{t: t, dir: repo.Dir, sawBases: map[string]string{}, hold: 15 * time.Millisecond}
 			finalOK := true
 			jobs := 1 + rng.Intn(3)
-			r := Runner{Repo: repo, Exec: ex, Final: func(_ context.Context, b, merged string) (bool, string, error) {
+			r := Runner{Repo: repo, Accept: acceptAll, Exec: ex, Final: func(_ context.Context, b, merged string) (bool, string, error) {
 				if b != base {
 					t.Errorf("final check against %s, not the feature base", b)
 				}
@@ -258,7 +258,7 @@ func TestSettledPlanRunsNothingAndNewVersionsCarryOver(t *testing.T) {
 	p, f := graphPlan([][]int{{}, {0}, {}})
 	planBytes, _ := json.Marshal(p)
 	ex := &scripted{t: t, dir: repo.Dir, sawBases: map[string]string{}, outcome: map[string]string{"f.s0": OutPassed, "f.s1": OutPassed, "f.s2": OutPassed}}
-	r := Runner{Repo: repo, Exec: ex, Final: func(context.Context, string, string) (bool, string, error) { return true, "", nil }}
+	r := Runner{Repo: repo, Accept: acceptAll, Exec: ex, Final: func(context.Context, string, string) (bool, string, error) { return true, "", nil }}
 	st, ran, err := r.Run(context.Background(), planBytes, f, base)
 	if err != nil || *st.Outcome != contract.PASS || len(ran) != 3 {
 		t.Fatalf("%v %v %v", err, st.Outcome, ran)
@@ -297,7 +297,7 @@ func TestInvalidPlanRunsNothing(t *testing.T) {
 	p.Slices[1].Owns = []string{"s0.txt"} // two concurrent slices on one file: G3
 	planBytes, _ := json.Marshal(p)
 	ex := &scripted{t: t, dir: repo.Dir, sawBases: map[string]string{}}
-	r := Runner{Repo: repo, Exec: ex}
+	r := Runner{Repo: repo, Accept: acceptAll, Exec: ex}
 	if _, _, err := r.Run(context.Background(), planBytes, f, base); err == nil || !strings.Contains(err.Error(), "does not pass its gates") || ex.n != 0 {
 		t.Fatalf("err %v, %d runs", err, ex.n)
 	}

@@ -51,6 +51,33 @@ type PlanState struct {
 	Replans int `json:"replans"`
 	// Scheduler is how many slices the last invocation ran at once and why; nil before the first invocation.
 	Scheduler *PlanScheduler `json:"scheduler"`
+	// Acceptance is who accepted this plan to run (RFC-0008 section 4): a person's signed approval or an authorization
+	// that covers plan.accept. `a2dlc plan run` refuses without one and verify-run checks it again.
+	Acceptance *PlanAcceptance `json:"acceptance,omitempty"`
+}
+
+// Plan acceptance kinds (plan-state.schema.json).
+const (
+	AcceptedByApproval      = "approval"
+	AcceptedByAuthorization = "authorization"
+)
+
+// PlanAcceptance records what let a plan run: Kind says which of Approval or Authorization is set, At is when it was used.
+type PlanAcceptance struct {
+	Kind          string         `json:"kind"`
+	At            string         `json:"at"`
+	Approval      *PlanApproval  `json:"approval,omitempty"`
+	Authorization *Authorization `json:"authorization,omitempty"`
+}
+
+// PlanApproval is a person's signature over a plan's content hash and the base it runs on (namespace a2dlc-plan), in
+// .a2dlc/run/_plan/<feature>/approval.json. The signed text is approval.PlanPayload.
+type PlanApproval struct {
+	PlanSHA256 string `json:"plan_sha256"`
+	BaseRef    string `json:"base_ref"`
+	ExpiresAt  string `json:"expires_at"`
+	Principal  string `json:"principal"`
+	Signature  string `json:"signature"`
 }
 
 // PlanAmount is CPUs and bytes of memory.
