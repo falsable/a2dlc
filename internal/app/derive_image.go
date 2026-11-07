@@ -346,16 +346,20 @@ func (a App) writeDerivationContext(dockerfile string, d derivation) error {
 	return os.WriteFile(a.path(pathEngineDockerfile), []byte(dockerfile), 0o644)
 }
 
-// conflictLines picks pip's account of a resolution conflict out of a build log: "" when the log has none.
+// buildLogPrefix is what BuildKit puts before each line of a step's output ("#9 2.011 ").
+var buildLogPrefix = regexp.MustCompile(`^#\d+ [\d.]+ `)
+
+// conflictLines picks pip's account of a resolution conflict out of a build log: "" when the log has none. It keeps the
+// line that names the packages, the engine's pin and what depends on what, and drops the rest of the log.
 func conflictLines(out string) string {
 	if !strings.Contains(out, "conflicting dependencies") && !strings.Contains(out, "ResolutionImpossible") {
 		return ""
 	}
 	var keep []string
 	for _, l := range strings.Split(out, "\n") {
-		l = strings.TrimSpace(l)
-		if strings.Contains(l, "depends on") || strings.Contains(l, "conflict") || strings.Contains(l, "constraint") || strings.HasPrefix(l, "The user requested") {
-			keep = append(keep, l)
+		l = strings.TrimSpace(buildLogPrefix.ReplaceAllString(strings.TrimSpace(l), ""))
+		if strings.HasPrefix(l, "ERROR: Cannot install") || strings.HasPrefix(l, "The user requested") || strings.Contains(l, " depends on ") {
+			keep = append(keep, strings.TrimPrefix(l, "ERROR: "))
 		}
 		if len(keep) == 6 {
 			break

@@ -234,6 +234,20 @@ func TestDeriveIsIdempotentAndSkipsTheBuildWhenTheImageIsThere(t *testing.T) {
 	}
 }
 
+// The log of a real `docker build` (BuildKit) with the vendored conflicting pin of the manual run on 2026-11-07.
+func TestConflictLinesFromARealBuildKitLog(t *testing.T) {
+	log := "#6 [2/5] RUN pip freeze > /opt/a2dlc-engine-constraints.txt\n#9 [5/5] RUN pip install --no-cache-dir -r /tmp/repo-requirements.txt -c /opt/a2dlc-engine-constraints.txt\n" +
+		"#9 2.011 ERROR: Cannot install attrs==0.0.1 because these package versions have conflicting dependencies.\n#9 2.013 The conflict is caused by:\n" +
+		"#9 2.013     The user requested (constraint) attrs==26.1.0\n#9 2.478 ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/\n"
+	want := "Cannot install attrs==0.0.1 because these package versions have conflicting dependencies. | The user requested (constraint) attrs==26.1.0"
+	if got := conflictLines(log); got != want {
+		t.Fatalf("conflictLines = %q, want %q", got, want)
+	}
+	if conflictLines("ERROR: Could not find a version that satisfies the requirement nothing") != "" {
+		t.Fatal("a missing package was reported as a conflict")
+	}
+}
+
 func TestEngineTag(t *testing.T) {
 	for in, want := range map[string]string{
 		"a2dlc-engine-py:0.14": "0.14",
