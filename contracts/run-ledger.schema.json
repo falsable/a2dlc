@@ -45,7 +45,7 @@
             "type": "object",
             "properties": {
               "target": { "$ref": "defs.schema.json#/$defs/target_id" },
-              "id": { "$ref": "run-defs.schema.json#/$defs/sha256" },
+              "id": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
               "sha256": { "$ref": "run-defs.schema.json#/$defs/sha256" }
             },
             "required": ["target", "id", "sha256"],

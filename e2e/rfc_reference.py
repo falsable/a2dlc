@@ -96,3 +96,108 @@ def tree_hash_entries(entries, algo="sha1"):
         return hashlib.new(algo, b"tree %d\0" % len(out) + out).digest()
 
     return "git-tree:" + write(root).hex()
+
+
+# ----- RFC-0007 Part B and RFC-0008 section 4: signed texts and the run ledger ------------------------------------------------
+
+
+def authorization_payload(base_ref, intent_sha256, decision, expires_at, targets):
+    """RFC-0007 Part B: the text of an authorization, targets sorted and without repeats."""
+    return ("a2dlc-authorization/1\n%s\n%s\n%s\n%s\n" % (base_ref, intent_sha256, decision, expires_at) + "".join(t + "\n" for t in sorted(set(targets)))).encode("utf-8")
+
+
+def plan_payload(plan_sha256, base_ref, expires_at):
+    """RFC-0008 section 4: the text of a plan approval."""
+    return ("a2dlc-plan/1\n%s\n%s\n%s\n" % (plan_sha256, base_ref, expires_at)).encode("utf-8")
+
+
+def _float(x):
+    """Shortest text that reads back as x, in the style of ECMAScript Number::toString (no exponent from 1e-6 to below 1e21)."""
+    if x == int(x) and abs(x) < 1e21:
+        return str(int(x))
+    r = repr(float(x))
+    if "e" not in r:
+        return r
+    mant, exp = r.split("e")
+    e = int(exp)
+    if -6 <= e < 21:
+        digits = mant.replace(".", "").replace("-", "")
+        sign = "-" if mant.startswith("-") else ""
+        if e < 0:
+            return sign + "0." + "0" * (-e - 1) + digits
+        return sign + digits + "0" * (e + 1 - len(digits))
+    return mant + "e" + ("-" if e < 0 else "+") + "%02d" % abs(e)
+
+
+def _value(v):
+    if v is None:
+        return "null"
+    if v is True:
+        return "true"
+    if v is False:
+        return "false"
+    if isinstance(v, str):
+        return _string(v)
+    if isinstance(v, int):
+        return str(v)
+    if isinstance(v, float):
+        return _float(v)
+    if isinstance(v, list):
+        return "[" + ",".join(_value(x) for x in v) + "]"
+    raise TypeError(v)
+
+
+_FILES = ["path", "sha256"]
+_COST = ["usd", "input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "output_tokens", "turns"]
+_ENTRY = ["seq", "prev_hash", "hash", "at", "stage", "role", "attempt", "family", "image", "image_digest", "argv_sha256", "inputs", "outputs",
+          "network", "env_keys", "exit", "status", "cost"]
+
+
+def _obj(o, keys, optional=()):
+    parts = []
+    for k in keys:
+        if k in optional and (k not in o or o[k] in (0, 0.0) and not isinstance(o[k], bool)):
+            continue
+        parts.append("%s:%s" % (_string(k), _value(o[k])))
+    return "{" + ",".join(parts) + "}"
+
+
+def entry_text(entry):
+    """RFC-0007 Part B, the ledger: the text of an entry that is hashed, with `hash` written as an empty string."""
+    e = dict(entry, hash="")
+    parts = []
+    for k in _ENTRY:
+        if k == "cost":
+            c = e.get("cost")
+            parts.append('"cost":' + ("null" if c is None else _obj(c, _COST, optional=_COST[1:])))
+        elif k in ("inputs", "outputs"):
+            parts.append("%s:[%s]" % (_string(k), ",".join(_obj(f, _FILES) for f in e.get(k) or [])))
+        elif k == "env_keys":
+            parts.append('"env_keys":' + _value(e.get(k) or []))
+        else:
+            parts.append("%s:%s" % (_string(k), _value(e.get(k))))
+    if "egress_proxy" in e:
+        parts.append('"egress_proxy":' + _obj(e["egress_proxy"], ["image", "image_digest"]))
+    if "authorization" in e:
+        parts.append('"authorization":' + _obj(e["authorization"], ["target", "id", "sha256"]))
+    return "{" + ",".join(parts) + "}"
+
+
+def entry_hash(entry):
+    prev = entry.get("prev_hash") or ""
+    return "sha256:" + hashlib.sha256((prev + entry_text(entry)).encode("utf-8")).hexdigest()
+
+
+_AUTH = ["base_ref", "intent_sha256", "targets", "decision", "expires_at", "principal", "signature"]
+
+
+def authorization_text(au):
+    """The compact text of an authorization, keys in the order of authorization.schema.json."""
+    return _obj(au, _AUTH)
+
+
+def authorization_ref(record):
+    """What the chained entry holds for a record of authorizations_used."""
+    au = record["authorization"]
+    text = authorization_payload(au["base_ref"], au["intent_sha256"], au["decision"], au["expires_at"], au["targets"])
+    return {"target": record["target"], "id": hashlib.sha256(text).hexdigest(), "sha256": "sha256:" + hashlib.sha256(authorization_text(au).encode("utf-8")).hexdigest()}

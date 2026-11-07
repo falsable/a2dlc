@@ -510,6 +510,205 @@ def corpus():
     return _corpus
 
 
+# ----- run vectors: verify-run, the ledger and the acceptance of a plan -------------------------------------------------------
+
+SLICE = "core.m.v1"
+FEATURE = "billing.discounts"
+RUN_ID = "run-3f9a1c2b7d4e"
+AU_BASE = "0123456789abcdef0123456789abcdef01234567"
+INTENT_SHA = hashlib.sha256(b"intent of the run\n").hexdigest()
+PLAN_SHA = hashlib.sha256(b"plan of the feature\n").hexdigest()
+USED_AT = "2026-11-08T10:00:00Z"
+EXPIRES = "2026-11-12T00:00:00Z"
+RT = "src/m.py::f"
+EXAMPLES = ROOT / "contracts" / "examples" / "valid"
+ENTRY_KEYS = ["seq", "prev_hash", "hash", "at", "stage", "role", "attempt", "family", "image", "image_digest", "argv_sha256", "inputs", "outputs",
+              "network", "env_keys", "exit", "status", "cost", "authorization"]
+
+
+def make_auth(targets=(RT,), decision="enforce_new_behavior", expires=EXPIRES, base=AU_BASE, intent=INTENT_SHA, key=_key, ns="a2dlc-authorization"):
+    text = ref.authorization_payload(base, intent, decision, expires, list(targets))
+    return {"base_ref": base, "intent_sha256": intent, "targets": list(targets), "decision": decision, "expires_at": expires,
+            "principal": PRINCIPAL, "signature": sign(text, key=key, ns=ns)}
+
+
+def use_of(au, target=RT, stage="4", at=USED_AT):
+    return {"stage": stage, "at": at, "target": target, "authorization": au}
+
+
+def link_entry(u):
+    return {"at": u["at"], "stage": u["stage"], "role": "check", "attempt": 1, "family": "script", "image": "a2dlc-core", "image_digest": None,
+            "argv_sha256": "sha256:" + hashlib.sha256(b"check").hexdigest(), "inputs": [], "outputs": [], "network": "none", "env_keys": [],
+            "exit": 0, "status": "ok", "cost": None, "authorization": ref.authorization_ref(u)}
+
+
+def chain(entries):
+    """Fills seq, prev_hash and hash of the entries, in order."""
+    prev = None
+    out = []
+    for i, e in enumerate(entries, 1):
+        e = dict(e, seq=i, prev_hash=prev, hash="")
+        e = {k: e[k] for k in ENTRY_KEYS if k in e}
+        e["hash"] = ref.entry_hash(e)
+        prev = e["hash"]
+        out.append(e)
+    return out
+
+
+def ledger_doc(uses, entries=None, run_id=RUN_ID, with_uses=True):
+    """A ledger whose entries bind `uses`; `entries` (without the chain fields) replaces the bound ones."""
+    doc = {"schema_version": 1, "run_id": run_id, "entries": chain(entries if entries is not None else [link_entry(u) for u in uses])}
+    if with_uses:
+        doc["authorizations_used"] = uses
+    return doc
+
+
+def dumps(doc):
+    return json.dumps(doc, indent=1) + "\n"
+
+
+def run_state(run_id=RUN_ID, stage0=None):
+    st = json.loads((EXAMPLES / "run-state__stage4.json").read_text(encoding="utf-8"))
+    st.update(run_id=run_id, slice_id=SLICE, budget={"max_cost_usd": None, "spent_usd": 0, "unreported_roles": 0}, outcome=None)
+    st["stages"] = [{"id": s["id"], "status": "pending", "artifact": None, "iterations": 0, "started_at": None, "finished_at": None} for s in st["stages"]]
+    if stage0:
+        st["stages"][1] = {"id": "0", "status": "done", "artifact": stage0, "iterations": 0, "started_at": USED_AT, "finished_at": USED_AT}
+    return st
+
+
+def run_vec(id, title, ledger=None, state=None, extra_files=None, signers="default", expect=VALID):
+    files = {".a2dlc/run/%s/state.json" % SLICE: dumps(state or run_state())}
+    if ledger is not None:
+        files[".a2dlc/run/%s/ledger.json" % SLICE] = dumps(ledger)
+    files.update(extra_files or {})
+    v = {"id": id, "title": title, "rfc": "RFC-0007 Part B, the run ledger", "repo": repo([commit(**{"README.md": "hello\n"})]), "files": files,
+         "args": ["verify-run", "--slice", SLICE]}
+    if signers == "default":
+        v["allowed_signers"] = SIGNERS
+    v["expect"] = expect
+    return v
+
+
+def runbad(*kinds, why=None):
+    e = {"valid": False, "kinds": list(kinds)}
+    if why:
+        e["why"] = list(why)
+    return e
+
+
+def clone(doc):
+    return json.loads(json.dumps(doc))
+
+
+def group_run():
+    ok, other = make_auth(), make_auth(targets=("src/m.py::g",))
+    u = use_of(ok)
+    good = ledger_doc([u])
+    vs = [
+        run_vec("V-run-001", "a use of an authorization bound by one entry of the chain", good),
+        run_vec("V-run-002", "a run that used no authorization and launched nothing: an empty chain", ledger_doc([], with_uses=False)),
+        run_vec("V-run-003", "two uses of the same authorization at two times, each with its own entry", ledger_doc([u, use_of(ok, at="2026-11-09T10:00:00Z")])),
+        run_vec("V-run-004", "hidden use: a record whose entry was removed from the chain", dict(good, entries=[]), expect=runbad("authorization_unbound")),
+        run_vec("V-run-005", "a chained entry whose record was deleted from authorizations_used", ledger_doc([u], with_uses=False), expect=runbad("authorization_unbound")),
+        run_vec("V-run-006", "a chained entry whose record was deleted, the array left empty", dict(good, authorizations_used=[]), expect=runbad("authorization_unbound")),
+    ]
+    edited_entry = dict(link_entry(u), authorization=dict(link_entry(u)["authorization"], sha256="sha256:" + "0" * 64))
+    vs.append(run_vec("V-run-007", "the entry commits to another sha256 of the authorization (the chain is valid)", ledger_doc([u], entries=[edited_entry]), expect=runbad("authorization_unbound")))
+    longer = clone(good)
+    longer["authorizations_used"][0]["authorization"]["expires_at"] = "2027-11-12T00:00:00Z"
+    vs.append(run_vec("V-run-008", "an authorization edited after the use was bound (expiry extended)", longer, expect=runbad("authorization_unbound")))
+    cross = clone(good)
+    cross["authorizations_used"][0]["at"] = "2026-11-08T10:00:01Z"
+    vs.append(run_vec("V-run-009", "a record whose time differs from the time of its entry", cross, expect=runbad("authorization_unbound")))
+    stage = clone(good)
+    stage["authorizations_used"][0]["stage"] = "5"
+    vs.append(run_vec("V-run-010", "a record whose stage differs from the stage of its entry", stage, expect=runbad("authorization_unbound")))
+    bare = {k: v for k, v in link_entry(u).items() if k != "authorization"}
+    vs.append(run_vec("V-run-011", "an entry of role check that binds no authorization", ledger_doc([], entries=[bare], with_uses=False), expect=runbad("authorization_unbound")))
+    vs.append(run_vec("V-run-012", "an entry of another role that carries an authorization", ledger_doc([u], entries=[dict(link_entry(u), role="saboteur")]), expect=runbad("authorization_unbound")))
+    broken = clone(good)
+    broken["entries"][0]["hash"] = "sha256:" + "0" * 64
+    vs.append(run_vec("V-run-013", "an entry whose hash is not the recalculated one", broken, expect=runbad("ledger_chain")))
+    retime = clone(good)
+    retime["entries"][0]["attempt"] = 2
+    vs.append(run_vec("V-run-014", "an entry edited after it was hashed", retime, expect=runbad("ledger_chain")))
+    two = ledger_doc([u, use_of(ok, at="2026-11-09T10:00:00Z")])
+    two["entries"][1]["prev_hash"] = "sha256:" + "1" * 64
+    vs.append(run_vec("V-run-015", "an entry whose prev_hash is not the hash of the entry before", two, expect=runbad("ledger_chain")))
+    vs.append(run_vec("V-run-016", "a ledger of another run", dict(good, run_id="run-000000000000"), expect=runbad("ledger_run")))
+    vs.append(run_vec("V-run-017", "an authorization used after it expired", ledger_doc([use_of(ok, at="2026-11-13T00:00:00Z")]), expect=runbad("authorization_invalid", why=["expired"])))
+    vs.append(run_vec("V-run-018", "an authorization used at the second it expires", ledger_doc([use_of(ok, at=EXPIRES)])))
+    vs.append(run_vec("V-run-019", "a record whose target the authorization does not name", ledger_doc([use_of(other, target=RT)]), expect=runbad("authorization_invalid", why=["not_named"])))
+    vs.append(run_vec("V-run-020", "an authorization signed in the namespace of approvals", ledger_doc([use_of(make_auth(ns="a2dlc-approval"))]), expect=runbad("authorization_invalid")))
+    vs.append(run_vec("V-run-021", "an authorization signed by a key that is not an allowed signer", ledger_doc([use_of(make_auth(key=_other))]), expect=runbad("authorization_invalid")))
+    vs.append(run_vec("V-run-022", "an authorization whose targets were edited after signing", ledger_doc([use_of(dict(ok, targets=[RT, "src/m.py::g"]))]), expect=runbad("authorization_invalid")))
+    vs.append(run_vec("V-run-023", "a plan.accept authorization used for an engine target", ledger_doc([use_of(make_auth(decision="plan.accept"))]), expect=runbad("authorization_invalid", why=["decision"])))
+    vs.append(run_vec("V-run-024", "authorizations used and no allowed signers configured", good, signers=None, expect=runbad("authorization_invalid")))
+    intent = "{}\n"
+    art = {"path": "intent.json", "sha256": "sha256:" + hashlib.sha256(intent.encode()).hexdigest()}
+    art_path = ".a2dlc/run/%s/intent.json" % SLICE
+    vs.append(run_vec("V-run-025", "a stage artifact that matches the hash in state.json", None, state=run_state(stage0=art), extra_files={art_path: intent}))
+    vs.append(run_vec("V-run-026", "a stage artifact edited after the stage finished", None, state=run_state(stage0=art), extra_files={art_path: '{"x":1}\n'}, expect=runbad("artifact_changed")))
+    vs.append(run_vec("V-run-027", "a stage artifact that is missing", None, state=run_state(stage0=art), expect=runbad("artifact_changed")))
+    return vs + group_plan()
+
+
+def plan_vec(id, title, acceptance, signers="default", expect=VALID, feature=FEATURE):
+    st = json.loads((EXAMPLES / "plan-state__accepted-by-approval.json").read_text(encoding="utf-8"))
+    st.update(feature_id=feature, plan_sha256=PLAN_SHA, base_sha=AU_BASE)
+    if acceptance is None:
+        st.pop("acceptance", None)
+    else:
+        st["acceptance"] = acceptance
+    v = {"id": id, "title": title, "rfc": "RFC-0008 section 4, acceptance of a plan run", "repo": repo([commit(**{"README.md": "hello\n"})]),
+         "files": {".a2dlc/run/_plan/%s/state.json" % feature: dumps(st)}, "args": ["verify-run", "--plan", feature]}
+    if signers == "default":
+        v["allowed_signers"] = SIGNERS
+    v["expect"] = expect
+    return v
+
+
+def make_plan_approval(plan_sha=PLAN_SHA, base=AU_BASE, expires=EXPIRES, key=_key, ns="a2dlc-plan"):
+    return {"plan_sha256": plan_sha, "base_ref": base, "expires_at": expires, "principal": PRINCIPAL,
+            "signature": sign(ref.plan_payload(plan_sha, base, expires), key=key, ns=ns)}
+
+
+def by_approval(ap, at=USED_AT, kind="approval"):
+    return {"kind": kind, "at": at, "approval": ap}
+
+
+def by_auth(au, at=USED_AT, kind="authorization"):
+    return {"kind": kind, "at": at, "authorization": au}
+
+
+def plan_auth(feature=FEATURE, **kw):
+    return make_auth(targets=("plan::" + feature,), decision="plan.accept", **kw)
+
+
+def group_plan():
+    def bad(*why):
+        return runbad("acceptance_invalid", why=list(why) or None)
+    return [
+        plan_vec("V-run-101", "a plan accepted by a signed approval", by_approval(make_plan_approval())),
+        plan_vec("V-run-102", "a plan accepted by a plan.accept authorization for its feature", by_auth(plan_auth())),
+        plan_vec("V-run-103", "a plan edited after its approval: the state holds another plan hash", by_approval(make_plan_approval(plan_sha=hashlib.sha256(b"older plan\n").hexdigest())), expect=bad("another_plan")),
+        plan_vec("V-run-104", "an approval that had expired when the plan ran", by_approval(make_plan_approval(), at="2026-11-13T00:00:00Z"), expect=bad("expired")),
+        plan_vec("V-run-105", "a plan.accept authorization for another feature", by_auth(plan_auth(feature="billing.other")), expect=bad("no_plan_accept")),
+        plan_vec("V-run-106", "a state that records no acceptance", None, expect=bad("missing")),
+        plan_vec("V-run-107", "an approval for another base", by_approval(make_plan_approval(base="f" * 40)), expect=bad("other_base")),
+        plan_vec("V-run-108", "an approval signed in the namespace of approvals", by_approval(make_plan_approval(ns="a2dlc-approval")), expect=bad()),
+        plan_vec("V-run-109", "an approval signed by a key that is not an allowed signer", by_approval(make_plan_approval(key=_other)), expect=bad()),
+        plan_vec("V-run-110", "an approval edited after signing (expiry extended)", by_approval(dict(make_plan_approval(), expires_at="2027-11-12T00:00:00Z")), expect=bad()),
+        plan_vec("V-run-111", "an acceptance of kind approval that holds an authorization", by_auth(plan_auth(), kind="approval"), expect=bad()),
+        plan_vec("V-run-112", "a plan.accept authorization that had expired when the plan ran", by_auth(plan_auth(), at="2026-11-13T00:00:00Z"), expect=bad("expired")),
+        plan_vec("V-run-113", "an authorization for the feature with the decision of an engine target", by_auth(make_auth(targets=("plan::" + FEATURE,))), expect=bad("no_plan_accept")),
+        plan_vec("V-run-114", "a plan.accept authorization for another base", by_auth(plan_auth(base="f" * 40)), expect=bad("other_base")),
+        plan_vec("V-run-115", "a plan.accept authorization signed in the namespace of approvals", by_auth(plan_auth(ns="a2dlc-approval")), expect=bad()),
+        plan_vec("V-run-116", "an accepted plan and no allowed signers configured", by_approval(make_plan_approval()), signers=None, expect=bad()),
+        plan_vec("V-run-117", "an approval used at the second it expires", by_approval(make_plan_approval(), at=EXPIRES)),
+    ]
+
+
 # ----- producer ---------------------------------------------------------------------------------------------------------
 
 FAKE = "a2dlc-engine-fake:0.1"
@@ -643,6 +842,7 @@ def main(argv):
         ("verifier", "derived-gates-py.json", "Receipts that mirror the nine frozen cases of e2e/testdata/gates-py (pinned by sha256).", group_gates(), TEMPLATE),
         ("verifier", "notes.json", "RFC 6.4.5: behavior_divergence notes and critical_code, read at base_ref.", group_notes(), TEMPLATE),
         ("verifier", "approvals.json", "RFC 6.4.6 and 6.4.7: waivers, WaiverSHA and signed approvals. The V-waiversha vectors come from the frozen Go output.", group_approvals(), TEMPLATE),
+        ("run", "run.json", "RFC-0007 Part B and RFC-0008 section 4: `verify-run --slice` (the ledger chain, the binding of each authorization a run used, the artifacts) and `verify-run --plan` (the acceptance of a plan run).", group_run(), None),
         ("producer", "check.json", "RFC 6.4: what `check` writes. The engine is the fake engine of engines/fake (docker build -t a2dlc-engine-fake:0.1 engines/fake). P-check-011 to 014 derive from the frozen mutants of e2e/testdata/mutantes-bb.", group_check(), None),
         ("producer", "approve.json", "RFC 6.4.6 and 6.4.7: what `approve` writes for each waivers.json of the frozen Go corpus.", group_approve(), None),
         ("engine", "protocol.json", "The engine interface: a request in /io, the trees at /base and /cand, a response in /io (contracts/engine-*.schema.json).", group_engine(), None),

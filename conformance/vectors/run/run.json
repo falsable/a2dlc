@@ -1,0 +1,1359 @@
+{
+ "class": "run",
+ "about": "RFC-0007 Part B and RFC-0008 section 4: `verify-run --slice` (the ledger chain, the binding of each authorization a run used, the artifacts) and `verify-run --plan` (the acceptance of a plan run).",
+ "vectors": [
+  {
+   "id": "V-run-001",
+   "title": "a use of an authorization bound by one entry of the chain",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-run-002",
+   "title": "a run that used no authorization and launched nothing: an empty chain",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": []\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-run-003",
+   "title": "two uses of the same authorization at two times, each with its own entry",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  },\n  {\n   \"seq\": 2,\n   \"prev_hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"hash\": \"sha256:0380c873083c0af3264daeeec40130c04eaba51ffa9d853e713c110b37999f5e\",\n   \"at\": \"2026-11-09T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  },\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-09T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-run-004",
+   "title": "hidden use: a record whose entry was removed from the chain",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_unbound"
+    ]
+   }
+  },
+  {
+   "id": "V-run-005",
+   "title": "a chained entry whose record was deleted from authorizations_used",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_unbound"
+    ]
+   }
+  },
+  {
+   "id": "V-run-006",
+   "title": "a chained entry whose record was deleted, the array left empty",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": []\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_unbound"
+    ]
+   }
+  },
+  {
+   "id": "V-run-007",
+   "title": "the entry commits to another sha256 of the authorization (the chain is valid)",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:86f650a77bd2e50f4e48aaa5e84b57811f14db08a1568ae42da1daea175f0508\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0000000000000000000000000000000000000000000000000000000000000000\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_unbound"
+    ]
+   }
+  },
+  {
+   "id": "V-run-008",
+   "title": "an authorization edited after the use was bound (expiry extended)",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2027-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_unbound"
+    ]
+   }
+  },
+  {
+   "id": "V-run-009",
+   "title": "a record whose time differs from the time of its entry",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:01Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_unbound"
+    ]
+   }
+  },
+  {
+   "id": "V-run-010",
+   "title": "a record whose stage differs from the stage of its entry",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"5\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_unbound"
+    ]
+   }
+  },
+  {
+   "id": "V-run-011",
+   "title": "an entry of role check that binds no authorization",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:c9a0f9f0164dd220800ec2a6db0239a522538c0f55094b66509d2d6463034bef\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_unbound"
+    ]
+   }
+  },
+  {
+   "id": "V-run-012",
+   "title": "an entry of another role that carries an authorization",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:db84876fb9d96be2463a32eb83b37ffd99b61200f197015ec603a227ce6f3f36\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"saboteur\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_unbound"
+    ]
+   }
+  },
+  {
+   "id": "V-run-013",
+   "title": "an entry whose hash is not the recalculated one",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "ledger_chain"
+    ]
+   }
+  },
+  {
+   "id": "V-run-014",
+   "title": "an entry edited after it was hashed",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 2,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "ledger_chain"
+    ]
+   }
+  },
+  {
+   "id": "V-run-015",
+   "title": "an entry whose prev_hash is not the hash of the entry before",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  },\n  {\n   \"seq\": 2,\n   \"prev_hash\": \"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\n   \"hash\": \"sha256:0380c873083c0af3264daeeec40130c04eaba51ffa9d853e713c110b37999f5e\",\n   \"at\": \"2026-11-09T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  },\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-09T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "ledger_chain"
+    ]
+   }
+  },
+  {
+   "id": "V-run-016",
+   "title": "a ledger of another run",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-000000000000\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "ledger_run"
+    ]
+   }
+  },
+  {
+   "id": "V-run-017",
+   "title": "an authorization used after it expired",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:e1a67110884f1920574cef3603311d75c3f9c5b1361f3a2f09ffc5cfd2a9e3ca\",\n   \"at\": \"2026-11-13T00:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-13T00:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_invalid"
+    ],
+    "why": [
+     "expired"
+    ]
+   }
+  },
+  {
+   "id": "V-run-018",
+   "title": "an authorization used at the second it expires",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:951fc9b256030461f974ec887c8584d77e769bf4c451d45fa4b5e14d9e97e25b\",\n   \"at\": \"2026-11-12T00:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-12T00:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-run-019",
+   "title": "a record whose target the authorization does not name",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:2dbb2c291842d9dbf8e3b7692371264802e1e84a3ff43bbb185b3b0e538bb1a6\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"6a036c355c789fec08bdbc4d8d94bb3de38416e61aa16d0bb6c4fa1b1edbfe73\",\n    \"sha256\": \"sha256:2bdee8d4735e86005510596436f5e8e2c8b8f2e709f0d3978dd41f087bf23d77\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::g\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECuLtnr4ahxApbvEcwdoZFZrBlkFALxQ0b4q68nEihCYL\\n6X9vIGNjg4i9N4bhjV24s570HlhEZVye14DReuSGEL\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_invalid"
+    ],
+    "why": [
+     "not_named"
+    ]
+   }
+  },
+  {
+   "id": "V-run-020",
+   "title": "an authorization signed in the namespace of approvals",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:7e4f8856b9dc77cb9a929c8173a0039b5baa948164a3eca5256ab058aa698441\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:6b41ff762e6f6e8983efbfbf6121f67a138494e77c3389b153e451a705d86e95\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAwfLpUs8D9tdvBSeQi+w/cYuT2OIg+gC93uLaXuEPsQBiTtFhoJ\\nsU9f7CRpFv8Djj35f5UeiuFAWMOgUYpX9QBw==\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-021",
+   "title": "an authorization signed by a key that is not an allowed signer",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:f6df4b5edb630c121cab3451344990fc43b0371667ab44b3425efec06e74fdf5\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:5ee1b1386018d2681d939e2339ecd9c2c683dbb5c5f9f289b7ac475bee316bee\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2W5zOrSdjDLwdpe4/+9UD1/e5t\\nT1EbtYj7AMUNMJzY0AAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECJl6sgAI1yN6uOwnVMBtDlIi18QTAiwzDOzHF+/txpxW\\ne2MjC/vK22NHtoFKaKgBbjUxq+WtntLUtXEKPIpBIG\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-022",
+   "title": "an authorization whose targets were edited after signing",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:a7dd193e315e7894f90eded1715ae247ff54356edffe6c6e1b3bc5f30e46c0dd\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"c33bb21e372a5b0d449caf1661b7a962c8cbb75e5cd2ea0178ed8597decbed24\",\n    \"sha256\": \"sha256:a588380a3abf5cc96e1f5bbf83246b15137aa6f97359764ba9bba50d8abf1deb\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\",\n     \"src/m.py::g\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-023",
+   "title": "a plan.accept authorization used for an engine target",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:e41c3477e292026a49be60b5321eab04451d9e6a0e22ab916d051d0149f08834\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"48f4733631d63501fb2cdf8b5bff3ede301855ea6edcdde031fda0af4bcabd75\",\n    \"sha256\": \"sha256:0b8c565634c88c02847ddd5471f3fd6638f4edcf48d59f79a0600863c6df2c83\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"plan.accept\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAEA+Qa1sBpOvRGj6wPwG8gRVXId8Tk2YdqOucoJoPFiJOY\\n6eOC3jHkgOCSYlbOUopcHgXpt9hlQZkGIDn0MzrLQM\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_invalid"
+    ],
+    "why": [
+     "decision"
+    ]
+   }
+  },
+  {
+   "id": "V-run-024",
+   "title": "authorizations used and no allowed signers configured",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:6e1de6d01c85d8fc0b2701ab0efaf1e23ac83b101a65ddf975a7d27961db7d97\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"stage\": \"4\",\n   \"role\": \"check\",\n   \"attempt\": 1,\n   \"family\": \"script\",\n   \"image\": \"a2dlc-core\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": null,\n   \"authorization\": {\n    \"target\": \"src/m.py::f\",\n    \"id\": \"3fd58a61704747a50eb6f78c10a6bac13134d274b9222fad41da231a1cc5af91\",\n    \"sha256\": \"sha256:0e8c8d91f56e5936c6376154ff68c432fde87ed4e3a2a9b92d5147cccadcb0a8\"\n   }\n  }\n ],\n \"authorizations_used\": [\n  {\n   \"stage\": \"4\",\n   \"at\": \"2026-11-08T10:00:00Z\",\n   \"target\": \"src/m.py::f\",\n   \"authorization\": {\n    \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n    \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n    \"targets\": [\n     \"src/m.py::f\"\n    ],\n    \"decision\": \"enforce_new_behavior\",\n    \"expires_at\": \"2026-11-12T00:00:00Z\",\n    \"principal\": \"tester@a2dlc\",\n    \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECEfF5/fT9Rs4xLI5ZfEHlppnDzOnYqd2Ezs7bK9Y14Mj\\nWmEGuZH6vth/j2tnG1lSO+lBIM5ouGMOZ8iPh8H8sA\\n-----END SSH SIGNATURE-----\\n\"\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "authorization_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-025",
+   "title": "a stage artifact that matches the hash in state.json",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"done\",\n   \"artifact\": {\n    \"path\": \"intent.json\",\n    \"sha256\": \"sha256:ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356\"\n   },\n   \"iterations\": 0,\n   \"started_at\": \"2026-11-08T10:00:00Z\",\n   \"finished_at\": \"2026-11-08T10:00:00Z\"\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/intent.json": "{}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-run-026",
+   "title": "a stage artifact edited after the stage finished",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"done\",\n   \"artifact\": {\n    \"path\": \"intent.json\",\n    \"sha256\": \"sha256:ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356\"\n   },\n   \"iterations\": 0,\n   \"started_at\": \"2026-11-08T10:00:00Z\",\n   \"finished_at\": \"2026-11-08T10:00:00Z\"\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/intent.json": "{\"x\":1}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "artifact_changed"
+    ]
+   }
+  },
+  {
+   "id": "V-run-027",
+   "title": "a stage artifact that is missing",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0,\n  \"unreported_roles\": 0\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"done\",\n   \"artifact\": {\n    \"path\": \"intent.json\",\n    \"sha256\": \"sha256:ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356\"\n   },\n   \"iterations\": 0,\n   \"started_at\": \"2026-11-08T10:00:00Z\",\n   \"finished_at\": \"2026-11-08T10:00:00Z\"\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "artifact_changed"
+    ]
+   }
+  },
+  {
+   "id": "V-run-101",
+   "title": "a plan accepted by a signed approval",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"approval\": {\n   \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAKYTJkbGMtcGxhbgAAAAAAAAAGc2hhNTEyAAAAUwAAAAtzc2gt\\nZWQyNTUxOQAAAED3JxH5R607cT62VMd+v2mhBgxEuBlO3eqDHAozH+wNbSk48iQiZ/hwVb\\n5EpJcmuyWBoSKir2A6B7peXgjlXtEJ\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-run-102",
+   "title": "a plan accepted by a plan.accept authorization for its feature",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"authorization\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"authorization\": {\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n   \"targets\": [\n    \"plan::billing.discounts\"\n   ],\n   \"decision\": \"plan.accept\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECYgQCCnKIBIg8vxUDtvwzgZaxHO1SZgXj9DfmMgQnZYt\\nvO8Mtuy2A8NEZaqaG4b+ABw+UKiqu8bQvGQYnY87MO\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-run-103",
+   "title": "a plan edited after its approval: the state holds another plan hash",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"approval\": {\n   \"plan_sha256\": \"d82ad940f92dadceea617cfa32f14271ab81afb101f236604b7cd23863d8c115\",\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAKYTJkbGMtcGxhbgAAAAAAAAAGc2hhNTEyAAAAUwAAAAtzc2gt\\nZWQyNTUxOQAAAEBau7Jubw3KOiggdC0xz+v8S9nP4aK0V/4E4lVIyyA2Y1QfDKJ2gYRdWZ\\nqYJJ6V8tl/aThyyWt0A8Ah+bHwP4QK\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ],
+    "why": [
+     "another_plan"
+    ]
+   }
+  },
+  {
+   "id": "V-run-104",
+   "title": "an approval that had expired when the plan ran",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-13T00:00:00Z\",\n  \"approval\": {\n   \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAKYTJkbGMtcGxhbgAAAAAAAAAGc2hhNTEyAAAAUwAAAAtzc2gt\\nZWQyNTUxOQAAAED3JxH5R607cT62VMd+v2mhBgxEuBlO3eqDHAozH+wNbSk48iQiZ/hwVb\\n5EpJcmuyWBoSKir2A6B7peXgjlXtEJ\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ],
+    "why": [
+     "expired"
+    ]
+   }
+  },
+  {
+   "id": "V-run-105",
+   "title": "a plan.accept authorization for another feature",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"authorization\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"authorization\": {\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n   \"targets\": [\n    \"plan::billing.other\"\n   ],\n   \"decision\": \"plan.accept\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAEAmZDHiAqq4BiHLO/e7D1esvs1beFtjyXUJnkf50YDLEK\\nCQCdNcVrL5AIhGOYhQ52y2ROXclw5g9Cg5pDvL/MsE\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ],
+    "why": [
+     "no_plan_accept"
+    ]
+   }
+  },
+  {
+   "id": "V-run-106",
+   "title": "a state that records no acceptance",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ],
+    "why": [
+     "missing"
+    ]
+   }
+  },
+  {
+   "id": "V-run-107",
+   "title": "an approval for another base",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"approval\": {\n   \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n   \"base_ref\": \"ffffffffffffffffffffffffffffffffffffffff\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAKYTJkbGMtcGxhbgAAAAAAAAAGc2hhNTEyAAAAUwAAAAtzc2gt\\nZWQyNTUxOQAAAEDoaP17MjiwzF2U7MAdHBd8zKM6ppOfERxRGW+YPL2XDOWV/9holLxfDW\\n9TELngfG4oRqSI0yL2ugG43VVpTkkP\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ],
+    "why": [
+     "other_base"
+    ]
+   }
+  },
+  {
+   "id": "V-run-108",
+   "title": "an approval signed in the namespace of approvals",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"approval\": {\n   \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAAHAu9/F0SGsgog8gskmiHvfIdNAwSVPCaejqkLKlktVW4kwFN/\\nO+fOf8d+W3M34v6vvJI0RT2Rej++WEQHdKDw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-109",
+   "title": "an approval signed by a key that is not an allowed signer",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"approval\": {\n   \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg2W5zOrSdjDLwdpe4/+9UD1/e5t\\nT1EbtYj7AMUNMJzY0AAAAKYTJkbGMtcGxhbgAAAAAAAAAGc2hhNTEyAAAAUwAAAAtzc2gt\\nZWQyNTUxOQAAAEArYUP0z+AJ6zgN5qFKCjWABkFS6f2wtmcHgfN4j1Dlz3bnpEikctrrtf\\nEJLrhXEsnVKB1k7ZxoxwL8YzvJN6UM\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-110",
+   "title": "an approval edited after signing (expiry extended)",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"approval\": {\n   \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"expires_at\": \"2027-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAKYTJkbGMtcGxhbgAAAAAAAAAGc2hhNTEyAAAAUwAAAAtzc2gt\\nZWQyNTUxOQAAAED3JxH5R607cT62VMd+v2mhBgxEuBlO3eqDHAozH+wNbSk48iQiZ/hwVb\\n5EpJcmuyWBoSKir2A6B7peXgjlXtEJ\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-111",
+   "title": "an acceptance of kind approval that holds an authorization",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"authorization\": {\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n   \"targets\": [\n    \"plan::billing.discounts\"\n   ],\n   \"decision\": \"plan.accept\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECYgQCCnKIBIg8vxUDtvwzgZaxHO1SZgXj9DfmMgQnZYt\\nvO8Mtuy2A8NEZaqaG4b+ABw+UKiqu8bQvGQYnY87MO\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-112",
+   "title": "a plan.accept authorization that had expired when the plan ran",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"authorization\",\n  \"at\": \"2026-11-13T00:00:00Z\",\n  \"authorization\": {\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n   \"targets\": [\n    \"plan::billing.discounts\"\n   ],\n   \"decision\": \"plan.accept\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECYgQCCnKIBIg8vxUDtvwzgZaxHO1SZgXj9DfmMgQnZYt\\nvO8Mtuy2A8NEZaqaG4b+ABw+UKiqu8bQvGQYnY87MO\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ],
+    "why": [
+     "expired"
+    ]
+   }
+  },
+  {
+   "id": "V-run-113",
+   "title": "an authorization for the feature with the decision of an engine target",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"authorization\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"authorization\": {\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n   \"targets\": [\n    \"plan::billing.discounts\"\n   ],\n   \"decision\": \"enforce_new_behavior\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAEDXKriUO6F5RLFjci1UkKQoH+PN6UHX517A9Q29vaI60q\\n5zvwemdS32d/Tt6Nvy1xhdu5Nq01ROmrqTeb6KQsoO\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ],
+    "why": [
+     "no_plan_accept"
+    ]
+   }
+  },
+  {
+   "id": "V-run-114",
+   "title": "a plan.accept authorization for another base",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"authorization\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"authorization\": {\n   \"base_ref\": \"ffffffffffffffffffffffffffffffffffffffff\",\n   \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n   \"targets\": [\n    \"plan::billing.discounts\"\n   ],\n   \"decision\": \"plan.accept\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAATYTJkbGMtYXV0aG9yaXphdGlvbgAAAAAAAAAGc2hhNTEyAAAA\\nUwAAAAtzc2gtZWQyNTUxOQAAAECIgF1lgwBvPAIgXqKCIcKOpXltePkCBAK5nmJjrEMqYn\\nzb2bD2b6+9R+MCLarr5Msajw0EUG1x2VYiNaYp2S0M\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ],
+    "why": [
+     "other_base"
+    ]
+   }
+  },
+  {
+   "id": "V-run-115",
+   "title": "a plan.accept authorization signed in the namespace of approvals",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"authorization\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"authorization\": {\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"intent_sha256\": \"47a719e803363e5d8cffdc57e5ff58b7511ecbf30d5386ee4422795d3958369d\",\n   \"targets\": [\n    \"plan::billing.discounts\"\n   ],\n   \"decision\": \"plan.accept\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAOYTJkbGMtYXBwcm92YWwAAAAAAAAABnNoYTUxMgAAAFMAAAAL\\nc3NoLWVkMjU1MTkAAABAIa3REu+tz8T7JoeMxbnZ+NDQUgpiw4YOQQnGmr+BcaXZCbx62I\\nkCsIOAqjQfgaTSWiFrgMUnJJDnwnxTV14PAw==\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-116",
+   "title": "an accepted plan and no allowed signers configured",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-08T10:00:00Z\",\n  \"approval\": {\n   \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAKYTJkbGMtcGxhbgAAAAAAAAAGc2hhNTEyAAAAUwAAAAtzc2gt\\nZWQyNTUxOQAAAED3JxH5R607cT62VMd+v2mhBgxEuBlO3eqDHAozH+wNbSk48iQiZ/hwVb\\n5EpJcmuyWBoSKir2A6B7peXgjlXtEJ\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "acceptance_invalid"
+    ]
+   }
+  },
+  {
+   "id": "V-run-117",
+   "title": "an approval used at the second it expires",
+   "rfc": "RFC-0008 section 4, acceptance of a plan run",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/_plan/billing.discounts/state.json": "{\n \"schema_version\": 1,\n \"feature_id\": \"billing.discounts\",\n \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n \"base_sha\": \"0123456789abcdef0123456789abcdef01234567\",\n \"invocation\": 1,\n \"slices\": [\n  {\n   \"slice_id\": \"billing.discounts.model\",\n   \"status\": \"passed\",\n   \"base\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.model/.a2dlc/run/billing.discounts.model\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.api\",\n   \"status\": \"escalated\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": null,\n   \"finished_in\": 1,\n   \"reason\": \"stage 3 escalated: CB-04\",\n   \"definition_sha256\": \"bcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.api/.a2dlc/run/billing.discounts.api\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.report\",\n   \"status\": \"passed\",\n   \"base\": \"1123456789abcdef0123456789abcdef01234567\",\n   \"candidate\": \"2123456789abcdef0123456789abcdef01234567\",\n   \"finished_in\": 1,\n   \"reason\": \"PASS\",\n   \"definition_sha256\": \"cdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab\",\n   \"run_dir\": \"/repo/.git/a2dlc-plan/billing.discounts/billing.discounts.report/.a2dlc/run/billing.discounts.report\"\n  },\n  {\n   \"slice_id\": \"billing.discounts.docs\",\n   \"status\": \"blocked\",\n   \"base\": null,\n   \"candidate\": null,\n   \"finished_in\": 0,\n   \"reason\": \"blocked by billing.discounts.api (escalated)\",\n   \"definition_sha256\": \"def0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc\",\n   \"run_dir\": null\n  }\n ],\n \"merged\": null,\n \"outcome\": \"escalated\",\n \"reason\": \"billing.discounts.api escalated; 1 slice blocked\",\n \"replans\": 0,\n \"scheduler\": {\n  \"jobs\": 2,\n  \"requested\": null,\n  \"why\": \"docker (Docker Desktop) 5.0 GiB free / 2.0 GiB per slice\",\n  \"demand\": {\n   \"docker\": {\n    \"cpus\": 2,\n    \"mem_bytes\": 2147483648\n   },\n   \"host\": {\n    \"cpus\": 0.5,\n    \"mem_bytes\": 536870912\n   }\n  },\n  \"host\": {\n   \"name\": \"host (windows)\",\n   \"total\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 34359738368\n   },\n   \"free\": {\n    \"cpus\": 16,\n    \"mem_bytes\": 21474836480\n   }\n  },\n  \"docker\": {\n   \"name\": \"docker (Docker Desktop)\",\n   \"total\": {\n    \"cpus\": 8,\n    \"mem_bytes\": 8589934592\n   },\n   \"free\": {\n    \"cpus\": 7.2,\n    \"mem_bytes\": 5368709120\n   },\n   \"note\": \"1 container(s) running\"\n  },\n  \"same_pool\": false\n },\n \"acceptance\": {\n  \"kind\": \"approval\",\n  \"at\": \"2026-11-12T00:00:00Z\",\n  \"approval\": {\n   \"plan_sha256\": \"c184013ea90fdd2c6bb68b1cac48257ef3beb5a7582cc7f0c996ec42b9522491\",\n   \"base_ref\": \"0123456789abcdef0123456789abcdef01234567\",\n   \"expires_at\": \"2026-11-12T00:00:00Z\",\n   \"principal\": \"tester@a2dlc\",\n   \"signature\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgjEjY+EG2IPL9glcPLCHthM+9Mr\\nTxQQ2WzclfXc1EmnoAAAAKYTJkbGMtcGxhbgAAAAAAAAAGc2hhNTEyAAAAUwAAAAtzc2gt\\nZWQyNTUxOQAAAED3JxH5R607cT62VMd+v2mhBgxEuBlO3eqDHAozH+wNbSk48iQiZ/hwVb\\n5EpJcmuyWBoSKir2A6B7peXgjlXtEJ\\n-----END SSH SIGNATURE-----\\n\"\n  }\n }\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--plan",
+    "billing.discounts"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": true
+   }
+  }
+ ]
+}

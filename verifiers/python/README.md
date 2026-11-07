@@ -20,6 +20,11 @@ one `kind: message` line per problem on standard error (kinds of RFC §6.4.8) an
 Allowed signers come from `A2DLC_ALLOWED_SIGNERS`, else `A2DLC_ALLOWED_SIGNERS_DATA`, else `~/.config/a2dlc/allowed_signers`.
 The schemas are read from `--contracts`, `$A2DLC_CONTRACTS`, or `contracts/` of this checkout.
 
+    python a2dlc_verify.py verify-run --slice <id>
+    python a2dlc_verify.py verify-run --plan <feature>
+
+`verify-run` checks a run folder under `.a2dlc/run/` of the working tree as RFC-0007 Part B ("The run ledger and `verify-run`") describes: the ledger chain, the binding of each authorization the run used, each of those authorizations again, and the stage artifacts (`--slice`), or the signed approval or `plan.accept` authorization that accepted a plan run (`--plan`). Exit 0 and `a2dlc verify-run: ok` when it verifies, 1 with one line per problem otherwise, 64 for a call without exactly one of the two flags. It does not compare the ledger's spend with state.json (see AMENDMENTS.md, D6). **This part is not clean room:** the RFC text it implements was written after reading the Go ledger and plan code (AMENDMENTS.md, section D); the vectors `V-run-*` are what show the two agree.
+
 ## Choices
 
 - **Signatures are checked in Python, not with `ssh-keygen`.** RFC §6.4.7 names `ssh-keygen -Y verify` as the reference, but the
