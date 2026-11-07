@@ -427,3 +427,17 @@ func extract(rd io.Reader, dir string) error {
 		}
 	}
 }
+
+// Visible lists the files a person sees in the working tree: tracked and untracked, minus what .gitignore hides. It does
+// not need a commit, so it also works on a repo that has just been `git init`ed.
+func (r Repo) Visible() ([]string, error) {
+	out, err := r.git(nil, "ls-files", "-z", "--cached", "--others", "--exclude-standard")
+	if err != nil {
+		return nil, err
+	}
+	s := strings.TrimRight(out, "\x00")
+	if s == "" {
+		return []string{}, nil
+	}
+	return strings.Split(s, "\x00"), nil
+}

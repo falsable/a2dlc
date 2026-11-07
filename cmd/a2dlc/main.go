@@ -354,6 +354,9 @@ func run(args []string) int {
 			fmt.Fprintln(os.Stderr, "a2dlc install:", err)
 			return 1
 		}
+		if w, ok := a.CoverageWarning(); ok {
+			fmt.Fprintln(os.Stderr, "a2dlc install: warning:", w)
+		}
 		if hint, ok := a.TestsHint(); ok {
 			fmt.Fprintln(os.Stderr, "a2dlc install: warning:", hint.Warning)
 			if hint.Stub != "" {

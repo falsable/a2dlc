@@ -28,14 +28,19 @@ var (
 
 // Install leaves the repo ready: config if missing, .gitignore, the pre-push block and the hooks of the requested agents.
 // exe is the binary's absolute path: if it is missing, the hook fails and blocks, instead of skipping the gate.
+// It says which engines the config has; CoverageWarning (printed by the command, exit code 0 either way) says which source
+// files they leave out: a warning and not a failure, because a repo may rightly hold code that no engine examines.
 func (a App) Install(exe string, agents []string) ([]string, error) {
 	exe = filepath.ToSlash(exe)
 	done := []string{}
 	if _, err := os.Stat(a.path(pathConfig)); errors.Is(err, os.ErrNotExist) {
-		if err := a.write(pathConfig, a.initialConfig()); err != nil {
+		c := a.initialConfig()
+		if err := a.write(pathConfig, c); err != nil {
 			return done, err
 		}
-		done = append(done, "wrote "+pathConfig)
+		done = append(done, "wrote "+pathConfig+" with "+engineSummary(c))
+	} else if c, err := a.config(); err == nil {
+		done = append(done, "kept "+pathConfig+" with "+engineSummary(c))
 	}
 	if n, err := a.gitignore(); err != nil {
 		return done, err
@@ -64,18 +69,35 @@ func (a App) Install(exe string, agents []string) ([]string, error) {
 	return done, nil
 }
 
+// initialConfig picks the engines by manifest and, since a2dlc-fjl, by the source files themselves: a repo with
+// src/pricing.py and no pyproject.toml got engines: [] and a check that said PASS with 0 targets. A manifest keeps the
+// paths install always wrote for it; without one the paths follow where the files are.
 func (a App) initialConfig() contract.Config {
 	c := contract.Config{SchemaVersion: contract.SchemaVersion, Engines: []contract.EngineConfig{},
 		AgentHook: &contract.AgentHook{MaxBlocks: 4}}
 	exists := func(rel string) bool { _, err := os.Stat(a.path(rel)); return err == nil }
-	if exists("package.json") {
-		c.Engines = append(c.Engines, contract.EngineConfig{Language: "typescript", Image: engineTSImage,
-			Paths: []string{"src/**/*.ts"}, Budget: json.RawMessage(`{"examples":2000,"seed":42}`)})
+	files := a.sourceFiles()
+	layout := func(ext string) string { // src layout: leave tests/ out of the engine; declare config.tests to gate them
+		if hasSource(files, "src/", ext) {
+			return "src/**/*" + ext
+		}
+		return "**/*" + ext
 	}
-	if exists("pyproject.toml") || exists("setup.py") {
-		paths := "**/*.py"
-		if exists("src") { // src layout: leave tests/ out of the engine; declare config.tests to gate them
-			paths = "src/**/*.py"
+	if exists("package.json") || hasSource(files, "", ".ts") {
+		paths := "src/**/*.ts"
+		if !exists("package.json") {
+			paths = layout(".ts")
+		}
+		c.Engines = append(c.Engines, contract.EngineConfig{Language: "typescript", Image: engineTSImage,
+			Paths: []string{paths}, Budget: json.RawMessage(`{"examples":2000,"seed":42}`)})
+	}
+	if exists("pyproject.toml") || exists("setup.py") || hasSource(files, "", ".py") {
+		paths := layout(".py")
+		if exists("pyproject.toml") || exists("setup.py") {
+			paths = "**/*.py"
+			if exists("src") {
+				paths = "src/**/*.py"
+			}
 		}
 		c.Engines = append(c.Engines, contract.EngineConfig{Language: "python", Image: enginePyImage,
 			Paths: []string{paths}, Budget: json.RawMessage(`{"per_condition_timeout_s":10}`)})

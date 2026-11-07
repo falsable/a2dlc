@@ -461,10 +461,12 @@ func TestInstallPythonEnginePathsFollowTheLayout(t *testing.T) {
 			t.Fatal(err)
 		}
 		write(t, dir, "pyproject.toml", "[project]\nname = \"x\"\n")
-		if layout == "" { // newRepo seeds src/lib for its TypeScript fixture
-			if err := os.RemoveAll(filepath.Join(dir, "src")); err != nil {
-				t.Fatal(err)
-			}
+		// newRepo seeds src/lib/f.ts for its TypeScript fixture; that .ts file would now add the TypeScript engine
+		if err := os.RemoveAll(filepath.Join(dir, "src")); err != nil {
+			t.Fatal(err)
+		}
+		if layout == "src" {
+			write(t, dir, "src/pkg/a.py", "x = 1\n")
 		}
 		if _, err := a.Install("/opt/a2dlc", nil); err != nil {
 			t.Fatal(err)
