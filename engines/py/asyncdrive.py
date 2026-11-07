@@ -66,14 +66,15 @@ async def _main(fn, args, kwargs):
     return result  # a decorator turned it into a plain function
 
 
-def sync_of(fn, side: str):
-    """fn as a plain function (same signature and annotations). side: "old" or "new", for the counters."""
+def sync_of(fn, side: str, drive: bool = True):
+    """fn as a plain function (same signature and annotations). side: "old" or "new", for the counters. drive=False: fn
+    is a plain function (a method compared through methoddrive): only the counters, no event loop."""
     counters = stats[side]
 
     @functools.wraps(fn)
     def call(*args, **kwargs):
         try:
-            value = asyncio.run(_main(fn, args, kwargs))
+            value = asyncio.run(_main(fn, args, kwargs)) if drive else fn(*args, **kwargs)
         except Suspended:
             counters["suspended"] += 1
             raise
@@ -87,23 +88,24 @@ def sync_of(fn, side: str):
     return call
 
 
-def doubt_of(output: str) -> str | None:
-    """Why "no differences found" over `sync_of` functions cannot be a PASS, from the process output; None if it can."""
+def doubt_of(output: str, what: str = "coroutine") -> str | None:
+    """Why "no differences found" over `sync_of` functions cannot be a PASS, from the process output; None if it can.
+    what: how the messages call the compared code ("coroutine", or "method")."""
     line = next((x for x in reversed(output.splitlines()) if x.startswith(STATS_PREFIX)), None)
     try:
         seen = json.loads(line[len(STATS_PREFIX):]) if line else None
     except ValueError:
         seen = None
     if not isinstance(seen, dict):
-        return "the coroutine driver reported no counts, so what was compared is unknown"
+        return f"the {what} driver reported no counts, so what was compared is unknown"
     for side in ("old", "new"):
         s = seen.get(side) or {}
         if s.get("suspended"):
-            return (f"{s['suspended']} call(s) of the {side} coroutine did not finish within {STEP_TIMEOUT_S:g} s "
+            return (f"{s['suspended']} call(s) of the {side} {what} did not finish within {STEP_TIMEOUT_S:g} s "
                     "(real I/O, a long sleep, a future nobody sets): those paths were not judged")
         if not s.get("returned"):
             if not s.get("raised"):
-                return f"{NOTHING_RAN}{side} coroutine: it could not build the arguments, or discarded every path"
+                return f"{NOTHING_RAN}{side} {what}: it could not build the arguments, or discarded every path"
             raised = ", ".join(sorted(s["raised"]))
-            return f"no call of the {side} coroutine returned ({raised}): only the exceptions were compared"
+            return f"no call of the {side} {what} returned ({raised}): only the exceptions were compared"
     return None

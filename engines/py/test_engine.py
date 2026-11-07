@@ -1069,8 +1069,9 @@ def source(get="1", hidden="1", size="1", later="1", make="n", private="1", get_
 
 
 class ClassMethods(Directory):
-    """The public methods of the public classes of a changed file are targets, named Class.method, like its functions. CrossHair
-    is faked and the commands it was given are kept, so the test says what the engine asked it to compare."""
+    """The methods of the public classes of a changed file are targets, named Class.method, like its functions. CrossHair
+    is faked and the commands it was given are kept, so the test says what the engine asked it to compare. The real one runs
+    in test_methods.py."""
 
     def setUp(self):
         super().setUp()
@@ -1082,7 +1083,11 @@ class ClassMethods(Directory):
 
     def fake_run(self, cmd, timeout):
         self.commands.append(cmd)
-        return (0, "") if cmd[1] == "-c" else (0, "No differences found. (attempted 3 iterations)")
+        if cmd[1] == "-c":
+            return 0, ""
+        ran = {"returned": 3, "suspended": 0, "raised": {}}  # what methoddrive prints at exit
+        stats = engine.asyncdrive.STATS_PREFIX + json.dumps({"old": ran, "new": ran})
+        return 0, "No differences found. (attempted 3 iterations)" + chr(10) + stats
 
     def diff(self, cand, base=None):
         (self.base / "m.py").write_text(base or source(), encoding="utf-8")
@@ -1090,8 +1095,9 @@ class ClassMethods(Directory):
         engine.diff(self.req(["m.py"], budget={}))
         return self.response()
 
-    def test_functions_lists_the_public_plain_methods_of_public_classes_only(self):
-        self.assertEqual(sorted(engine.functions(source())), ["Context.get", "Context.make"])
+    def test_functions_lists_the_methods_of_public_classes_only(self):
+        self.assertEqual(sorted(engine.functions(source())),
+                         ["Context._hidden", "Context.get", "Context.later", "Context.make", "Context.size"])
 
     def test_a_name_defined_twice_in_a_class_is_left_out(self):
         text = code(
@@ -1113,7 +1119,10 @@ class ClassMethods(Directory):
         self.assertEqual((t["target"], t["verdict"]), ("m.py::Context.get", "PASS"))
         self.assertEqual(r["out_of_scope"], [])
         compared = [c for c in self.commands if c[1:3] == ["-m", "crosshair"]]
-        self.assertEqual([c[-2:] for c in compared], [["a2dlc_base.m.Context.get", "a2dlc_cand.m.Context.get"]])
+        (wrapper,) = {c[-2].split(".")[0] for c in compared}  # each side builds its own instance, not the base's class
+        self.assertEqual([c[-2:] for c in compared], [[f"{wrapper}.old", f"{wrapper}.new"]])
+        text = (self.io.parent / "work" / f"{wrapper}.py").read_text(encoding="utf-8")
+        self.assertIn("pair(_base.Context, _cand.Context, 'get')", text)
 
     def test_a_staticmethod_is_compared_too_and_needs_all_its_parameters_typed(self):
         r = self.diff(source(make="n + 0"))
@@ -1127,8 +1136,14 @@ class ClassMethods(Directory):
         (t,) = r["targets"]
         self.assertEqual((t["target"], t["verdict"], t["typed"]), ("m.py::Context.get", "INCONCLUSIVE", False))
 
-    def test_only_private_property_async_or_private_class_changes_stay_out_of_scope(self):
-        r = self.diff(source(hidden="2", size="2", later="2", private="2"))
+    def test_private_property_and_async_methods_are_targets_too(self):
+        r = self.diff(source(hidden="2", size="2", later="2"))
+        self.assertEqual(sorted(t["target"] for t in r["targets"]),
+                         ["m.py::Context._hidden", "m.py::Context.later", "m.py::Context.size"])
+        self.assertEqual(r["out_of_scope"], [])
+
+    def test_a_change_only_in_a_private_class_stays_out_of_scope(self):
+        r = self.diff(source(private="2"))
         self.assertEqual(r["targets"], [])
         self.assertEqual(r["out_of_scope"], [{"file": "m.py", "reason": "not_exported"}])
 
