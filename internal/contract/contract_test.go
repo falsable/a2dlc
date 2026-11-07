@@ -103,6 +103,8 @@ func exampleTypes() map[string]func() any {
 		"indexer-response": func() any { return &IndexerResponse{} },
 		// a2dlc doctor
 		"doctor": func() any { return &Doctor{} },
+		// a2dlc propose --from-escalations
+		"proposals": func() any { return &Proposals{} },
 	}
 }
 

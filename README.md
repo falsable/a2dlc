@@ -166,6 +166,7 @@ The AI-DLC column was read from the source code and docs of [awslabs/aidlc-workf
 | `a2dlc plan propose\|import\|check\|run\|replan` | Feature plans (RFC-0008, Draft): a planner role or a Spec Kit / Task Master task list proposes slices, deterministic gates judge them, `plan run` runs them in dependency order, side by side when their files are disjoint, as many at once as the host and the Docker daemon hold ([docs/PLAN_MACHINE.md](docs/PLAN_MACHINE.md)) |
 | `a2dlc verify-run --slice <id>` | Verify the hash-chained container ledger |
 | `a2dlc answer --slice <id> --probe <id> --choice alpha` | Answer a human probe and resume |
+| `a2dlc propose --from-escalations --out <empty dir outside the repo>` | No role call: the counterexamples that earlier runs left in `.a2dlc/escalations.json` and `.a2dlc/run/*/escalations.json` become properties for the next intent, each with a probe (the arguments and the base's result), in `proposals.json` ([schema](contracts/proposals.schema.json)). Deduplicated by the hash of target, args and old output, against `.a2dlc/reports/proposals.jsonl`; a target waived with `enforce_new_behavior` is left out. It proposes only and never edits an intent. Implemented, not measured |
 | `a2dlc mcp` | Built-in MCP server (JSON-RPC 2.0 over stdio) |
 
 `a2dlc` (`cmd/a2dlc`) is both the clean-room protocol orchestrator (`a2dlc run`, Stages −1 to 7) and the differential verification gate (`a2dlc check` / `a2dlc verify`), governed by the JSON Schema contracts under `contracts/` and RFC-0001.

@@ -23,6 +23,7 @@ verdict = read("verdict__pending.json")
 w = read("waivers__entropos.json")
 a = read("approvals__signed.json")
 auth = read("authorization__signed.json")
+proposals = read("proposals__escalations.json")
 ledger_auth = read("run-ledger__authorization-used.json")
 verdict_engine_down = read("verdict__engine-down.json")
 c = read("config__entropos.json")
@@ -112,6 +113,10 @@ cases = {
     # a gate that did not run must say why
     "verdict__gate-error-missing-reason.json": (verdict_tests, lambda x: x["test_gates"]["baseline"].update(status="error")),
     "verdict__gates-missing-baseline.json": (verdict_tests, lambda x: x["test_gates"].pop("baseline")),
+    "proposals__hash-not-sha256.json": (proposals, lambda x: x["proposals"][0].update(hash="abc123")),
+    "proposals__kind-not-divergence.json": (proposals, lambda x: x["proposals"][0]["source"].update(kind="mutant_survived")),
+    "proposals__probe-id-free.json": (proposals, lambda x: x["proposals"][0]["probe"].update(id="probe-one")),
+    "proposals__skipped-missing.json": (proposals, lambda x: x.pop("skipped")),
     "escalation__kind-unknown.json": (escalation, lambda x: x["items"][0].update(kind="cb-01")),
     "escalation__resolve-with-unknown.json": (escalation, lambda x: x["items"][1].update(resolve_with=["ignore"])),
     "escalation__id-free.json": (escalation, lambda x: x["items"][0].update(id="div-07")),
