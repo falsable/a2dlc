@@ -71,6 +71,7 @@ func exampleTypes() map[string]func() any {
 		"intent":     func() any { return &Intent{} }, "route": func() any { return &Route{} },
 		"plan":       func() any { return &Plan{} },
 		"plan-state": func() any { return &PlanState{} },
+		"findings":   func() any { return &FindingEvent{} },
 		// block 3
 		"engine-tier0-response": func() any { return &Tier0Response{} }, "candidate": func() any { return &Candidate{} },
 		// block 5
@@ -128,6 +129,7 @@ var unknownPropertyInvalid = []string{
 	"engine-signatures-response__symbol-with-body.json",
 	"run-state__by-role-unknown.json",
 	"waivers__approved-by-of-the-pilot.json",
+	"findings__label-extra-field.json",
 }
 
 // knownLooseDecodes names invalid examples that the struct accepts although the schema rejects them. They are

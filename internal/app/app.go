@@ -648,8 +648,18 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	if err := a.writeVerdict(v); err != nil {
 		return v, err
 	}
-	return v, a.write(pathEscalations, contract.Escalations{SchemaVersion: contract.SchemaVersion, TreeHash: v.TreeHash,
-		CreatedAt: v.CreatedAt, Items: append(escalations(v), protectedEsc...)})
+	if err := a.write(pathEscalations, contract.Escalations{SchemaVersion: contract.SchemaVersion, TreeHash: v.TreeHash,
+		CreatedAt: v.CreatedAt, Items: append(escalations(v), protectedEsc...)}); err != nil {
+		return v, err
+	}
+	// The record of findings comes last and cannot fail the check: it reads the verdict and changes nothing in it.
+	if recordsFindings(opts) {
+		in := findingInput{waivers: waivers, approved: approved, guarded: guarded, protectedEsc: protectedEsc}
+		if err := a.recordFindings(v, in); err != nil {
+			fmt.Fprintln(os.Stderr, "a2dlc: warning: the findings record was not updated:", err)
+		}
+	}
+	return v, nil
 }
 
 // waiverFlags splits the waivers in two: the engine targets they waive (a test waiver covers no engine target, and the
