@@ -409,6 +409,6 @@ func proposeReplan(ctx context.Context, a app.App, planPath string, p contract.P
 		return
 	}
 	fmt.Fprintf(os.Stderr, "a2dlc plan run: %s exhausted its Builders (CB-02b); the planner split it and the split passes every gate: %s\n"+
-		"  review it (a2dlc plan check --plan %s ...) and run it (a2dlc plan run --plan %s ...): the slices it did not change keep their state\n",
+		"  review it (a2dlc plan check --plan %s ...), sign it (a2dlc plan approve) and run it (a2dlc plan run --plan %s ...): the slices it did not change keep their state\n",
 		strings.Join(exhausted, ", "), out, out, out)
 }

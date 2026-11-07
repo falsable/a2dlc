@@ -61,7 +61,7 @@ const usage = `usage: a2dlc <command>
   verify  [--commit HEAD] [--strict]  the pre-push, without running engines: blocks (exit 1) only on evidence, a FAIL or critical
           or protected code left unjudged; no receipt, a stale one or an INCONCLUSIVE one are warnings. --strict blocks on anything but a PASS receipt for this tree
   approve <target> --key <key> [--principal <id>]   signs a target's waiver (run by a person)
-  authorize --target <path::symbol>... --decision <enforce_new_behavior|preserve_legacy> --intent <file> --expires <RFC 3339>
+  authorize --target <path::symbol>... --decision <enforce_new_behavior|preserve_legacy|plan.accept> --intent <file> --expires <RFC 3339>
           --key <key> [--principal <id>] [--base <commit>]
           signs, before the code exists, that those exact targets may change (run by a person): a covered waiver needs no
           approval, until the date, on that base and for that intent (RFC-0007 Part B; .a2dlc/authorizations.json)
@@ -333,7 +333,7 @@ func run(args []string) int {
 		principal := fs.String("principal", repo.Config("user.email"), "identity in allowed_signers")
 		base := fs.String("base", "", "commit the change is made on (default: HEAD); an authorization dies with its base")
 		intent := fs.String("intent", "", "the intent file the run will be bound to (a2dlc run --intent), or one committed under .a2dlc/intents/")
-		decision := fs.String("decision", "", "enforce_new_behavior or preserve_legacy")
+		decision := fs.String("decision", "", "enforce_new_behavior or preserve_legacy; plan.accept (target plan::<feature_id>) accepts a feature plan to run")
 		expires := fs.String("expires", "", "when the authorization stops covering anything, RFC 3339 (2026-11-12T00:00:00Z)")
 		var targets list
 		fs.Var(&targets, "target", "exact <path>::<symbol> (repeatable; no globs)")

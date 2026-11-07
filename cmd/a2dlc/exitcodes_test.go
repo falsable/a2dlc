@@ -23,7 +23,7 @@ const usageCommand = "usage"
 var helpers = map[string]string{
 	"answerCommand": "answer", "doctorCommand": "doctor", "findingCommand": "finding", "printJSON": "finding",
 	"approvePending": "approve", "planCommand": "plan", "readFeature": "plan", "readPlan": "plan", "report": "plan",
-	"planner": "plan", "writeProposal": "plan", "planRun": "plan",
+	"planner": "plan", "writeProposal": "plan", "planRun": "plan", "planApprove": "plan",
 }
 
 // appHelpers are the functions of internal/app whose result `a2dlc hook` returns.

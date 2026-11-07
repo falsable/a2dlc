@@ -238,3 +238,31 @@ func TestVerifyRunRejectsAHiddenOrEditedAuthorizationUse(t *testing.T) {
 		})
 	}
 }
+
+// authorizationProblems checks the signature and the expiry of each record on its own, whatever the chain says: it is
+// what remains when a record is edited and its binding entry is edited to match.
+func TestAuthorizationProblemsChecksSignatureAndExpiryOfEachRecord(t *testing.T) {
+	r := newAuthRun(t, true)
+	r.check(t)
+	lg := ledgerOf(t, r.m.dir)
+	if p := authorizationProblems(lg); len(p) != 0 {
+		t.Fatalf("a valid record: %v", p)
+	}
+	edited := func(change func(*contract.LedgerAuthorization)) contract.RunLedger {
+		cp := lg
+		cp.AuthorizationsUsed = append([]contract.LedgerAuthorization(nil), lg.AuthorizationsUsed...)
+		change(&cp.AuthorizationsUsed[0])
+		return cp
+	}
+	for name, c := range map[string]struct {
+		lg   contract.RunLedger
+		want string
+	}{
+		"a text edited after signing": {edited(func(u *contract.LedgerAuthorization) { u.Authorization.ExpiresAt = "2027-01-01T00:00:00Z" }), "signature"},
+		"an expiry before the use":    {edited(func(u *contract.LedgerAuthorization) { u.At = "2030-01-01T00:00:00Z" }), "expired"},
+	} {
+		if p := strings.Join(authorizationProblems(c.lg), "; "); !strings.Contains(p, c.want) {
+			t.Errorf("%s: want a problem with %q, got %q", name, c.want, p)
+		}
+	}
+}
