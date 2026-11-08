@@ -149,7 +149,7 @@ The gate also gates this repo: every push to `main` runs `a2dlc check` against a
 | Anti-bypass | ✗ | ✓ review receipts bound to a source fingerprint; `aidlc attest resolve` can require independent, signed records | ✓ `tree_hash`-bound receipt, hook guard, SSH-signed waivers |
 | What the receipt certifies | — | an LLM review marked the unit READY | the oracles ran on this tree: differential, NOP test gate, mutation |
 
-The AI-DLC column was read from the source code and docs of [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) at v2.11.2 and at its main branch of 2026-11-03; it was not run or benchmarked. Stage-by-stage against classic SDLC and the ADLC infographic: [`docs/VS_SDLC_AND_ADLC.md`](docs/VS_SDLC_AND_ADLC.md).
+The AI-DLC column was read from the source code and docs of [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) at v2.11.2 and at its main branch of 2026-11-03; it was not run or benchmarked. Stage-by-stage against classic SDLC and the artifact chain of Anthropic's AI-native SDLC playbook (`intent.md → spec.md → plan.md → diff → review`), as the ADLC infographics draw it: [`docs/VS_SDLC_AND_ADLC.md`](docs/VS_SDLC_AND_ADLC.md).
 
 ---
 
