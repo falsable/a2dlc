@@ -9,7 +9,9 @@ Go is not installed on the host, and it will not be installed. Everything runs i
 
     MSYS_NO_PATHCONV=1 docker run --rm --network none -v "$(cygpath -w "$PWD"):/src" -w /src -v a2dlc-gocache:/root/.cache \
       -e GOFLAGS=-buildvcs=false golang:1.23-bookworm sh -c 'git config --global --add safe.directory "*"; \
-      gofmt -l .; go vet ./... && go test -count=1 ./... && GOOS=windows GOARCH=amd64 go build -o dist/a2dlc.exe ./cmd/a2dlc'
+      gofmt -l .; go vet ./... && go test -count=1 <changed packages> && GOOS=windows GOARCH=amd64 go build -o dist/a2dlc.exe ./cmd/a2dlc'
+
+- Closing a ticket or a worker task runs the tests of the packages the change touches (`go test -count=1 ./internal/app ./internal/run`), never `./...`. A task brief must not ask for the full suite: the global `suite_completa` hook denies it, and on 2026-11-07 nine worker sessions bypassed the hook because their brief asked for it. The full `go test -count=1 ./...` is the weekly CI replica, run once and only when the owner approves it in that turn.
 
 - E2E of the `.exe` on Windows: `bash e2e/windows.sh <empty temporary folder>`. It uses the fake engine (`engines/fake`) and a bare remote, so the pre-push runs a real `git push`. At the end it validates every verdict the binary writes against the schema.
 - The repo gates itself (`.a2dlc/config.json`): `a2dlc check` needs the image `a2dlc-engine-bb-go:0.2` built locally (commands in `engines/blackbox/*Dockerfile`). The mutants in `e2e/testdata/mutantes-bb/` are frozen by sha256: they are not edited or regenerated.
