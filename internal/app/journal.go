@@ -1,14 +1,14 @@
 package app
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"html/template"
+	"html"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/falsable/a2dlc/internal/contract"
 )
@@ -125,16 +125,103 @@ func (a App) ReadJournal() (Journal, error) {
 	return j, nil
 }
 
-// HTML renders the journal with a fixed template: the same files give the same bytes (no clock, no host path).
+// HTML renders the journal with a fixed layout: the same files give the same bytes (no clock, no host path). Every
+// recorded value goes through html.EscapeString and lands only in a text node or a double-quoted attribute, which is all
+// the escaping this page needs; html/template is not used because govulncheck reaches its open advisories on Go 1.25.
 func (j Journal) HTML() ([]byte, error) {
-	var b bytes.Buffer
-	if err := journalTemplate.Execute(&b, j); err != nil {
-		return nil, err
+	e := html.EscapeString
+	var b strings.Builder
+	w := func(format string, args ...any) { fmt.Fprintf(&b, format, args...) }
+	b.WriteString(journalHead)
+	b.WriteString("<h2>Where it stands</h2>\n")
+	if v := j.Verdict; v != nil {
+		w("<p>The last check says <span class=\"v %s\">%s</span> for tree <code>%s</code>, compared against <code>%s</code>, on %s.</p>\n",
+			e(v.Verdict), e(v.Verdict), e(v.TreeHash), e(v.BaseRef), e(v.CreatedAt))
+	} else {
+		b.WriteString("<p>No check has written a receipt yet (<code>.a2dlc/verdict.json</code> is missing).</p>\n")
 	}
-	return b.Bytes(), nil
+
+	b.WriteString("\n<h2>Waiting on a person</h2>\n")
+	if len(j.Escalations) == 0 && len(j.PendingWaivers) == 0 {
+		b.WriteString("<p>Nothing.</p>\n")
+	}
+	for _, x := range j.Escalations {
+		w("<div class=\"card\"><strong>%s</strong><br><span class=\"muted\">%s · <code>%s</code>", e(x.Summary), e(x.Kind), e(x.Target))
+		if len(x.ResolveWith) > 0 {
+			w(" · resolve with: %s", e(strings.Join(x.ResolveWith, ", ")))
+		}
+		b.WriteString("</span></div>\n")
+	}
+	for _, t := range j.PendingWaivers {
+		w("<div class=\"card\">Waiver for <code>%s</code> needs a signature (<code>a2dlc approve --pending</code>).</div>\n", e(t))
+	}
+
+	b.WriteString("\n<h2>Behavior changes and unjudged code</h2>\n")
+	if len(j.Changes) == 0 {
+		b.WriteString("<p>None in the last receipt.</p>\n")
+	} else {
+		b.WriteString("<table><tr><th>Target</th><th>Result</th><th>Decision</th></tr>\n")
+		for _, c := range j.Changes {
+			w("<tr><td><code>%s</code></td><td><span class=\"v %s\">%s</span>", e(c.Target), e(c.Verdict), e(c.Verdict))
+			if c.Note != "" {
+				w(" <span class=\"muted\">(%s)</span>", e(c.Note))
+			}
+			if c.Reason != "" {
+				w("<br><span class=\"muted\">%s</span>", e(c.Reason))
+			}
+			b.WriteString("</td><td>")
+			switch {
+			case c.Decision == "":
+				b.WriteString("<span class=\"muted\">no waiver</span>")
+			default:
+				b.WriteString(e(c.Decision))
+				if c.Why != "" {
+					w(": %s", e(c.Why))
+				}
+				if c.Principal != "" {
+					w("<br><span class=\"muted\">signed by %s</span>", e(c.Principal))
+				} else {
+					b.WriteString("<br><span class=\"muted\">not signed</span>")
+				}
+			}
+			b.WriteString("</td></tr>\n")
+		}
+		b.WriteString("</table>\n")
+	}
+
+	b.WriteString("\n<h2>Open findings</h2>\n")
+	if len(j.OpenFindings) == 0 {
+		b.WriteString("<p>None.</p>\n")
+	} else {
+		b.WriteString("<ul>")
+		for _, f := range j.OpenFindings {
+			w("<li><code>%s</code> %s on <code>%s</code> <span class=\"muted\">from %s, %s since %s</span></li>\n",
+				e(f.ID), e(f.Kind), e(f.Target), e(f.Source), e(f.Outcome), e(f.RaisedAt))
+		}
+		b.WriteString("</ul>\n")
+	}
+	if len(j.Report.Sources) > 0 {
+		b.WriteString("<table><tr><th>Raised by</th><th>Raised</th><th>Fixed</th><th>Intentional</th><th>False</th><th>Irrelevant</th><th>Open</th></tr>\n")
+		for _, s := range j.Report.Sources {
+			w("<tr><td><code>%s</code></td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td></tr>\n",
+				e(s.Source), s.Raised, s.Fixed, s.Intentional, s.False, s.Irrelevant, s.Open)
+		}
+		b.WriteString("</table>\n")
+	}
+
+	b.WriteString("\n<h2>Sources</h2>\n<table><tr><th>File</th><th>sha256</th></tr>\n")
+	for _, s := range j.Sources {
+		hash := "<span class=\"muted\">missing</span>"
+		if s.SHA256 != "" {
+			hash = "<code>" + e(s.SHA256) + "</code>"
+		}
+		w("<tr><td><code>%s</code></td><td>%s</td></tr>\n", e(s.Path), hash)
+	}
+	b.WriteString("</table>\n</main></body>\n</html>\n")
+	return []byte(b.String()), nil
 }
 
-var journalTemplate = template.Must(template.New("journal").Parse(`<!doctype html>
+const journalHead = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -157,33 +244,4 @@ table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;p
 <h1>Development journal</h1>
 <p class="muted">Rendered by a2dlc from the files listed at the end, with no model. Signatures are shown, not verified: <code>a2dlc verify</code> checks them.</p>
 
-<h2>Where it stands</h2>
-{{with .Verdict}}<p>The last check says <span class="v {{.Verdict}}">{{.Verdict}}</span> for tree <code>{{.TreeHash}}</code>, compared against <code>{{.BaseRef}}</code>, on {{.CreatedAt}}.</p>
-{{else}}<p>No check has written a receipt yet (<code>.a2dlc/verdict.json</code> is missing).</p>{{end}}
-
-<h2>Waiting on a person</h2>
-{{if or .Escalations .PendingWaivers}}
-{{range .Escalations}}<div class="card"><strong>{{.Summary}}</strong><br><span class="muted">{{.Kind}} · <code>{{.Target}}</code>{{if .ResolveWith}} · resolve with: {{range $i, $r := .ResolveWith}}{{if $i}}, {{end}}{{$r}}{{end}}{{end}}</span></div>
-{{end}}{{range .PendingWaivers}}<div class="card">Waiver for <code>{{.}}</code> needs a signature (<code>a2dlc approve --pending</code>).</div>
-{{end}}{{else}}<p>Nothing.</p>{{end}}
-
-<h2>Behavior changes and unjudged code</h2>
-{{if .Changes}}<table><tr><th>Target</th><th>Result</th><th>Decision</th></tr>
-{{range .Changes}}<tr><td><code>{{.Target}}</code></td><td><span class="v {{.Verdict}}">{{.Verdict}}</span>{{if .Note}} <span class="muted">({{.Note}})</span>{{end}}{{if .Reason}}<br><span class="muted">{{.Reason}}</span>{{end}}</td>
-<td>{{if .Decision}}{{.Decision}}{{if .Why}}: {{.Why}}{{end}}{{if .Principal}}<br><span class="muted">signed by {{.Principal}}</span>{{else}}<br><span class="muted">not signed</span>{{end}}{{else}}<span class="muted">no waiver</span>{{end}}</td></tr>
-{{end}}</table>{{else}}<p>None in the last receipt.</p>{{end}}
-
-<h2>Open findings</h2>
-{{if .OpenFindings}}<ul>{{range .OpenFindings}}<li><code>{{.ID}}</code> {{.Kind}} on <code>{{.Target}}</code> <span class="muted">from {{.Source}}, {{.Outcome}} since {{.RaisedAt}}</span></li>
-{{end}}</ul>{{else}}<p>None.</p>{{end}}
-{{if .Report.Sources}}<table><tr><th>Raised by</th><th>Raised</th><th>Fixed</th><th>Intentional</th><th>False</th><th>Irrelevant</th><th>Open</th></tr>
-{{range .Report.Sources}}<tr><td><code>{{.Source}}</code></td><td>{{.Raised}}</td><td>{{.Fixed}}</td><td>{{.Intentional}}</td><td>{{.False}}</td><td>{{.Irrelevant}}</td><td>{{.Open}}</td></tr>
-{{end}}</table>{{end}}
-
-<h2>Sources</h2>
-<table><tr><th>File</th><th>sha256</th></tr>
-{{range .Sources}}<tr><td><code>{{.Path}}</code></td><td>{{if .SHA256}}<code>{{.SHA256}}</code>{{else}}<span class="muted">missing</span>{{end}}</td></tr>
-{{end}}</table>
-</main></body>
-</html>
-`))
+`
