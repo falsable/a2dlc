@@ -1,7 +1,8 @@
 <?php
 // One side (base or candidate) of a target: a `php worker.php` process with that tree loaded, so the two versions never
 // share a process, a class table or global state. A call that does not answer within the per-call timeout kills the
-// process; a process that died (exit(), a fatal error) is started again before the next call.
+// process; a process that died (exit(), a fatal error) is started again before the next call (Diff restarts both sides
+// together, so they keep the same call history).
 
 namespace A2dlc\PhpEngine;
 
@@ -25,6 +26,7 @@ final class Side
     public function start(): void
     {
         $this->stop();
+        $this->loadError = null;
         // An array command runs php itself (no sh -c), so a kill reaches the process that runs the user's code.
         $cmd = [PHP_BINARY, '-d', 'memory_limit=512M', '-d', 'display_errors=0', dirname(__DIR__) . '/worker.php',
             $this->root, $this->file];
@@ -45,6 +47,11 @@ final class Side
         }
     }
 
+    public function running(): bool
+    {
+        return $this->proc !== null && proc_get_status($this->proc)['running'];
+    }
+
     /**
      * @param array<string, mixed> $req
      * @return array<string, mixed>
@@ -52,7 +59,7 @@ final class Side
      */
     public function call(array $req): array
     {
-        if ($this->proc === null || !proc_get_status($this->proc)['running']) {
+        if (!$this->running()) {
             $this->start();
             if ($this->loadError !== null) {
                 return ['throws' => 'the worker could not load the file again: ' . $this->loadError];
