@@ -22,10 +22,11 @@ class KnownFailure(unittest.TestCase):
     def test_no_marker(self):
         self.assertIsNone(run.known_failure({}, run.REFERENCE))
 
-    def test_the_vector_of_the_reference_marker_is_in_the_kit(self):
-        marked = [v for f in (run.VECTORS / "verifier").glob("*.json") for v in run.json.loads(f.read_text(encoding="utf-8"))["vectors"] if "known_failure" in v]
-        self.assertIn("V-receipt-007", [v["id"] for v in marked])
-        self.assertEqual(run.known_failure([v for v in marked if v["id"] == "V-receipt-007"][0], run.REFERENCE), "a2dlc-5fq")
+    # a2dlc-5fq made the reference enforce `required`, so V-receipt-007 lost its marker (a2dlc-5xr): it must stay off.
+    def test_the_reference_refuses_a_missing_required_field_with_no_marker(self):
+        vectors = {v["id"]: v for f in (run.VECTORS / "verifier").glob("*.json") for v in run.json.loads(f.read_text(encoding="utf-8"))["vectors"]}
+        self.assertIn("V-receipt-007", vectors)
+        self.assertIsNone(run.known_failure(vectors["V-receipt-007"], run.REFERENCE))
 
 
 if __name__ == "__main__":

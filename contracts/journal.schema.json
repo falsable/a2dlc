@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2dlc.dev/contracts/journal.schema.json",
+  "title": "A2-DLC journal event",
+  "description": "Draft (a2dlc-ogj). One line of .a2dlc/reports/journal.jsonl: the part of a change's history that a person reads and that no other file already records. Findings, approvals, escalations and verdicts stay in their own files; `a2dlc journal --html` joins them to these events and renders a fixed template, so the HTML is a view and this file is the record. Under .a2dlc/reports, so out of the tree_hash (gitx.Excluded) and never changes a verdict. Append-only and chained like run-ledger: hash = sha256(prev_hash + canonical JSON of the event without hash); a broken chain is reported, never rendered as fine. Text fields are short on purpose: one sentence a person reads, with the evidence linked, not a transcript. `by` is recorded, not authenticated: a decision that changes behavior still needs its signed waiver.",
+  "$defs": { "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" } },
+  "type": "object",
+  "properties": {
+    "schema_version": { "const": 1 },
+    "seq": { "type": "integer", "minimum": 0 },
+    "prev_hash": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha256" }], "description": "null only when seq is 0." },
+    "hash": { "$ref": "#/$defs/sha256" },
+    "event": { "enum": ["checkpoint", "decision_asked", "decision_answered"] },
+    "at": { "type": "string", "format": "date-time" },
+    "tree_hash": { "description": "checkpoint and decision_asked: the tree the event refers to; the view shows the verdict of this tree next to it.", "type": "string", "minLength": 1 },
+    "commit": { "description": "checkpoint only, optional: the commit of that tree, if there is one.", "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "title": { "description": "checkpoint only. What is now true, as a person would say it.", "type": "string", "minLength": 1, "maxLength": 120 },
+    "summary": { "description": "checkpoint only, optional. One or two sentences; the evidence goes in refs.", "type": "string", "maxLength": 280 },
+    "id": { "description": "decision_asked and decision_answered: the decision.", "type": "string", "pattern": "^dec-[0-9a-f]{12}$" },
+    "question": { "description": "decision_asked only. The decision alone, in plain words.", "type": "string", "minLength": 1, "maxLength": 200 },
+    "options": {
+      "description": "decision_asked only. Each option with what follows from choosing it.",
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+          "label": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "consequence": { "type": "string", "minLength": 1, "maxLength": 280 }
+        },
+        "required": ["key", "label", "consequence"],
+        "additionalProperties": false
+      }
+    },
+    "recommendation": { "description": "decision_asked only. The key of the recommended option.", "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+    "chosen": { "description": "decision_answered only. The key of the chosen option; the view reports a key that the matching decision_asked does not offer.", "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+    "by": { "description": "Who wrote the event: the agent for checkpoint and decision_asked, a person for decision_answered (recorded, not authenticated).", "type": "string", "minLength": 1 },
+    "via": { "description": "decision_answered only. The surface the answer came through.", "enum": ["cli", "mcp"] },
+    "reason": { "description": "decision_answered only, optional: why.", "type": "string", "maxLength": 280 },
+    "refs": {
+      "description": "Optional. The evidence a person can open: a finding id, an escalation, a test, a commit, a file.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^(fnd|esc|test|commit|file|waiver):.+$" }
+    }
+  },
+  "required": ["schema_version", "seq", "prev_hash", "hash", "event", "at", "by"],
+  "allOf": [
+    {
+      "if": { "properties": { "event": { "const": "checkpoint" } }, "required": ["event"] },
+      "then": { "required": ["tree_hash", "title"], "not": { "anyOf": [{ "required": ["id"] }, { "required": ["question"] }, { "required": ["options"] }, { "required": ["recommendation"] }, { "required": ["chosen"] }, { "required": ["via"] }, { "required": ["reason"] }] } }
+    },
+    {
+      "if": { "properties": { "event": { "const": "decision_asked" } }, "required": ["event"] },
+      "then": { "required": ["tree_hash", "id", "question", "options", "recommendation"], "not": { "anyOf": [{ "required": ["commit"] }, { "required": ["title"] }, { "required": ["summary"] }, { "required": ["chosen"] }, { "required": ["via"] }, { "required": ["reason"] }] } }
+    },
+    {
+      "if": { "properties": { "event": { "const": "decision_answered" } }, "required": ["event"] },
+      "then": { "required": ["id", "chosen", "via"], "not": { "anyOf": [{ "required": ["tree_hash"] }, { "required": ["commit"] }, { "required": ["title"] }, { "required": ["summary"] }, { "required": ["question"] }, { "required": ["options"] }, { "required": ["recommendation"] }] } }
+    }
+  ],
+  "additionalProperties": false
+}

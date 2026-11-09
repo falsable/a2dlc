@@ -73,6 +73,7 @@ func exampleTypes() map[string]func() any {
 		"plan":       func() any { return &Plan{} },
 		"plan-state": func() any { return &PlanState{} },
 		"findings":   func() any { return &FindingEvent{} },
+		"journal":    func() any { return &JournalEvent{} },
 		// block 3
 		"engine-tier0-response": func() any { return &Tier0Response{} }, "candidate": func() any { return &Candidate{} },
 		// block 5

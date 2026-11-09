@@ -1,0 +1,17 @@
+{
+ "schema_version": 1,
+ "seq": 0,
+ "prev_hash": null,
+ "hash": "sha256:5d1f0a9c3b7e2d4f6a8c0e1b3d5f7a9c2e4b6d8f0a1c3e5b7d9f2a4c6e8b0d1f",
+ "event": "checkpoint",
+ "at": "2026-11-09T10:00:00Z",
+ "by": "agent",
+ "commit": "76e37ef0a1b2c3d4e5f60718293a4b5c6d7e8f90",
+ "title": "Slug parser rejects empty input instead of returning \"\"",
+ "summary": "Behavior change on purpose; the engine raised it and a signed waiver covers it.",
+ "refs": [
+  "fnd:fnd-3a7c91d02b4e",
+  "waiver:src/slug.py::parse",
+  "test:tests/test_slug.py::test_empty"
+ ]
+}

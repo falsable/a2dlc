@@ -555,6 +555,19 @@ cases = {
     "findings__raised-source-unknown.json": (read("findings__raised.json"), lambda x: x.update(source="model:judge")),
     "findings__fixed-with-label.json": (read("findings__fixed.json"), lambda x: x.update(outcome="false", by="x", via="cli")),
     "findings__intentional-without-decision.json": (read("findings__intentional.json"), lambda x: x.pop("decision")),
+    # journal (a2dlc-ogj): one sentence a person reads, never a transcript
+    "journal__checkpoint-title-too-long.json": (read("journal__checkpoint.json"), lambda x: x.update(title="x" * 121)),
+    "journal__checkpoint-without-tree-hash.json": (read("journal__checkpoint.json"), lambda x: x.pop("tree_hash")),
+    "journal__checkpoint-with-chosen.json": (read("journal__checkpoint.json"), lambda x: x.update(chosen="a2dlc")),
+    "journal__without-hash.json": (read("journal__checkpoint.json"), lambda x: x.pop("hash")),
+    "journal__ref-free-text.json": (read("journal__checkpoint.json"), lambda x: x.update(refs=["see the logs"])),
+    # a question with one option is not a decision
+    "journal__asked-one-option.json": (read("journal__decision-asked.json"), lambda x: x.update(options=x["options"][:1])),
+    "journal__asked-option-without-consequence.json": (read("journal__decision-asked.json"), lambda x: x["options"][0].pop("consequence")),
+    "journal__asked-without-recommendation.json": (read("journal__decision-asked.json"), lambda x: x.pop("recommendation")),
+    "journal__answered-without-via.json": (read("journal__decision-answered.json"), lambda x: x.pop("via")),
+    "journal__answered-with-options.json": (read("journal__decision-answered.json"), lambda x: x.update(options=read("journal__decision-asked.json")["options"])),
+    "journal__event-unknown.json": (read("journal__checkpoint.json"), lambda x: x.update(event="note")),
 }
 for name, (base, breaks) in cases.items():
     doc = copy.deepcopy(base)

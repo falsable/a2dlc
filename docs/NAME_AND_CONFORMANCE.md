@@ -42,7 +42,7 @@ An implementation with its own messages adds `--reasons none` and is judged on v
 
 ### What the kit does not cover
 
-- `V-receipt-007` is a known failure of the reference binary: it accepts a receipt with a required field missing, because it does not enforce `required`, `enum` or `pattern` from the schemas (bead a2dlc-5fq). The runner reports it as an expected failure and flags it when it stops failing.
+- The reference enforces `required` (bead a2dlc-5fq) but not `enum` or `pattern` from the schemas; no vector exercises those two yet (RFC §6.4.11).
 - The engine class checks the protocol (every changed file is accounted for, the response matches its schema), not the quality of a language engine.
 - The `V-gates` vectors mirror the shape and the verdict of the frozen Python gate cases; they do not run the gates.
 - A working tree that holds nested untracked repositories is not covered (bead a2dlc-3hd); the vectors hash commits only.

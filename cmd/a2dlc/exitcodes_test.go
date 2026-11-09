@@ -21,7 +21,7 @@ const usageCommand = "usage"
 
 // helpers are the int-returning functions of package main (besides run) and the command each belongs to.
 var helpers = map[string]string{
-	"answerCommand": "answer", "doctorCommand": "doctor", "findingCommand": "finding", "printJSON": "finding",
+	"answerCommand": "answer", "doctorCommand": "doctor", "findingCommand": "finding", "printJSON": "finding", "journalCommand": "journal",
 	"approvePending": "approve", "planCommand": "plan", "readFeature": "plan", "readPlan": "plan", "report": "plan",
 	"planner": "plan", "writeProposal": "plan", "planRun": "plan", "planApprove": "plan",
 }
