@@ -19,6 +19,7 @@ def write(name, doc):
 
 INVALID.mkdir(exist_ok=True)
 r = read("engine-response__ts-fail.json")
+php = read("engine-response__php-fail.json")
 verdict = read("verdict__pending.json")
 w = read("waivers__entropos.json")
 a = read("approvals__signed.json")
@@ -47,6 +48,8 @@ sg = read("engine-signatures-response__py.json")
 cases = {
     # search_budget of CrossHair in a fast-check target (protocol §6.4: schema error)
     "engine-response__budget-from-another-engine.json": (r, lambda x: x["targets"][0].update(search_budget={"iterations": 5, "per_condition_timeout_s": 10})),
+    # eris takes {examples, seed} like fast-check, never the CrossHair budget
+    "engine-response__php-budget-from-another-engine.json": (php, lambda x: x["targets"][0].update(search_budget={"iterations": 5, "per_condition_timeout_s": 10})),
     "engine-response__fail-missing-counterexample.json": (r, lambda x: x["targets"][0].update(counterexample=None)),
     "engine-response__inconclusive-missing-reason.json": (r, lambda x: x["targets"][0].update(verdict="INCONCLUSIVE")),
     # the engine knows nothing of waivers: the core checks that

@@ -50,7 +50,7 @@
       "type": "object",
       "properties": {
         "target": { "$ref": "#/$defs/target_id" },
-        "engine": { "enum": ["fast-check", "crosshair-diffbehavior", "hypothesis", "rapid", "blackbox"] },
+        "engine": { "enum": ["fast-check", "crosshair-diffbehavior", "hypothesis", "rapid", "eris", "blackbox"] },
         "engine_version": { "type": "string", "minLength": 1 },
         "verdict": { "$ref": "#/$defs/verdict" },
         "reason": { "type": "string", "minLength": 1 },

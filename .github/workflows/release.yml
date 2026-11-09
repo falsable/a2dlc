@@ -54,8 +54,9 @@ jobs:
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-bb-go:$v" -f engines/blackbox/go.Dockerfile engines/blackbox
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-ts:$v" engines/ts
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-py:$v" engines/py
+          docker build -q --label "$fuente" -t "$r/a2dlc-engine-php:$v" engines/php
           : > dist/IMAGENES.txt
-          for m in bb bb-go ts py; do
+          for m in bb bb-go ts py php; do
             docker push -q "$r/a2dlc-engine-$m:$v"
             docker inspect --format '{{index .RepoDigests 0}}' "$r/a2dlc-engine-$m:$v" >> dist/IMAGENES.txt
           done
@@ -64,12 +65,13 @@ jobs:
         run: |
           v="${GITHUB_REF_NAME#v}"
           py=$(grep '/a2dlc-engine-py@sha256:' dist/IMAGENES.txt); ts=$(grep '/a2dlc-engine-ts@sha256:' dist/IMAGENES.txt)
-          [ -n "$py" ] && [ -n "$ts" ] || { echo "IMAGENES.txt has no py/ts digest" >&2; exit 1; }
+          php=$(grep '/a2dlc-engine-php@sha256:' dist/IMAGENES.txt)
+          [ -n "$py" ] && [ -n "$ts" ] && [ -n "$php" ] || { echo "IMAGENES.txt has no py/ts/php digest" >&2; exit 1; }
           app=github.com/falsable/a2dlc/internal/app
           for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
             os="${t%/*}"; arch="${t#*/}"; ext=""; [ "$os" = windows ] && ext=.exe
             CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
-              -ldflags "-s -w -X main.version=$v -X $app.enginePyImage=$py -X $app.engineTSImage=$ts" \
+              -ldflags "-s -w -X main.version=$v -X $app.enginePyImage=$py -X $app.engineTSImage=$ts -X $app.enginePHPImage=$php" \
               -o "dist/a2dlc-$os-$arch$ext" ./cmd/a2dlc
           done
           (cd dist && sha256sum a2dlc-* a2dlc-sbom.spdx.json > SHA256SUMS)

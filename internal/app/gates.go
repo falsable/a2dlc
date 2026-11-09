@@ -80,10 +80,11 @@ func (c run) readable() error {
 // defaultInvalidBaseFailures are the failures on the base that make a new test invalid for NOP, per engine language. They
 // apply when config.tests.invalid_base_failures is absent; an explicit list, even an empty one, replaces them. Python: the
 // import, collection and missing-name failures of protocol §5 Stage 4. TypeScript: a missing module or export, and a call or
-// reference to a name that does not exist yet.
+// reference to a name that does not exist yet. PHP: a missing class, function, method or required file.
 var defaultInvalidBaseFailures = map[string][]string{
 	"python":     {"ImportError", "ModuleNotFoundError", "AttributeError", "NameError", "^collection"},
 	"typescript": {"is not a function", "Cannot find module", "ReferenceError", "does not provide an export named"},
+	"php":        {`(Class|Interface|Trait|Enum) "[^"]+" not found`, "Call to undefined function", "Call to undefined method", "Failed opening required"},
 }
 
 // invalidBaseFailures is the list the NOP gate classifies with: config.tests.invalid_base_failures when declared, otherwise

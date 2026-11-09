@@ -1,0 +1,17 @@
+{
+    "name": "a2dlc/engine-php",
+    "description": "Differential engine of a2dlc for PHP functions and methods",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.3",
+        "nikic/php-parser": "^5",
+        "giorgiosironi/eris": "^1"
+    },
+    "config": {
+        "platform": {
+            "php": "8.3.0"
+        },
+        "sort-packages": true
+    }
+}

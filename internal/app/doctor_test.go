@@ -257,6 +257,15 @@ func TestDoctorDocker(t *testing.T) {
 	wantFinding(t, f.doctor(t), "docker.not_checked", contract.DoctorInfo)
 }
 
+func TestDoctorSuggestsBuildingThePHPEngineImage(t *testing.T) {
+	f := newDoctorFix(t, map[string]string{"composer.json": "{}\n", "src/A.php": "<?php\n"})
+	f.probe.images[enginePHPImage] = false
+	miss := wantFinding(t, f.doctor(t), "images.missing", contract.DoctorBlocking)
+	if miss.Subject != enginePHPImage || !strings.Contains(miss.Fix, "engines/php") {
+		t.Errorf("missing finding: %+v", miss)
+	}
+}
+
 func TestDoctorImages(t *testing.T) {
 	f := pyRepo(t)
 	f.probe.images[enginePyImage] = false

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -78,6 +79,47 @@ func TestInstallDetectsTypeScriptByExtensionWithoutManifest(t *testing.T) {
 	}
 }
 
+func TestInstallDetectsPHPByExtensionWithoutManifest(t *testing.T) {
+	cases := map[string]struct {
+		files map[string]string
+		want  string
+	}{
+		"src layout":   {map[string]string{"src/Price.php": "<?php\nfunction price($x) { return $x * 2; }\n"}, "src/**/*.php"},
+		"other folder": {map[string]string{"lib/price.php": "<?php\nfunction price($x) { return $x * 2; }\n"}, "**/*.php"},
+	}
+	for name, tc := range cases {
+		c, done, w := installIn(t, tc.files)
+		if got := languages(c); len(got) != 1 || got[0] != "php" {
+			t.Fatalf("%s: engines = %v, want [php]", name, got)
+		}
+		if p := c.Engines[0].Paths; len(p) != 1 || p[0] != tc.want {
+			t.Errorf("%s: paths = %v, want [%s]", name, p, tc.want)
+		}
+		var budget bytes.Buffer // the config file is indented, the budget is compared compact
+		if json.Compact(&budget, c.Engines[0].Budget) != nil || c.Engines[0].Image != enginePHPImage || budget.String() != `{"examples":2000,"seed":42}` {
+			t.Errorf("%s: engine = %+v", name, c.Engines[0])
+		}
+		if !strings.Contains(strings.Join(done, "\n"), "engine php ("+tc.want+")") {
+			t.Errorf("%s: install does not say which engine it configured: %v", name, done)
+		}
+		if w != "" {
+			t.Errorf("%s: everything is covered, yet a warning: %s", name, w)
+		}
+	}
+}
+
+// composer.json alone, with no .php file yet, still configures the engine; with a src/ folder the paths follow it.
+func TestInstallDetectsPHPByComposerManifest(t *testing.T) {
+	c, _, _ := installIn(t, map[string]string{"composer.json": "{}\n"})
+	if got := languages(c); len(got) != 1 || got[0] != "php" || c.Engines[0].Paths[0] != "**/*.php" {
+		t.Fatalf("engines = %v paths = %v, want [php] [**/*.php]", got, c.Engines[0].Paths)
+	}
+	c, _, _ = installIn(t, map[string]string{"composer.json": "{}\n", "src/.gitkeep": "", "lib/a.php": "<?php\n"})
+	if p := c.Engines[0].Paths; len(p) != 1 || p[0] != "src/**/*.php" {
+		t.Fatalf("composer.json and src/: paths = %v, want [src/**/*.php]", p)
+	}
+}
+
 // The control: with a manifest the config is the one install wrote before this bead, byte for byte.
 func TestInstallWithManifestKeepsTheConfigItAlwaysWrote(t *testing.T) {
 	cases := map[string]struct {
@@ -88,6 +130,8 @@ func TestInstallWithManifestKeepsTheConfigItAlwaysWrote(t *testing.T) {
 			`"engines":[{"language":"python","image":"` + enginePyImage + `","paths":["src/**/*.py"],"budget":{"per_condition_timeout_s":10}}]`},
 		"typescript": {map[string]string{"package.json": "{}\n", "src/a.ts": "export const a = 1\n"},
 			`"engines":[{"language":"typescript","image":"` + engineTSImage + `","paths":["src/**/*.ts"],"budget":{"examples":2000,"seed":42}}]`},
+		"php": {map[string]string{"composer.json": "{}\n", "src/A.php": "<?php\n"},
+			`"engines":[{"language":"php","image":"` + enginePHPImage + `","paths":["src/**/*.php"],"budget":{"examples":2000,"seed":42}}]`},
 		"manifest and no source": {map[string]string{"pyproject.toml": "[project]\nname = \"x\"\n"},
 			`"engines":[{"language":"python","image":"` + enginePyImage + `","paths":["**/*.py"],"budget":{"per_condition_timeout_s":10}}]`},
 	}
