@@ -120,18 +120,19 @@ return [
         same(['ok' => 1, 'state' => []], json_decode($t['counterexample']['new'], true), 'new');
         same(['src/Acc.php::App\\Acc.get'], array_column($r['targets'], 'target'), 'targets (the constructor is none)');
     },
-    'a file that does not parse is an error of the whole answer, never a PASS' => function (): void {
-        $r = runEngine(diffRequest('parse', ['src/P.php']));
-        same(0, $r['code'], 'exit code');
-        check(str_contains((string) $r['response']['error'], 'src/P.php does not parse'), 'error: '
-            . json_encode($r['response']['error']));
-        same([], $r['response']['targets'], 'targets');
+    "a file that does not parse is that file's INCONCLUSIVE, and the other files keep their targets" => function (): void {
+        $r = diff('parse', ['src/P.php', 'src/Q.php']);
+        $t = target($r, 'src/P.php::src/P.php');
+        inconclusive($t, 'could not load: src/P.php does not parse: ');
+        check(!isset($t['lines']), 'a file that does not parse has no lines');
+        same('FAIL', target($r, 'src/Q.php::inc')['verdict'], 'the other file is still judged');
+        same([], $r['out_of_scope'], 'out_of_scope');
     },
     'a constructor that takes an object is INCONCLUSIVE constructor not derivable' => function (): void {
         $t = target(diff('cls', ['src/Svc.php']), 'src/Svc.php::App\\Svc.run');
         inconclusive($t, 'constructor not derivable: App\\Svc parameter $repo has type App\\Repo');
     },
-    'test code, added, deleted and non-PHP files are out of scope' => function (): void {
+    'test code, added, deleted and non-PHP files are out of scope; a changed constant is not' => function (): void {
         $r = diff('scope', ['tests/CartTest.php', 'src/FooTest.php', 'src/New.php', 'src/Old.php', 'README.md',
             'src/Consts.php']);
         same([
@@ -140,9 +141,59 @@ return [
             ['file' => 'src/New.php', 'reason' => 'added'],
             ['file' => 'src/Old.php', 'reason' => 'deleted'],
             ['file' => 'README.md', 'reason' => 'not_exported'],
-            ['file' => 'src/Consts.php', 'reason' => 'not_exported'],
         ], $r['out_of_scope'], 'out_of_scope');
-        same([], $r['targets'], 'targets');
+        // functions in other files read it: a changed constant is code that changed behavior
+        same(['src/Consts.php::LIMIT'], array_column($r['targets'], 'target'), 'targets');
+        inconclusive($r['targets'][0], 'unsupported: constant: LIMIT changed; ');
+        same([2, 2], $r['targets'][0]['lines'], 'lines');
+    },
+    'a symbol that lives in a file the engine did not load is INCONCLUSIVE could not load, never a PASS' => function (): void {
+        $r = diff('gaps', ['src/Uses.php']);
+        $t = fn (string $n) => target($r, "src/Uses.php::App\\{$n}");
+        inconclusive($t('viaClass'), 'could not load: Class "App\\Other" not found');
+        inconclusive($t('viaFn'), 'could not load: Call to undefined function App\\helper()');
+        inconclusive($t('viaConst'), 'could not load: Undefined constant "App\\RATE"');
+        inconclusive($t('Calc.run'), 'could not load: Class "App\\Other" not found');
+    },
+    'a restart of one side restarts the other, so per-process state stays in step' => function (): void {
+        $t = target(diff('gaps', ['src/Counter.php']), 'src/Counter.php::App\\tick');
+        same('FAIL', $t['verdict'], 'verdict');
+        $args = json_decode($t['counterexample']['args'], true);
+        check($args[0] >= 100, "the counterexample does not reach the change: {$t['counterexample']['args']}");
+        same(['throws' => 'exit'], json_decode($t['counterexample']['old'], true), 'old');
+        // the base exited on the call before (shrinking repeats the difference): the candidate restarted with it
+        same(['ok' => 1], json_decode($t['counterexample']['new'], true), 'new');
+    },
+    'traits, interfaces, enums, constants and top-level code that changed are INCONCLUSIVE unsupported' => function (): void {
+        $r = diff('gaps', ['src/Units.php']);
+        $t = fn (string $n) => target($r, "src/Units.php::{$n}");
+        inconclusive($t('App\\Discount'), 'unsupported: trait: App\\Discount changed; traits are judged through the classes');
+        inconclusive($t('App\\Shape'), 'unsupported: interface: App\\Shape changed; ');
+        inconclusive($t('App\\Status'), 'unsupported: enum: App\\Status changed; ');
+        inconclusive($t('App\\LIMIT'), 'unsupported: constant: App\\LIMIT changed; ');
+        inconclusive($t('src/Units.php'), 'unsupported: top-level code: statements outside functions and classes changed');
+        same(5, count($r['targets']), 'targets');
+        same([], $r['out_of_scope'], 'out_of_scope');
+    },
+    'a function declared inside if (!function_exists(...)) is judged like a top-level one' => function (): void {
+        $r = diff('gaps', ['src/Helpers.php']);
+        same(['src/Helpers.php::App\\half'], array_column($r['targets'], 'target'), 'targets');
+        same('FAIL', $r['targets'][0]['verdict'], 'verdict');
+    },
+    'a removed or no longer public symbol is INCONCLUSIVE, never silent' => function (): void {
+        $r = diff('gaps', ['src/Api.php']);
+        $gone = target($r, 'src/Api.php::App\\gone');
+        inconclusive($gone, 'unsupported: App\\gone was removed in the candidate; ');
+        check(!isset($gone['lines']), 'a removed symbol has no candidate lines');
+        inconclusive(target($r, 'src/Api.php::App\\Box.open'), 'unsupported: App\\Box.open is no longer public in the candidate');
+        same(2, count($r['targets']), 'targets');
+    },
+    'a change no judged target reaches is named; comments and layout alone stay not_exported' => function (): void {
+        $r = diff('gaps', ['src/Priv.php', 'src/Doc.php']);
+        inconclusive(target($r, 'src/Priv.php::App\\Priv.helper'), 'unsupported: method: App\\Priv.helper changed, ');
+        inconclusive(target($r, 'src/Priv.php::App\\second'), 'unsupported: function: App\\second was added, ');
+        same(2, count($r['targets']), 'targets');
+        same([['file' => 'src/Doc.php', 'reason' => 'not_exported']], $r['out_of_scope'], 'out_of_scope');
     },
     'what cannot be generated or compared is INCONCLUSIVE with its reason' => function (): void {
         $r = diff('edge', ['src/Edge.php'], ['examples' => 200, 'seed' => 42, 'call_timeout_s' => 1]);

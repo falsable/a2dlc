@@ -4,7 +4,9 @@
 // its own worker process on the same Eris-generated inputs. The first difference in return value, thrown exception or
 // output (and, for an instance method, the object's public state) is a FAIL with that counterexample. A symbol whose
 // text changed but whose code did not is a PASS "equivalent by AST" without running it. What cannot be judged is
-// INCONCLUSIVE with its reason; it is never a PASS.
+// INCONCLUSIVE with its reason; it is never a PASS. That includes code the engine does not run (traits, interfaces,
+// enums, constants, top-level statements), a public symbol the candidate removed or hid, a file that does not parse
+// and a target whose every call hit a symbol from a file the worker did not load.
 
 namespace A2dlc\PhpEngine;
 
@@ -97,22 +99,23 @@ final class Diff
     {
         $targets = [];
         $outOfScope = [];
-        try {
-            foreach ($this->req['changed_files'] as $file) {
-                $reason = $this->outOfScope($file);
-                if ($reason !== null) {
-                    $outOfScope[] = ['file' => $file, 'reason' => $reason];
-                    continue;
-                }
-                $found = $this->file($file);
-                if (!$found) {
-                    $outOfScope[] = ['file' => $file, 'reason' => 'not_exported'];
-                }
-                array_push($targets, ...$found);
+        foreach ($this->req['changed_files'] as $file) {
+            $reason = $this->outOfScope($file);
+            if ($reason !== null) {
+                $outOfScope[] = ['file' => $file, 'reason' => $reason];
+                continue;
             }
-        } catch (\PhpParser\Error $e) {
-            // A file that does not parse has no symbols to judge or to rule out: the whole answer is an error.
-            return ['schema_version' => 1, 'targets' => [], 'out_of_scope' => [], 'error' => $e->getMessage()];
+            try {
+                $found = $this->file($file);
+            } catch (\PhpParser\Error $e) {
+                // As in the TypeScript engine, a file that does not load is that file's INCONCLUSIVE, not the answer's.
+                $targets[] = $this->unjudged($file, $file, 'could not load: ' . $e->getMessage(), null);
+                continue;
+            }
+            if (!$found) {
+                $outOfScope[] = ['file' => $file, 'reason' => 'not_exported'];
+            }
+            array_push($targets, ...$found);
         }
         return ['schema_version' => 1, 'targets' => $targets, 'out_of_scope' => $outOfScope, 'error' => null];
     }
@@ -151,26 +154,93 @@ final class Diff
         $stmts = $tr->traverse($stmts);
 
         $out = [];
-        $context = [];
-        $walk = function (array $stmts) use (&$walk, &$out, &$context, $code): void {
+        $context = []; // everything outside functions and classes: what any symbol of the file may read
+        $top = []; // the part of it that is no trait, interface, enum or constant: statements run on load, declare
+        $walk = function (array $stmts) use (&$walk, &$out, &$context, &$top, $code): void {
             foreach ($stmts as $s) {
                 if ($s instanceof Stmt\Namespace_) {
                     $walk($s->stmts);
                 } elseif ($s instanceof Stmt\Use_ || $s instanceof Stmt\GroupUse) {
                     continue; // already applied by NameResolver to every name
-                } elseif ($s instanceof Stmt\Function_) {
-                    $name = $s->namespacedName->toString();
-                    $out['f:' . strtolower($name)] = $this->entity($s, $code, 'function', $name, null, null);
-                } elseif ($s instanceof Stmt\Class_ && $s->name !== null) {
-                    $this->classEntities($s, $code, $out);
+                } elseif ($s instanceof Stmt\Function_ || ($s instanceof Stmt\Class_ && $s->name !== null)) {
+                    $this->declaration($s, $code, $out);
                 } else {
-                    $context[] = $s; // constants, declare, traits, interfaces, enums, statements run on load
+                    $context[] = $s = $this->declarationsIn($s, $code, $out);
+                    if ($s instanceof Stmt\Trait_ || $s instanceof Stmt\Interface_ || $s instanceof Stmt\Enum_) {
+                        $what = strtolower(rtrim((new \ReflectionClass($s))->getShortName(), '_'));
+                        $name = $s->namespacedName->toString();
+                        $out['u:' . strtolower($name)] = $this->unit($what, $name, [$s], $s);
+                    } elseif ($s instanceof Stmt\Const_) {
+                        foreach ($s->consts as $c) {
+                            $name = $c->namespacedName->toString();
+                            $out['k:' . strtolower($name)] = $this->unit('constant', $name, [new Stmt\Const_([$c])], $c);
+                        }
+                    } else {
+                        $top[] = $s;
+                    }
                 }
             }
         };
         $walk($stmts);
-        $out['file'] = ['kind' => 'context', 'norm' => $this->printer->prettyPrint($context), 'refs' => []];
+        // what every symbol refers to (a change here reaches them all); reported through 'top' and the units
+        $out['file'] = ['unit' => null] + $this->unit('top-level code', $file, $context, null);
+        $out['top'] = $this->unit('top-level code', $file, $top, null);
         return [$out, $code];
+    }
+
+    /** @param array<string, array<string, mixed>> $out */
+    private function declaration(Stmt\Function_|Stmt\Class_ $s, string $code, array &$out): void
+    {
+        if ($s instanceof Stmt\Class_) {
+            $this->classEntities($s, $code, $out);
+            return;
+        }
+        $name = $s->namespacedName->toString();
+        $out['f:' . strtolower($name)] = $this->entity($s, $code, 'function', $name, null, null);
+    }
+
+    /**
+     * The functions and classes declared inside a top-level block (`if (!function_exists('f')) { function f() ... }`) are
+     * symbols like the top-level ones; the block keeps the rest.
+     * @param array<string, array<string, mixed>> $out
+     */
+    private function declarationsIn(Stmt $s, string $code, array &$out): Stmt
+    {
+        $v = new class extends NodeVisitorAbstract {
+            /** @var list<Stmt\Function_|Stmt\Class_> */
+            public array $found = [];
+
+            public function enterNode(Node $n)
+            {
+                if ($n instanceof Stmt\Function_ || ($n instanceof Stmt\Class_ && $n->name !== null)) {
+                    $this->found[] = $n;
+                    return NodeVisitor::DONT_TRAVERSE_CHILDREN;
+                }
+                return null;
+            }
+
+            public function leaveNode(Node $n)
+            {
+                return in_array($n, $this->found, true) ? NodeVisitor::REMOVE_NODE : null;
+            }
+        };
+        $s = (new NodeTraverser($v))->traverse([$s])[0];
+        foreach ($v->found as $d) {
+            $this->declaration($d, $code, $out);
+        }
+        return $s;
+    }
+
+    /**
+     * Code the engine does not run but other files can see (a trait, an interface, an enum, a constant, top-level
+     * statements): a change to it is reported, never judged.
+     * @param list<Node> $nodes
+     * @return array<string, mixed>
+     */
+    private function unit(string $what, string $name, array $nodes, ?Node $at): array
+    {
+        return ['kind' => 'context', 'unit' => $what, 'name' => $name, 'norm' => $this->printer->prettyPrint($nodes),
+            'refs' => [], 'lines' => $at === null ? null : [$at->getStartLine(), $at->getEndLine()]];
     }
 
     /** @param array<string, array<string, mixed>> $out */
@@ -179,8 +249,8 @@ final class Diff
         $cls = $c->namespacedName->toString();
         $shell = clone $c;
         $shell->stmts = array_values(array_filter($c->stmts, fn ($m) => !$m instanceof Stmt\ClassMethod));
-        $out['c:' . strtolower($cls)] = ['kind' => 'context', 'norm' => $this->printer->prettyPrint([$shell]),
-            'refs' => $this->refs($shell, $c)];
+        $out['c:' . strtolower($cls)] = ['kind' => 'context', 'name' => $cls, 'norm' => $this->printer->prettyPrint([$shell]),
+            'refs' => $this->refs($shell, $c), 'lines' => [$c->getStartLine(), $c->getEndLine()]];
         foreach ($c->getMethods() as $m) {
             $name = $m->name->toString();
             $kind = strtolower($name) === '__construct' ? 'init' : ($m->isStatic() ? 'static' : 'instance');
@@ -276,6 +346,7 @@ final class Diff
                 $changed[$id] = true;
             }
         }
+        $own = $changed; // what changed by itself, before the closure
         // Closure, as in the TypeScript engine: whoever uses something that changed may behave differently too.
         do {
             $grew = false;
@@ -309,18 +380,70 @@ final class Diff
             }
             $out[] = $t;
         }
+
+        // What other files can see but the engine does not run: a changed trait, interface, enum, constant or top-level
+        // code, and a public function or method that the candidate removed or hid. Base lines are not candidate lines.
+        foreach ($base as $id => $b) {
+            $c = $cand[$id] ?? null;
+            if (isset($b['unit']) && ($c === null || $c['norm'] !== $b['norm'])) {
+                $what = $b['unit'] === 'top-level code' ? 'statements outside functions and classes' : $b['name'];
+                $out[] = $this->unjudged($file, $b['name'], "unsupported: {$b['unit']}: {$what} "
+                    . ($c === null ? 'was removed' : 'changed') . '; ' . self::UNSEEN[$b['unit']], $c['lines'] ?? null);
+            } elseif ($b['kind'] !== 'context' && $b['callable'] && !($c['callable'] ?? false)) {
+                $how = match (true) {
+                    $c === null => 'was removed',
+                    $c['node'] instanceof Stmt\ClassMethod && !$c['node']->isPublic() => 'is no longer public',
+                    default => 'is now abstract',
+                };
+                $out[] = $this->unjudged($file, $b['name'], "unsupported: {$b['name']} {$how} in the candidate; "
+                    . 'its callers in other files are not run by this engine', $c['lines'] ?? null);
+            }
+        }
+
+        // A file whose code changed is never "not exported": what changed and reached no target is named here.
+        if (!$out) {
+            foreach (array_keys($own) as $id) {
+                $e = $cand[$id] ?? $base[$id];
+                $what = $e['unit'] ?? match (strstr($id, ':', true)) {
+                    'c' => 'class body', 'm' => 'method', 'f' => 'function', default => 'top-level code',
+                };
+                $how = !isset($base[$id]) ? 'was added' : (!isset($cand[$id]) ? 'was removed' : 'changed');
+                $out[] = $this->unjudged($file, $e['name'], "unsupported: {$what}: {$e['name']} {$how}, and no public "
+                    . 'function or method of this file that the engine runs uses it', $cand[$id]['lines'] ?? null);
+            }
+        }
         return $out;
     }
+
+    /** Why a change to code the engine does not run is not judged, by unit. */
+    private const UNSEEN = [
+        'trait' => 'traits are judged through the classes that use them, which this engine does not do',
+        'interface' => 'an interface is implemented and called from other files, which this engine does not run',
+        'enum' => 'enum cases and methods are not run by this engine',
+        'constant' => 'the code in other files that reads it is not run by this engine',
+        'top-level code' => 'it runs when the file is loaded, which this engine does not judge',
+    ];
 
     /** @param array<string, mixed> $e */
     private function newTarget(string $file, array $e): array
     {
-        return [
+        $t = [
             'target' => "{$file}::{$e['name']}", 'engine' => self::ENGINE, 'engine_version' => $this->version,
             'verdict' => 'PASS', 'search_budget' => ['examples' => $this->examples, 'seed' => $this->seed],
             'generators' => 'typed_default', 'typed' => true, 'domain_guard' => null, 'equivalence' => 'strict',
-            'lines' => $e['lines'], 'counterexample' => null,
+            'counterexample' => null,
         ];
+        if ($e['lines'] !== null) {
+            $t['lines'] = $e['lines'];
+        }
+        return $t;
+    }
+
+    /** An INCONCLUSIVE target for what the engine did not run. @param array{int, int}|null $lines */
+    private function unjudged(string $file, string $name, string $reason, ?array $lines): array
+    {
+        return ['verdict' => 'INCONCLUSIVE', 'reason' => mb_substr($reason, 0, 300)]
+            + $this->newTarget($file, ['name' => $name, 'lines' => $lines]);
     }
 
     // ---------- inputs ----------
@@ -474,16 +597,27 @@ final class Diff
             throw new Unjudgeable('could not load: ' . $loadError);
         }
 
-        $stats = ['reached' => false, 'closure' => false];
+        $stats = ['reached' => false, 'closure' => false, 'missing' => null];
         $last = null;
         $check = function (...$values) use ($base, $cand, $req, $nCtor, &$stats, &$last): void {
+            // A side that restarted (exit, fatal, crash) lost its static and global state: the other restarts with it.
+            if (!$base->running() || !$cand->running()) {
+                $base->start();
+                $cand->start();
+            }
             $call = $req;
             $call['ctor'] = array_map([Codec::class, 'encode'], array_slice($values, 0, $nCtor));
             $call['args'] = array_map([Codec::class, 'encode'], array_slice($values, $nCtor));
             $o = $base->call($call);
             $n = $cand->call($call);
-            if (empty($o['ctor_threw']) || empty($n['ctor_threw'])) {
+            // A call ran the code when its constructor did not throw and it found every symbol it used.
+            $ran = fn (array $m): bool => empty($m['ctor_threw']) && !isset($m['missing']);
+            if ($ran($o) || $ran($n)) {
                 $stats['reached'] = true;
+            }
+            if (isset($o['missing'], $n['missing'])) {
+                $stats['missing'] ??= $o['missing'];
+                return; // neither side ran: two "not found" messages say nothing about the change
             }
             $stats['closure'] = $stats['closure'] || !empty($o['closure']) || !empty($n['closure']);
             $oText = Codec::json(self::outcome($o));
@@ -526,6 +660,10 @@ final class Diff
             $t['verdict'] = 'FAIL';
             $t['counterexample'] = $last;
             return;
+        }
+        if (!$stats['reached'] && $stats['missing'] !== null) {
+            throw new Unjudgeable("could not load: {$stats['missing']}, on every call of both versions (the engine loads "
+                . "only {$file} and the tree's vendor/autoload.php)");
         }
         if ($stats['closure']) {
             throw new Unjudgeable("unsupported: closure: {$new['name']} returns a closure, which cannot be compared");

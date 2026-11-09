@@ -21,6 +21,10 @@ $send = function (array $msg) use ($proto): void {
 // Messages carry the tree's path and line numbers, which differ between the base and the candidate for the same code.
 $clean = fn (string $m): string => preg_replace('/ on line \d+/', '', str_replace($root . '/', '', $m));
 $thrown = fn (Throwable $e): string => get_class($e) . ': ' . $clean($e->getMessage());
+// A symbol defined in a file this worker did not load (another repo file, a vendor/ that is not in the tree): the call
+// never ran the code it was meant to run. The strings match the core's invalid-base failures for php.
+$missing = fn (Throwable $e): bool => $e instanceof Error && preg_match('/^(Class|Interface|Trait|Enum) "[^"]*" not found'
+    . '|^Call to undefined (function|method) |^Undefined constant |^Failed opening required /', $e->getMessage()) === 1;
 
 $drain = function (): string {
     $out = '';
@@ -96,6 +100,9 @@ while (($line = fgets(STDIN)) !== false) {
         }
     } catch (Throwable $e) {
         $msg['throws'] = $thrown($e);
+        if ($missing($e)) {
+            $msg['missing'] = $clean($e->getMessage());
+        }
     }
     $inCall = false;
     $out = $drain();
