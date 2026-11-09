@@ -1,0 +1,147 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "1f865af232e94d1a8dde78beafc11c49",
+    "packages": [
+        {
+            "name": "giorgiosironi/eris",
+            "version": "1.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/giorgiosironi/eris.git",
+                "reference": "049239fb03b495af80b3d493a3a5c7e5c96224fa"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/giorgiosironi/eris/zipball/049239fb03b495af80b3d493a3a5c7e5c96224fa",
+                "reference": "049239fb03b495af80b3d493a3a5c7e5c96224fa",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "ilario-pierbattista/reverse-regex": "^0.7.0 || ^0.8.0",
+                "phpstan/phpstan": "^2.0",
+                "phpunit/phpunit": "^10.0.4 || ^11.0 || ^12.0 || ^13.0",
+                "psalm/phar": "^5.4",
+                "rector/rector": "^2.0",
+                "sebastian/comparator": ">=2.1.3"
+            },
+            "suggest": {
+                "ilario-pierbattista/reverse-regex": "^0.7.0 || ^0.8.0 for the regex() Generator",
+                "phpunit/phpunit": "Standard way to run generated test cases"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/Generator/functions.php"
+                ],
+                "psr-4": {
+                    "Eris\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Giorgio Sironi",
+                    "email": "info@giorgiosironi.com"
+                },
+                {
+                    "name": "Mirko Bonadei",
+                    "email": "mirko.bonadei@gmail.com"
+                },
+                {
+                    "name": "Gabriele Lana",
+                    "email": "gabriele.lana@gmail.com"
+                }
+            ],
+            "description": "PHP library for property-based testing. Integrates with PHPUnit.",
+            "support": {
+                "issues": "https://github.com/giorgiosironi/eris/issues",
+                "source": "https://github.com/giorgiosironi/eris/tree/1.3.0"
+            },
+            "time": "2026-10-16T05:45:47+00:00",
+            "published-time": "2026-10-16T05:46:31+00:00"
+        },
+        {
+            "name": "nikic/php-parser",
+            "version": "v5.9.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nikic/PHP-Parser.git",
+                "reference": "9e33da9553fe7786f0962b35f4e4ecf01be89def"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/9e33da9553fe7786f0962b35f4e4ecf01be89def",
+                "reference": "9e33da9553fe7786f0962b35f4e4ecf01be89def",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "ext-tokenizer": "*",
+                "php": ">=7.4"
+            },
+            "require-dev": {
+                "ircmaxell/php-yacc": "^0.0.7",
+                "phpunit/phpunit": "^9.0"
+            },
+            "bin": [
+                "bin/php-parse"
+            ],
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "5.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PhpParser\\": "lib/PhpParser"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "Nikita Popov"
+                }
+            ],
+            "description": "A PHP parser written in PHP",
+            "keywords": [
+                "parser",
+                "php"
+            ],
+            "support": {
+                "issues": "https://github.com/nikic/PHP-Parser/issues",
+                "source": "https://github.com/nikic/PHP-Parser/tree/v5.9.0"
+            },
+            "time": "2026-09-13T18:51:52+00:00",
+            "published-time": "2026-09-13T18:53:16+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": {},
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {
+        "php": ">=8.3"
+    },
+    "platform-dev": {},
+    "platform-overrides": {
+        "php": "8.3.0"
+    },
+    "plugin-api-version": "2.11.0"
+}
