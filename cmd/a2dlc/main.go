@@ -79,6 +79,10 @@ const usage = `usage: a2dlc <command>
           never changes a verdict; A2DLC_FINDINGS=off stops writing it). report [--json]: per check and engine, raised, fixed, intentional,
           false, irrelevant, open. list [--open] [--json]: the finding ids. label --id <id> --as false|irrelevant --by <name> [--reason <text>]
           [--json]: the only way a finding becomes false or irrelevant (0 written, 1 no such finding, 2 record unreadable, 64 bad usage)
+  journal [--out <file>]           the development journal as one HTML page for a person or an auditor: where the change stands,
+          what waits on a person, behavior changes with their waiver and signer, open findings, and the sha256 of every file
+          it read. Rendered from the repo's own files with a fixed template and no model; it reads only and verifies no
+          signature. 0 written, 2 a source unreadable or out of contract, 64 bad usage
   hook    <claude|gemini>          adapter for the agent's end-of-turn hook
   install [--agent claude] [--agent gemini] [--no-derive-image] [--dev-deps]   config, .gitignore, pre-push and agent hooks;
           a Python repo with requirements*.txt or pyproject dependencies gets an engine image derived from them (needs the network once)
@@ -407,6 +411,8 @@ func run(args []string) int {
 		return answerCommand(a, args[1:], os.Stderr)
 	case "finding":
 		return findingCommand(a, args[1:], os.Stdout, os.Stderr)
+	case "journal":
+		return journalCommand(a, args[1:], os.Stdout, os.Stderr)
 	case "hook":
 		if len(args) < 2 || (args[1] != "claude" && args[1] != "gemini") {
 			fmt.Fprintln(os.Stderr, usage)

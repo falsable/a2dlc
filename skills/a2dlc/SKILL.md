@@ -38,6 +38,7 @@ Branch on exit codes and read JSON files; never parse prose. Every command's exi
 | `a2dlc doctor` | config, images, Docker, hooks | nothing (`--json`) |
 | `a2dlc hook` | the agent's hook event | `.a2dlc/reports/level0.json`, `.a2dlc/reports/background.json` |
 | `a2dlc finding` | `.a2dlc/reports/findings.jsonl` | the label of one finding |
+| `a2dlc journal` | `.a2dlc/verdict.json`, `.a2dlc/escalations.json`, `.a2dlc/waivers.json`, `.a2dlc/approvals.json`, `.a2dlc/reports/findings.jsonl` | one HTML page for a person (stdout or `--out`) |
 | `a2dlc approve` / `a2dlc authorize` | a person's key | `.a2dlc/approvals.json` / `.a2dlc/authorizations.json` (never run by an agent) |
 | `a2dlc mcp` | JSON-RPC on stdio | the files of the command each tool wraps |
 

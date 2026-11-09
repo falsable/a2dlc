@@ -91,6 +91,9 @@ An agent that drives `a2dlc` branches on the exit code, so the codes are part of
 | `finding` | 1 | label: no such finding. |
 | `finding` | 2 | The record is unreadable. |
 | `finding` | 64 | Bad usage. |
+| `journal` | 0 | The page was written. |
+| `journal` | 2 | A source is unreadable or out of contract, or the page could not be written. |
+| `journal` | 64 | Bad usage. |
 | `hook` | 0 | Allowed, or informed in the hook's JSON answer (a Stop that blocks does so in that answer, not in the code). |
 | `hook` | 2 | PreToolUse blocked the tool call: it edits a protected path without a signed approval, or it is git push --no-verify. |
 | `hook` | 64 | Bad usage: the agent is not claude or gemini. |
