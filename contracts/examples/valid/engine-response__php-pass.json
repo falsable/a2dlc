@@ -1,0 +1,6 @@
+{"schema_version": 1,
+ "targets": [{"target": "src/util.php::total", "engine": "eris", "engine_version": "1.0.0",
+   "verdict": "PASS", "search_budget": {"examples": 2000, "seed": 42}, "generators": "typed_default", "typed": true,
+   "domain_guard": null, "equivalence": "strict", "lines": [12, 18], "counterexample": null}],
+ "out_of_scope": [],
+ "error": null}

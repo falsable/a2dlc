@@ -522,7 +522,7 @@ Each entry of `targets` is an engine's result (`engine`, `engine_version`, `verd
 }
 ```
 
-The `engine` field names one of the engines the schema lists today (`fast-check`, `crosshair-diffbehavior`, `hypothesis`, `rapid`, `blackbox`), and `search_budget` has the shape that engine's entry in the schema requires. A new engine name is a schema change.
+The `engine` field names one of the engines the schema lists today (`fast-check`, `crosshair-diffbehavior`, `hypothesis`, `rapid`, `eris`, `blackbox`), and `search_budget` has the shape that engine's entry in the schema requires. A new engine name is a schema change.
 
 #### 6.4.4 Verdict values
 

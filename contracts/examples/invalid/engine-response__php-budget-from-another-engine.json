@@ -1,0 +1,31 @@
+{
+ "schema_version": 1,
+ "targets": [
+  {
+   "target": "src/Cart.php::App\\Cart.total",
+   "engine": "eris",
+   "engine_version": "1.0.0",
+   "verdict": "FAIL",
+   "search_budget": {
+    "iterations": 5,
+    "per_condition_timeout_s": 10
+   },
+   "generators": "typed_default",
+   "typed": true,
+   "domain_guard": null,
+   "equivalence": "strict",
+   "counterexample": {
+    "args": "[[1, 2], 3]",
+    "old": "{\"ok\":6}",
+    "new": "{\"ok\":5}"
+   }
+  }
+ ],
+ "out_of_scope": [
+  {
+   "file": "tests/CartTest.php",
+   "reason": "test_code"
+  }
+ ],
+ "error": null
+}
