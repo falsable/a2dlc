@@ -87,7 +87,7 @@ class CheckRfc(unittest.TestCase):
         self.assertTrue(any("waiver-escapes" in e for e in errs), errs)
 
     def test_a_changed_engine_list_fails(self):
-        errs = run(mutate("`rapid`, `blackbox`)", "`rapid`)"))
+        errs = run(mutate("`eris`, `blackbox`)", "`eris`)"))
         self.assertTrue(any("lists the engines" in e for e in errs), errs)
 
 
