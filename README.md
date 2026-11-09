@@ -67,7 +67,7 @@ You will see the gate **FAIL** on a refactor that silently changed behavior, pri
 
 ```bash
 cd your-repo
-a2dlc install --agent claude     # or --agent gemini; auto-detects Python / TypeScript
+a2dlc install --agent claude     # or --agent gemini; auto-detects Python / TypeScript / PHP
 a2dlc check                      # exit 0 PASS · 1 FAIL · 2 INCONCLUSIVE
 ```
 
@@ -86,6 +86,7 @@ Measured: a greenfield slice converges in **84–127 s** across 6–8 role conta
 **2. Standalone differential gate (`a2dlc check`)** — extracts every changed function from `git diff` and searches for an input where `old(x) ≠ new(x)`:
 - Python → [CrossHair](https://github.com/pschanely/CrossHair) symbolic execution (`diffbehavior`)
 - TypeScript → [fast-check](https://github.com/dubzzz/fast-check) property-based testing
+- PHP → [Eris](https://github.com/giorgiosironi/eris) property-based testing (image `a2dlc-engine-php:0.1`; top-level functions, static and instance methods, inputs from type hints)
 - Go / any CLI → black-box I/O oracle
 
 Plus test gates: *no-op test* detection (passes on the base tree), coverage precondition on changed lines, dependency allowlist. Output is `.a2dlc/verdict.json`, hash-bound to the Git tree it judged.
@@ -157,7 +158,7 @@ The AI-DLC column was read from the source code and docs of [awslabs/aidlc-workf
 
 | Command | Purpose |
 |---|---|
-| `a2dlc install [--agent claude] [--agent gemini]` | Config, `pre-push` hook, agent lifecycle hooks; when it finds a test runner (vitest, `node --test`, pytest, or a `test` script) and the config has no `tests` section, it warns that changes to code no engine examines stay INCONCLUSIVE and prints a `tests` section to edit, with a `baseline_command` that runs the whole suite, without writing it |
+| `a2dlc install [--agent claude] [--agent gemini]` | Config, `pre-push` hook, agent lifecycle hooks; when it finds a test runner (vitest, `node --test`, pytest, PHPUnit, or a `test` script) and the config has no `tests` section, it warns that changes to code no engine examines stay INCONCLUSIVE and prints a `tests` section to edit, with a `baseline_command` that runs the whole suite, without writing it (for PHPUnit it only warns: there is no `tests` stub); in a repo with `composer.json` or `.php` files it proposes the `php` engine |
 | `a2dlc check [--base <ref>] [--peer <ref>]` | Differential + test gates → `.a2dlc/verdict.json` |
 | `a2dlc verify [--commit HEAD] [--strict]` | The `pre-push`, with no engine and no Docker: blocks only on evidence about the pushed tree (a `FAIL`, an unsigned waiver of one, a protected path without approval, `critical_code` left unjudged); no receipt, a stale one or `INCONCLUSIVE` only warn, because on a repo with history "could not judge" is the normal case and a gate that blocks on it gets bypassed. `--strict`: receipt is `PASS`, matches `tree_hash`, waivers signed |
 | `a2dlc approve <file>::<symbol> --key <key>` | Sign an intentional behavior change (`ssh-keygen -Y`) |
