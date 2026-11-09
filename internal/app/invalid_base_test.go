@@ -25,7 +25,7 @@ func TestInvalidBaseFailuresDefaultsPerLanguage(t *testing.T) {
 func TestInvalidBaseFailuresDefaultsForPHP(t *testing.T) {
 	cfg := contract.Config{Engines: []contract.EngineConfig{{Language: "php"}}, Tests: &contract.TestsConfig{}}
 	got := strings.Join(invalidBaseFailures(cfg), "|")
-	for _, want := range []string{`Class "`, "not found", "Call to undefined function", "Call to undefined method", "Failed opening required"} {
+	for _, want := range []string{`(Class|Interface|Trait|Enum) "[^"]+" not found`, "Call to undefined function", "Call to undefined method", "Failed opening required"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("php default %q missing from %q", want, got)
 		}
@@ -67,5 +67,24 @@ func TestInvalidBaseFailuresTakeTheLanguageOfTheStubEngine(t *testing.T) {
 	cfg := contract.Config{Tests: &contract.TestsConfig{StubEngine: &contract.EngineConfig{Language: "python"}}}
 	if got := invalidBaseFailures(cfg); len(got) != len(unique(defaultInvalidBaseFailures["python"])) {
 		t.Fatalf("got %v", got)
+	}
+}
+
+// The PHP defaults name a missing class-like symbol, not any message with "not found" in it.
+func TestPHPInvalidBaseFailuresMatchOnlyMissingSymbols(t *testing.T) {
+	isInvalid, err := classifier(defaultInvalidBaseFailures["php"], nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for msg, want := range map[string]bool{
+		`Error: Class "App\Money" not found`:                         true,
+		`Error: Interface "App\Priced" not found`:                    true,
+		`Error: Call to undefined function App\Pricing\total()`:      true,
+		`Failed asserting that exception "UserNotFound" was thrown`:  false,
+		`Failed asserting that the user is not found in the session`: false,
+	} {
+		if got := isInvalid(msg); got != want {
+			t.Errorf("%q: invalid=%v, want %v", msg, got, want)
+		}
 	}
 }

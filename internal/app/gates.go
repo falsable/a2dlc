@@ -84,7 +84,7 @@ func (c run) readable() error {
 var defaultInvalidBaseFailures = map[string][]string{
 	"python":     {"ImportError", "ModuleNotFoundError", "AttributeError", "NameError", "^collection"},
 	"typescript": {"is not a function", "Cannot find module", "ReferenceError", "does not provide an export named"},
-	"php":        {`Class "`, "not found", "Call to undefined function", "Call to undefined method", "Failed opening required"},
+	"php":        {`(Class|Interface|Trait|Enum) "[^"]+" not found`, "Call to undefined function", "Call to undefined method", "Failed opening required"},
 }
 
 // invalidBaseFailures is the list the NOP gate classifies with: config.tests.invalid_base_failures when declared, otherwise
