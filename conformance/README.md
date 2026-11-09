@@ -80,11 +80,10 @@ not part of the kit.
 A vector with `known_failure` is expected to fail against the reference binary, and the runner reports it as `XFAIL`. It fails
 when the failure disappears, so the marker cannot rot. A marker applies only to the implementation it names: a string names the
 reference (`a2dlc`, the default of `--implementation`), and `{"<name>": "<bead>"}` names another. Run any other implementation
-with `--implementation <its name>` and it is judged on what the vectors say, so a verifier that refuses `V-receipt-007` passes it.
+with `--implementation <its name>` and it is judged on what the vectors say.
 
-- `V-receipt-007`: a receipt with a required field missing is accepted. `DecodeStrict` rejects unknown fields but does not
-  enforce `required`, `enum` or `pattern` (bead a2dlc-5fq). RFC §6.4.11 lists this and the other places where the reference is
-  more lenient than the schemas.
+No vector carries a marker today. `V-receipt-007` (a required field missing) had one until `DecodeStrict` started enforcing
+`required` (bead a2dlc-5fq). RFC §6.4.11 lists where the reference is still more lenient than the schemas.
 
 A producer's `check` also writes `.a2dlc/escalations.json`, which agents read as an API. When the file exists the runner validates it against `contracts/escalation.schema.json` and requires it to name the receipt's tree; a producer that writes none is not failed.
 

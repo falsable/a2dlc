@@ -705,7 +705,7 @@ Where the reference falls short of this section is in §6.4.11.
 
 #### 6.4.11 Known gaps of the reference
 
-- The reference rejects unknown fields when it reads a JSON document, but it does not enforce `required`, enums or string patterns (the cause of bead a2dlc-5fq). A receipt missing `created_at` is accepted by `a2dlc verify` although §6.4.3 says to reject it. `conformance/` marks such vectors as expected failures of the reference.
+- The reference rejects unknown fields and missing `required` fields when it reads a JSON document (bead a2dlc-5fq), but it does not enforce enums or string patterns; a verifier that validates against the schema is the stricter one.
 - The reference matches object keys case-insensitively (`"Target"` is read as `target`), and reads `null` or a missing string as the empty string, in `waivers.json` as in every document it decodes. The schemas reject both; a verifier that validates against the schema is the stricter one, and a producer MUST NOT rely on either.
 - On a repository with `core.ignorecase=true`, git matches pathspecs case-insensitively in some commands. The reference was exercised on git 2.51.0 with `core.ignorecase` both `true` and `false` and excluded the same paths, so §6.4.2 holds there; other git versions are not covered.
 - A working tree that holds another repository's checkout inside the repository (a nested worktree that is not tracked) enters the preview and makes the receipt stale at verification (bead a2dlc-3hd).
