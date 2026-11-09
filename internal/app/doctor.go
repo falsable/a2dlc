@@ -198,7 +198,7 @@ func configImages(cfg contract.Config) []imageUse {
 		}
 	}
 	for _, e := range cfg.Engines {
-		dir := map[string]string{"python": "engines/py", "typescript": "engines/ts"}[e.Language]
+		dir := map[string]string{"python": "engines/py", "typescript": "engines/ts", "php": "engines/php"}[e.Language]
 		use(e.Image, "the "+e.Language+" engine", dir)
 	}
 	if cfg.Tests != nil {

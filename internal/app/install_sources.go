@@ -36,7 +36,7 @@ func isTestFile(rel string) bool {
 		}
 	}
 	stem := strings.TrimSuffix(base, path.Ext(base))
-	return base == "conftest.py" || strings.HasPrefix(base, "test_") || strings.HasSuffix(stem, "_test") ||
+	return base == "conftest.py" || strings.HasSuffix(base, "Test.php") || strings.HasPrefix(base, "test_") || strings.HasSuffix(stem, "_test") ||
 		strings.HasSuffix(stem, ".test") || strings.HasSuffix(stem, ".spec")
 }
 

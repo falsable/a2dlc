@@ -22,8 +22,9 @@ const (
 // ghcr.io name@digest built from the same commit as the binary: a local tag does not exist outside the machine
 // that built it, and the engine would fail with "pull access denied". Dev builds keep the local tags.
 var (
-	enginePyImage = "a2dlc-engine-py:0.14"
-	engineTSImage = "a2dlc-engine-ts:0.4"
+	enginePyImage  = "a2dlc-engine-py:0.14"
+	engineTSImage  = "a2dlc-engine-ts:0.4"
+	enginePHPImage = "a2dlc-engine-php:0.1"
 )
 
 // Install leaves the repo ready: config if missing, .gitignore, the pre-push block and the hooks of the requested agents.
@@ -102,6 +103,14 @@ func (a App) initialConfig() contract.Config {
 		c.Engines = append(c.Engines, contract.EngineConfig{Language: "python", Image: enginePyImage,
 			Paths: []string{paths}, Budget: json.RawMessage(`{"per_condition_timeout_s":10}`)})
 	}
+	if exists("composer.json") || hasSource(files, "", ".php") {
+		paths := layout(".php")
+		if exists("composer.json") && exists("src") {
+			paths = "src/**/*.php"
+		}
+		c.Engines = append(c.Engines, contract.EngineConfig{Language: "php", Image: enginePHPImage,
+			Paths: []string{paths}, Budget: json.RawMessage(`{"examples":2000,"seed":42}`)})
+	}
 	return c
 }
 
@@ -145,7 +154,7 @@ func (a App) TestsHint() (TestsHint, bool) {
 const baselineWhy = "Without tests.baseline_command, a fix that adds no test but is covered by the existing suite ends INCONCLUSIVE, " +
 	"because Stage 4 takes coverage only from the tests that changed."
 
-// detectRunner finds the runner by the files at the repo root, in the order package.json then Python.
+// detectRunner finds the runner by the files at the repo root, in the order package.json, Python, then PHPUnit.
 func (a App) detectRunner() (runner, why string, ok bool) {
 	exists := func(rel string) bool { _, err := os.Stat(a.path(rel)); return err == nil }
 	read := func(rel string) string { b, _ := os.ReadFile(a.path(rel)); return string(b) }
@@ -180,8 +189,26 @@ func (a App) detectRunner() (runner, why string, ok bool) {
 		return "pytest", "pytest section in tox.ini or setup.cfg", true
 	case (exists("pyproject.toml") || exists("setup.py")) && pyTestFiles(a.path("tests")):
 		return "pytest", "test files under tests/", true
+	case exists("phpunit.xml"):
+		return "phpunit", "phpunit.xml", true
+	case exists("phpunit.xml.dist"):
+		return "phpunit", "phpunit.xml.dist", true
+	case phpunitInComposer(read("composer.json")):
+		return "phpunit", "phpunit/phpunit in composer.json require-dev", true
 	}
 	return "", "", false
+}
+
+// phpunitInComposer says whether a composer.json lists phpunit/phpunit under require-dev.
+func phpunitInComposer(manifest string) bool {
+	var c struct {
+		RequireDev map[string]string `json:"require-dev"`
+	}
+	if json.Unmarshal([]byte(manifest), &c) != nil {
+		return false
+	}
+	_, ok := c.RequireDev["phpunit/phpunit"]
+	return ok
 }
 
 // pyTestFiles says whether dir holds a pytest-named file (test_*.py or *_test.py) at any depth.
