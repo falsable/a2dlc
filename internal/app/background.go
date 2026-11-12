@@ -135,23 +135,14 @@ func feedbackItems(v contract.Verdict) []string {
 	var out []string
 	for _, e := range escalations(v) {
 		switch e.Kind {
-		case "uncovered_change":
-			out = append(out, fmt.Sprintf("%s: lines %s changed and no test executed them; write a test that runs them",
-				strings.TrimSuffix(e.Target, "::*"), ranges(e.Evidence.Lines)))
 		case "test_without_teeth", "check_failed":
 			out = append(out, fmt.Sprintf("%s: %s", e.Target, e.Summary))
 		}
 	}
-	for _, t := range v.Targets {
-		if t.Waived || t.Note != "" {
-			continue
-		}
-		switch {
-		case t.Verdict == contract.FAIL && t.Counterexample != nil:
-			out = append(out, fmt.Sprintf("%s: behavior changed: args %s gave %s before and %s now; restore it if the change was not intended",
-				t.Target, t.Counterexample.Args, t.Counterexample.Old, t.Counterexample.New))
-		case t.Verdict == contract.INCONCLUSIVE:
-			out = append(out, fmt.Sprintf("%s: not decided (%s)", t.Target, t.Reason))
+	// The zero config is enough: the only cause that reads it is no_engine, which is a person's and is dropped here.
+	for _, l := range blockingCauses(v, contract.Config{}) {
+		if !l.Person {
+			out = append(out, l.Text)
 		}
 	}
 	sort.Strings(out)

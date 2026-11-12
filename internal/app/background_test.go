@@ -77,7 +77,7 @@ func TestStopHandsBackTheFindingsOfTheCurrentTree(t *testing.T) {
 		t.Fatal("the background check wrote .a2dlc/verdict.json")
 	}
 	m := stopHook(t, a, "s2")
-	if m["decision"] != "block" || !strings.Contains(m["reason"], "src/lib/f.ts::f") || !strings.Contains(m["reason"], "behavior changed") {
+	if m["decision"] != "block" || !strings.Contains(m["reason"], "src/lib/f.ts::f") || !strings.Contains(m["reason"], "FAIL src/lib/f.ts::f: args=") {
 		t.Fatalf("the findings were not handed back: %v", m)
 	}
 	if m := stopHook(t, a, "s2"); m["decision"] == "block" {

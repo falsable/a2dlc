@@ -660,7 +660,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 		if v.Verdict == contract.PASS {
 			v.Verdict = contract.INCONCLUSIVE
 		}
-		noEngineEsc = append(noEngineEsc, escalation("tooling", f+"::*", fmt.Sprintf("%s is %s source and no engine in %s covers it, so this change was not judged: add an engine for it, or list the path under config.out_of_scope_paths", f, sourceLanguage[filepath.Ext(f)], pathConfig), contract.Evidence{}))
+		noEngineEsc = append(noEngineEsc, escalation("tooling", f+"::*", noEngineReason(f), contract.Evidence{}))
 	}
 	// A function the per-diff budget cut and no engine answered was not judged: the diff cannot PASS.
 	if v.Verdict == contract.PASS && verdict.HasCut(v.DiffBudget) {
