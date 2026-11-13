@@ -452,6 +452,17 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		if !res.Reviewed {
 			return buildResult{status: contract.StageEscalated, reason: noteTier0NotRun(false, unreviewed) + "; nobody reviewed the builder's candidate and the stage does not accept it"}, nil
 		}
+		// a builder stopped at its cap never said it was done, and a green Tier 0 only says the visible checks hold: while a
+		// round is left the tree goes back to it to finish (its session resumes, RFC-0009 R1); the last round's tree is taken as is
+		if noAnswer != "" && round < lastRound {
+			fb := contract.Tier0Response{SchemaVersion: contract.SchemaVersion, Findings: []contract.Tier0Finding{{Kind: contract.Tier0Unfinished, File: "/work",
+				Message: fmt.Sprintf("round %d stopped at its budget before you answered; Tier 0 found nothing on /work, which does not mean the intent is done: finish what the intent asks, with its tests, and answer", round)}}}
+			if err := ratchetFeedback(round, tree, &fb); err != nil {
+				return buildResult{}, err
+			}
+			roundNotes = append(roundNotes, fmt.Sprintf("round %d: Tier 0 passed the tree of a builder that did not answer; it went back to finish", round))
+			continue
+		}
 		// lemmas (§5 Stage 2, decision 12; lemmas.go): a refuted postcondition is the builder's, so it goes back as Tier 0
 		// feedback and spends the round, and so does a divergence from the base's lemma the first time and while a round is
 		// left; the rest is recorded in candidate.json

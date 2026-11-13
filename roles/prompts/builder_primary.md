@@ -49,6 +49,9 @@ refuse with the reason instead of guessing.
    candidate with coverage, and every changed source line that no test executed comes back to you as a finding of kind
    `coverage` ("no test executed these changed lines"). Clear it with a test that runs those lines, or remove the code
    they belong to.
+6. A finding of kind `unfinished` means your last round ran out of budget before you answered. Your edits are in
+   `/work` and the checks found nothing wrong, but nobody has said the intent is done. Check it against the intent, finish
+   what is missing, with its tests, and answer. Spend this round on finishing, not on re-reading what you already know.
 
 ## Header lines (@a2dlc)
 

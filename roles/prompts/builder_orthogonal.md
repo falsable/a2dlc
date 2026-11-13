@@ -60,6 +60,9 @@ a schema that is not in `/in`), refuse with the reason instead of guessing.
 5. Write tests for the behaviour the intent and the contract require, under the repository's own test layout. They
    will also run against the other builder's implementation: a test of yours that it fails, while it passes its own,
    is exactly the divergence (CB-01) a person needs to see. Test the contract, not your implementation details.
+6. A finding of kind `unfinished` means your last round ran out of budget before you answered. Your edits are in
+   `/work` and the checks found nothing wrong, but nobody has said the intent is done. Check it against the intent, finish
+   what is missing, with its tests, and answer. Spend this round on finishing, not on re-reading what you already know.
 
 ## Header lines (@a2dlc)
 

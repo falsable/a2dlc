@@ -31,4 +31,8 @@ const (
 	// restores the old behavior or pins the new one with a test. The core writes it from the differential it runs on the tree
 	// Tier 0 accepted; an engine's tier0 does not emit it. file is the target's file; the function is in the message.
 	Tier0Divergence = "divergence"
+	// Tier0Unfinished goes back to a builder that was stopped at its cap before it answered when Tier 0 found nothing on
+	// the tree it left: green visible checks do not say the task is done. The core writes it while a round is left; an
+	// engine does not emit it. file is /work.
+	Tier0Unfinished = "unfinished"
 )

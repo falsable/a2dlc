@@ -731,6 +731,10 @@ tag, resolves it to its digest before each launch and records the digest in the 
   spend the whole run: in a bar calibration one builder call took 36 turns and all of USD 1, and no round was left for
   Tier 0 feedback. The CLI has no turn cap, so the cap per round is money. If the CLI stops mid-edit and gives no answer,
   Stage 3 still judges what it left in `/work` as the round's candidate; if it left nothing, the next round goes on.
+  If Tier 0 passes that tree while a round is left, it goes back to the builder with one finding of kind `unfinished`,
+  because green visible tests do not say the task is done: in two measured feature tasks a first round cut at its cap
+  passed the visible suite and failed 6 of 100 and 13 of 103 hidden tests. Only the last round's unanswered tree is taken
+  as is. Each builder's session lives in `/session`, so the next round resumes it instead of reading the repository again.
 
 **What the adapter does** (`roles/adapter.py`, Python standard library only):
 

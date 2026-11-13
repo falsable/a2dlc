@@ -645,19 +645,24 @@ func TestStage3JudgesWorkOfABuilderThatGaveNoAnswer(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		content  func(round int) map[string]string
+		answers  int // first round in which the builder answers; 0: never
 		status   string
 		launches int
+		tier0    int
 		reason   string
 	}{
-		{"changed", func(int) map[string]string { return map[string]string{"src/f.py": fixed} }, contract.StageDone, 1,
+		// a green tree left without an answer goes back while a round is left (a2dlc-4dt.7), and the last round's is taken
+		{"changed", func(int) map[string]string { return map[string]string{"src/f.py": fixed} }, 0, contract.StageDone, 2, 2,
+			"round 1: Tier 0 passed the tree of a builder that did not answer; it went back to finish"},
+		{"changed then answered", func(int) map[string]string { return map[string]string{"src/f.py": fixed} }, 2, contract.StageDone, 2, 2,
 			"round 1: the builder did not give a valid answer in 1 attempts; its changes in /work were judged"},
 		{"empty then changed", func(r int) map[string]string {
 			if r == 1 {
 				return map[string]string{}
 			}
 			return map[string]string{"src/f.py": fixed}
-		}, contract.StageDone, 2, "round 1: the builder did not give a valid answer in 1 attempts and left no changes in /work; the next round goes on"},
-		{"never changed", func(int) map[string]string { return map[string]string{} }, contract.StageFailed, 2,
+		}, 0, contract.StageDone, 2, 1, "round 1: the builder did not give a valid answer in 1 attempts and left no changes in /work; the next round goes on"},
+		{"never changed", func(int) map[string]string { return map[string]string{} }, 0, contract.StageFailed, 2, 0,
 			"the builder did not give a valid answer in 1 attempts"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -665,8 +670,11 @@ func TestStage3JudgesWorkOfABuilderThatGaveNoAnswer(t *testing.T) {
 			var requests []contract.BuilderRequest
 			inner := fakeBuilder(t, &requests, func(pl contract.BuilderRequest) map[string]string { return tc.content(pl.Round) })
 			launcherFake := &fakeLauncher{script: func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
-				inner(s)
-				return nil, 1, false
+				resp, exit, to := inner(s)
+				if tc.answers == 0 || len(requests) < tc.answers {
+					return nil, 1, false
+				}
+				return resp, exit, to
 			}}
 			st, err := Run(context.Background(), a, launcherFake, Options{Slice: "noans", MaxInner: 2})
 			if err != nil {
@@ -676,8 +684,14 @@ func TestStage3JudgesWorkOfABuilderThatGaveNoAnswer(t *testing.T) {
 			if s3.Status != tc.status || len(requests) != tc.launches || !strings.Contains(s3.Reason, tc.reason) {
 				t.Fatalf("%+v %d", s3, len(requests))
 			}
-			if want := map[string]int{contract.StageDone: 1, contract.StageFailed: 0}[tc.status]; eng.tier0 != want {
-				t.Fatalf("tier0=%d, want %d", eng.tier0, want)
+			if eng.tier0 != tc.tier0 {
+				t.Fatalf("tier0=%d, want %d", eng.tier0, tc.tier0)
+			}
+			if tc.tier0 == 2 {
+				fb := requests[1].Tier0Feedback
+				if fb == nil || len(fb.Findings) != 1 || fb.Findings[0].Kind != contract.Tier0Unfinished {
+					t.Fatalf("round 2 feedback %+v", fb)
+				}
 			}
 		})
 	}
