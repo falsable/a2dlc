@@ -27,11 +27,15 @@ type exhaustion struct {
 	rounds       int    // max_inner_iterations: the role's loop rounds
 	tierUp       string // family of the tier_up declared in roles.json; "" if none is declared
 	reasonTierUp string // if the tier_up iteration did not give green Tier 0 but something else (refused, without changes), its reason
+	stalled      string // set when the loop stopped early because a round repeated the previous Tier 0 findings
 	last         string // summary of the last Tier 0 feedback (or of the tier_up)
 }
 
 // described says what the escalation states about the extra iteration: whether there was one, and how it ended.
 func (a exhaustion) described() string {
+	if a.stalled != "" {
+		return a.stalled + "; " + exhaustion{tierUp: a.tierUp, reasonTierUp: a.reasonTierUp}.described()
+	}
 	switch {
 	case a.tierUp == "":
 		return "roles.json declares no tier_up: the escalation goes to a person directly (protocol §7 allows it)"

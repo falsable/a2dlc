@@ -294,7 +294,9 @@ func TestStage3BuilderConvergesAndStage4JudgesItsCommit(t *testing.T) {
 func TestStage3ExhaustsRoundsAndEscalates(t *testing.T) {
 	a, dir, _ := repoBuilder(t)
 	var requests []contract.BuilderRequest
-	broken := func(contract.BuilderRequest) map[string]string { return map[string]string{"src/f.py": "ROTO\n"} }
+	broken := func(pl contract.BuilderRequest) map[string]string { // the line moves: no stall
+		return map[string]string{"src/f.py": strings.Repeat("\n", pl.Round) + "ROTO\n"}
+	}
 	launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, broken)}
 	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "agota", MaxInner: 2})
 	if err != nil {

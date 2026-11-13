@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -278,7 +279,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		}
 		switch {
 		case c.status == contract.StageDone:
-			c.notes = append([]string{fmt.Sprintf("CB-02b: builder exhausted after %d rounds; the higher tier (%s) resolved it", in.rounds, tierUp.Family)}, c.notes...)
+			c.notes = append([]string{fmt.Sprintf("CB-02b: builder exhausted after %d rounds; the higher tier (%s) resolved it", agent.rounds, tierUp.Family)}, c.notes...)
 		case c.status == contract.StageEscalated && c.agot == nil && len(c.boundary) == 0:
 			// a boundary or dependency escalation is a decision for a person, not a builder that ran out of rounds: it stays
 			agent.reasonTierUp, agent.last = c.reason, findingsSummary(feedback)
@@ -314,6 +315,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		return err
 	}
 	lastRound := in.rounds + extra
+	var prevFindings []contract.Tier0Finding
 	for round := 1; round <= lastRound; round++ {
 		cfg, maxRounds := (*contract.Role)(nil), in.rounds
 		if round > in.rounds {
@@ -409,9 +411,23 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		if _, err := m.writeArtifact(tier0Artifact, res); err != nil {
 			return buildResult{}, err
 		}
-		if !res.OK {
+		if res.OK {
+			prevFindings = nil // a round that passed Tier 0 breaks the "same as the previous round" comparison
+		} else {
+			same := round > 1 && sameFindings(prevFindings, res.Findings)
+			prevFindings = res.Findings
 			if err := ratchetFeedback(round, tree, &res); err != nil {
 				return buildResult{}, err
+			}
+			// the same findings twice in a row: more normal rounds only burn budget, so go to CB-02b now
+			if same && round < in.rounds {
+				agent.rounds = round
+				agent.stalled = fmt.Sprintf("no progress: round %d returned the same Tier 0 findings as round %d", round, round-1)
+				if tierUp == nil {
+					agent.last = findingsSummary(feedback)
+					return m.exhausted(agent, tier0Artifact), nil
+				}
+				round = in.rounds // the loop's increment lands on the tier_up round
 			}
 			continue
 		}
@@ -485,6 +501,30 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 	}
 	agent.last = findingsSummary(feedback)
 	return m.exhausted(agent, tier0Artifact), nil
+}
+
+// sameFindings says whether two Tier 0 answers carry the same (kind, file, line, message) multiset; a nil line differs from any number.
+func sameFindings(a, b []contract.Tier0Finding) bool {
+	key := func(f contract.Tier0Finding) string {
+		line := "-"
+		if f.Line != nil {
+			line = strconv.Itoa(*f.Line)
+		}
+		return strings.Join([]string{f.Kind, f.File, line, f.Message}, "\x00")
+	}
+	count := map[string]int{}
+	for _, f := range a {
+		count[key(f)]++
+	}
+	for _, f := range b {
+		count[key(f)]--
+	}
+	for _, n := range count {
+		if n != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // join joins the non-empty reasons of a stage.

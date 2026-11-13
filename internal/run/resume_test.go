@@ -37,8 +37,9 @@ func converge(contract.BuilderRequest) map[string]string {
 	return map[string]string{"src/f.py": "def f(x):\n    return x * 2\n"}
 }
 
-func broken(contract.BuilderRequest) map[string]string {
-	return map[string]string{"src/f.py": "ROTO\n"}
+// broken moves the finding line each round: identical findings would stop the loop early (no progress).
+func broken(pl contract.BuilderRequest) map[string]string {
+	return map[string]string{"src/f.py": strings.Repeat("\n", pl.Round) + "ROTO\n"}
 }
 
 func ledgerOf(t *testing.T, run string) contract.RunLedger {

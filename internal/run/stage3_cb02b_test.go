@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/falsable/a2dlc/internal/app"
 	"github.com/falsable/a2dlc/internal/contract"
 )
 
@@ -235,5 +236,92 @@ func withoutExhaustion(t *testing.T, path string) {
 		if e.Kind == KindBuilderExhaustion {
 			t.Fatalf("a builder_exhaustion remains in %s: %s", path, b)
 		}
+	}
+}
+
+// Identical Tier 0 findings in two consecutive rounds stop the normal rounds: without tier_up the stage escalates after 2 launches.
+func TestCB02bNoProgressStopsEarlyWithoutTierUp(t *testing.T) {
+	a, _, _ := repoBuilder(t)
+	var requests []contract.BuilderRequest
+	launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, alwaysBroken)}
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "np-no-tier", MaxInner: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s3 := st.Stages[5]
+	if s3.Status != contract.StageEscalated || !strings.HasPrefix(s3.Reason, "CB-02b: ") || len(requests) != 2 || s3.Iterations != 2 ||
+		!strings.Contains(s3.Reason, "no progress: round 2 returned the same Tier 0 findings as round 1") || !strings.Contains(s3.Reason, "after 2 rounds") {
+		t.Fatalf("%+v %d", s3, len(requests))
+	}
+}
+
+// With tier_up declared, the same stall jumps to the tier_up launch (the third) instead of the remaining normal rounds.
+func TestCB02bNoProgressJumpsToTierUp(t *testing.T) {
+	a, dir, _ := repoBuilder(t)
+	write(t, dir, ".a2dlc/roles.json", rolesWithTierUp)
+	var requests []contract.BuilderRequest
+	launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, alwaysBroken)}
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "np-tier", MaxInner: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s3 := st.Stages[5]
+	if s3.Status != contract.StageEscalated || len(requests) != 3 || requests[2].Round != 6 || requests[2].MaxRounds != 6 ||
+		!strings.Contains(s3.Reason, "no progress: round 2 returned the same Tier 0 findings as round 1") || !strings.Contains(s3.Reason, "the tier_up (gemini) spent an extra round") {
+		t.Fatalf("%+v %d %+v", s3, len(requests), requests)
+	}
+	var lg contract.RunLedger
+	readJSONTest(t, filepath.Join(dir, ".a2dlc/run/np-tier", "ledger.json"), &lg)
+	if len(lg.Entries) != 3 || lg.Entries[2].Family != "gemini" {
+		t.Fatalf("%+v", lg.Entries)
+	}
+}
+
+// Findings that change from round to round are progress: all the normal rounds are used.
+func TestCB02bChangingFindingsUseAllRounds(t *testing.T) {
+	a, _, _ := repoBuilder(t)
+	var requests []contract.BuilderRequest
+	launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, func(pl contract.BuilderRequest) map[string]string {
+		return map[string]string{"src/f.py": strings.Repeat("\n", pl.Round) + "ROTO\n"} // the finding's line moves
+	})}
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "np-moves", MaxInner: 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s3 := st.Stages[5]
+	if s3.Status != contract.StageEscalated || len(requests) != 3 || strings.Contains(s3.Reason, "no progress") {
+		t.Fatalf("%+v %d", s3, len(requests))
+	}
+}
+
+// A round that passes Tier 0 (here sent back by a refuted lemma) breaks the comparison: the same Tier 0 findings in
+// rounds 1 and 3 are not "the previous round's", so the loop goes on and converges in round 4.
+func TestCB02bGreenTier0RoundBetweenEqualFindingsIsNotAStall(t *testing.T) {
+	a, _, eng := repoBuilder(t)
+	withRouterN2(t)
+	eng.lemmas = func(_ contract.LemmasBudget, f string) contract.LemmasResponse {
+		if strings.Contains(f, "abs(") {
+			return contract.LemmasResponse{SchemaVersion: 1, Lemmas: []contract.LemmaResult{{Name: "f", Status: app.LemmaPass, Message: "confirmed"}}}
+		}
+		return contract.LemmasResponse{SchemaVersion: 1, Lemmas: []contract.LemmaResult{{Name: "f", Status: app.LemmaFail,
+			Message: "breaks its postcondition", Counterexample: map[string]any{"args": "x=-1", "returned": "-1"}}}}
+	}
+	var requests []contract.BuilderRequest
+	launcherFake := &fakeLauncher{script: fakeBuilderLemmas(t, &requests, []contract.BuilderLemma{{Name: "f", Postcondition: "result >= 0"}}, func(pl contract.BuilderRequest) map[string]string {
+		switch pl.Round {
+		case 1, 3:
+			return map[string]string{"src/f.py": "ROTO\n"}
+		case 2:
+			return map[string]string{"src/f.py": "def f(x: int) -> int:\n    return x\n"}
+		}
+		return map[string]string{"src/f.py": "def f(x: int) -> int:\n    return abs(x)\n"}
+	})}
+	path := intentFile(t, func(in *contract.Intent) { in.SliceID, in.Mode, in.Goal = "np-green", contract.ModeLite, "f nonneg" })
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "np-green", Intent: path, MaxInner: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s3 := st.Stages[5]; s3.Status != contract.StageDone || len(requests) != 4 {
+		t.Fatalf("%+v %d", s3, len(requests))
 	}
 }
