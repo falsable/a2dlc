@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/falsable/a2dlc/internal/app"
@@ -140,5 +141,81 @@ func TestStage3TestsWithoutJUnitAreAToolErrorNotFeedback(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, ".a2dlc/run/t.nojunit", ArtCandidate)); err == nil {
 		t.Fatal("candidate.json for a candidate nobody reviewed")
+	}
+}
+
+// runnerLog is runnerDoubles that also records every (command, tree content) it was asked to run, and resolves the image digest
+// so the suite cache can be keyed.
+type runnerLog struct {
+	runnerDoubles
+	mu    sync.Mutex
+	pairs []string
+}
+
+func (r *runnerLog) ImageDigest(context.Context, string) (string, error) { return testDigest, nil }
+
+func (r *runnerLog) RunTests(ctx context.Context, cfg contract.TestsConfig, cmd string, env map[string]string, tree string) (engine.TestRun, error) {
+	src, _ := os.ReadFile(filepath.Join(tree, "src", "f.py"))
+	r.mu.Lock()
+	r.pairs = append(r.pairs, cmd+"@"+hashBytes(src))
+	r.mu.Unlock()
+	return r.runnerDoubles.RunTests(ctx, cfg, cmd, env, tree)
+}
+
+// onTree is how many times any command ran on the tree whose src/f.py is src.
+func (r *runnerLog) onTree(src string) int {
+	n := 0
+	for _, p := range r.pairs {
+		if strings.HasSuffix(p, "@"+hashBytes([]byte(src))) {
+			n++
+		}
+	}
+	return n
+}
+
+// With tests.tier0_command "baseline" the suite Tier 0 ran on the candidate's tree is the one Stage 4's baseline gate takes
+// from the cache: over a whole run, with two builder rounds, each candidate tree is run once. Stage -1 re-runs the base on
+// purpose (flaky detection), so the base tree is left out. Without the option the accepted tree gets tests.command in Tier 0
+// and baseline_command again in Stage 4.
+func TestRunNeverRunsTheSameSuiteTwiceOnACandidateTree(t *testing.T) {
+	const cfgTail = `"tests":{"image":"x","paths":["test/**"],"command":"run","baseline_command":"base"`
+	for _, tc := range []struct {
+		name, tier0 string
+		wantTwice   bool
+	}{{"baseline", `,"tier0_command":"baseline"`, false}, {"control: tier0_command absent", "", true}} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("A2DLC_CACHE_DIR", t.TempDir())
+			runner := &runnerLog{}
+			a, dir := repoTestsOnly(t, runner)
+			write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],`+cfgTail+tc.tier0+`}}`)
+			git(t, dir, "add", "-A")
+			git(t, dir, "commit", "-qm", "baseline config")
+			var requests []contract.BuilderRequest
+			launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, func(pl contract.BuilderRequest) map[string]string {
+				if pl.Tier0Feedback == nil {
+					return map[string]string{"src/f.py": wrongFile}
+				}
+				return map[string]string{"src/f.py": doublesFile}
+			})}
+			st, err := Run(context.Background(), a, launcherFake, Options{Slice: "t.once"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if s3 := st.Stages[5]; s3.Status != contract.StageDone || s3.Iterations != 2 || len(requests) != 2 {
+				t.Fatalf("%+v requests %d", s3, len(requests))
+			}
+			wantAccepted := 1
+			if tc.wantTwice {
+				wantAccepted = 2
+			}
+			if w, d := runner.onTree(wrongFile), runner.onTree(doublesFile); w != 1 || d != wantAccepted {
+				t.Fatalf("runs on the failed tree %d (want 1), on the accepted tree %d (want %d): %v", w, d, wantAccepted, runner.pairs)
+			}
+			var v contract.Verdict
+			readJSONTest(t, filepath.Join(dir, ".a2dlc/run/t.once", ArtVerdict), &v)
+			if v.TestGates == nil || v.TestGates.Baseline.CandidateCached == tc.wantTwice {
+				t.Fatalf("baseline gate %+v, want candidate_cached %v", v.TestGates, !tc.wantTwice)
+			}
+		})
 	}
 }
