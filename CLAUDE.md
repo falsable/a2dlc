@@ -40,6 +40,7 @@ Go is not installed on the host, and it will not be installed. Everything runs i
 ## Never
 - An approval signature that does not bind the file's blob: it would be valid for future changes to the same function.
 - Read `allowed_signers` from the repo: the agent would add its own key in the same diff.
-- Ask for, store or pass the passphrase of the signing key. ssh-keygen accepts it via stdin; the only thing that protects the signature is that the agent does not know it.
+- Ask for, store or pass the passphrase of a person's signing key. ssh-keygen accepts it via stdin; what protects that signature is that no agent knows it.
+- Let the role that wrote a change reach a key that can approve it. An orchestrator (a service that runs builders and talks to the person through a tracker) may sign with a key of its own, on a person's recorded approval, under the conditions of RFC-0007 "Who signs": the key is never mounted into a role's container or put in its environment, and a person added it to the allowed signers.
 - Skip the gate when the binary is missing: the pre-push uses the absolute path and, if it cannot find it, fails.
 - Put host paths (`C:/Users/...`), owner quotes or AO worker and session ids (`a2dlc-N`) in a tracked file or a commit message: the repo is public and a push publishes the whole history. Use a variable or a path relative to the repo, say "the owner approved" and not the quote, and say "a worker session" and not its id.
