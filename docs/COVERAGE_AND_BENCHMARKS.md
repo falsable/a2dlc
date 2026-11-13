@@ -720,6 +720,11 @@ tag, resolves it to its digest before each launch and records the digest in the 
   values are in the file you commit and in the hashed `docker run` argv, and their names go to the ledger next to the
   `env_file` ones. A key the core sets itself (`HOME`, `A2DLC_REQUEST`, `A2DLC_RESPONSE`, `A2DLC_ROLE`, `A2DLC_STAGE`) is
   rejected by the schema and by the launcher.
+- An `env` value may carry `{remaining_usd}`. At each launch the core replaces it with the USD left under
+  `--max-cost-usd` (or the intent's `budget.max_cost_usd`), with four decimals, so a role command such as
+  `claude --max-budget-usd {remaining_usd}` gets a hard cap that shrinks as the run spends. CB-03 only checks between
+  launches; without this, a launch that starts just under the cap can spend its own whole cap again. A run without a
+  cost cap, or with nothing left, refuses to launch a role that uses it.
 
 **What the adapter does** (`roles/adapter.py`, Python standard library only):
 

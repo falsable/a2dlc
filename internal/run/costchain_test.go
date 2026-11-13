@@ -127,3 +127,38 @@ func TestCostChainFourCountersAddUpAndCB03CutsByTokensAndByCost(t *testing.T) {
 		}
 	})
 }
+
+// envLauncher records the env each launch received, after the core filled it.
+type envLauncher struct {
+	*fakeLauncher
+	envs []map[string]string
+}
+
+func (l *envLauncher) Launch(ctx context.Context, r contract.Role, s LaunchSpec) (LaunchResult, error) {
+	l.envs = append(l.envs, r.Env)
+	return l.fakeLauncher.Launch(ctx, r, s)
+}
+
+// a2dlc-bv4: through Run, every builder launch gets in its env what is left under max_cost_usd after the spend the
+// ledger has recorded, so the role's own cap shrinks launch by launch.
+func TestRemainingUSDShrinksAcrossLaunchesOfARun(t *testing.T) {
+	cost := goldenCost(t)
+	a, dir, _ := repoBuilder(t)
+	write(t, dir, ".a2dlc/roles.json", `{"schema_version":1,"roles":{"builder_primary":{"family":"claude","image":"img:1","argv":["sh","x"],"retries":0,"env":{"A2DLC_LLM_CMD":"claude --max-budget-usd {remaining_usd}"}}}}`)
+	var requests []contract.BuilderRequest
+	launcher := &envLauncher{fakeLauncher: &fakeLauncher{script: costed(fakeBuilder(t, &requests, broken), cost)}}
+	opts := Options{Slice: "bv4.usd", MaxInner: 3, MaxCostUSD: 0.2}
+	opts.Intent = intentFile(t, func(in *contract.Intent) { in.SliceID, in.Mode, in.Goal = opts.Slice, contract.ModeLite, "f doubles" })
+	if _, err := Run(context.Background(), a, launcher, opts); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"0.2000", "0.1600", "0.1200"} // 0.04 USD per call (the golden cost)
+	if len(launcher.envs) != len(want) {
+		t.Fatalf("%d launches, wanted %d", len(launcher.envs), len(want))
+	}
+	for i, env := range launcher.envs {
+		if got := env["A2DLC_LLM_CMD"]; got != "claude --max-budget-usd "+want[i] {
+			t.Fatalf("launch %d got %q, wanted the remaining %s", i+1, got, want[i])
+		}
+	}
+}
