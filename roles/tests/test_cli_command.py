@@ -129,6 +129,18 @@ class SessionArgsTest(unittest.TestCase):
             self.assertEqual(other[0], "--session-id")
             self.assertNotEqual(other[1], sid)
 
+    def test_a_resumed_round_reports_only_its_own_usd(self):
+        with tempfile.TemporaryDirectory() as root:
+            os.environ["A2DLC_SESSION"] = root
+            # attr, task 4 of PREREG-entropos: round 2 reported the session's 0.8011 after round 1's 0.5219
+            self.assertEqual(adapter.own_cost({"usd": 0.5219, "turns": 18})["usd"], 0.5219)
+            second = adapter.own_cost({"usd": 0.8011, "turns": 14})
+            self.assertAlmostEqual(second["usd"], 0.2792)
+            self.assertEqual(second["turns"], 14)
+            self.assertIsNone(adapter.own_cost(None))
+        os.environ.pop("A2DLC_SESSION")
+        self.assertEqual(adapter.own_cost({"usd": 0.3}), {"usd": 0.3})
+
 
 if __name__ == "__main__":
     unittest.main()

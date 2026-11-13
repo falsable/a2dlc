@@ -9,7 +9,8 @@ The core launches this script inside the role's container (image a2dlc-roles) wi
   A2DLC_REQUEST, A2DLC_RESPONSE, A2DLC_ROLE, A2DLC_STAGE   set by the core
   A2DLC_TIMEOUT_S   role cap in seconds (roles.<role>.timeout_s): the CLI is cut a little earlier, with an error
   A2DLC_SESSION     only for builders: a folder that outlives the container, one per builder and run. With claude the
-                    session is kept there (CLAUDE_CONFIG_DIR), so the next round resumes it instead of starting over
+                    session is kept there (CLAUDE_CONFIG_DIR), so the next round resumes it instead of starting over; the
+                    session's spend so far is kept there too, so each round reports only its own cost
 and the provider credential arrives through --env-file: with claude, gemini or acp only the agent's CLI reads it, never
 this script; with openrouter or entropos this script is the HTTP client and sends the key in the header, never writing it out.
 
@@ -377,6 +378,19 @@ def session_args(req: dict) -> list[str]:
     sid = str(uuid.uuid5(uuid.NAMESPACE_URL, f"a2dlc:{req['run_id']}:{req.get('slice_id') or ''}:{req['role']}"))
     # shortcut: a resumed round gets the full prompt again; send only what changed if the repeated prefix costs too much
     return ["--resume", sid] if any(Path(config, "projects").glob(f"*/{sid}.jsonl")) else ["--session-id", sid]
+
+
+def own_cost(cost: dict | None) -> dict | None:
+    """The cost of this call alone. A resumed claude session reports total_cost_usd for the whole session (usage and
+    num_turns stay per call), so a builder with A2DLC_SESSION keeps the session's last total in /session and subtracts it.
+    A call that reported nothing leaves the total as it was, and its spend shows up in the next call that reports."""
+    root = os.environ.get("A2DLC_SESSION", "").strip()
+    if not cost or not root or not os.path.isdir(root):
+        return cost
+    spent = Path(root, "spent_usd")
+    before = float(spent.read_text(encoding="utf-8")) if spent.exists() else 0.0
+    spent.write_text(repr(cost["usd"]), encoding="utf-8")
+    return {**cost, "usd": max(0.0, cost["usd"] - before)}
 
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -1033,13 +1047,20 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
         # claude's and acp's event streams stay in /out for every call, cut off or not; gemini has none
         stream = out_dir / STREAM_FILE if llm in ("claude", "acp") else None
         budget = acp_budget() if llm == "acp" else None
-        if builder and work.is_dir():
-            stdout, stderr, code = call_cli(cmd, prompt, str(work), stream, budget)
-        else:
-            # the other roles touch nothing: ephemeral cwd, so /out only carries what the role delivers
-            with tempfile.TemporaryDirectory() as tmp:
-                stdout, stderr, code = call_cli(cmd, prompt, tmp, stream, budget)
-        text, cost, model = {"claude": read_claude, "acp": read_acp}.get(llm, read_gemini)(stdout, stderr, code)
+        try:
+            if builder and work.is_dir():
+                stdout, stderr, code = call_cli(cmd, prompt, str(work), stream, budget)
+            else:
+                # the other roles touch nothing: ephemeral cwd, so /out only carries what the role delivers
+                with tempfile.TemporaryDirectory() as tmp:
+                    stdout, stderr, code = call_cli(cmd, prompt, tmp, stream, budget)
+            text, cost, model = {"claude": read_claude, "acp": read_acp}.get(llm, read_gemini)(stdout, stderr, code)
+        except Failure as f:
+            if builder and llm == "claude":
+                f.cost = own_cost(f.cost)
+            raise
+        if builder and llm == "claude":
+            cost = own_cost(cost)
     try:
         status, reason, files, payload = validate_model(model_object(text), builder, without_tools)
     except Failure as f:
