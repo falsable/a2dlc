@@ -832,6 +832,160 @@
    }
   },
   {
+   "id": "V-run-028",
+   "title": "three launches with their cost in the chain, and a state.json that records the same spend",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0.12,\n  \"spent_tokens\": 750,\n  \"unreported_roles\": 0,\n  \"by_role\": {\n   \"builder_primary\": 0.12\n  }\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:e8b9d1150c5a6f02eb2ef4e3228c34777db3a842ae06fd79f5d62bacefa39aa3\",\n   \"at\": \"2026-11-08T10:01:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 1,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:8a0a4da36590d05e8be797c752bf43557fcdad131befdd4ad96689cc49901ed8\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  },\n  {\n   \"seq\": 2,\n   \"prev_hash\": \"sha256:e8b9d1150c5a6f02eb2ef4e3228c34777db3a842ae06fd79f5d62bacefa39aa3\",\n   \"hash\": \"sha256:701f9b894f96431918198e9ab616fc15bda1e07daefa6ee3f67d4b6f1160b7d1\",\n   \"at\": \"2026-11-08T10:02:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 2,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:a10440d01adaeeb1b7cdb768f17bc5ebeb53ac5d9585d54be6a00605f2866501\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  },\n  {\n   \"seq\": 3,\n   \"prev_hash\": \"sha256:701f9b894f96431918198e9ab616fc15bda1e07daefa6ee3f67d4b6f1160b7d1\",\n   \"hash\": \"sha256:a3ffbef0c394307eabcd1253480272b12f8f07a72efe0abb852080a54ade7b5d\",\n   \"at\": \"2026-11-08T10:03:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 3,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:b82d8595d1847c9f21c870c2e36607176fabffecdda05ed835252e00ff7b3a0b\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": true
+   }
+  },
+  {
+   "id": "V-run-029",
+   "title": "two entries swapped: each hash is its own, but seq and prev_hash no longer follow",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0.12,\n  \"spent_tokens\": 750,\n  \"unreported_roles\": 0,\n  \"by_role\": {\n   \"builder_primary\": 0.12\n  }\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 2,\n   \"prev_hash\": \"sha256:e8b9d1150c5a6f02eb2ef4e3228c34777db3a842ae06fd79f5d62bacefa39aa3\",\n   \"hash\": \"sha256:701f9b894f96431918198e9ab616fc15bda1e07daefa6ee3f67d4b6f1160b7d1\",\n   \"at\": \"2026-11-08T10:02:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 2,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:a10440d01adaeeb1b7cdb768f17bc5ebeb53ac5d9585d54be6a00605f2866501\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  },\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:e8b9d1150c5a6f02eb2ef4e3228c34777db3a842ae06fd79f5d62bacefa39aa3\",\n   \"at\": \"2026-11-08T10:01:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 1,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:8a0a4da36590d05e8be797c752bf43557fcdad131befdd4ad96689cc49901ed8\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  },\n  {\n   \"seq\": 3,\n   \"prev_hash\": \"sha256:701f9b894f96431918198e9ab616fc15bda1e07daefa6ee3f67d4b6f1160b7d1\",\n   \"hash\": \"sha256:a3ffbef0c394307eabcd1253480272b12f8f07a72efe0abb852080a54ade7b5d\",\n   \"at\": \"2026-11-08T10:03:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 3,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:b82d8595d1847c9f21c870c2e36607176fabffecdda05ed835252e00ff7b3a0b\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "ledger_chain"
+    ]
+   }
+  },
+  {
+   "id": "V-run-030",
+   "title": "the last launch cut off a valid chain while state.json records its spend",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0.12,\n  \"spent_tokens\": 750,\n  \"unreported_roles\": 0,\n  \"by_role\": {\n   \"builder_primary\": 0.12\n  }\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 1,\n   \"prev_hash\": null,\n   \"hash\": \"sha256:e8b9d1150c5a6f02eb2ef4e3228c34777db3a842ae06fd79f5d62bacefa39aa3\",\n   \"at\": \"2026-11-08T10:01:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 1,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:8a0a4da36590d05e8be797c752bf43557fcdad131befdd4ad96689cc49901ed8\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  },\n  {\n   \"seq\": 2,\n   \"prev_hash\": \"sha256:e8b9d1150c5a6f02eb2ef4e3228c34777db3a842ae06fd79f5d62bacefa39aa3\",\n   \"hash\": \"sha256:701f9b894f96431918198e9ab616fc15bda1e07daefa6ee3f67d4b6f1160b7d1\",\n   \"at\": \"2026-11-08T10:02:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 2,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:a10440d01adaeeb1b7cdb768f17bc5ebeb53ac5d9585d54be6a00605f2866501\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "ledger_truncated"
+    ]
+   },
+   "known_failure": {
+    "clean-room-python": "AMENDMENTS D6"
+   }
+  },
+  {
+   "id": "V-run-031",
+   "title": "the first entry cut off: the chain does not start at seq 1",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0.12,\n  \"spent_tokens\": 750,\n  \"unreported_roles\": 0,\n  \"by_role\": {\n   \"builder_primary\": 0.12\n  }\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n",
+    ".a2dlc/run/core.m.v1/ledger.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"entries\": [\n  {\n   \"seq\": 2,\n   \"prev_hash\": \"sha256:e8b9d1150c5a6f02eb2ef4e3228c34777db3a842ae06fd79f5d62bacefa39aa3\",\n   \"hash\": \"sha256:701f9b894f96431918198e9ab616fc15bda1e07daefa6ee3f67d4b6f1160b7d1\",\n   \"at\": \"2026-11-08T10:02:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 2,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:a10440d01adaeeb1b7cdb768f17bc5ebeb53ac5d9585d54be6a00605f2866501\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  },\n  {\n   \"seq\": 3,\n   \"prev_hash\": \"sha256:701f9b894f96431918198e9ab616fc15bda1e07daefa6ee3f67d4b6f1160b7d1\",\n   \"hash\": \"sha256:a3ffbef0c394307eabcd1253480272b12f8f07a72efe0abb852080a54ade7b5d\",\n   \"at\": \"2026-11-08T10:03:00Z\",\n   \"stage\": \"3\",\n   \"role\": \"builder_primary\",\n   \"attempt\": 3,\n   \"family\": \"claude\",\n   \"image\": \"a2dlc-role-builder\",\n   \"image_digest\": null,\n   \"argv_sha256\": \"sha256:b82d8595d1847c9f21c870c2e36607176fabffecdda05ed835252e00ff7b3a0b\",\n   \"inputs\": [],\n   \"outputs\": [],\n   \"network\": \"none\",\n   \"env_keys\": [],\n   \"exit\": 0,\n   \"status\": \"ok\",\n   \"cost\": {\n    \"usd\": 0.04,\n    \"input_tokens\": 200,\n    \"output_tokens\": 50,\n    \"turns\": 1\n   }\n  }\n ]\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "ledger_chain"
+    ]
+   }
+  },
+  {
+   "id": "V-run-032",
+   "title": "a ledger deleted while state.json records spend",
+   "rfc": "RFC-0007 Part B, the run ledger",
+   "repo": {
+    "object_format": "sha1",
+    "commits": [
+     {
+      "files": {
+       "README.md": "hello\n"
+      }
+     }
+    ]
+   },
+   "files": {
+    ".a2dlc/run/core.m.v1/state.json": "{\n \"schema_version\": 1,\n \"run_id\": \"run-3f9a1c2b7d4e\",\n \"slice_id\": \"core.m.v1\",\n \"mode\": \"refactor\",\n \"base_sha\": \"7af5229e839f6fd50f2337c9733a4463c5fbdf64\",\n \"created_at\": \"2026-10-17T18:02:11Z\",\n \"updated_at\": \"2026-10-17T18:09:40Z\",\n \"budget\": {\n  \"max_cost_usd\": null,\n  \"spent_usd\": 0.12,\n  \"spent_tokens\": 750,\n  \"unreported_roles\": 0,\n  \"by_role\": {\n   \"builder_primary\": 0.12\n  }\n },\n \"stages\": [\n  {\n   \"id\": \"-1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"0\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"1.5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"2\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"3\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"4\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"5\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"6\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  },\n  {\n   \"id\": \"7\",\n   \"status\": \"pending\",\n   \"artifact\": null,\n   \"iterations\": 0,\n   \"started_at\": null,\n   \"finished_at\": null\n  }\n ],\n \"outcome\": null\n}\n"
+   },
+   "args": [
+    "verify-run",
+    "--slice",
+    "core.m.v1"
+   ],
+   "allowed_signers": "tester@a2dlc ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIxI2PhBtiDy/YJXDywh7YTPvTK08UENls3JX13NRJp6 a2dlc-conformance-test-key",
+   "expect": {
+    "valid": false,
+    "kinds": [
+     "ledger_truncated"
+    ]
+   }
+  },
+  {
    "id": "V-run-101",
    "title": "a plan accepted by a signed approval",
    "rfc": "RFC-0008 section 4, acceptance of a plan run",

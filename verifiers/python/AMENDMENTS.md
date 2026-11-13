@@ -161,7 +161,7 @@ The state does not hold the feature intent's hash, so the authorization's `inten
 
 ### D6. Not implemented: the spend of state.json against the ledger
 
-The reference also fails a run whose ledger records less spend, fewer tokens, fewer unreported roles or less spend per role than state.json (a deleted or truncated ledger). It is not in the text yet and this verifier does not do it. The conformance vectors have no case for it.
+The reference also fails a run whose ledger records less spend, fewer tokens, fewer unreported roles or less spend per role than state.json (a deleted or truncated ledger). It is not in the text yet and this verifier does not do it. The conformance vector `V-run-030` is that case and is marked `known_failure` for this verifier.
 
 ### D7. Dates
 

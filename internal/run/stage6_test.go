@@ -410,3 +410,25 @@ with open(os.path.join(io, "response.json"), "w") as f:
 		t.Fatalf("unexpected blast radius: %+v", rep.BlastRadius)
 	}
 }
+
+// R6 of RFC-0009: a run never raises the gate's verdict. With green consumers but a Stage 4 that is not PASS (a changed
+// source no engine judges is INCONCLUSIVE), Stages 6 and 7 skip without running a consumer and the run is not PASS.
+func TestStages6And7DoNotRunWhenStage4IsNotPass(t *testing.T) {
+	a, dir, r := repoIntegration(t, map[string]string{"web": "t_a passed", "tasks": "t_c passed"})
+	// the base's config without out_of_scope_paths, so src/f.py has no engine and Stage 4 cannot pass it
+	git(t, dir, "add", ".a2dlc/config.json")
+	git(t, dir, "commit", "-qm", "integration, no out_of_scope_paths")
+	st, err := Run(context.Background(), a, &fakeLauncher{}, Options{Slice: "payment.v1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	byStage := byID(st)
+	if st.Outcome == nil || *st.Outcome == contract.PASS || len(r.seen) != 0 {
+		t.Fatalf("outcome %v, consumers run %v", st.Outcome, r.seen)
+	}
+	for _, id := range []string{"6", "7"} {
+		if s := byStage[id]; s.Status != contract.StageSkipped || !strings.Contains(s.Reason, "not PASS") {
+			t.Fatalf("stage %s: %+v", id, s)
+		}
+	}
+}

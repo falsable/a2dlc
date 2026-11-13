@@ -55,6 +55,7 @@ WHY = {
 
 # The same for `verify-run` (RFC-0007 Part B and RFC-0008 section 4).
 REASONS_RUN = {
+    "ledger_truncated": r"ledger with fewer launches than state\.json|ledger\.json is missing but state\.json records launches",
     "ledger_chain": r"ledger: entry \d+: (seq|prev_hash|hash)",
     "ledger_run": r"ledger\.json belongs to another run",
     "authorization_unbound": r"ledger: (entry \d+: (a check entry binds no authorization|only an entry of role check binds an authorization)|entry \d+ binds the authorization used for|authorizations_used records the use for)",

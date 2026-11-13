@@ -600,6 +600,20 @@ def clone(doc):
     return json.loads(json.dumps(doc))
 
 
+def launch_entry(n, usd):
+    """The entry of one launch of a builder that reported `usd` (200 input tokens, 50 output)."""
+    return {"at": "2026-11-08T10:%02d:00Z" % n, "stage": "3", "role": "builder_primary", "attempt": n, "family": "claude", "image": "a2dlc-role-builder",
+            "image_digest": None, "argv_sha256": "sha256:" + hashlib.sha256(b"launch %d" % n).hexdigest(), "inputs": [], "outputs": [], "network": "none",
+            "env_keys": [], "exit": 0, "status": "ok", "cost": {"usd": usd, "input_tokens": 200, "output_tokens": 50, "turns": 1}}
+
+
+def spent_state(n, usd):
+    """A state.json that records n launches of launch_entry at `usd` each."""
+    st = run_state()
+    st["budget"] = {"max_cost_usd": None, "spent_usd": round(n * usd, 4), "spent_tokens": 250 * n, "unreported_roles": 0, "by_role": {"builder_primary": round(n * usd, 4)}}
+    return st
+
+
 def group_run():
     ok, other = make_auth(), make_auth(targets=("src/m.py::g",))
     u = use_of(ok)
@@ -650,6 +664,20 @@ def group_run():
     vs.append(run_vec("V-run-025", "a stage artifact that matches the hash in state.json", None, state=run_state(stage0=art), extra_files={art_path: intent}))
     vs.append(run_vec("V-run-026", "a stage artifact edited after the stage finished", None, state=run_state(stage0=art), extra_files={art_path: '{"x":1}\n'}, expect=runbad("artifact_changed")))
     vs.append(run_vec("V-run-027", "a stage artifact that is missing", None, state=run_state(stage0=art), expect=runbad("artifact_changed")))
+    spent = ledger_doc([], entries=[launch_entry(1, 0.04), launch_entry(2, 0.04), launch_entry(3, 0.04)], with_uses=False)
+    state3 = spent_state(3, 0.04)
+    swapped = clone(spent)
+    swapped["entries"][0], swapped["entries"][1] = swapped["entries"][1], swapped["entries"][0]
+    cut_tail = ledger_doc([], entries=[launch_entry(1, 0.04), launch_entry(2, 0.04)], with_uses=False)
+    cut_head = clone(spent)
+    cut_head["entries"] = cut_head["entries"][1:]
+    vs.append(run_vec("V-run-028", "three launches with their cost in the chain, and a state.json that records the same spend", spent, state=state3))
+    vs.append(run_vec("V-run-029", "two entries swapped: each hash is its own, but seq and prev_hash no longer follow", swapped, state=state3, expect=runbad("ledger_chain")))
+    truncated = {"valid": False, "kinds": ["ledger_truncated"]}
+    mark = {"clean-room-python": "AMENDMENTS D6"}  # the clean-room verifier does not compare spend (verifiers/python/AMENDMENTS.md)
+    vs.append(dict(run_vec("V-run-030", "the last launch cut off a valid chain while state.json records its spend", cut_tail, state=state3, expect=truncated), known_failure=mark))
+    vs.append(run_vec("V-run-031", "the first entry cut off: the chain does not start at seq 1", cut_head, state=state3, expect=runbad("ledger_chain")))
+    vs.append(run_vec("V-run-032", "a ledger deleted while state.json records spend", None, state=state3, expect=truncated))
     return vs + group_plan()
 
 
