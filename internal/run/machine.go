@@ -54,6 +54,8 @@ type Machine struct {
 	maxRounds int // rounds of the Saboteur (Stages 4 and 5) and rounds of the Tier 0 loop (Stage 3), resolved in applyBudget
 	maxInner  int
 	iter      int // rounds of the stage's loop in progress; runStage passes it to StageRun.Iterations
+	// Stage 3 builder rounds still to run, this one included, while a builder launches; 0 elsewhere ({round_usd}, intent.go)
+	roundsLeft int
 	// the slice's intent (nil without intent) and its bytes as they are: Stage 0 leaves them in the folder (intent.go)
 	intent      *contract.Intent
 	intentBytes []byte

@@ -158,27 +158,36 @@ func (m *Machine) exceeded() string {
 // its whole own cap again.
 const RemainingUSD = "{remaining_usd}"
 
-// withRemaining returns r with RemainingUSD replaced in its env values. A role that uses the placeholder needs a cost cap
-// and something left under it.
+// RoundUSD is RemainingUSD split over the Stage 3 builder rounds still to run (the tier_up round included), so one launch
+// cannot spend what the next rounds need to get Tier 0 feedback; outside Stage 3's loop it equals RemainingUSD.
+const RoundUSD = "{round_usd}"
+
+// withRemaining returns r with RemainingUSD and RoundUSD replaced in its env values. A role that uses either needs a cost cap
+// in the run and something left under it.
 func (m *Machine) withRemaining(role string, r contract.Role) (contract.Role, error) {
 	uses := false
 	for _, v := range r.Env {
-		uses = uses || strings.Contains(v, RemainingUSD)
+		uses = uses || strings.Contains(v, RemainingUSD) || strings.Contains(v, RoundUSD)
 	}
 	if !uses {
 		return r, nil
 	}
 	b := m.state.Budget
 	if b.MaxCostUSD == nil {
-		return r, fmt.Errorf("roles.%s.env uses %s and the run has no max_cost_usd", role, RemainingUSD)
+		return r, fmt.Errorf("roles.%s.env uses %s or %s and the run has no max_cost_usd", role, RemainingUSD, RoundUSD)
 	}
 	left := *b.MaxCostUSD - b.SpentUSD
 	if left < 0.0001 {
 		return r, fmt.Errorf("roles.%s: %.4f USD spent of max_cost_usd %.4f, nothing left for another launch", role, b.SpentUSD, *b.MaxCostUSD)
 	}
+	round := left
+	if m.roundsLeft > 1 {
+		round = left / float64(m.roundsLeft)
+	}
 	env := make(map[string]string, len(r.Env))
 	for k, v := range r.Env {
-		env[k] = strings.ReplaceAll(v, RemainingUSD, strconv.FormatFloat(left, 'f', 4, 64))
+		v = strings.ReplaceAll(v, RemainingUSD, strconv.FormatFloat(left, 'f', 4, 64))
+		env[k] = strings.ReplaceAll(v, RoundUSD, strconv.FormatFloat(round, 'f', 4, 64))
 	}
 	r.Env = env
 	return r, nil

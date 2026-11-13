@@ -72,10 +72,11 @@ New section of RFC-0001, after §1:
 >   escalates with a reason that starts `CB-03` (`exceeded` in `internal/run/intent.go`). The check is on what the
 >   role CLIs reported; a role with no report adds nothing and is counted in `unreported_roles`. A value of
 >   `roles.<role>.env` may carry `{remaining_usd}`, replaced at each launch with the USD left under `max_cost_usd`, four
->   decimals; a run with no cost cap, or with nothing left, refuses the launch (`withRemaining`,
->   `contracts/roles.schema.json`). Tests: `TestCB03CutsAtEachStage`,
+>   decimals, and `{round_usd}`, the same USD divided by the Stage 3 builder rounds still to run (the `tier_up`
+>   round included; `{remaining_usd}` outside Stage 3); a run with no cost cap, or with nothing left, refuses the launch
+>   (`withRemaining`, `contracts/roles.schema.json`). Tests: `TestCB03CutsAtEachStage`,
 >   `TestCostChainFourCountersAddUpAndCB03CutsByTokensAndByCost`, `TestTokenCapTripsAndIsNamed`,
->   `TestRemainingUSDIsFilledAtEachLaunch`.
+>   `TestRemainingUSDIsFilledAtEachLaunch`, `TestRoundUSDSplitsTheRemainingOverTheRoundsLeft`.
 > - **R4, builder exhaustion (CB-02b).** When Stage 3's builder spends `max_inner_iterations` rounds without Tier 0
 >   green, the stage runs one more round with the role's `tier_up` if `roles.json` declares one, and otherwise
 >   escalates with kind `builder_exhaustion` (`internal/run/stage3.go`, `internal/run/cb02b.go`). If two consecutive

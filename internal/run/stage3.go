@@ -290,7 +290,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 	var bestTree string
 	var bestFeedback *contract.Tier0Response
 	var bestScore, bestRound int
-	var demingNotes []string
+	var roundNotes []string
 	ratchetFeedback := func(round int, tree string, next *contract.Tier0Response) error {
 		score := demingDefectScore(next)
 		if bestTree == "" || score <= bestScore {
@@ -309,7 +309,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		if err := m.app.Repo.Export(bestTree, work); err != nil {
 			return err
 		}
-		demingNotes = append(demingNotes, fmt.Sprintf("deming-ratchet: round %d regressed (defect score %d > %d from round %d); restored /work to round %d candidate", round, score, bestScore, bestRound, bestRound))
+		roundNotes = append(roundNotes, fmt.Sprintf("deming-ratchet: round %d regressed (defect score %d > %d from round %d); restored /work to round %d candidate", round, score, bestScore, bestRound, bestRound))
 		feedback = bestFeedback
 		_, err := m.writeArtifact(tier0Artifact, *bestFeedback)
 		return err
@@ -325,24 +325,29 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		pl := contract.BuilderRequest{Intent: in.intent, Contract: in.contractJSON, Probes: in.probes, Round: round, MaxRounds: maxRounds, Tier0Feedback: feedback, Header: &header, Boundary: in.boundary,
 			EngineLanguage: in.engineLanguage, Paradigm: m.roles.Roles[role].Paradigm, Critical: in.critical}
 		roundStart := time.Now()
+		m.roundsLeft = lastRound - round + 1
 		invocation, err := m.invokeRole(ctx, role, cfg, "3", pl, work)
+		m.roundsLeft = 0
 		if err != nil {
 			return buildResult{}, err
 		}
 		timing := stage3Timing{Role: role, Round: round, BuilderMs: time.Since(roundStart).Milliseconds()}
 		reviewStart := time.Now()
+		var resp contract.BuilderResponse
+		noAnswer := ""
 		switch {
 		case invocation.Response == nil:
-			return buildResult{status: contract.StageFailed, reason: fmt.Sprintf("the builder did not give a valid answer in %d attempts", len(invocation.Entries))}, nil
+			// a CLI stopped by its budget mid-edit gives no answer but can leave a candidate: the core judges the tree, not the claim
+			noAnswer = fmt.Sprintf("the builder did not give a valid answer in %d attempts", len(invocation.Entries))
 		case invocation.Response.Status == contract.RoleRefused:
 			return buildResult{status: contract.StageEscalated, reason: "the builder refused: " + invocation.Response.Reason}, nil
-		}
-		var resp contract.BuilderResponse
-		if err := contract.DecodeStrictBytes(invocation.Response.Payload, &resp); err != nil {
-			return buildResult{status: contract.StageFailed, reason: "builder payload out of contract: " + err.Error()}, nil
-		}
-		if dup := duplicateLemma(resp.Lemmas); dup != "" {
-			return buildResult{status: contract.StageFailed, reason: "builder payload out of contract: lemma " + dup + " is declared twice"}, nil
+		default:
+			if err := contract.DecodeStrictBytes(invocation.Response.Payload, &resp); err != nil {
+				return buildResult{status: contract.StageFailed, reason: "builder payload out of contract: " + err.Error()}, nil
+			}
+			if dup := duplicateLemma(resp.Lemmas); dup != "" {
+				return buildResult{status: contract.StageFailed, reason: "builder payload out of contract: lemma " + dup + " is declared twice"}, nil
+			}
 		}
 		// the full tree (with the gate outputs the base has committed, like approvals.json) is what gets committed and what
 		// says whether the builder touched .a2dlc/; tree_hash is that commit's, without the outputs
@@ -364,6 +369,12 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		// them and a merge of the candidate would put them into the repo: the gate is not the builder's.
 		if len(delGate) > 0 {
 			return buildResult{status: contract.StageEscalated, reason: "CB-04: the builder touched " + strings.Join(delGate, ", ") + " in /work: the config, the waivers and the gate signatures are not its own"}, nil
+		}
+		if len(diffs) == 0 && noAnswer != "" {
+			return buildResult{status: contract.StageFailed, reason: noAnswer}, nil
+		}
+		if noAnswer != "" {
+			roundNotes = append(roundNotes, fmt.Sprintf("round %d: %s; its changes in /work were judged as the round's candidate", round, noAnswer))
 		}
 		if len(diffs) == 0 {
 			return buildResult{status: contract.StageEscalated, reason: fmt.Sprintf("the builder left no changes in /work (round %d)", round)}, nil
@@ -484,7 +495,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		if len(unreviewed) > 0 {
 			notes = append(notes, "Tier 0 did not review: "+strings.Join(unreviewed, ", "))
 		}
-		notes = append(notes, demingNotes...)
+		notes = append(notes, roundNotes...)
 		notes = append(notes, rev.notes...)
 		notes = append(notes, lem.notes...)
 		notes = append(notes, div.notes...)

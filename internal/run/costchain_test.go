@@ -163,6 +163,30 @@ func TestRemainingUSDShrinksAcrossLaunchesOfARun(t *testing.T) {
 	}
 }
 
+// a2dlc-4dt.4: {round_usd} splits what is left over the builder rounds still to run, so the first launch cannot spend
+// the budget of the rounds that would get Tier 0 feedback; the last round gets all that is left.
+func TestRoundUSDSplitsTheRemainingOverTheRoundsLeft(t *testing.T) {
+	cost := goldenCost(t)
+	a, dir, _ := repoBuilder(t)
+	write(t, dir, ".a2dlc/roles.json", `{"schema_version":1,"roles":{"builder_primary":{"family":"claude","image":"img:1","argv":["sh","x"],"retries":0,"env":{"A2DLC_LLM_CMD":"claude --max-budget-usd {round_usd} # {remaining_usd}"}}}}`)
+	var requests []contract.BuilderRequest
+	launcher := &envLauncher{fakeLauncher: &fakeLauncher{script: costed(fakeBuilder(t, &requests, broken), cost)}}
+	opts := Options{Slice: "rusd.split", MaxInner: 3, MaxCostUSD: 0.3}
+	opts.Intent = intentFile(t, func(in *contract.Intent) { in.SliceID, in.Mode, in.Goal = opts.Slice, contract.ModeLite, "f doubles" })
+	if _, err := Run(context.Background(), a, launcher, opts); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"0.1000 # 0.3000", "0.1300 # 0.2600", "0.2200 # 0.2200"} // 0.04 USD per call: 0.30/3, 0.26/2, 0.22/1
+	if len(launcher.envs) != len(want) {
+		t.Fatalf("%d launches, wanted %d", len(launcher.envs), len(want))
+	}
+	for i, env := range launcher.envs {
+		if got := env["A2DLC_LLM_CMD"]; got != "claude --max-budget-usd "+want[i] {
+			t.Fatalf("launch %d got %q, wanted %s", i+1, got, want[i])
+		}
+	}
+}
+
 // a2dlc-awi: the ledger read back per (stage, role) gives the calls and the four counters of the golden cost, and a
 // launch without a report counts as unreported, not as zero spend; a binding entry launched nothing and is left out.
 func TestSpendRowsSumTheLedgerPerStageAndRole(t *testing.T) {

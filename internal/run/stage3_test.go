@@ -637,3 +637,40 @@ func TestStage3DemingRatchetRestoresBestCandidateOnRegression(t *testing.T) {
 		t.Fatalf("expected StageDone with deming-ratchet note, got: %+v", s3)
 	}
 }
+
+// A builder whose CLI stops mid-edit (its --max-budget-usd, a crash) gives no answer: its /work is still the round's
+// candidate and goes through Tier 0 like any other; with nothing changed the stage fails as before.
+func TestStage3JudgesWorkOfABuilderThatGaveNoAnswer(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		content map[string]string
+		status  string
+	}{
+		{"changed", map[string]string{"src/f.py": fixed}, contract.StageDone},
+		{"unchanged", map[string]string{}, contract.StageFailed},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a, _, eng := repoBuilder(t)
+			var requests []contract.BuilderRequest
+			inner := fakeBuilder(t, &requests, func(contract.BuilderRequest) map[string]string { return tc.content })
+			launcherFake := &fakeLauncher{script: func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
+				inner(s)
+				return nil, 1, false
+			}}
+			st, err := Run(context.Background(), a, launcherFake, Options{Slice: "noans"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			s3 := st.Stages[5]
+			if s3.Status != tc.status || len(requests) != 1 {
+				t.Fatalf("%+v %d", s3, len(requests))
+			}
+			if tc.status == contract.StageDone && (eng.tier0 != 1 || !strings.Contains(s3.Reason, "round 1: the builder did not give a valid answer in 1 attempts; its changes in /work were judged")) {
+				t.Fatalf("tier0=%d %q", eng.tier0, s3.Reason)
+			}
+			if tc.status == contract.StageFailed && (eng.tier0 != 0 || s3.Reason != "the builder did not give a valid answer in 1 attempts") {
+				t.Fatalf("tier0=%d %q", eng.tier0, s3.Reason)
+			}
+		})
+	}
+}
