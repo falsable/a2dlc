@@ -166,8 +166,8 @@ func TestLauncherIsolatesMounts(t *testing.T) {
 				t.Errorf("missing %q in %v", strings.Join(want, " "), args)
 			}
 		}
-		if has(args, ":/work") || has(args, "-w /work") {
-			t.Errorf("a role without workdir mounts /work: %v", args)
+		if has(args, ":/work") || has(args, "-w /work") || has(args, ":/session") || has(args, "A2DLC_SESSION") {
+			t.Errorf("a role without workdir mounts /work or /session: %v", args)
 		}
 		if has(args, "--network bridge") || has(args, "HTTPS_PROXY=") {
 			t.Errorf("a role without network (the schema default) must not reach the bridge or a proxy: %v", args)
@@ -188,14 +188,17 @@ func TestLauncherIsolatesMounts(t *testing.T) {
 	})
 	t.Run("builder with workdir", func(t *testing.T) {
 		bin, recorded := dockerFake(t)
-		work := t.TempDir()
+		work, session := t.TempDir(), t.TempDir()
 		r := contract.Role{Family: "x", Image: "i", Argv: []string{"a"}}
-		if _, err := launch(t, bin, r, LaunchSpec{Role: "builder_primary", Stage: "3", Attempt: 1, InDir: t.TempDir(), OutDir: t.TempDir(), WorkDir: work}); err != nil {
+		if _, err := launch(t, bin, r, LaunchSpec{Role: "builder_primary", Stage: "3", Attempt: 1, InDir: t.TempDir(), OutDir: t.TempDir(), WorkDir: work, SessionDir: session}); err != nil {
 			t.Fatal(err)
 		}
 		args := readRecordedArgs(t, recorded)
 		if !has(args, "-v", work+":/work") || !has(args, "-w", "/work") {
 			t.Errorf("missing /work in %v", args)
+		}
+		if !has(args, "-v", session+":/session", "-e", "A2DLC_SESSION=/session") {
+			t.Errorf("missing /session in %v", args)
 		}
 	})
 }

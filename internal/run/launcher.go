@@ -27,6 +27,9 @@ type LaunchSpec struct {
 	InDir       string
 	OutDir      string
 	WorkDir     string
+	// SessionDir goes to /session (A2DLC_SESSION) for builders: it outlives the container, so the builder's next round can
+	// resume the agent session of the previous one instead of reading the repository again (RFC-0009 R1).
+	SessionDir string
 }
 
 // LaunchResult is what the ledger needs from the launchRecord. Argv is the full docker command, mounts included: its
@@ -142,6 +145,9 @@ func (d DockerLauncher) Launch(ctx context.Context, r contract.Role, s LaunchSpe
 		"-e", "A2DLC_TIMEOUT_S=" + fmt.Sprint(int(limit/time.Second))}
 	if s.WorkDir != "" {
 		args = append(args, "-v", s.WorkDir+":/work", "-w", "/work")
+	}
+	if s.SessionDir != "" {
+		args = append(args, "-v", s.SessionDir+":/session", "-e", "A2DLC_SESSION=/session")
 	}
 	keys := map[string]bool{}
 	if r.EnvFile != "" {
@@ -374,7 +380,7 @@ func killContainer(bin, name string) {
 // reserved are the variables Launch sets for every role: roles.<role>.env and env_file do not override them. The proxy
 // variables are among them, so a role cannot point its egress somewhere else.
 var reserved = map[string]bool{"HOME": true, "A2DLC_REQUEST": true, "A2DLC_RESPONSE": true, "A2DLC_ROLE": true, "A2DLC_STAGE": true, "A2DLC_TIMEOUT_S": true,
-	"HTTPS_PROXY": true, "HTTP_PROXY": true, "NO_PROXY": true, "https_proxy": true, "http_proxy": true, "no_proxy": true}
+	"A2DLC_SESSION": true, "HTTPS_PROXY": true, "HTTP_PROXY": true, "NO_PROXY": true, "https_proxy": true, "http_proxy": true, "no_proxy": true}
 
 // refImage is the `image` pattern in roles.schema.json: the image goes as the positional argument of `docker run`, where
 // docker still reads flags, so one that starts with "-" (--volume=/:/host) would widen the mounts.

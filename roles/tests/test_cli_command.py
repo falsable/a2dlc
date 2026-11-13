@@ -99,5 +99,36 @@ class CliCommandTest(unittest.TestCase):
             self.assertNotIn("outside", p2)
 
 
+class SessionArgsTest(unittest.TestCase):
+    REQ = {"run_id": "r1", "slice_id": "s1", "role": "builder_primary"}
+
+    def setUp(self):
+        self._saved = {k: os.environ.get(k) for k in ("A2DLC_SESSION", "CLAUDE_CONFIG_DIR")}
+
+    def tearDown(self):
+        for k, v in self._saved.items():
+            os.environ.pop(k, None)
+            if v is not None:
+                os.environ[k] = v
+
+    def test_without_a_session_folder_nothing_is_kept(self):
+        os.environ.pop("A2DLC_SESSION", None)
+        self.assertEqual(adapter.session_args(self.REQ), ["--no-session-persistence"])
+
+    def test_the_first_round_starts_the_session_and_the_next_resumes_it(self):
+        with tempfile.TemporaryDirectory() as root:
+            os.environ["A2DLC_SESSION"] = root
+            flag, sid = adapter.session_args(self.REQ)
+            self.assertEqual(flag, "--session-id")
+            self.assertEqual(os.environ["CLAUDE_CONFIG_DIR"], os.path.join(root, "claude"))
+            # what claude leaves after round 1: <config>/projects/<cwd>/<id>.jsonl
+            (Path(root) / "claude" / "projects" / "-work").mkdir(parents=True)
+            (Path(root) / "claude" / "projects" / "-work" / f"{sid}.jsonl").write_text("{}", encoding="utf-8")
+            self.assertEqual(adapter.session_args(self.REQ), ["--resume", sid])
+            other = adapter.session_args({**self.REQ, "role": "builder_orthogonal"})
+            self.assertEqual(other[0], "--session-id")
+            self.assertNotEqual(other[1], sid)
+
+
 if __name__ == "__main__":
     unittest.main()

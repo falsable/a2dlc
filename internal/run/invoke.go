@@ -112,9 +112,15 @@ func (m *Machine) invokeWith(ctx context.Context, role string, r contract.Role, 
 			return invocation, err
 		}
 		var wd *string
+		session := ""
 		if workdir != "" {
 			w := "/work"
 			wd = &w
+			// one per builder and run: the other builder's session would show it this builder's work (§3)
+			session = filepath.Join(m.dir, "sessions", role)
+			if err := os.MkdirAll(session, 0o755); err != nil {
+				return invocation, err
+			}
 		}
 		req := contract.RoleRequest{SchemaVersion: 1, RunID: m.state.RunID, SliceID: m.state.SliceID, Mode: m.state.Mode,
 			Role: role, Stage: stage, Attempt: intent, Inputs: inputs, Workdir: wd, Payload: pl}
@@ -128,7 +134,7 @@ func (m *Machine) invokeWith(ctx context.Context, role string, r contract.Role, 
 		if err != nil {
 			return invocation, err
 		}
-		res, err := m.launcher.Launch(ctx, launched, LaunchSpec{Role: role, Stage: stage, Attempt: intent, InDir: in, OutDir: out, WorkDir: workdir,
+		res, err := m.launcher.Launch(ctx, launched, LaunchSpec{Role: role, Stage: stage, Attempt: intent, InDir: in, OutDir: out, WorkDir: workdir, SessionDir: session,
 			Name: fmt.Sprintf("a2dlc-%s-%03d-%d", m.state.RunID, len(m.ledger.doc.Entries)+1, intent)})
 		if err != nil {
 			return invocation, fmt.Errorf("launch %s: %w", role, err)

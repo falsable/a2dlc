@@ -2,7 +2,7 @@
 """Fake CLI to test roles/adapter.py without network or credentials (A2DLC_LLM_CMD="python3 /fake/fake_cli.py").
 
 It poses as `claude -p --output-format stream-json --verbose` or as `gemini -p --output-format json` depending on its arguments
-(claude carries --no-session-persistence; gemini, --skip-trust), reads the prompt from stdin and answers what the adapter
+(claude carries --no-session-persistence, or --session-id/--resume for a builder with /session; gemini, --skip-trust), reads the prompt from stdin and answers what the adapter
 expects. Before answering it checks what the adapter should have passed to it: if something does not add up, it exits
 with 2 and says so on stderr, and the integration test fails.
 
@@ -55,7 +55,7 @@ def stream_start() -> None:
 def main() -> int:
     argv = sys.argv[1:]
     prompt = sys.stdin.read()
-    claude = "--no-session-persistence" in argv
+    claude = any(f in argv for f in ("--no-session-persistence", "--session-id", "--resume"))  # a builder with /session resumes
     gemini = "--skip-trust" in argv
     if claude == gemini:
         fail(f"I cannot tell whether I was called as claude or as gemini: {argv}")

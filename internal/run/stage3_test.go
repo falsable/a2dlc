@@ -682,3 +682,32 @@ func TestStage3JudgesWorkOfABuilderThatGaveNoAnswer(t *testing.T) {
 		})
 	}
 }
+
+// RFC-0009 R1: every round of a builder gets the same /session, so its agent can resume where the last round stopped; the
+// other roles get none.
+func TestStage3BuilderRoundsShareOneSessionDir(t *testing.T) {
+	a, _, _ := repoBuilder(t)
+	var requests []contract.BuilderRequest
+	inner := fakeBuilder(t, &requests, func(pl contract.BuilderRequest) map[string]string {
+		if pl.Round == 1 {
+			return map[string]string{}
+		}
+		return map[string]string{"src/f.py": fixed}
+	})
+	sessions := map[string][]string{}
+	launcherFake := &fakeLauncher{script: func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
+		sessions[s.Role] = append(sessions[s.Role], s.SessionDir)
+		inner(s)
+		return nil, 1, false
+	}}
+	if _, err := Run(context.Background(), a, launcherFake, Options{Slice: "session", MaxInner: 2}); err != nil {
+		t.Fatal(err)
+	}
+	got := sessions[contract.RoleBuilderPrimary]
+	if len(got) != 2 || got[0] == "" || got[0] != got[1] || filepath.Base(got[0]) != contract.RoleBuilderPrimary {
+		t.Fatalf("builder sessions %q", got)
+	}
+	if fi, err := os.Stat(got[0]); err != nil || !fi.IsDir() {
+		t.Fatalf("session dir: %v", err)
+	}
+}

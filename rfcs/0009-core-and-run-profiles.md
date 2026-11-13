@@ -51,12 +51,14 @@ New section of RFC-0001, after §1:
 >
 > - **R1, isolation.** A role runs in its own container. What it sees is decided by the core, not by `roles.json`
 >   (`internal/run/policy.go`): `roles.json` chooses the command and cannot widen the mounts, and an image or env entry
->   that would (`--volume=...`, a core variable) is refused. The network is `none` or `provider`
+>   that would (`--volume=...`, a core variable) is refused. A builder also gets `/session` (`A2DLC_SESSION`), a folder
+>   of its own per run that outlives the container, so its next round can resume the agent session of the last one; no
+>   other role gets it, and neither builder sees the other's. The network is `none` or `provider`
 >   (`contracts/roles.schema.json`); `provider` goes through the egress proxy and the ledger records `proxy-allowlist`
 >   with the proxy's digest. Tests: `TestLauncherIsolatesMounts`, `TestImageThatIsFlagIsRejected`,
 >   `TestLauncherRejectsEnvOverridingCore`, `TestEgressProxyRunsByResolvedImageAndReportsIt`,
 >   `TestEgressProxyThatCannotBeIdentifiedFailsClosed`, `TestEgressSetupFailuresAreErrorsAndRoleDoesNotRun`
->   (`internal/run/launcher_test.go`).
+>   (`internal/run/launcher_test.go`), `TestStage3BuilderRoundsShareOneSessionDir`.
 > - **R2, the ledger.** Every launch appends one entry to `.a2dlc/run/<slice>/ledger.json`
 >   (`contracts/run-ledger.schema.json`), chained as `hash = sha256(prev_hash + canonical JSON of the entry without
 >   hash)`, with `seq` from 1 and `prev_hash` null in the first. `a2dlc verify-run --slice <id>` (`Verify` in

@@ -8,6 +8,8 @@ The core launches this script inside the role's container (image a2dlc-roles) wi
   /work        only for builders: writable copy of the tree (cwd)
   A2DLC_REQUEST, A2DLC_RESPONSE, A2DLC_ROLE, A2DLC_STAGE   set by the core
   A2DLC_TIMEOUT_S   role cap in seconds (roles.<role>.timeout_s): the CLI is cut a little earlier, with an error
+  A2DLC_SESSION     only for builders: a folder that outlives the container, one per builder and run. With claude the
+                    session is kept there (CLAUDE_CONFIG_DIR), so the next round resumes it instead of starting over
 and the provider credential arrives through --env-file: with claude, gemini or acp only the agent's CLI reads it, never
 this script; with openrouter or entropos this script is the HTTP client and sends the key in the header, never writing it out.
 
@@ -67,6 +69,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from pathlib import Path
 
 MAX_PROMPT_BYTES = 2_000_000
@@ -360,6 +363,20 @@ def cli_command(llm: str, builder: bool) -> list[str]:
             cmd += ["--model", model]
         return cmd + ["--agent", agent, "exec", "--file", "-"]
     raise Failure(f"A2DLC_LLM={llm!r}: only claude, gemini, acp, openrouter or entropos")
+
+
+def session_args(req: dict) -> list[str]:
+    """claude's session flags for a builder: with A2DLC_SESSION, the first round starts a session whose id comes from the
+    run, slice and role, and every later round resumes it, so the agent keeps what it read and did (RFC-0009 R1). Without
+    it, nothing is kept on disk."""
+    root = os.environ.get("A2DLC_SESSION", "").strip()
+    if not root or not os.path.isdir(root):
+        return ["--no-session-persistence"]
+    config = os.path.join(root, "claude")
+    os.environ["CLAUDE_CONFIG_DIR"] = config  # call_cli passes os.environ to the CLI
+    sid = str(uuid.uuid5(uuid.NAMESPACE_URL, f"a2dlc:{req['run_id']}:{req.get('slice_id') or ''}:{req['role']}"))
+    # shortcut: a resumed round gets the full prompt again; send only what changed if the repeated prefix costs too much
+    return ["--resume", sid] if any(Path(config, "projects").glob(f"*/{sid}.jsonl")) else ["--session-id", sid]
 
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -997,6 +1014,9 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
     builder = is_builder(role)
     llm = (os.environ.get("A2DLC_LLM") or "claude").strip().lower()
     cmd = cli_command(llm, builder) if llm not in ("openrouter", "entropos") else []
+    if builder and llm == "claude":
+        i = cmd.index("--no-session-persistence")
+        cmd[i:i + 1] = session_args(req)
     work = work_dir()
     without_tools = builder and llm in ("openrouter", "entropos")
     if without_tools and not work.is_dir():

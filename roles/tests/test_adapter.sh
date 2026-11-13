@@ -26,13 +26,13 @@ cp "$R"/roles/prompts/*.md "$T/prompts/" || { echo "FAIL copy of the prompts"; e
 for d in "$T"/*/; do
 	n=$(basename "$d")
 	[ -f "$d/env" ] || continue
-	# like the core's launcher: /in:ro, /out, /work only for builders, ephemeral HOME, role argv as entrypoint
+	# like the core's launcher: /in:ro, /out, /work and /session only for builders, ephemeral HOME, role argv as entrypoint
 	work=()
-	case "$n" in builder-*) work=(-v "$(w "$d/work"):/work") ;; esac
+	case "$n" in builder-*) mkdir -p "$d/session"; work=(-v "$(w "$d/work"):/work" -v "$(w "$d/session"):/session" -e A2DLC_SESSION=/session) ;; esac
 	# every role has a prompt since block 8: the no-prompt scenario points at a folder that does not exist
 	prompts=/prompts
 	case "$n" in role-no-prompt) prompts=/tmp/no-prompts ;; esac
-	docker run --rm --network none --env-file "$d/env" \
+	docker run --rm --network none --env-file "$(w "$d/env")" \
 		-e HOME=/tmp/home -e A2DLC_REQUEST=/in/request.json -e A2DLC_RESPONSE=/out/response.json \
 		-e A2DLC_LLM_CMD="python3 /fake/fake_cli.py" -e A2DLC_PROMPTS_DIR=$prompts -e ANTHROPIC_API_KEY=sk-test-secret-123456 \
 		-v "$(w "$d/in"):/in:ro" -v "$(w "$d/out"):/out" "${work[@]}" \
