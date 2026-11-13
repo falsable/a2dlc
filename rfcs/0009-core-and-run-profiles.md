@@ -72,8 +72,8 @@ New section of RFC-0001, after §1:
 >   escalates with a reason that starts `CB-03` (`exceeded` in `internal/run/intent.go`). The check is on what the
 >   role CLIs reported; a role with no report adds nothing and is counted in `unreported_roles`. A value of
 >   `roles.<role>.env` may carry `{remaining_usd}`, replaced at each launch with the USD left under `max_cost_usd`, four
->   decimals, and `{round_usd}`, the same USD divided by the Stage 3 builder rounds still to run (the `tier_up`
->   round included; `{remaining_usd}` outside Stage 3); a run with no cost cap, or with nothing left, refuses the launch
+>   decimals, and `{round_usd}`, half of the same USD while more Stage 3 builder rounds follow (the `tier_up`
+>   round included) and all of it in the last round (`{remaining_usd}` outside Stage 3); a run with no cost cap, or with nothing left, refuses the launch
 >   (`withRemaining`, `contracts/roles.schema.json`). Tests: `TestCB03CutsAtEachStage`,
 >   `TestCostChainFourCountersAddUpAndCB03CutsByTokensAndByCost`, `TestTokenCapTripsAndIsNamed`,
 >   `TestRemainingUSDIsFilledAtEachLaunch`, `TestRoundUSDSplitsTheRemainingOverTheRoundsLeft`.

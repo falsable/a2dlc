@@ -371,6 +371,11 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			return buildResult{status: contract.StageEscalated, reason: "CB-04: the builder touched " + strings.Join(delGate, ", ") + " in /work: the config, the waivers and the gate signatures are not its own"}, nil
 		}
 		if len(diffs) == 0 && noAnswer != "" {
+			if round < lastRound {
+				// a CLI stopped by its round cap before it edited anything: the next round has the rest of the budget
+				roundNotes = append(roundNotes, fmt.Sprintf("round %d: %s and left no changes in /work; the next round goes on", round, noAnswer))
+				continue
+			}
 			return buildResult{status: contract.StageFailed, reason: noAnswer}, nil
 		}
 		if noAnswer != "" {

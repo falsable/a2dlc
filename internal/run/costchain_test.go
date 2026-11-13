@@ -163,7 +163,7 @@ func TestRemainingUSDShrinksAcrossLaunchesOfARun(t *testing.T) {
 	}
 }
 
-// a2dlc-4dt.4: {round_usd} splits what is left over the builder rounds still to run, so the first launch cannot spend
+// a2dlc-4dt.4: {round_usd} is half of what is left while more builder rounds follow, so the first launch cannot spend
 // the budget of the rounds that would get Tier 0 feedback; the last round gets all that is left.
 func TestRoundUSDSplitsTheRemainingOverTheRoundsLeft(t *testing.T) {
 	cost := goldenCost(t)
@@ -176,7 +176,7 @@ func TestRoundUSDSplitsTheRemainingOverTheRoundsLeft(t *testing.T) {
 	if _, err := Run(context.Background(), a, launcher, opts); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"0.1000 # 0.3000", "0.1300 # 0.2600", "0.2200 # 0.2200"} // 0.04 USD per call: 0.30/3, 0.26/2, 0.22/1
+	want := []string{"0.1500 # 0.3000", "0.1300 # 0.2600", "0.2200 # 0.2200"} // 0.04 USD per call: 0.30/2, 0.26/2, 0.22 (last round)
 	if len(launcher.envs) != len(want) {
 		t.Fatalf("%d launches, wanted %d", len(launcher.envs), len(want))
 	}

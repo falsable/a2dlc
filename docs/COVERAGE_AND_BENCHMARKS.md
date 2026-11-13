@@ -725,11 +725,12 @@ tag, resolves it to its digest before each launch and records the digest in the 
   `claude --max-budget-usd {remaining_usd}` gets a hard cap that shrinks as the run spends. CB-03 only checks between
   launches; without this, a launch that starts just under the cap can spend its own whole cap again. A run without a
   cost cap, or with nothing left, refuses to launch a role that uses it.
-- `{round_usd}` is that same remainder divided by the Stage 3 builder rounds still to run (the `tier_up` round
-  included); outside Stage 3 it equals `{remaining_usd}`. With `claude --max-budget-usd {round_usd}` a first round cannot
+- `{round_usd}` is half of that remainder while more Stage 3 builder rounds follow (the `tier_up` round included) and
+  all of it in the last round; outside Stage 3 it equals `{remaining_usd}`. An even split over five rounds gave a first
+  round USD 0.20 of 1, spent reading the repository before any edit. With `claude --max-budget-usd {round_usd}` a first round cannot
   spend the whole run: in a bar calibration one builder call took 36 turns and all of USD 1, and no round was left for
   Tier 0 feedback. The CLI has no turn cap, so the cap per round is money. If the CLI stops mid-edit and gives no answer,
-  Stage 3 still judges what it left in `/work` as the round's candidate.
+  Stage 3 still judges what it left in `/work` as the round's candidate; if it left nothing, the next round goes on.
 
 **What the adapter does** (`roles/adapter.py`, Python standard library only):
 

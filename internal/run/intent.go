@@ -158,8 +158,9 @@ func (m *Machine) exceeded() string {
 // its whole own cap again.
 const RemainingUSD = "{remaining_usd}"
 
-// RoundUSD is RemainingUSD split over the Stage 3 builder rounds still to run (the tier_up round included), so one launch
-// cannot spend what the next rounds need to get Tier 0 feedback; outside Stage 3's loop it equals RemainingUSD.
+// RoundUSD is half of RemainingUSD while more Stage 3 builder rounds follow (the tier_up round included) and all of it in the
+// last round, so one launch cannot spend what the feedback rounds need and the first round still has room to read the repo
+// (an even split gave a first round USD 0.20 of 1, spent reading); outside Stage 3's loop it equals RemainingUSD.
 const RoundUSD = "{round_usd}"
 
 // withRemaining returns r with RemainingUSD and RoundUSD replaced in its env values. A role that uses either needs a cost cap
@@ -182,7 +183,7 @@ func (m *Machine) withRemaining(role string, r contract.Role) (contract.Role, er
 	}
 	round := left
 	if m.roundsLeft > 1 {
-		round = left / float64(m.roundsLeft)
+		round = left / 2
 	}
 	env := make(map[string]string, len(r.Env))
 	for k, v := range r.Env {

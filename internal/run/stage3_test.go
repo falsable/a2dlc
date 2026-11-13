@@ -639,37 +639,45 @@ func TestStage3DemingRatchetRestoresBestCandidateOnRegression(t *testing.T) {
 }
 
 // A builder whose CLI stops mid-edit (its --max-budget-usd, a crash) gives no answer: its /work is still the round's
-// candidate and goes through Tier 0 like any other; with nothing changed the stage fails as before.
+// candidate and goes through Tier 0 like any other. A round that stopped before editing anything hands over to the next
+// round; only the last such round fails the stage.
 func TestStage3JudgesWorkOfABuilderThatGaveNoAnswer(t *testing.T) {
 	for _, tc := range []struct {
-		name    string
-		content map[string]string
-		status  string
+		name     string
+		content  func(round int) map[string]string
+		status   string
+		launches int
+		reason   string
 	}{
-		{"changed", map[string]string{"src/f.py": fixed}, contract.StageDone},
-		{"unchanged", map[string]string{}, contract.StageFailed},
+		{"changed", func(int) map[string]string { return map[string]string{"src/f.py": fixed} }, contract.StageDone, 1,
+			"round 1: the builder did not give a valid answer in 1 attempts; its changes in /work were judged"},
+		{"empty then changed", func(r int) map[string]string {
+			if r == 1 {
+				return map[string]string{}
+			}
+			return map[string]string{"src/f.py": fixed}
+		}, contract.StageDone, 2, "round 1: the builder did not give a valid answer in 1 attempts and left no changes in /work; the next round goes on"},
+		{"never changed", func(int) map[string]string { return map[string]string{} }, contract.StageFailed, 2,
+			"the builder did not give a valid answer in 1 attempts"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			a, _, eng := repoBuilder(t)
 			var requests []contract.BuilderRequest
-			inner := fakeBuilder(t, &requests, func(contract.BuilderRequest) map[string]string { return tc.content })
+			inner := fakeBuilder(t, &requests, func(pl contract.BuilderRequest) map[string]string { return tc.content(pl.Round) })
 			launcherFake := &fakeLauncher{script: func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
 				inner(s)
 				return nil, 1, false
 			}}
-			st, err := Run(context.Background(), a, launcherFake, Options{Slice: "noans"})
+			st, err := Run(context.Background(), a, launcherFake, Options{Slice: "noans", MaxInner: 2})
 			if err != nil {
 				t.Fatal(err)
 			}
 			s3 := st.Stages[5]
-			if s3.Status != tc.status || len(requests) != 1 {
+			if s3.Status != tc.status || len(requests) != tc.launches || !strings.Contains(s3.Reason, tc.reason) {
 				t.Fatalf("%+v %d", s3, len(requests))
 			}
-			if tc.status == contract.StageDone && (eng.tier0 != 1 || !strings.Contains(s3.Reason, "round 1: the builder did not give a valid answer in 1 attempts; its changes in /work were judged")) {
-				t.Fatalf("tier0=%d %q", eng.tier0, s3.Reason)
-			}
-			if tc.status == contract.StageFailed && (eng.tier0 != 0 || s3.Reason != "the builder did not give a valid answer in 1 attempts") {
-				t.Fatalf("tier0=%d %q", eng.tier0, s3.Reason)
+			if want := map[string]int{contract.StageDone: 1, contract.StageFailed: 0}[tc.status]; eng.tier0 != want {
+				t.Fatalf("tier0=%d, want %d", eng.tier0, want)
 			}
 		})
 	}
