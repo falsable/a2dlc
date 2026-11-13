@@ -55,6 +55,10 @@ const (
 	NopBasePassingGuard = "guard"
 )
 
+// NopBaseMissingPass is the value of TestsConfig.NopBaseMissing (RFC-0010) that admits a new test absent on the base and
+// green on the candidate as PASS; absent or "inconclusive" keeps it INCONCLUSIVE.
+const NopBaseMissingPass = "pass"
+
 // Values of TestsConfig.Tier0Command (RFC-0004): which command step 4 of Tier 0 runs.
 const (
 	Tier0CommandTests    = "command"
@@ -191,6 +195,9 @@ type TestsConfig struct {
 	// NopBasePassing is NopBasePassingFail (also when absent) or NopBasePassingGuard: a base-passing new test is a
 	// regression guard when another new test in the same test file proves the change.
 	NopBasePassing string `json:"nop_base_passing,omitempty"`
+	// NopBaseMissing is "inconclusive" (also when absent) or NopBaseMissingPass: a new test that does not appear on the
+	// base and passes on the candidate is PASS, recorded with absent_on_base.
+	NopBaseMissing string `json:"nop_base_missing,omitempty"`
 	// Tier0Command is Tier0CommandTests (also when absent) or Tier0CommandBaseline: Tier 0's step 4 runs baseline_command,
 	// with the selection and the cache of Stage 4's baseline gate.
 	Tier0Command string  `json:"tier0_command,omitempty"`
@@ -541,6 +548,7 @@ type TestResult struct {
 	Message          string            `json:"message,omitempty"`
 	Characterization bool              `json:"characterization,omitempty"`
 	Guard            bool              `json:"guard,omitempty"`
+	AbsentOnBase     bool              `json:"absent_on_base,omitempty"`
 	Flaky            bool              `json:"flaky,omitempty"`
 	Reruns           *Reruns           `json:"reruns,omitempty"`
 	Waived           bool              `json:"waived"`

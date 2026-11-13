@@ -97,6 +97,8 @@ cases = {
     "config__tests-missing-command.json": (ct, lambda x: x["tests"].pop("command")),
     # RFC-0003: nop_base_passing is fail or guard, nothing else
     "config__nop-base-passing-unknown.json": (ct, lambda x: x["tests"].update(nop_base_passing="note")),
+    # RFC-0010: nop_base_missing is inconclusive or pass, nothing else
+    "config__nop-base-missing-unknown.json": (ct, lambda x: x["tests"].update(nop_base_missing="guard")),
     # RFC-0004: tier0_command names one of the two commands of config.tests, not a command line
     "config__tier0-command-unknown.json": (ct, lambda x: x["tests"].update(tier0_command="npm test")),
     # k = 0 would declare flaky without rerunning anything
@@ -113,6 +115,8 @@ cases = {
     "verdict__test-status-unknown.json": (verdict_tests, lambda x: x["tests"][0].update(base="xfail")),
     # RFC-0003: a guard rides with a declared intent, a characterization test has none, so one entry is never both
     "verdict__guard-and-characterization.json": (read("verdict__tests-guard.json"), lambda x: x["tests"][1].update(characterization=True)),
+    # RFC-0010: absent_on_base is a PASS of a test missing on the base, never a test that ran there
+    "verdict__absent-on-base-but-ran.json": (read("verdict__tests-absent-on-base.json"), lambda x: x["tests"][1].update(base="failed")),
     # a gate that did not run must say why
     "verdict__gate-error-missing-reason.json": (verdict_tests, lambda x: x["test_gates"]["baseline"].update(status="error")),
     "verdict__gates-missing-baseline.json": (verdict_tests, lambda x: x["test_gates"].pop("baseline")),

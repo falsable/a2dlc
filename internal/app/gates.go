@@ -368,7 +368,7 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	if in.stubNote != "" {
 		g.Reason = in.stubNote
 	}
-	res := judgeNOP(candidate.cases, own, changedBodies(own, inBase, in.modified), nop.cases, declaresBehavior(in), in.cfg.NopBasePassing == contract.NopBasePassingGuard, invalid, a.environmentCause(in))
+	res := judgeNOP(candidate.cases, own, changedBodies(own, inBase, in.modified), nop.cases, declaresBehavior(in), in.cfg.NopBasePassing == contract.NopBasePassingGuard, in.cfg.NopBaseMissing == contract.NopBaseMissingPass, invalid, a.environmentCause(in))
 	for i := range res {
 		if c, ok := candidate.cases[res[i].Target]; ok {
 			if _, del := in.overlay[c.File]; del {
@@ -459,7 +459,8 @@ func classifier(patterns, unstubbed, added []string) (func(string) bool, error) 
 //     test did not run, and it says nothing about the change: INCONCLUSIVE naming the missing piece (bead a2dlc-cgl).
 //   - Red on the candidate: FAIL (Oracle).
 //   - Valid failure on the base: PASS.
-//   - Invalid failure on the base (import, collection, symbol without stub) or absent: INCONCLUSIVE.
+//   - Invalid failure on the base (import, collection, symbol without stub) or absent: INCONCLUSIVE. With
+//     tests.nop_base_missing pass (RFC-0010), a new test absent on the base is PASS with absent_on_base.
 //   - A changed old test that passes on the base: INCONCLUSIVE. A body edit that still passes where the change is absent
 //     proves nothing, and it looks the same as an edit that dropped the assert; a human decides.
 //   - Passes on the base: FAIL if the change declares the intent to change behavior (there were stubs or an
@@ -467,7 +468,7 @@ func classifier(patterns, unstubbed, added []string) (func(string) bool, error) 
 //   - Passes on the base with that intent and guard set (tests.nop_base_passing guard, RFC-0003): a regression guard that
 //     does not block when another new test in the same test file proves the change; else FAIL as above. A testcase that
 //     names no file is never a guard.
-func judgeNOP(candidate, own map[string]junit.Case, changed map[string]bool, nop map[string]junit.Case, intent, guard bool, invalid func(string) bool, environment func(junit.Case) string) []contract.TestResult {
+func judgeNOP(candidate, own map[string]junit.Case, changed map[string]bool, nop map[string]junit.Case, intent, guard, missingPasses bool, invalid func(string) bool, environment func(junit.Case) string) []contract.TestResult {
 	proving := map[string]bool{}
 	for _, id := range keys(candidate) {
 		if _, old := own[id]; old || !guard {
@@ -510,6 +511,8 @@ func judgeNOP(candidate, own map[string]junit.Case, changed map[string]bool, nop
 			r.Verdict, r.Characterization = contract.PASS, true
 		case b.Status == contract.TestSkipped:
 			r.Verdict, r.Reason = contract.INCONCLUSIVE, "the test was skipped on the base: it is not known whether it proves the change"
+		case b.Status == contract.TestMissing && missingPasses && !changed[id]:
+			r.Verdict, r.AbsentOnBase = contract.PASS, true
 		case b.Status == contract.TestMissing:
 			r.Verdict, r.Reason = contract.INCONCLUSIVE, "the test did not appear on the base (collection or import error): stub missing"
 		default:

@@ -13,6 +13,7 @@ An RFC is a written proposal to change what the protocol requires or what a cont
 | [0007](0007-fewer-human-stops.md) | Fewer human stops: batch approval, and pre-authorized behavior changes bound to base, intent and expiry | Draft (comment period until 2026-11-19) |
 | [0008](0008-feature-plans.md) | Feature plans: a Planner proposes slices, deterministic gates judge the split, a plan machine runs them in dependency order | Draft (comment period until 2026-11-19) |
 | [0009](0009-core-and-run-profiles.md) | Two profiles: Core (the gate) is normative on its own; Run (the orchestrator) builds on it and has a normative core of six tested behaviours | Draft |
+| [0010](0010-nop-tests-absent-on-the-base.md) | Opt-in: a new test that does not appear on the base and passes on the candidate is NOP PASS, recorded with `absent_on_base` | Draft |
 
 ## What needs an RFC
 

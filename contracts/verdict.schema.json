@@ -224,6 +224,7 @@
           "message": { "type": "string", "description": "Message of the failure it decided on, trimmed." },
           "characterization": { "type": "boolean", "description": "Passes on the base and the change does not declare an intent to change behavior (no enforce_new_behavior stubs or waivers): it is recorded and does not block." },
           "guard": { "type": "boolean", "description": "nop_oracle: passes on the base in a change that declares the intent to change behavior, and another new test in the same test file proves the change (config.tests.nop_base_passing is guard, RFC-0003): it is recorded and does not block." },
+          "absent_on_base": { "type": "boolean", "description": "nop_oracle: a new test that did not appear on the base and passes on the candidate, admitted as PASS because config.tests.nop_base_missing is pass (RFC-0010): it shows the test needs the change to load, not that its assertions need it." },
           "flaky": { "type": "boolean", "description": "Flaky on the base on re-runs: does not block; quarantine is proposed." },
           "reruns": {
             "type": "object",
@@ -239,7 +240,8 @@
         "required": ["target", "gate", "verdict", "base", "candidate", "waived"],
         "allOf": [
           { "if": { "properties": { "verdict": { "enum": ["FAIL", "INCONCLUSIVE"] } } }, "then": { "required": ["reason"] } },
-          { "not": { "properties": { "guard": { "const": true }, "characterization": { "const": true } }, "required": ["guard", "characterization"] } }
+          { "not": { "properties": { "guard": { "const": true }, "characterization": { "const": true } }, "required": ["guard", "characterization"] } },
+          { "if": { "properties": { "absent_on_base": { "const": true } }, "required": ["absent_on_base"] }, "then": { "properties": { "gate": { "const": "nop_oracle" }, "verdict": { "const": "PASS" }, "base": { "const": "missing" }, "guard": { "const": false }, "characterization": { "const": false } } } }
         ],
         "additionalProperties": false
       }

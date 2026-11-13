@@ -305,7 +305,7 @@ func TestJudgeNOP(t *testing.T) {
 		"absent": "INCONCLUSIVE", "red": "FAIL"}
 	for _, intent := range []bool{false, true} {
 		got := map[string]contract.TestResult{}
-		for _, r := range judgeNOP(candidate, own, nil, nop, intent, false, invalid, nil) {
+		for _, r := range judgeNOP(candidate, own, nil, nop, intent, false, false, invalid, nil) {
 			got[strings.TrimPrefix(r.Target, "t.py::c::")] = r
 		}
 		if _, ok := got["old"]; ok {
@@ -349,7 +349,7 @@ func TestJudgeNOPGuard(t *testing.T) {
 	}
 	for _, tc := range cases {
 		got := map[string]string{}
-		for _, r := range judgeNOP(candidate, map[string]junit.Case{}, nil, nop, tc.intent, tc.guard, invalid, nil) {
+		for _, r := range judgeNOP(candidate, map[string]junit.Case{}, nil, nop, tc.intent, tc.guard, false, invalid, nil) {
 			v := r.Verdict
 			if r.Guard {
 				v += " guard"
@@ -952,7 +952,7 @@ func TestJudgeNOPChangedExistingTest(t *testing.T) {
 	changed := map[string]bool{testCase("t.py::weak", "", "").ID(): true, testCase("t.py::strong", "", "").ID(): true, testCase("t.py::broken", "", "").ID(): true}
 	got := map[string]contract.TestResult{}
 	for _, intent := range []bool{false, true} {
-		for _, r := range judgeNOP(candidate, own, changed, nop, intent, false, invalid, nil) {
+		for _, r := range judgeNOP(candidate, own, changed, nop, intent, false, false, invalid, nil) {
 			got[strings.TrimPrefix(r.Target, "t.py::c::")] = r
 		}
 		for n, v := range map[string]string{"weak": "INCONCLUSIVE", "strong": "PASS", "broken": "FAIL"} {
@@ -1004,6 +1004,36 @@ func TestCheckWeakenedExistingTestIsNotPass(t *testing.T) {
 		}
 		if !judged || got.Verdict != contract.INCONCLUSIVE || !strings.Contains(got.Reason, "changed") || v.Verdict == contract.PASS {
 			t.Fatalf("%s %+v", v.Verdict, got)
+		}
+	}
+}
+
+// TestJudgeNOPMissingOnBase covers RFC-0010: with tests.nop_base_missing pass, a new test absent on the base and green on
+// the candidate is PASS with absent_on_base; red on the candidate is still FAIL, and an invalid failure on the base (the
+// file loaded and failed on an import) is still INCONCLUSIVE.
+func TestJudgeNOPMissingOnBase(t *testing.T) {
+	invalid, _ := classifier([]string{"ImportError"}, nil, nil)
+	candidate := mapOf(testCase("a.py::absent", "passed", ""), testCase("a.py::red", "failed", "AssertionError"), testCase("a.py::import", "passed", ""))
+	nop := mapOf(testCase("a.py::import", "failed", "ImportError: x"))
+	for _, tc := range []struct {
+		pass bool
+		want map[string]string
+	}{
+		{true, map[string]string{"a.py::c::absent": "PASS absent", "a.py::c::red": "FAIL", "a.py::c::import": "INCONCLUSIVE"}},
+		{false, map[string]string{"a.py::c::absent": "INCONCLUSIVE", "a.py::c::red": "FAIL", "a.py::c::import": "INCONCLUSIVE"}},
+	} {
+		got := map[string]string{}
+		for _, r := range judgeNOP(candidate, map[string]junit.Case{}, nil, nop, true, false, tc.pass, invalid, nil) {
+			v := r.Verdict
+			if r.AbsentOnBase {
+				v += " absent"
+			}
+			got[r.Target] = v
+		}
+		for id, want := range tc.want {
+			if got[id] != want {
+				t.Errorf("pass=%v %s: %q, want %q (all %v)", tc.pass, id, got[id], want, got)
+			}
 		}
 	}
 }
