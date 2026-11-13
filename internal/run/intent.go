@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/falsable/a2dlc/internal/contract"
 )
@@ -148,6 +150,38 @@ func (m *Machine) exceeded() string {
 		return fmt.Sprintf("CB-03: %d tokens exceed budget.max_tokens %d", *b.SpentTokens, *max)
 	}
 	return ""
+}
+
+// RemainingUSD is the placeholder a value of roles.<role>.env may carry. The core replaces it at each launch with the USD
+// left under max_cost_usd, so the role's own hard cap (the CLI's --max-budget-usd, the adapter's A2DLC_BUDGET_USD) shrinks
+// as the run spends. CB-03 only stops between launches: without this a launch that starts just under the cap may spend
+// its whole own cap again.
+const RemainingUSD = "{remaining_usd}"
+
+// withRemaining returns r with RemainingUSD replaced in its env values. A role that uses the placeholder needs a cost cap
+// and something left under it.
+func (m *Machine) withRemaining(role string, r contract.Role) (contract.Role, error) {
+	uses := false
+	for _, v := range r.Env {
+		uses = uses || strings.Contains(v, RemainingUSD)
+	}
+	if !uses {
+		return r, nil
+	}
+	b := m.state.Budget
+	if b.MaxCostUSD == nil {
+		return r, fmt.Errorf("roles.%s.env uses %s and the run has no max_cost_usd", role, RemainingUSD)
+	}
+	left := *b.MaxCostUSD - b.SpentUSD
+	if left < 0.0001 {
+		return r, fmt.Errorf("roles.%s: %.4f USD spent of max_cost_usd %.4f, nothing left for another launch", role, b.SpentUSD, *b.MaxCostUSD)
+	}
+	env := make(map[string]string, len(r.Env))
+	for k, v := range r.Env {
+		env[k] = strings.ReplaceAll(v, RemainingUSD, strconv.FormatFloat(left, 'f', 4, 64))
+	}
+	r.Env = env
+	return r, nil
 }
 
 // maxTokens is the intent's budget.max_tokens, nil without an intent or without a cap.

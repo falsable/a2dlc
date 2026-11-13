@@ -124,7 +124,11 @@ func (m *Machine) invokeWith(ctx context.Context, role string, r contract.Role, 
 			return invocation, err
 		}
 		req.Inputs = append([]contract.HashedFile{{Path: "/in/request.json", SHA256: hashBytes(append(rb, '\n'))}}, inputs...)
-		res, err := m.launcher.Launch(ctx, r, LaunchSpec{Role: role, Stage: stage, Attempt: intent, InDir: in, OutDir: out, WorkDir: workdir,
+		launched, err := m.withRemaining(role, r)
+		if err != nil {
+			return invocation, err
+		}
+		res, err := m.launcher.Launch(ctx, launched, LaunchSpec{Role: role, Stage: stage, Attempt: intent, InDir: in, OutDir: out, WorkDir: workdir,
 			Name: fmt.Sprintf("a2dlc-%s-%03d-%d", m.state.RunID, len(m.ledger.doc.Entries)+1, intent)})
 		if err != nil {
 			return invocation, fmt.Errorf("launch %s: %w", role, err)

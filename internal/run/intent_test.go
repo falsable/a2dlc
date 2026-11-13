@@ -504,3 +504,30 @@ func TestBudgetFromIntent(t *testing.T) {
 		t.Fatalf("%v %+v %+v seen=%d", err, byID(st)["4"], st.Budget, len(launcherFake.seen))
 	}
 }
+
+// A role whose env carries {remaining_usd} gets what is left under the cost cap at each launch, and the role config in
+// roles.json is not changed by it.
+func TestRemainingUSDIsFilledAtEachLaunch(t *testing.T) {
+	usd := 1.0
+	m := &Machine{}
+	m.state.Budget.MaxCostUSD, m.state.Budget.SpentUSD = &usd, 0.3382
+	r := contract.Role{Env: map[string]string{"A2DLC_LLM_CMD": "claude --max-budget-usd " + RemainingUSD, "A2DLC_MODEL": "m"}}
+	got, err := m.withRemaining("builder_primary", r)
+	if err != nil || got.Env["A2DLC_LLM_CMD"] != "claude --max-budget-usd 0.6618" || got.Env["A2DLC_MODEL"] != "m" {
+		t.Fatalf("%v %v", got.Env, err)
+	}
+	if r.Env["A2DLC_LLM_CMD"] != "claude --max-budget-usd "+RemainingUSD {
+		t.Fatalf("the role config was changed: %v", r.Env)
+	}
+	m.state.Budget.SpentUSD = 1.0
+	if _, err := m.withRemaining("builder_primary", r); err == nil || !strings.Contains(err.Error(), "nothing left") {
+		t.Fatalf("at the cap: %v", err)
+	}
+	m.state.Budget.MaxCostUSD = nil
+	if _, err := m.withRemaining("builder_primary", r); err == nil || !strings.Contains(err.Error(), "no max_cost_usd") {
+		t.Fatalf("without a cap: %v", err)
+	}
+	if got, err := m.withRemaining("builder_primary", contract.Role{Env: map[string]string{"A2DLC_MODEL": "m"}}); err != nil || got.Env["A2DLC_MODEL"] != "m" {
+		t.Fatalf("a role without the placeholder: %v %v", got.Env, err)
+	}
+}
