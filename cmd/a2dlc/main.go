@@ -259,6 +259,14 @@ func run(args []string) int {
 				fmt.Printf("  stage %-4s %-9s%s\n", s.ID, s.Status, reason)
 			}
 			fmt.Printf("%s: run %s, slice %s, %.4f USD reported (%d roles without a report)\n", out, st.RunID, st.SliceID, st.Budget.SpentUSD, st.Budget.UnreportedRoles)
+			rows, err := a2run.LedgerSpend(a, *slice)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "a2dlc: spend by stage and role:", err)
+			}
+			for _, r := range rows {
+				fmt.Printf("  spend stage %-4s %-20s %d calls, %.4f USD, %d input + %d output tokens (cache read %d), %d turns, %d unreported\n",
+					r.Stage, r.Role, r.Calls, r.Cost.USD, r.Cost.InputTokens, r.Cost.OutputTokens, r.Cost.CacheReadInputTokens, r.Cost.Turns, r.Unreported)
+			}
 		}
 		if out == "escalated" {
 			return 2

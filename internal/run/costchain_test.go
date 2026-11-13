@@ -162,3 +162,40 @@ func TestRemainingUSDShrinksAcrossLaunchesOfARun(t *testing.T) {
 		}
 	}
 }
+
+// a2dlc-awi: the ledger read back per (stage, role) gives the calls and the four counters of the golden cost, and a
+// launch without a report counts as unreported, not as zero spend; a binding entry launched nothing and is left out.
+func TestSpendRowsSumTheLedgerPerStageAndRole(t *testing.T) {
+	cost := goldenCost(t)
+	a, _, _ := repoBuilder(t)
+	var requests []contract.BuilderRequest
+	launcher := &fakeLauncher{script: costed(fakeBuilder(t, &requests, broken), cost)}
+	opts := Options{Slice: "awi.rows", MaxInner: 3}
+	opts.Intent = intentFile(t, func(in *contract.Intent) { in.SliceID, in.Mode, in.Goal = opts.Slice, contract.ModeLite, "f doubles" })
+	if _, err := Run(context.Background(), a, launcher, opts); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := LedgerSpend(a, opts.Slice)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := SpendRow{Stage: "3", Role: contract.RoleBuilderPrimary, Calls: 3,
+		Cost: contract.Cost{USD: 3 * cost.USD, InputTokens: 420, CacheReadInputTokens: 30, CacheCreationInputTokens: 90, OutputTokens: 150, Turns: 9}}
+	if len(rows) != 1 || rows[0].Stage != want.Stage || rows[0].Role != want.Role || rows[0].Calls != want.Calls || rows[0].Unreported != 0 ||
+		rows[0].Cost.InputTokens != want.Cost.InputTokens || rows[0].Cost.OutputTokens != want.Cost.OutputTokens ||
+		rows[0].Cost.CacheReadInputTokens != 30 || rows[0].Cost.CacheCreationInputTokens != 90 || rows[0].Cost.Turns != 9 ||
+		rows[0].Cost.USD < want.Cost.USD-1e-9 || rows[0].Cost.USD > want.Cost.USD+1e-9 {
+		t.Fatalf("%+v, want %+v", rows, want)
+	}
+	got := SpendRows([]contract.LedgerEntry{
+		{Stage: "1", Role: contract.RoleSaboteur},
+		{Stage: "3", Role: contract.RoleBuilderPrimary, Cost: &cost},
+		{Stage: "3", Role: contract.RoleBuilderPrimary, Authorization: &contract.LedgerAuthorizationRef{}},
+	})
+	if len(got) != 2 || got[0].Role != contract.RoleSaboteur || got[0].Unreported != 1 || got[0].Calls != 1 || got[1].Calls != 1 || got[1].Cost != cost {
+		t.Fatalf("%+v", got)
+	}
+	if rows, err := LedgerSpend(a, "never.ran"); err != nil || rows != nil {
+		t.Fatalf("%v %v", rows, err)
+	}
+}
