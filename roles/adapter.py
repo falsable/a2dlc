@@ -24,7 +24,8 @@ Optional variables (roles.<role>.env can set them):
   A2DLC_LLM             claude | gemini | acp | openrouter | entropos. acp runs any Agent Client Protocol agent (Gemini
                         CLI, OpenCode, codex-acp, claude-agent-acp, ...) through acpx, the headless ACP client: one
                         stateless `exec`, the prompt on stdin, the raw ACP messages as the stream, the USD cost from the
-                        last usage_update. openrouter and entropos call the OpenAI/Entropos
+                        last usage_update, or, when a turn is cut before it ends, from the steps OpenCode stored in
+                        its sqlite under HOME. openrouter and entropos call the OpenAI/Entropos
                         API (chat/completions) with the API key from the --env-file. A builder with openrouter or
                         entropos has no tools: it receives in the prompt the files of /work (text, up to the limits below)
                         and delivers in "files" the full content of each file it changes or creates; this script writes
@@ -62,6 +63,7 @@ import posixpath
 import re
 import shlex
 import signal
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -614,17 +616,19 @@ def kill_group(proc: subprocess.Popen, sig: int = 9) -> None:
 def watch_budget(proc: subprocess.Popen, stream: Path, budget: float, stopped: list[float]) -> None:
     """Reads the ACP stream as the CLI writes it and stops the call once the agent's cumulative cost reaches the budget:
     SIGINT first, which acpx answers with session/cancel, then SIGKILL if it has not exited 5 s later."""
-    pending = b""
+    pending, since, polls = b"", int(time.time() * 1000), 0
     with stream.open("rb") as f:
         while proc.poll() is None:
             time.sleep(0.25)
+            polls += 1
             pending += f.read()
             cut = pending.rfind(b"\n") + 1
-            if not cut:
-                continue
             # usage_update carries the cumulative cost, so the new complete lines are enough
-            lines, pending = pending[:cut], pending[cut:]
-            cost = acp_cost(stream_events(lines.decode("utf-8", errors="replace")))
+            lines, pending = (pending[:cut], pending[cut:]) if cut else (b"", pending)
+            cost = acp_cost(stream_events(lines.decode("utf-8", errors="replace"))) if lines else None
+            if not cost and polls % 8 == 0:
+                # an agent that reports USD only when its turn ends (OpenCode) is watched through its own store
+                cost = store_cost(since)
             if cost and cost["usd"] >= budget:
                 stopped.append(cost["usd"])
                 kill_group(proc, signal.SIGINT)
@@ -841,6 +845,38 @@ def acp_cost(messages: list[dict]) -> dict | None:
     return {"usd": usd} if usd is not None else None
 
 
+OPENCODE_DB = ".local/share/opencode/opencode.db"
+
+
+def store_cost(since_ms: int) -> dict | None:
+    """The USD an ACP agent recorded in its own store for the steps it finished since since_ms, for a call whose stream
+    carries none: OpenCode sends usage_update only when a prompt turn ends, so a turn cut at the cap or stopped mid-way
+    reports nothing, while its sqlite (under the role's ephemeral HOME) holds every finished step's cost. A step still in
+    flight is not counted.
+    shortcut: only OpenCode's store is read, upgrade when another agent reports USD only at the end of its turn."""
+    db = Path(os.environ.get("HOME", "/nonexistent")) / OPENCODE_DB
+    if not db.is_file():
+        return None
+    try:
+        con = sqlite3.connect(f"{db.resolve().as_uri()}?mode=ro", uri=True, timeout=1)
+        try:
+            rows = con.execute("SELECT data FROM part WHERE time_created >= ?", (since_ms,)).fetchall()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return None
+    usd = None
+    for (data,) in rows:
+        try:
+            part = json.loads(data)
+        except (TypeError, ValueError):
+            continue
+        cost = part.get("cost") if isinstance(part, dict) and part.get("type") == "step-finish" else None
+        if isinstance(cost, (int, float)) and not isinstance(cost, bool) and cost >= 0:
+            usd = (usd or 0.0) + float(cost)
+    return {"usd": usd} if usd is not None else None
+
+
 def read_acp(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, str | None]:
     """acpx --format json --json-strict: the raw ACP JSON-RPC messages, one per line. The answer is the agent's message
     chunks joined; the call is done when session/prompt answers with a stopReason. acpx does not prove which model
@@ -1047,6 +1083,7 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
         # claude's and acp's event streams stay in /out for every call, cut off or not; gemini has none
         stream = out_dir / STREAM_FILE if llm in ("claude", "acp") else None
         budget = acp_budget() if llm == "acp" else None
+        since = int(time.time() * 1000)
         try:
             if builder and work.is_dir():
                 stdout, stderr, code = call_cli(cmd, prompt, str(work), stream, budget)
@@ -1058,9 +1095,13 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
         except Failure as f:
             if builder and llm == "claude":
                 f.cost = own_cost(f.cost)
+            if llm == "acp" and f.cost is None:
+                f.cost = store_cost(since)
             raise
         if builder and llm == "claude":
             cost = own_cost(cost)
+        if llm == "acp" and cost is None:
+            cost = store_cost(since)
     try:
         status, reason, files, payload = validate_model(model_object(text), builder, without_tools)
     except Failure as f:

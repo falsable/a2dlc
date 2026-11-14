@@ -33,7 +33,7 @@ def run_adapter(scenario: str, extra_env: dict[str, str] | None = None) -> tuple
            "A2DLC_ROLE": "builder_primary", "A2DLC_STAGE": "3", "A2DLC_LLM": "acp", "A2DLC_WORKDIR": str(tmp / "work"),
            "A2DLC_PROMPTS_DIR": str(HERE.parent / "prompts"), "A2DLC_ACP_AGENT": "gemini --experimental-acp",
            "A2DLC_LLM_CMD": f"{Path(sys.executable).as_posix()} {(HERE / 'fake_acpx.py').as_posix()}",
-           "A2DLC_MODEL": "fake-model", "FAKE_ACPX": scenario, "FAKE_ACPX_ARGV": str(tmp / "argv.json"), **(extra_env or {})}
+           "A2DLC_MODEL": "fake-model", "FAKE_ACPX": scenario, "HOME": str(tmp / "home"), "FAKE_ACPX_ARGV": str(tmp / "argv.json"), **(extra_env or {})}
     started = time.monotonic()
     done = subprocess.run([sys.executable, str(ADAPTER)], env=env, capture_output=True, text=True, timeout=60)
     took = time.monotonic() - started
@@ -81,6 +81,20 @@ class Acp(unittest.TestCase):
         # the watcher reads every 0.25 s and the fake reports every 0.2 s, so it may already see the third report
         self.assertRegex(response["reason"], r"reached the budget of USD 0\.5 \(USD 0\.[69] reported\) and was stopped")
         self.assertIn(response["cost"]["usd"], (0.6, 0.9))
+
+    def test_a_turn_cut_at_the_cap_reports_the_steps_the_agent_stored(self):
+        code, took, response, _ = run_adapter("store_cut", {"A2DLC_TIMEOUT_S": "4"})
+        self.assertEqual(code, 1)
+        self.assertLess(took, 30)
+        self.assertEqual(response["error_kind"], "cli_cut")
+        self.assertAlmostEqual(response["cost"]["usd"], 0.03)  # the hour-old USD 5 step is not this call's
+
+    def test_the_budget_stops_a_turn_through_the_agents_store(self):
+        code, took, response, _ = run_adapter("store_budget", {"A2DLC_BUDGET_USD": "0.05", "A2DLC_TIMEOUT_S": "60"})
+        self.assertEqual(code, 1)
+        self.assertLess(took, 30)
+        self.assertIn("reached the budget of USD 0.05", response["reason"])
+        self.assertGreaterEqual(response["cost"]["usd"], 0.05)
 
     def test_acp_without_an_agent_is_refused(self):
         code, _, response, _ = run_adapter("ok", {"A2DLC_ACP_AGENT": ""})

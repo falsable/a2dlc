@@ -7,12 +7,16 @@ FAKE_ACPX selects the scenario:
   refusal    session/prompt answers stopReason "refusal"
   error      session/prompt answers a JSON-RPC error and acpx exits 1
   budget     reports a growing cumulative cost (USD 0.30, 0.60, 0.90, ...) every 0.2 s and never ends its turn
+  store_cut  records three finished steps of USD 0.01 in an OpenCode-like sqlite under HOME, sends no usage_update and
+             sleeps past the cap
+  store_budget  the same, one step of USD 0.01 every 0.2 s, never ending its turn
 FAKE_ACPX_ARGV, if set, is a file where the fake writes its argv as JSON.
 """
 from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import sys
 import time
 
@@ -42,6 +46,24 @@ def main() -> int:
             update({"sessionUpdate": "usage_update", "used": 1000, "size": 200000,
                     "cost": {"amount": round(usd, 2), "currency": "USD"}})
             time.sleep(0.2)
+    if scenario in ("store_cut", "store_budget"):
+        # like OpenCode: each finished step's USD goes to its sqlite under HOME, usage_update would come only at turn end
+        db = os.path.join(os.environ["HOME"], ".local", "share", "opencode", "opencode.db")
+        os.makedirs(os.path.dirname(db), exist_ok=True)
+        con = sqlite3.connect(db, isolation_level=None)
+        con.execute("CREATE TABLE part (id TEXT, message_id TEXT, session_id TEXT, time_created INTEGER, time_updated INTEGER, data TEXT)")
+        old = int(time.time() * 1000) - 3_600_000  # a step from before this call: never counted
+        con.execute("INSERT INTO part VALUES ('p0', 'm0', 's0', ?, ?, ?)", (old, old, json.dumps({"type": "step-finish", "cost": 5})))
+        update({"sessionUpdate": "tool_call", "toolCallId": "t1", "title": "Read a.py", "kind": "read", "status": "pending"})
+        for i in range(1, 1_000_000):
+            now = int(time.time() * 1000)
+            for kind in ("step-start", "text", "step-finish"):
+                con.execute("INSERT INTO part VALUES (?, 'm1', 's1', ?, ?, ?)",
+                            (f"p{i}{kind}", now, now, json.dumps({"type": kind, "cost": 0.01 if kind == "step-finish" else None})))
+            if scenario == "store_cut" and i == 3:
+                break
+            time.sleep(0.2)
+        time.sleep(3600)
     if scenario == "error":
         emit({"jsonrpc": "2.0", "id": 2, "error": {"code": -32603, "message": "the agent crashed"}})
         print("[acpx] error: AGENT_ERROR the agent crashed", file=sys.stderr)
