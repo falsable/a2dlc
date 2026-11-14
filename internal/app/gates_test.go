@@ -1009,8 +1009,8 @@ func TestCheckWeakenedExistingTestIsNotPass(t *testing.T) {
 }
 
 // TestJudgeNOPMissingOnBase covers RFC-0010: with tests.nop_base_missing pass, a new test absent on the base and green on
-// the candidate is PASS with absent_on_base; red on the candidate is still FAIL, and an invalid failure on the base (the
-// file loaded and failed on an import) is still INCONCLUSIVE.
+// the candidate is PASS with absent_on_base, an invalid failure on the base (the file loaded and failed on an import or a
+// missing member) is PASS with invalid_on_base, and red on the candidate is still FAIL. With the default both are INCONCLUSIVE.
 func TestJudgeNOPMissingOnBase(t *testing.T) {
 	invalid, _ := classifier([]string{"ImportError"}, nil, nil)
 	candidate := mapOf(testCase("a.py::absent", "passed", ""), testCase("a.py::red", "failed", "AssertionError"), testCase("a.py::import", "passed", ""))
@@ -1019,7 +1019,7 @@ func TestJudgeNOPMissingOnBase(t *testing.T) {
 		pass bool
 		want map[string]string
 	}{
-		{true, map[string]string{"a.py::c::absent": "PASS absent", "a.py::c::red": "FAIL", "a.py::c::import": "INCONCLUSIVE"}},
+		{true, map[string]string{"a.py::c::absent": "PASS absent", "a.py::c::red": "FAIL", "a.py::c::import": "PASS invalid"}},
 		{false, map[string]string{"a.py::c::absent": "INCONCLUSIVE", "a.py::c::red": "FAIL", "a.py::c::import": "INCONCLUSIVE"}},
 	} {
 		got := map[string]string{}
@@ -1027,6 +1027,9 @@ func TestJudgeNOPMissingOnBase(t *testing.T) {
 			v := r.Verdict
 			if r.AbsentOnBase {
 				v += " absent"
+			}
+			if r.InvalidOnBase {
+				v += " invalid"
 			}
 			got[r.Target] = v
 		}

@@ -117,6 +117,8 @@ cases = {
     "verdict__guard-and-characterization.json": (read("verdict__tests-guard.json"), lambda x: x["tests"][1].update(characterization=True)),
     # RFC-0010: absent_on_base is a PASS of a test missing on the base, never a test that ran there
     "verdict__absent-on-base-but-ran.json": (read("verdict__tests-absent-on-base.json"), lambda x: x["tests"][1].update(base="failed")),
+    # and invalid_on_base is a PASS of a test that ran and failed on the base, never one that was missing there
+    "verdict__invalid-on-base-but-missing.json": (read("verdict__tests-absent-on-base.json"), lambda x: x["tests"][2].update(base="missing")),
     # a gate that did not run must say why
     "verdict__gate-error-missing-reason.json": (verdict_tests, lambda x: x["test_gates"]["baseline"].update(status="error")),
     "verdict__gates-missing-baseline.json": (verdict_tests, lambda x: x["test_gates"].pop("baseline")),

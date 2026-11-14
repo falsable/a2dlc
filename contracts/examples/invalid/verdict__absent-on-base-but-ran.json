@@ -76,6 +76,16 @@
    "waived": false
   },
   {
+   "target": "tests/test_calc.py::tests.test_calc::test_moda",
+   "gate": "nop_oracle",
+   "verdict": "PASS",
+   "base": "failed",
+   "candidate": "passed",
+   "message": "AttributeError: module 'src.calc' has no attribute 'moda'",
+   "invalid_on_base": true,
+   "waived": false
+  },
+  {
    "target": "tests/test_red.py::tests.test_red::test_lento",
    "gate": "baseline",
    "verdict": "PASS",

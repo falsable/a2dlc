@@ -38,14 +38,24 @@ false-accept rate.
 > - **A new test that does not appear on the base (RFC-0010).** With `config.tests.nop_base_missing: "pass"`, a new test
 >   that does not appear on the base at all (its file does not load there and no stub made it load) and passes on the
 >   candidate is `PASS`, recorded in the receipt with `absent_on_base: true`. It shows that the test needs the change to
->   load, which is weaker than a valid failure on the base: it does not show that its assertions need the change. A test
->   that is red on the candidate is `FAIL`, and one whose file loads on the base and fails there for an invalid reason
->   stays `INCONCLUSIVE`, as above. With the default `"inconclusive"`, a test absent on the base is `INCONCLUSIVE`, stub
->   missing.
+>   load, which is weaker than a valid failure on the base: it does not show that its assertions need the change. A new
+>   test whose file loads on the base and fails there for an invalid reason (import, collection, or a symbol without a
+>   stub, such as a method the base's object does not have) and passes on the candidate is `PASS` too, recorded with
+>   `invalid_on_base: true`: it needs the change to run, with the same weaker evidence. A test that is red on the candidate
+>   is `FAIL`. With the default `"inconclusive"`, both stay `INCONCLUSIVE`, as above.
 
 **Receipt.** A new optional field on the entries of `tests` in `contracts/verdict.schema.json`, `absent_on_base`. An
 entry with `absent_on_base: true` has gate `nop_oracle`, verdict `PASS`, base `missing`, and neither `guard` nor
-`characterization`.
+`characterization`. A second optional field, `invalid_on_base`, marks the case of a test that loaded on the base and failed there for
+an invalid reason: gate `nop_oracle`, verdict `PASS`, base `failed`, and neither `guard`, `characterization` nor
+`absent_on_base`.
+
+**Amendment, 2026-11-14 (bead a2dlc-4dt.10).** The first text kept a test that loads on the base and fails there for an
+invalid reason `INCONCLUSIVE` under `pass`. In a measured run on Entropos (keycap, a non-Anthropic builder), the builder's
+new tests called methods the base's store object lacks (`productionStore.setApiKeyMonthlyCap is not a function`); Stage 4
+ended `INCONCLUSIVE` and the sealed holdout on that candidate passed 103/103. A test that fails on the base because a member
+it calls does not exist there needs the change in the same way as one whose file does not load, so `pass` now admits both,
+each named in the receipt.
 
 **What is given up.** NOP is the single mutant of Stage 5: the whole diff reverted. A test absent on the base does die
 when the diff is reverted, but by failing to load, so a test with no assertion would pass this gate as well. The other
@@ -76,10 +86,11 @@ schema, which is the pairing rule working as intended.
 ## Verification
 
 - `TestJudgeNOPMissingOnBase` (`internal/app/gates_test.go`): with `pass`, a new test absent on the base and green on the
-  candidate is `PASS` with `absent_on_base`, a red one is `FAIL`, and an import failure on the base stays `INCONCLUSIVE`.
-  With the default, the absent test is `INCONCLUSIVE`.
+  candidate is `PASS` with `absent_on_base`, an import failure on the base is `PASS` with `invalid_on_base`, and a red
+  one is `FAIL`. With the default, both are `INCONCLUSIVE`.
 - Schema examples:
   - valid: `config__tests-nop-missing-pass.json` and `verdict__tests-absent-on-base.json`;
-  - invalid: `config__nop-base-missing-unknown.json` and `verdict__absent-on-base-but-ran.json`.
+  - invalid: `config__nop-base-missing-unknown.json`, `verdict__absent-on-base-but-ran.json` and
+    `verdict__invalid-on-base-but-missing.json`.
 - `contracts/tests/check_rfc.py` and `contracts/tests/validate.py` green.
 - Replay with `nop_base_missing: "pass"` in the target overlay of the two candidates above: Stage 4 is `PASS`.

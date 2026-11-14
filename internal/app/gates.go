@@ -460,7 +460,8 @@ func classifier(patterns, unstubbed, added []string) (func(string) bool, error) 
 //   - Red on the candidate: FAIL (Oracle).
 //   - Valid failure on the base: PASS.
 //   - Invalid failure on the base (import, collection, symbol without stub) or absent: INCONCLUSIVE. With
-//     tests.nop_base_missing pass (RFC-0010), a new test absent on the base is PASS with absent_on_base.
+//     tests.nop_base_missing pass (RFC-0010), a new test absent on the base is PASS with absent_on_base, and a new test
+//     with an invalid failure on the base is PASS with invalid_on_base: either way it needs the change to load or run.
 //   - A changed old test that passes on the base: INCONCLUSIVE. A body edit that still passes where the change is absent
 //     proves nothing, and it looks the same as an edit that dropped the assert; a human decides.
 //   - Passes on the base: FAIL if the change declares the intent to change behavior (there were stubs or an
@@ -515,6 +516,8 @@ func judgeNOP(candidate, own map[string]junit.Case, changed map[string]bool, nop
 			r.Verdict, r.AbsentOnBase = contract.PASS, true
 		case b.Status == contract.TestMissing:
 			r.Verdict, r.Reason = contract.INCONCLUSIVE, "the test did not appear on the base (collection or import error): stub missing"
+		case b.Status == contract.TestFailed && missingPasses && !changed[id]:
+			r.Verdict, r.InvalidOnBase = contract.PASS, true
 		default:
 			r.Verdict, r.Reason = contract.INCONCLUSIVE, "fails on the base due to import, collection or a symbol without a stub, not because of the test: "+b.Message
 		}

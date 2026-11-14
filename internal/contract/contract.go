@@ -196,7 +196,8 @@ type TestsConfig struct {
 	// regression guard when another new test in the same test file proves the change.
 	NopBasePassing string `json:"nop_base_passing,omitempty"`
 	// NopBaseMissing is "inconclusive" (also when absent) or NopBaseMissingPass: a new test that does not appear on the
-	// base and passes on the candidate is PASS, recorded with absent_on_base.
+	// base and passes on the candidate is PASS, recorded with absent_on_base; one that fails on the base for an invalid
+	// reason (import, collection, a symbol without a stub) and passes on the candidate is PASS, recorded with invalid_on_base.
 	NopBaseMissing string `json:"nop_base_missing,omitempty"`
 	// Tier0Command is Tier0CommandTests (also when absent) or Tier0CommandBaseline: Tier 0's step 4 runs baseline_command,
 	// with the selection and the cache of Stage 4's baseline gate.
@@ -549,6 +550,7 @@ type TestResult struct {
 	Characterization bool              `json:"characterization,omitempty"`
 	Guard            bool              `json:"guard,omitempty"`
 	AbsentOnBase     bool              `json:"absent_on_base,omitempty"`
+	InvalidOnBase    bool              `json:"invalid_on_base,omitempty"`
 	Flaky            bool              `json:"flaky,omitempty"`
 	Reruns           *Reruns           `json:"reruns,omitempty"`
 	Waived           bool              `json:"waived"`
