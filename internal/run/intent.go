@@ -160,8 +160,25 @@ const RemainingUSD = "{remaining_usd}"
 
 // RoundUSD is half of RemainingUSD while more Stage 3 builder rounds follow (the tier_up round included) and all of it in the
 // last round, so one launch cannot spend what the feedback rounds need and the first round still has room to read the repo
-// (an even split gave a first round USD 0.20 of 1, spent reading); outside Stage 3's loop it equals RemainingUSD.
+// (an even split gave a first round USD 0.20 of 1, spent reading); a round whose half would be under roundFloor is the last
+// and gets all of it (halfStarves); outside Stage 3's loop it equals RemainingUSD.
 const RoundUSD = "{round_usd}"
+
+// roundFloor is the least share of max_cost_usd a Stage 3 round gets while more rounds follow.
+// shortcut: a fixed quarter, from PREREG-entropos-F2 (resumed rounds of USD 0.06 of 1 bought one turn each); derive it from
+// the session's last round when a measurement asks for it.
+const roundFloor = 0.25
+
+// halfStarves says whether r uses RoundUSD and half of what is left is under roundFloor of max_cost_usd: Stage 3 then makes
+// this round the last, so it gets all of it instead of leaving later rounds too little to act.
+func (m *Machine) halfStarves(r contract.Role) bool {
+	uses := false
+	for _, v := range r.Env {
+		uses = uses || strings.Contains(v, RoundUSD)
+	}
+	b := m.state.Budget
+	return uses && b.MaxCostUSD != nil && (*b.MaxCostUSD-b.SpentUSD)/2 < roundFloor**b.MaxCostUSD
+}
 
 // withRemaining returns r with RemainingUSD and RoundUSD replaced in its env values. A role that uses either needs a cost cap
 // in the run and something left under it.

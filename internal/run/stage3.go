@@ -321,6 +321,14 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		if round > in.rounds {
 			cfg, maxRounds, inTierUp = tierUp, round, true
 		}
+		rc := m.roles.Roles[role]
+		if cfg != nil {
+			rc = *cfg
+		}
+		if round < lastRound && m.halfStarves(rc) {
+			lastRound, maxRounds, agent.rounds = round, round, round
+			roundNotes = append(roundNotes, fmt.Sprintf("round %d got all that was left and was the last: half of it was under %.0f%% of max_cost_usd", round, roundFloor*100))
+		}
 		m.iter++
 		pl := contract.BuilderRequest{Intent: in.intent, Contract: in.contractJSON, Probes: in.probes, Round: round, MaxRounds: maxRounds, Tier0Feedback: feedback, Header: &header, Boundary: in.boundary,
 			EngineLanguage: in.engineLanguage, Paradigm: m.roles.Roles[role].Paradigm, Critical: in.critical}

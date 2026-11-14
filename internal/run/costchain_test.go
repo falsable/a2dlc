@@ -187,6 +187,34 @@ func TestRoundUSDSplitsTheRemainingOverTheRoundsLeft(t *testing.T) {
 	}
 }
 
+// a2dlc-4dt.8: when half of what is left would be under a quarter of max_cost_usd, the round gets all of it and is the
+// last, instead of rounds of a few cents that a resumed session spends on one turn.
+func TestRoundUSDGivesAllToARoundWhoseHalfWouldStarve(t *testing.T) {
+	cost := goldenCost(t)
+	cost.USD = 0.3
+	a, dir, _ := repoBuilder(t)
+	write(t, dir, ".a2dlc/roles.json", `{"schema_version":1,"roles":{"builder_primary":{"family":"claude","image":"img:1","argv":["sh","x"],"retries":0,"env":{"A2DLC_LLM_CMD":"claude --max-budget-usd {round_usd}"}}}}`)
+	var requests []contract.BuilderRequest
+	launcher := &envLauncher{fakeLauncher: &fakeLauncher{script: costed(fakeBuilder(t, &requests, broken), cost)}}
+	opts := Options{Slice: "rusd.floor", MaxInner: 5, MaxCostUSD: 1}
+	opts.Intent = intentFile(t, func(in *contract.Intent) { in.SliceID, in.Mode, in.Goal = opts.Slice, contract.ModeLite, "f doubles" })
+	if _, err := Run(context.Background(), a, launcher, opts); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"0.5000", "0.3500", "0.4000"} // 1/2; 0.70/2 = 0.35 >= 0.25; 0.40/2 = 0.20 < 0.25, so all 0.40 and no round 4
+	if len(launcher.envs) != len(want) {
+		t.Fatalf("%d launches, wanted %d", len(launcher.envs), len(want))
+	}
+	for i, env := range launcher.envs {
+		if got := env["A2DLC_LLM_CMD"]; got != "claude --max-budget-usd "+want[i] {
+			t.Fatalf("launch %d got %q, wanted %s", i+1, got, want[i])
+		}
+	}
+	if len(requests) != 3 || requests[2].MaxRounds != 3 {
+		t.Fatalf("the third round must be told it is the last: %d requests, %+v", len(requests), requests[len(requests)-1].MaxRounds)
+	}
+}
+
 // a2dlc-awi: the ledger read back per (stage, role) gives the calls and the four counters of the golden cost, and a
 // launch without a report counts as unreported, not as zero spend; a binding entry launched nothing and is left out.
 func TestSpendRowsSumTheLedgerPerStageAndRole(t *testing.T) {

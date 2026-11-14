@@ -726,7 +726,9 @@ tag, resolves it to its digest before each launch and records the digest in the 
   launches; without this, a launch that starts just under the cap can spend its own whole cap again. A run without a
   cost cap, or with nothing left, refuses to launch a role that uses it.
 - `{round_usd}` is half of that remainder while more Stage 3 builder rounds follow (the `tier_up` round included) and
-  all of it in the last round; outside Stage 3 it equals `{remaining_usd}`. An even split over five rounds gave a first
+  all of it in the last round; outside Stage 3 it equals `{remaining_usd}`. When that half would be under a quarter of
+  the run's `max_cost_usd`, the round gets all of it and is the last one: in PREREG-entropos-F2 the halving left rounds 4
+  and 5 about USD 0.06 of 1, and a resumed session spent each on one turn. An even split over five rounds gave a first
   round USD 0.20 of 1, spent reading the repository before any edit. With `claude --max-budget-usd {round_usd}` a first round cannot
   spend the whole run: in a bar calibration one builder call took 36 turns and all of USD 1, and no round was left for
   Tier 0 feedback. The CLI has no turn cap, so the cap per round is money. If the CLI stops mid-edit and gives no answer,
