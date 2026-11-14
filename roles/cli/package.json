@@ -2,10 +2,11 @@
   "name": "a2dlc-roles-cli",
   "version": "0.0.0",
   "private": true,
-  "description": "Pinned headless agent CLIs of the a2dlc-roles image, and acpx, the headless ACP client. Versions are exact; package-lock.json pins every transitive dependency.",
+  "description": "Pinned headless agent CLIs (Claude Code, Gemini CLI, OpenCode) of the a2dlc-roles image, and acpx, the headless ACP client. Versions are exact; package-lock.json pins every transitive dependency.",
   "dependencies": {
     "@anthropic-ai/claude-code": "2.1.302",
     "@google/gemini-cli": "0.64.0",
-    "acpx": "0.21.1"
+    "acpx": "0.21.1",
+    "opencode-ai": "1.19.5"
   }
 }
