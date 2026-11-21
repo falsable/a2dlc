@@ -1,0 +1,17 @@
+{
+  "$schema_doc": "~/meta/scripts/affected_tests.py (docstring). Registro de qué test cubre qué código. Al crear o cambiar código: añade aquí su test en 'map' si el nombre no lo delata.",
+  "max_local": 40,
+  "legacy": [],
+  "exclude": [],
+  "hubs": [],
+  "smoke": [],
+  "zones": {
+    "e2e": [
+      "e2e/"
+    ],
+    "engines": [
+      "engines/"
+    ]
+  },
+  "map": {}
+}
