@@ -59,6 +59,15 @@ const (
 // green on the candidate as PASS; absent or "inconclusive" keeps it INCONCLUSIVE.
 const NopBaseMissingPass = "pass"
 
+// Values of TestsConfig.Tier0Coverage: what Stage 3 does with Tier 0 coverage findings (changed lines no test executed).
+// feedback (also when absent) sends them back every round, like any finding; once sends them back once, and a later round
+// whose only findings are coverage findings (or the last round) is taken as the candidate, so Stage 4's coverage
+// precondition, the oracle and the holdout judge it instead of the builder exhausting its rounds on it.
+const (
+	Tier0CoverageFeedback = "feedback"
+	Tier0CoverageOnce     = "once"
+)
+
 // Values of TestsConfig.Tier0Command (RFC-0004): which command step 4 of Tier 0 runs.
 const (
 	Tier0CommandTests    = "command"
@@ -201,11 +210,13 @@ type TestsConfig struct {
 	NopBaseMissing string `json:"nop_base_missing,omitempty"`
 	// Tier0Command is Tier0CommandTests (also when absent) or Tier0CommandBaseline: Tier 0's step 4 runs baseline_command,
 	// with the selection and the cache of Stage 4's baseline gate.
-	Tier0Command string  `json:"tier0_command,omitempty"`
-	Reruns       int     `json:"reruns,omitempty"`
-	TimeoutS     int     `json:"timeout_s,omitempty"`
-	Memory       string  `json:"memory,omitempty"`
-	CPUs         float64 `json:"cpus,omitempty"`
+	Tier0Command string `json:"tier0_command,omitempty"`
+	// Tier0Coverage is Tier0CoverageFeedback (also when absent) or Tier0CoverageOnce.
+	Tier0Coverage string  `json:"tier0_coverage,omitempty"`
+	Reruns        int     `json:"reruns,omitempty"`
+	TimeoutS      int     `json:"timeout_s,omitempty"`
+	Memory        string  `json:"memory,omitempty"`
+	CPUs          float64 `json:"cpus,omitempty"`
 	// StubEngine is asked for stubs only (the NOP gate's base): it is no entry of Config.Engines, so it reviews no file and
 	// counts for no Tier 0 review. Its language also picks the default InvalidBaseFailures.
 	StubEngine *EngineConfig `json:"stub_engine,omitempty"`

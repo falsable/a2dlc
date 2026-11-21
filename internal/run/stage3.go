@@ -315,6 +315,10 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		return err
 	}
 	lastRound := in.rounds + extra
+	coverageOnce, coverageSent := false, false
+	if cfg, err := m.app.Config(); err == nil && cfg.Tests != nil {
+		coverageOnce = cfg.Tests.Tier0Coverage == contract.Tier0CoverageOnce
+	}
 	var prevFindings []contract.Tier0Finding
 	for round := 1; round <= lastRound; round++ {
 		cfg, maxRounds := (*contract.Role)(nil), in.rounds
@@ -435,6 +439,16 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		if _, err := m.writeArtifact(tier0Artifact, res); err != nil {
 			return buildResult{}, err
 		}
+		// tests.tier0_coverage once: coverage findings go back one time; after that (or on the last round) a tree whose only
+		// findings are coverage is the candidate, and Stage 4's precondition, not the builder's rounds, decides it
+		if !res.OK && coverageOnce && onlyCoverage(res.Findings) {
+			if coverageSent || round == lastRound {
+				roundNotes = append(roundNotes, fmt.Sprintf("tier0_coverage once: round %d left only coverage findings (%s); taken as the candidate for Stage 4 to judge", round, findingsSummary(&res)))
+				res.OK = true
+			} else {
+				coverageSent = true
+			}
+		}
 		if res.OK {
 			prevFindings = nil // a round that passed Tier 0 breaks the "same as the previous round" comparison
 		} else {
@@ -536,6 +550,16 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 	}
 	agent.last = findingsSummary(feedback)
 	return m.exhausted(agent, tier0Artifact), nil
+}
+
+// onlyCoverage says whether findings is non-empty and every finding is a Tier 0 coverage finding.
+func onlyCoverage(findings []contract.Tier0Finding) bool {
+	for _, f := range findings {
+		if f.Kind != contract.Tier0Coverage {
+			return false
+		}
+	}
+	return len(findings) > 0
 }
 
 // sameFindings says whether two Tier 0 answers carry the same (kind, file, line, message) multiset; a nil line differs from any number.

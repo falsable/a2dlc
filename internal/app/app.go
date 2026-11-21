@@ -201,6 +201,11 @@ func (a App) configAt(commit string) (contract.Config, error) {
 		default:
 			return c, fmt.Errorf("%s: tests.tier0_command %q is not %s or %s", pathConfig, c.Tests.Tier0Command, contract.Tier0CommandTests, contract.Tier0CommandBaseline)
 		}
+		switch c.Tests.Tier0Coverage {
+		case "", contract.Tier0CoverageFeedback, contract.Tier0CoverageOnce:
+		default:
+			return c, fmt.Errorf("%s: tests.tier0_coverage %q is not %s or %s", pathConfig, c.Tests.Tier0Coverage, contract.Tier0CoverageFeedback, contract.Tier0CoverageOnce)
+		}
 	}
 	if c.Integration != nil {
 		if err := c.Integration.Validate(); err != nil {
