@@ -371,7 +371,8 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	res := judgeNOP(candidate.cases, own, changedBodies(own, inBase, in.modified), nop.cases, declaresBehavior(in), in.cfg.NopBasePassing == contract.NopBasePassingGuard, in.cfg.NopBaseMissing == contract.NopBaseMissingPass, invalid, a.environmentCause(in))
 	for i := range res {
 		if c, ok := candidate.cases[res[i].Target]; ok {
-			if _, del := in.overlay[c.File]; del {
+			// testFile, not c.File: vitest gives the file as the classname, and its overlay tests were never marked
+			if _, del := in.overlay[testFile(c)]; del {
 				res[i].Origin = "overlay"
 			}
 		}

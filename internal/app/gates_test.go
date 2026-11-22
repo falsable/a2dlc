@@ -109,6 +109,7 @@ type fakeTests struct {
 	runs     []string
 	selected []string      // A2DLC_TESTS of each run, in the order they started
 	module   bool          // classname is the module of the file, as pytest writes it, instead of "c"
+	noFile   bool          // no file attribute and the file as classname, as vitest writes it
 	delay    time.Duration // each run takes at least this long
 	inflight int
 	peak     int            // most runs in flight at once
@@ -250,7 +251,11 @@ func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command 
 			if f.module {
 				class = moduleOf(a)
 			}
-			fmt.Fprintf(&x, `<testcase classname="%s" name="%s" file="%s">`, class, fields[0], a)
+			if f.noFile {
+				fmt.Fprintf(&x, `<testcase classname="%s" name="%s">`, a, fields[0])
+			} else {
+				fmt.Fprintf(&x, `<testcase classname="%s" name="%s" file="%s">`, class, fields[0], a)
+			}
 			if m, ok := strings.CutPrefix(state, "failed"); ok {
 				exit = 1
 				fmt.Fprintf(&x, `<failure message="%s"/>`, strings.TrimPrefix(m, ":"))

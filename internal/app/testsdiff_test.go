@@ -286,3 +286,30 @@ func TestRanges(t *testing.T) {
 		t.Fatal(s)
 	}
 }
+
+// A runner that names the file only as the classname (vitest) still gets its overlay tests marked: without the mark the
+// caller that brought them finds none in the verdict, and NOP judges them as the candidate's own.
+func TestOverlayTestsAreMarkedWhenTheRunnerGivesNoFileAttribute(t *testing.T) {
+	a, _, tf, dir := gatesRepo(t)
+	tf.noFile = true
+	base := git(t, dir, "rev-parse", "HEAD")
+	write(t, dir, "src/lib/f.ts", "export const f = 1\nIMPL old\nIMPL alpha\n")
+	overlay := filepath.Join(t.TempDir(), "ov")
+	write(t, overlay, "tests/o.t", "t_alpha2 uses:alpha\n")
+	v, err := a.CheckWith(context.Background(), base, CheckOptions{TestsOverlay: overlay})
+	if err != nil {
+		t.Fatal(err)
+	}
+	marked := map[string]bool{}
+	for _, r := range v.Tests {
+		if r.Target == "tests/o.t::t_alpha2" && r.Origin == "overlay" {
+			marked[r.Gate] = true
+		}
+		if r.Target != "tests/o.t::t_alpha2" && r.Origin == "overlay" {
+			t.Fatalf("a test of the tree is marked as overlay: %+v", r)
+		}
+	}
+	if !marked[contract.GateTestsDiff] || !marked[contract.GateNOP] {
+		t.Fatalf("overlay test not marked in both gates: %v %+v", marked, v.Tests)
+	}
+}

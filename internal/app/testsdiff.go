@@ -250,7 +250,7 @@ func judgeTrees(names []string, states map[string]map[string]junit.Case, T map[s
 		}
 		b, _ := state("base", id)
 		r := contract.TestResult{Target: id, Gate: contract.GateTestsDiff, Base: b, Candidate: c, Trees: map[string]string{}, Message: testCase.Message}
-		if x, ok := T[testCase.File]; ok {
+		if x, ok := T[testFile(testCase)]; ok {
 			r.Origin = x.origin
 		}
 		var green, others []string
