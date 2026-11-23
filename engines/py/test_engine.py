@@ -114,6 +114,18 @@ class Policy(unittest.TestCase):
         self.assertEqual(self.messages(fn, max_complexity=5), [])
         self.assertEqual(self.messages(fn), [])  # 15 by default
 
+    def test_a_function_already_over_the_limit_is_a_finding_only_when_it_grows(self):
+        def fn(branches):
+            return "def f(x):\n" + "".join(f"    if x == {i}:\n        return {i}\n" for i in range(branches)) + "    return 0\n"
+        self.assertEqual(self.messages(fn(5), fn(7), max_complexity=4), [])  # 8 in the base, 6 now: still over, not new
+        self.assertEqual(self.messages(fn(7), fn(7), max_complexity=4), [])
+        grown = self.messages(fn(8), fn(7), max_complexity=4)
+        self.assertEqual([m for _, _, m in grown],
+                         ["cyclomatic complexity 9 of f exceeds max_complexity 4 (it was 8 in the base: do not raise it)"])
+        self.assertEqual(len(self.messages(fn(7), fn(2), max_complexity=4)), 1)  # 3 in the base: the change took it over
+        two = fn(7) + fn(7).replace("def f(", "def g(")
+        self.assertEqual(len(self.messages(two, fn(7), max_complexity=4)), 1)  # g is new
+
     def test_required_header_not_filtered_against_base(self):
         missing = [("header", 1, f"missing header @a2dlc:{k} (require_header)") for k in engine.HEADER_KEYS]
         self.assertEqual(self.messages("x = 1\n", "x = 0\n", require_header=True), missing)

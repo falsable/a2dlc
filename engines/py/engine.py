@@ -1249,22 +1249,40 @@ def side_effect_of(n: ast.AST, enabled: set[str]) -> str | None:
     return None
 
 
+COMPLEXITY_MESSAGE = re.compile(r"^cyclomatic complexity (\d+) of (\S+) exceeds ")
+
+
 def findings_policy(base_txt: str | None, cand_txt: str, file: str, policy: dict) -> list[dict]:
-    """New policy findings of the candidate (by message, without the line), plus the header if the policy requires it."""
+    """New policy findings of the candidate (by message, without the line), plus the header if the policy requires it.
+    A function that was already over max_complexity in the base is a finding only when the candidate raises it: the
+    message carries the number, so matching it whole made a change to such a function, a simplification included, new."""
     out: list[dict] = []
     try:
         found = policy_violations(cand_txt, policy)
     except (SyntaxError, RecursionError):  # compile already reported it, or the tree is too deep to walk
         return out
     previous: dict[str, int] = {}
+    was_over: dict[str, list[int]] = {}  # function name -> complexities it had in the base, one per function of that name
     if base_txt is not None:
         try:
             for _, msg in policy_violations(base_txt, policy):
-                previous[msg] = previous.get(msg, 0) + 1
+                m = COMPLEXITY_MESSAGE.match(msg)
+                if m:
+                    was_over.setdefault(m.group(2), []).append(int(m.group(1)))
+                else:
+                    previous[msg] = previous.get(msg, 0) + 1
         except (SyntaxError, RecursionError):
             pass
     for line, msg in found:
-        if previous.get(msg, 0) > 0:
+        m = COMPLEXITY_MESSAGE.match(msg)
+        if m:
+            before = sorted(c for c in was_over.get(m.group(2), []) if c >= int(m.group(1)))
+            if before:
+                was_over[m.group(2)].remove(before[0])
+                continue
+            if was_over.get(m.group(2)):
+                msg += f" (it was {max(was_over[m.group(2)])} in the base: do not raise it)"
+        elif previous.get(msg, 0) > 0:
             previous[msg] -= 1
             continue
         out.append({"kind": "policy", "file": file, "line": line, "message": msg[:300]})
