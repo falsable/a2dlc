@@ -28,13 +28,14 @@
   "verifiers/**"
  ],
  "tests": {
-  "image": "a2dlc-tests-go@sha256:f7eeb7f6bd663bd7da1edaf28d69aaf9ab903856180437dfe8c31cfa021523c2",
+  "image": "a2dlc-tests@sha256:f71285bd33e401aaf39bc61fb5c0c5c19809243bff8b2067cbcd597a191a418e",
   "paths": [
    "cmd/**/*_test.go",
-   "internal/**/*_test.go"
+   "internal/**/*_test.go",
+   "engines/py/test_*.py"
   ],
-  "command": "pkgs=$(for f in $A2DLC_TESTS; do echo ./$(dirname $f); done | sort -u); gotestsum --format dots --junitfile \"$A2DLC_JUNIT\" -- -count=1 -coverpkg=./... -coverprofile=/tmp/c.out $pkgs; rc=$?; gocover-cobertura < /tmp/c.out > \"$A2DLC_COVERAGE\"; exit $rc",
-  "baseline_command": "pkgs=$(for f in $A2DLC_CHANGED $A2DLC_TESTS; do case $f in *.go) echo ./$(dirname $f);; esac; done | sort -u); [ -n \"$pkgs\" ] || pkgs=./cmd/a2dlc; gotestsum --format dots --junitfile \"$A2DLC_JUNIT\" -- -count=1 -coverpkg=./... -coverprofile=/tmp/c.out $pkgs; rc=$?; gocover-cobertura < /tmp/c.out > \"$A2DLC_COVERAGE\"; exit $rc",
+  "command": "go=$(for f in $A2DLC_TESTS; do case $f in *_test.go) echo ./$(dirname $f);; esac; done | sort -u); py=$(for f in $A2DLC_TESTS; do case $f in engines/py/test_*.py) echo $f;; esac; done); rc=0; if [ -n \"$go\" ]; then gotestsum --format dots --junitfile /tmp/go.xml -- -count=1 -coverpkg=./... -coverprofile=/tmp/c.out $go || rc=1; fi; if [ -n \"$py\" ]; then HOME=/tmp python -m pytest -q -p no:cacheprovider --rootdir=. -o junit_family=xunit1 --junitxml=/tmp/py.xml $py || rc=1; fi; python -c 'import sys,os,xml.etree.ElementTree as E; r=E.Element(\"testsuites\"); [r.extend(t if t.tag==\"testsuites\" else [t]) for t in (E.parse(q).getroot() for q in sys.argv[2:] if os.path.exists(q) and os.path.getsize(q))]; E.ElementTree(r).write(sys.argv[1])' \"$A2DLC_JUNIT\" /tmp/go.xml /tmp/py.xml; [ -s /tmp/c.out ] || echo 'mode: set' > /tmp/c.out; gocover-cobertura < /tmp/c.out > \"$A2DLC_COVERAGE\"; exit $rc",
+  "baseline_command": "go=$(for f in $A2DLC_CHANGED $A2DLC_TESTS; do case $f in *.go) echo ./$(dirname $f);; esac; done | sort -u); py=$(for f in $A2DLC_CHANGED $A2DLC_TESTS; do case $f in engines/py/*.py) echo y;; esac; done | head -1); [ -n \"$py\" ] && py=$(ls engines/py/test_*.py); [ -n \"$go$py\" ] || go=./cmd/a2dlc; rc=0; if [ -n \"$go\" ]; then gotestsum --format dots --junitfile /tmp/go.xml -- -count=1 -coverpkg=./... -coverprofile=/tmp/c.out $go || rc=1; fi; if [ -n \"$py\" ]; then HOME=/tmp python -m pytest -q -p no:cacheprovider --rootdir=. -o junit_family=xunit1 --junitxml=/tmp/py.xml $py || rc=1; fi; python -c 'import sys,os,xml.etree.ElementTree as E; r=E.Element(\"testsuites\"); [r.extend(t if t.tag==\"testsuites\" else [t]) for t in (E.parse(q).getroot() for q in sys.argv[2:] if os.path.exists(q) and os.path.getsize(q))]; E.ElementTree(r).write(sys.argv[1])' \"$A2DLC_JUNIT\" /tmp/go.xml /tmp/py.xml; [ -s /tmp/c.out ] || echo 'mode: set' > /tmp/c.out; gocover-cobertura < /tmp/c.out > \"$A2DLC_COVERAGE\"; exit $rc",
   "tier0_command": "baseline",
   "timeout_s": 900
  }
