@@ -22,6 +22,9 @@ type passEngine struct {
 	runs int
 	// stuck names files whose Tier 0 never passes: the Builder of their slice exhausts its rounds (CB-02b)
 	stuck map[string]bool
+	// tier0Calls counts the stuck Tier 0 answers per file: each one reports a different line, so the Builder is failing
+	// but not repeating itself (identical findings twice in a row are CB-02b no-progress and skip the remaining rounds)
+	tier0Calls map[string]int
 }
 
 func (e *passEngine) count() int { e.mu.Lock(); defer e.mu.Unlock(); return e.runs }
@@ -47,7 +50,13 @@ func (e *passEngine) Tier0(_ context.Context, _ contract.EngineConfig, req contr
 	r := contract.Tier0Response{SchemaVersion: 1, OK: true, Findings: []contract.Tier0Finding{}}
 	for _, f := range req.ChangedFiles {
 		if e.stuck[f] {
-			line := 1
+			e.mu.Lock()
+			if e.tier0Calls == nil {
+				e.tier0Calls = map[string]int{}
+			}
+			e.tier0Calls[f]++
+			line := e.tier0Calls[f]
+			e.mu.Unlock()
 			r.OK = false
 			r.Findings = append(r.Findings, contract.Tier0Finding{Kind: contract.Tier0Compile, File: f, Line: &line, Message: "invalid syntax"})
 		}
