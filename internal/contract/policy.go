@@ -35,4 +35,8 @@ const (
 	// the tree it left: green visible checks do not say the task is done. The core writes it while a round is left; an
 	// engine does not emit it. file is /work.
 	Tier0Unfinished = "unfinished"
+	// Tier0Check is an unwaived finding of a blocking config.checks entry whose fire_on lists stage:3, run by the core on the
+	// candidate of each builder round (RFC-0011, Draft) so that the builder fixes what Stage 4 would fail on. The core writes
+	// it, an engine does not emit it; file is the finding's file and the message starts with the check id.
+	Tier0Check = "check"
 )

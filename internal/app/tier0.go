@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -86,6 +87,10 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 	}
 	if len(idx) == 0 {
 		resp, err := a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, changed)
+		if err == nil {
+			resp.Findings = append(resp.Findings, a.checksTier0(ctx, cfg, extra, baseSha, tree, changed)...)
+			resp.OK = len(resp.Findings) == 0
+		}
 		return resp, unique(unreviewed), err
 	}
 	if a.Runner == nil {
@@ -159,9 +164,89 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		return resp, unique(unreviewed), testsErr
 	}
 	resp.Findings = append(resp.Findings, tests.Findings...)
+	resp.Findings = append(resp.Findings, a.checksTier0(ctx, cfg, extra, baseSha, tree, changed)...)
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = reviewed || tests.Reviewed
 	return resp, unique(unreviewed), nil
+}
+
+// FireOnTier0 is the firing point of the checks Tier 0 runs on each builder round (RFC-0011, Draft).
+const FireOnTier0 = "stage:3"
+
+// checksTier0 runs the blocking config.checks whose fire_on lists stage:3 on the candidate, over the changed files they
+// match (RFC-0011, Draft). Each unwaived finding goes back to the builder as a finding of kind check, so that it fixes what
+// Stage 4 would fail on. A check in error or timeout gives no finding: that is not the builder's to fix, and Stage 4 reports
+// it. An advisory check is not run here: Stage 4 only records it. Only the builder's loop (extra.Tests) runs them, and they
+// never count as a review: the verdict still comes from Stage 4, where the same checks fire at check.
+// shortcut: Tier 0 reads no waivers, so a finding with a signed accept_finding still comes back; read waivers.json if a
+// repo ever relies on that inside a run.
+func (a App) checksTier0(ctx context.Context, cfg contract.Config, extra Tier0Extra, baseSha, tree string, changed []string) []contract.Tier0Finding {
+	out := []contract.Tier0Finding{}
+	if !extra.Tests || len(changed) == 0 {
+		return out
+	}
+	blocking := cfg
+	blocking.Checks = nil
+	for _, c := range cfg.Checks {
+		if c.Severity == contract.CheckBlocking && fires(c, FireOnTier0) {
+			blocking.Checks = append(blocking.Checks, c)
+		}
+	}
+	if len(blocking.Checks) == 0 {
+		return out
+	}
+	var baseDir, candDir string
+	exported, exportErr := false, error(nil)
+	export := func() error {
+		if exported {
+			return exportErr
+		}
+		exported = true
+		if baseDir, exportErr = os.MkdirTemp("", "a2dlc-base-*"); exportErr != nil {
+			return exportErr
+		}
+		if candDir, exportErr = os.MkdirTemp("", "a2dlc-cand-*"); exportErr != nil {
+			return exportErr
+		}
+		if exportErr = a.Repo.Export(baseSha, baseDir); exportErr != nil {
+			return exportErr
+		}
+		exportErr = a.Repo.Export(tree, candDir)
+		return exportErr
+	}
+	defer func() {
+		for _, d := range []string{baseDir, candDir} {
+			if d != "" {
+				os.RemoveAll(d)
+			}
+		}
+	}()
+	checks, _ := a.runChecks(ctx, blocking, FireOnTier0, changed, export, &baseDir, &candDir, nil, nil)
+	for _, c := range checks {
+		if c.Status != contract.CheckRan {
+			continue
+		}
+		for _, f := range c.FindingList() {
+			if len(out) == maxTestFindings {
+				return out
+			}
+			file, line := checkTarget(f.Target)
+			out = append(out, contract.Tier0Finding{Kind: contract.Tier0Check, File: file, Line: line, Message: c.ID + ": " + f.Message})
+		}
+	}
+	return out
+}
+
+// checkTarget splits a check finding's target, <file>::<check id> or <file>::L<n>, into the file and the line.
+func checkTarget(target string) (string, *int) {
+	file, rest, ok := strings.Cut(target, "::")
+	if !ok {
+		return target, nil
+	}
+	if n, err := strconv.Atoi(strings.TrimPrefix(rest, "L")); err == nil && strings.HasPrefix(rest, "L") {
+		return file, &n
+	}
+	return file, nil
 }
 
 // maxTestFindings bounds the testcases one Tier 0 round sends back to the builder: the feedback is paid input.

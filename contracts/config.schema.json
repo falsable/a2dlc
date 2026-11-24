@@ -180,7 +180,7 @@
           "severity": { "enum": ["advisory", "blocking"], "description": "Required on purpose: no default, so the repo says what a finding costs." },
           "fire_on": {
             "type": "array",
-            "description": "When it fires: check (a2dlc check, the pre-push gate) or stage:<id> with a stage id of run-defs (a2dlc run). Default [\"check\"]. verify never runs checks: it reads the receipt.",
+            "description": "When it fires: check (a2dlc check, the pre-push gate) or stage:<id> with a stage id of run-defs (a2dlc run). Default [\"check\"]. verify never runs checks: it reads the receipt. A blocking check with stage:3 also runs in the builder's Tier 0 and its findings return to the builder as kind check (RFC-0011, Draft).",
             "items": { "type": "string", "pattern": "^(check|stage:(-1|0|1|1\\.5|2|3|4|5|6|7|propose))$" },
             "minItems": 1,
             "uniqueItems": true

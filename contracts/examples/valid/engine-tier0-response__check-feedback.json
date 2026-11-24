@@ -1,0 +1,6 @@
+{"schema_version": 1, "ok": false,
+ "findings": [
+  {"kind": "check", "file": "tests/test_docstrings.py", "line": null, "message": "black: would reformat tests/test_docstrings.py"},
+  {"kind": "check", "file": "src/cache.py", "line": 12, "message": "ruff: F401 'os' imported but unused"}
+ ],
+ "error": null, "reviewed": true}
