@@ -28,7 +28,7 @@
   "verifiers/**"
  ],
  "tests": {
-  "image": "a2dlc-tests-go:0.1",
+  "image": "a2dlc-tests-go@sha256:f7eeb7f6bd663bd7da1edaf28d69aaf9ab903856180437dfe8c31cfa021523c2",
   "paths": [
    "**/*_test.go"
   ],
