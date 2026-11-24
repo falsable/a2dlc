@@ -1,3 +1,9 @@
+// @a2dlc:slice_id = "beads-a2dlc-05f.cfa14d"
+// @a2dlc:mode = "lite"
+// @a2dlc:rationale = "help is answered before the repo is opened, so usage never depends on a git repository"
+// @a2dlc:rejected_alternatives = []
+// @a2dlc:protected_invariants = []
+// @a2dlc:do_not_refactor = []
 // a2dlc: differential gate of the A2-DLC Lite mode. See the README and ADR meta/0004.
 package main
 
@@ -107,6 +113,10 @@ func run(args []string) int {
 	}
 	if args[0] == "version" {
 		fmt.Println(version)
+		return 0
+	}
+	if args[0] == "--help" || args[0] == "help" {
+		fmt.Println(usage)
 		return 0
 	}
 	cwd, _ := os.Getwd()

@@ -1,3 +1,9 @@
+// @a2dlc:slice_id = "beads-a2dlc-05f.cfa14d"
+// @a2dlc:mode = "lite"
+// @a2dlc:rationale = "help is answered before the repo is opened, so usage never depends on a git repository"
+// @a2dlc:rejected_alternatives = []
+// @a2dlc:protected_invariants = []
+// @a2dlc:do_not_refactor = []
 package main
 
 // exitRow is one exit code of one command, with what it means. exitTable is the single list of them: docs/COMPATIBILITY.md
@@ -64,4 +70,9 @@ var exitTable = []exitRow{
 	{"doctor", 64, "Bad usage: unknown flag."},
 	{"mcp", 0, "The client closed the connection."},
 	{"mcp", 1, "The server failed."},
+}
+
+// helpRow is appended at init: help and --help print the usage and return 0 in any directory.
+func init() {
+	exitTable = append(exitTable, exitRow{"usage", 0, "Printed the usage (help or --help), also outside a git repository."})
 }
