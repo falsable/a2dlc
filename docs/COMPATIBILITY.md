@@ -106,6 +106,7 @@ An agent that drives `a2dlc` branches on the exit code, so the codes are part of
 | `doctor` | 64 | Bad usage: unknown flag. |
 | `mcp` | 0 | The client closed the connection. |
 | `mcp` | 1 | The server failed. |
+| `usage` | 0 | Printed the usage (help or --help), also outside a git repository. |
 
 ## Schema identifiers
 
