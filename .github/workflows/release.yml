@@ -62,10 +62,11 @@ jobs:
           : > dist/IMAGENES.txt
           for m in bb bb-go ts py php; do
             docker push -q "$r/a2dlc-engine-$m:$v"
-            docker inspect --format '{{index .RepoDigests 0}}' "$r/a2dlc-engine-$m:$v" >> dist/IMAGENES.txt
+            # the ghcr digest, not RepoDigests[0]: an image that also carries a local tag (bb, py) lists that one first
+            docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$r/a2dlc-engine-$m:$v" | grep "^$r/" >> dist/IMAGENES.txt
           done
           docker push -q "$r/a2dlc-tests:$v"
-          docker inspect --format '{{index .RepoDigests 0}}' "$r/a2dlc-tests:$v" >> dist/IMAGENES.txt
+          docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$r/a2dlc-tests:$v" | grep "^$r/" >> dist/IMAGENES.txt
           cat dist/IMAGENES.txt
       - name: binaries
         run: |
