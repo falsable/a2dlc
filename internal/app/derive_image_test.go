@@ -61,7 +61,7 @@ func TestDeriveWritesDockerfileBuildsAndPointsConfig(t *testing.T) {
 	if len(warnings) != 0 {
 		t.Fatalf("warnings: %v", warnings)
 	}
-	if b.calls != 1 || !strings.HasPrefix(b.tag, "a2dlc-engine-py-") || !strings.Contains(b.tag, ":0.14-") {
+	if b.calls != 1 || !strings.HasPrefix(b.tag, "a2dlc-engine-py-") || !strings.Contains(b.tag, ":0.15-") {
 		t.Fatalf("build: %+v", b)
 	}
 	if got := pythonImage(t, f); got != b.tag {

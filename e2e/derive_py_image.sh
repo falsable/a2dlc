@@ -4,7 +4,7 @@
 # (pip runs with --no-index --find-links). It runs the check twice: with the base engine image the target is INCONCLUSIVE
 # "could not import" and the summary counts it apart; after `a2dlc install` derives the image it is judged (FAIL here,
 # the change adds 1).
-# Usage: bash e2e/derive_py_image.sh <empty temporary folder>   (needs dist/a2dlc.exe and the image a2dlc-engine-py:0.14)
+# Usage: bash e2e/derive_py_image.sh <empty temporary folder>   (needs dist/a2dlc.exe and the image a2dlc-engine-py:0.15)
 set -u
 R=$(cd "$(dirname "$0")/.." && pwd)
 A2="$R/dist/a2dlc.exe"

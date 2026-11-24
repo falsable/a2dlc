@@ -10,6 +10,7 @@ import hashlib
 import importlib.util
 import itertools
 import json
+import shutil
 import sys
 import tempfile
 import time
@@ -979,6 +980,41 @@ class LocalRoots(unittest.TestCase):
         p = self.tree / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(text, encoding="utf-8")
+
+    def test_a_folder_named_by_pytest_pythonpath_is_an_import_root(self):
+        # agencia-ia (a2dlc-27n): pytest.ini says `pythonpath = . agora`, and agora/src/** imports its own package as `src`
+        self.write("pytest.ini", "[pytest]\npythonpath = . agora ../outside /abs\n")
+        self.write("agora/src/__init__.py", "")
+        self.write("agora/src/core/__init__.py", "")
+        self.write("agora/src/core/m.py", "from src.core import helper\nimport src.core.helper\n")
+        self.write("agora/src/core/helper.py", "X = 1\n")
+        self.write("app/__init__.py", "")
+        self.assertEqual(engine.pythonpath_dirs(self.tree), ["agora"])
+        roots = engine.roots_local(self.tree)
+        self.assertEqual((roots["src"], roots["app"], roots["agora"]), ("agora.", "", ""))
+        out = Path(self.tmp.name + "-copy")
+        self.addCleanup(shutil.rmtree, out, True)
+        engine.copy_py(self.tree, out / "a2dlc_cand")
+        engine.rewrite_imports(out / "a2dlc_cand", "a2dlc_cand")
+        text = (out / "a2dlc_cand/agora/src/core/m.py").read_text(encoding="utf-8")
+        self.assertIn("from a2dlc_cand.agora.src.core import helper", text)
+        sys.path.insert(0, str(out))
+        self.addCleanup(sys.path.remove, str(out))
+        self.assertEqual(importlib.import_module("a2dlc_cand.agora.src.core.m").helper.X, 1)
+
+    def test_pyproject_pythonpath_and_a_name_at_the_root_wins(self):
+        self.write("pyproject.toml", "[tool.pytest.ini_options]\npythonpath = [\"lib\"]\n")
+        self.write("util.py", "")
+        self.write("lib/util.py", "")
+        self.write("lib/extra/__init__.py", "")
+        roots = engine.roots_local(self.tree)
+        self.assertEqual((roots["util"], roots["extra"]), ("", "lib."))
+
+    def test_pytest_ini_wins_over_pyproject_even_without_pythonpath(self):
+        self.write("pytest.ini", "[pytest]\naddopts = -q\n")
+        self.write("pyproject.toml", "[tool.pytest.ini_options]\npythonpath = [\"lib\"]\n")
+        self.write("lib/extra/__init__.py", "")
+        self.assertEqual(engine.pythonpath_dirs(self.tree), [])
 
     def test_a_folder_without_init_named_like_an_installed_package_is_not_a_local_root(self):
         # ChronosGraph's alembic/ holds migrations (env.py, versions/): it is not a package, and `import json` must stay stdlib

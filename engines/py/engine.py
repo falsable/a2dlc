@@ -75,6 +75,10 @@ def copy_py(origin: Path, destination: Path) -> None:
         d = destination / rel
         d.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(p, d)
+    for name in PYTEST_CONFIGS:  # roots_local reads pytest's pythonpath from the copy
+        if (origin / name).is_file():
+            destination.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(origin / name, destination / name)
 
 
 def installed(name: str) -> bool:
@@ -87,14 +91,62 @@ def installed(name: str) -> bool:
     return bool(origin) and Path(__file__).resolve().parent not in Path(origin).resolve().parents
 
 
-def roots_local(tree: Path) -> dict[str, str]:
-    """Importable top-level name → prefix inside the tree ('' at the root, 'src.' in a src layout). A folder without
-    __init__.py that shares its name with an installed package (migrations in alembic/) is not the repo's own root:
-    claiming it would make every `from alembic import command` import the repo's folder instead."""
-    roots: dict[str, str] = {}
-    for base, prefix in ((tree / "src", "src."), (tree, "")):
-        if not base.is_dir():
+PYTEST_CONFIGS = ("pytest.ini", "pyproject.toml", "tox.ini", "setup.cfg")
+
+
+def pythonpath_dirs(tree: Path) -> list[str]:
+    """The folders pytest's `pythonpath` adds to sys.path, from the first config file pytest itself would use, as paths
+    relative to the tree. A repo whose tests import `src` from a nested folder (pythonpath = . agora) imports it the same
+    way in its own code, and the engine must find it there too (a2dlc-27n). '.', absolute paths and paths that leave the
+    tree are left out."""
+    raw: object = None
+    for name in PYTEST_CONFIGS:
+        f = tree / name
+        if not f.is_file():
             continue
+        text = f.read_text(encoding="utf-8", errors="replace")
+        if name == "pyproject.toml":
+            try:
+                import tomllib  # Python 3.11+; an older interpreter reads no pyproject
+                section = tomllib.loads(text).get("tool", {}).get("pytest", {}).get("ini_options")
+            except Exception:
+                continue
+            if section is None:
+                continue
+            raw = section.get("pythonpath")
+        else:
+            import configparser
+            cp = configparser.ConfigParser(interpolation=None)
+            try:
+                cp.read_string(text)
+            except configparser.Error:
+                continue
+            key = "tool:pytest" if name == "setup.cfg" else "pytest"
+            if not cp.has_section(key):
+                continue
+            raw = cp.get(key, "pythonpath", fallback=None)
+        break  # pytest stops at the first file that configures it, pythonpath or not
+    items = raw.split() if isinstance(raw, str) else [str(x) for x in raw] if isinstance(raw, list) else []
+    out = []
+    for item in items:
+        rel = Path(item.replace("\\", "/"))
+        if rel.is_absolute() or ".." in rel.parts or str(rel) in (".", ""):
+            continue
+        if (tree / rel).is_dir() and rel.as_posix() not in out:
+            out.append(rel.as_posix())
+    return out
+
+
+def roots_local(tree: Path) -> dict[str, str]:
+    """Importable top-level name → prefix inside the tree ('' at the root, 'src.' in a src layout, 'agora.' for a folder
+    pytest's pythonpath names). A folder without __init__.py that shares its name with an installed package (migrations
+    in alembic/) is not the repo's own root: claiming it would make every `from alembic import command` import the repo's
+    folder instead."""
+    roots: dict[str, str] = {}
+
+    def scan(base: Path, prefix: str) -> None:
+        if not base.is_dir():
+            return
         for p in base.iterdir():
             if p.name in SKIP or p.name.startswith("."):
                 continue
@@ -102,7 +154,13 @@ def roots_local(tree: Path) -> dict[str, str]:
                 roots.setdefault(p.stem, prefix)
             elif p.is_dir() and any(p.rglob("*.py")) and ((p / "__init__.py").exists() or not installed(p.name)):
                 roots.setdefault(p.name, prefix)
+
+    scan(tree / "src", "src.")
+    scan(tree, "")
     roots.pop("src", None)
+    # after the root, as pytest puts them after '.': a name at the root wins over the same name in a nested folder
+    for d in pythonpath_dirs(tree):
+        scan(tree / d, d.replace("/", ".") + ".")
     return roots
 
 
