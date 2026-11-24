@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -158,8 +159,13 @@ func (a App) doctorEngines(cfg contract.Config, add addFinding) {
 	files := a.sourceFiles()
 	reported := false
 	skip := map[string]bool{} // source languages already explained by a missing engine
+	without, outDeclared := noEngineSources(cfg, files)
+	unjudged := map[string]bool{} // languages with a source file that no engine covers and the config does not exclude
+	for _, f := range without {
+		unjudged[strings.ToLower(sourceLanguage[path.Ext(f)])] = true
+	}
 	for _, e := range a.initialConfig().Engines {
-		if declared[e.Language] {
+		if declared[e.Language] || !unjudged[strings.ToLower(e.Language)] {
 			continue
 		}
 		reported = true
@@ -171,7 +177,6 @@ func (a App) doctorEngines(cfg contract.Config, add addFinding) {
 			add("engines.language_not_declared", contract.DoctorWarning, e.Language, fmt.Sprintf("the tree has %s sources and config.engines has no %s engine: a change there is INCONCLUSIVE (no_engine), never PASS", e.Language, e.Language), fix)
 		}
 	}
-	without, outDeclared := noEngineSources(cfg, files)
 	for _, g := range uncoveredByLanguage(without) {
 		if skip[strings.ToLower(g.Language)] {
 			continue

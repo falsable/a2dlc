@@ -222,6 +222,16 @@ func TestDoctorEngines(t *testing.T) {
 		t.Errorf("subject %q", ts.Subject)
 	}
 
+	// the same TypeScript listed under out_of_scope_paths, as the fix says: no warning, and it counts as declared
+	f.setConfig(t, `{"schema_version": 1, "out_of_scope_paths": ["src/**/*.ts"], "engines": [{"language":"python","image":"`+enginePyImage+`","paths":["src/**/*.py"],"budget":{"per_condition_timeout_s":10}}]}`)
+	d := f.doctor(t)
+	if finding(d, "engines.language_not_declared") != nil {
+		t.Error("language_not_declared for code the config declares out of scope")
+	}
+	if ok := wantFinding(t, d, "engines.ok", contract.DoctorInfo); !strings.Contains(ok.Message, "1 declared out of scope") {
+		t.Errorf("engines.ok: %s", ok.Message)
+	}
+
 	// source no engine can examine (Go has none): warning, once per language
 	f = newDoctorFix(t, map[string]string{"pyproject.toml": "[project]\nname = \"x\"\n", "src/a.py": "x = 1\n", "cmd/main.go": "package main\n", "cmd/b.go": "package main\n"})
 	un := wantFinding(t, f.doctor(t), "engines.sources_uncovered", contract.DoctorWarning)
