@@ -1,9 +1,18 @@
+// @a2dlc:slice_id = "beads-a2dlc-gkn.0269c1"
+// @a2dlc:mode = "lite"
+// @a2dlc:rationale = "An image that starts with - would be read by docker as a flag, and a container that outlives its context keeps running, so both container paths check the image first and remove the container by name."
+// @a2dlc:rejected_alternatives = []
+// @a2dlc:protected_invariants = []
+// @a2dlc:do_not_refactor = []
+
 package engine
 
 import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/fs"
@@ -39,8 +48,12 @@ type container struct {
 // run returns what docker run would: an *exec.ExitError carries the container's exit code. A failure to create the
 // container or to copy the trees in is any other error, so it is never read as the exit code of the command.
 func (c container) run(ctx context.Context, out io.Writer) error {
+	if strings.HasPrefix(c.image, "-") {
+		return fmt.Errorf("image %q starts with - and docker would read it as a flag", c.image)
+	}
 	if !c.copyIn {
-		args := append([]string{"run", "--rm"}, c.flags...)
+		name := containerName()
+		args := append([]string{"run", "--rm", "--name", name}, c.flags...)
 		for _, t := range c.trees {
 			v := t.dir + ":" + t.at
 			if c.ro {
@@ -50,7 +63,14 @@ func (c container) run(ctx context.Context, out io.Writer) error {
 		}
 		cmd := exec.CommandContext(ctx, c.bin, append(append(args, c.image), c.cmd...)...)
 		cmd.Stdout, cmd.Stderr = out, out
-		return cmd.Run()
+		err := cmd.Run()
+		if ctx.Err() != nil {
+			// Killing the docker client leaves the container running: remove it by its name.
+			rm, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			exec.CommandContext(rm, c.bin, "rm", "-f", name).Run()
+		}
+		return err
 	}
 	var idOut, errOut bytes.Buffer
 	// --rm as well as the deferred rm: if a2dlc itself is killed after start, the container still goes when it exits.
@@ -87,6 +107,13 @@ func (c container) run(ctx context.Context, out io.Writer) error {
 	start := exec.CommandContext(ctx, c.bin, "start", "-a", id)
 	start.Stdout, start.Stderr = out, out
 	return start.Run()
+}
+
+// containerName is a unique --name for a container, so it can be removed when its context ends.
+func containerName() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return "a2dlc-" + hex.EncodeToString(b)
 }
 
 // writeTrees writes one tar with each tree under its path. Like gitx.Export, it carries directories and regular files
