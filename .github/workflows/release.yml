@@ -53,13 +53,19 @@ jobs:
           docker build -q --label "$fuente" -t a2dlc-engine-bb:0.2 -t "$r/a2dlc-engine-bb:$v" -f engines/blackbox/Dockerfile .
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-bb-go:$v" -f engines/blackbox/go.Dockerfile engines/blackbox
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-ts:$v" engines/ts
-          docker build -q --label "$fuente" -t "$r/a2dlc-engine-py:$v" engines/py
+          docker build -q --label "$fuente" -t "$r/a2dlc-engine-py:$v" -t a2dlc-engine-py:0.15 engines/py
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-php:$v" engines/php
+          # the self-gate's tests image (.a2dlc/tests.Dockerfile builds FROM the two local tags), so CI can pull what
+          # tests.image pins instead of an image that exists only on the maintainer's machine
+          docker build -q -t a2dlc-tests-go:0.1 -f .a2dlc/tests-go.Dockerfile .a2dlc
+          docker build -q --label "$fuente" -t "$r/a2dlc-tests:$v" -f .a2dlc/tests.Dockerfile .a2dlc
           : > dist/IMAGENES.txt
           for m in bb bb-go ts py php; do
             docker push -q "$r/a2dlc-engine-$m:$v"
             docker inspect --format '{{index .RepoDigests 0}}' "$r/a2dlc-engine-$m:$v" >> dist/IMAGENES.txt
           done
+          docker push -q "$r/a2dlc-tests:$v"
+          docker inspect --format '{{index .RepoDigests 0}}' "$r/a2dlc-tests:$v" >> dist/IMAGENES.txt
           cat dist/IMAGENES.txt
       - name: binaries
         run: |

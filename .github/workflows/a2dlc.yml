@@ -14,6 +14,8 @@ on:
       - 'internal/**'
       - 'go.mod'
       - '.a2dlc/**'
+      - 'engines/py/**' # tests.paths and tests.source_paths judge the Python engine
+      - 'scripts/**'
   workflow_dispatch:
     inputs:
       base:
