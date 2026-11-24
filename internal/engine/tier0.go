@@ -31,7 +31,9 @@ func (d Docker) Tier0(ctx context.Context, e contract.EngineConfig, req contract
 		return resp, fmt.Errorf("%w (%s: response outside engine-tier0-response: %v)", ErrWithoutTier0, e.Image, err)
 	}
 	if resp.Error != nil {
-		return resp, fmt.Errorf("the engine did not do tier0: %s", *resp.Error)
+		// the contract's refusal (the black-box engine answers every operation it does not perform this way): unreviewed and
+		// listed, the repo's tests can still review the files, and the builder is not failed for it
+		return resp, fmt.Errorf("%w (%s: %s)", ErrWithoutTier0, e.Image, *resp.Error)
 	}
 	return resp, ValidateTier0(req, resp)
 }

@@ -122,3 +122,14 @@ func TestDepsWithoutOperationIsAnError(t *testing.T) {
 		t.Fatal("an engine without deps_graph must be an error, not an empty graph")
 	}
 }
+
+// An engine that refuses tier0 through the contract's error field (the black-box engine) is ErrWithoutTier0: its files
+// stay unreviewed and the repo's tests may review them, instead of the lane failing with "Tier 0 could not run".
+func TestTier0RefusedByErrorFieldIsErrWithoutTier0(t *testing.T) {
+	resp := responseFile(t, `{"schema_version":1,"ok":false,"findings":[],"error":"operation \"tier0\" is not performed by the black-box engine"}`)
+	bin, _ := fakeDocker(t, "[]", "", resp)
+	_, err := Docker{Bin: bin}.Tier0(context.Background(), contract.EngineConfig{Image: "bb-go:0.2"}, contract.Request{SchemaVersion: contract.SchemaVersion}, t.TempDir(), t.TempDir())
+	if !errors.Is(err, ErrWithoutTier0) {
+		t.Fatalf("err %v", err)
+	}
+}
