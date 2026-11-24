@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -88,9 +89,11 @@ func (c container) run(ctx context.Context, out io.Writer) error {
 		}
 		return err
 	}
+	sweepOrphans(c.bin)
 	var idOut, errOut bytes.Buffer
 	// --rm as well as the deferred rm: if a2dlc itself is killed after start, the container still goes when it exits.
-	create := exec.CommandContext(ctx, c.bin, append(append(append([]string{"create", "--rm"}, c.flags...), c.image), c.cmd...)...)
+	// Killed between create and start, neither runs: the label lets a later a2dlc remove it (sweepOrphans).
+	create := exec.CommandContext(ctx, c.bin, append(append(append([]string{"create", "--rm", "--label", copyInLabel}, c.flags...), c.image), c.cmd...)...)
 	create.Stdout, create.Stderr = &idOut, &errOut
 	if err := create.Run(); err != nil {
 		return fmt.Errorf("docker create %s: %v: %s", c.image, err, tail(errOut.String()))
@@ -123,6 +126,51 @@ func (c container) run(ctx context.Context, out io.Writer) error {
 	start := exec.CommandContext(ctx, c.bin, "start", "-a", id)
 	start.Stdout, start.Stderr = out, out
 	return start.Run()
+}
+
+// copyInLabel marks the containers the copy-in path creates, so the ones an a2dlc killed before docker start left in
+// Created can be found and removed (a2dlc-ltk).
+const copyInLabel = "a2dlc.copyin=1"
+
+// orphanAge is how long a labelled container may sit in Created before a sweep removes it. create, cp and start take
+// seconds, so a container that old belongs to no a2dlc still running.
+const orphanAge = time.Hour
+
+var swept sync.Map // docker binary -> struct{}: one sweep per binary and process
+
+// sweepOrphans removes the copy-in containers left in Created for longer than orphanAge, once per process. It is best
+// effort: a docker that cannot list or remove them does not stop the run.
+func sweepOrphans(bin string) {
+	if _, done := swept.LoadOrStore(bin, struct{}{}); done {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, bin, "ps", "-a", "--filter", "label="+copyInLabel, "--filter", "status=created",
+		"--format", "{{.ID}} {{.CreatedAt}}").Output()
+	if err != nil {
+		return
+	}
+	for _, id := range orphansIn(string(out), time.Now()) {
+		exec.CommandContext(ctx, bin, "rm", "-f", id).Run()
+	}
+}
+
+// orphansIn picks, from `docker ps --format "{{.ID}} {{.CreatedAt}}"` lines, the ids created more than orphanAge before
+// now. A line whose time does not parse is left alone.
+func orphansIn(ps string, now time.Time) []string {
+	var ids []string
+	for _, line := range strings.Split(strings.TrimSpace(ps), "\n") {
+		id, at, ok := strings.Cut(strings.TrimSpace(line), " ")
+		if !ok {
+			continue
+		}
+		created, err := time.Parse("2006-01-02 15:04:05 -0700 MST", at)
+		if err == nil && now.Sub(created) > orphanAge {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 // containerName is a unique --name for a container, so it can be removed when its context ends.
