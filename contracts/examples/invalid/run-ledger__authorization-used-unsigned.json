@@ -94,7 +94,7 @@
    "cost": null,
    "authorization": {
     "target": "src/billing.py::apply_discount",
-    "id": "sha256:1c8a1ecd71fb9cccaad9ac9e1683f2e4adf15581cccabd8c7f9a722e61ee75a7",
+    "id": "1c8a1ecd71fb9cccaad9ac9e1683f2e4adf15581cccabd8c7f9a722e61ee75a7",
     "sha256": "sha256:76949353466d45601294e3552da987f522fee48b4bb8d4cd6403367eb47df6f1"
    }
   }
