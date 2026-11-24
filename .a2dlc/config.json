@@ -1,10 +1,40 @@
 {
  "schema_version": 1,
  "engines": [
-  {"language": "go", "image": "a2dlc-engine-bb-go:0.2", "paths": ["cmd/**", "internal/**", "go.mod"],
-   "budget": {"examples": 100, "seed": 1}, "memory": "2g"}
+  {
+   "language": "go",
+   "image": "a2dlc-engine-bb-go:0.2",
+   "paths": [
+    "cmd/**",
+    "internal/**",
+    "go.mod"
+   ],
+   "budget": {
+    "examples": 100,
+    "seed": 1
+   },
+   "memory": "2g"
+  }
  ],
  "out_of_scope_paths": [
-  "conformance/**", "contracts/**", "e2e/**", "engines/**", "examples/**", "roles/**", "templates/**", "tools/**", "verifiers/**"
- ]
+  "conformance/**",
+  "contracts/**",
+  "e2e/**",
+  "engines/**",
+  "examples/**",
+  "roles/**",
+  "templates/**",
+  "tools/**",
+  "verifiers/**"
+ ],
+ "tests": {
+  "image": "a2dlc-tests-go:0.1",
+  "paths": [
+   "**/*_test.go"
+  ],
+  "command": "pkgs=$(for f in $A2DLC_TESTS; do echo ./$(dirname $f); done | sort -u); gotestsum --format dots --junitfile \"$A2DLC_JUNIT\" -- -count=1 -coverpkg=./... -coverprofile=/tmp/c.out $pkgs; rc=$?; gocover-cobertura < /tmp/c.out > \"$A2DLC_COVERAGE\"; exit $rc",
+  "baseline_command": "pkgs=$(for f in $A2DLC_CHANGED $A2DLC_TESTS; do case $f in *.go) echo ./$(dirname $f);; esac; done | sort -u); [ -n \"$pkgs\" ] || pkgs=./cmd/a2dlc; gotestsum --format dots --junitfile \"$A2DLC_JUNIT\" -- -count=1 -coverpkg=./... -coverprofile=/tmp/c.out $pkgs; rc=$?; gocover-cobertura < /tmp/c.out > \"$A2DLC_COVERAGE\"; exit $rc",
+  "tier0_command": "baseline",
+  "timeout_s": 900
+ }
 }
