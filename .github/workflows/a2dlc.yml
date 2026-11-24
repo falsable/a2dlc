@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      A2DLC_VERSION: v0.5.0
+      A2DLC_VERSION: v0.6.1
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -50,14 +50,20 @@ jobs:
       - name: black-box engine (ghcr, pinned by the release digest)
         env:
           GHCR_LOGIN: ${{ github.token }}
-          ENGINE: ghcr.io/falsable/a2dlc-engine-bb-go@sha256:ff11f67287d4104e2afe20280867809c953ed15985ff32281a7a5ff08a7adb3f
+          ENGINE: ghcr.io/falsable/a2dlc-engine-bb-go@sha256:67303458b8bab49995b9b6954268e2d1368d14fcd89fed99ba8deba254f5fed8
         # The digest comes from the release's IMAGENES.txt; it is retagged to the name .a2dlc/config.json asks for.
-        # shortcut: this digest is the released engine 0.1.0 (no base rerun on a divergence) under the 0.2 name the config
-        # asks for; replace it with the digest of the next release, which publishes engine 0.2.0.
         run: |
           printf '%s' "$GHCR_LOGIN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           docker pull -q "$ENGINE"
           docker tag "$ENGINE" a2dlc-engine-bb-go:0.2
+      # tests.image is a ghcr digest a release published; check reads the base's config, so both trees' images are pulled
+      # (a base from before the move named a local build, which no runner has: that one push is judged without tests)
+      - name: tests image of the base and of the head
+        run: |
+          for c in "${{ inputs.base || github.event.before }}" HEAD; do
+            i=$(git show "$c:.a2dlc/config.json" 2>/dev/null | jq -r '.tests.image // empty') || true
+            case "$i" in ghcr.io/*) docker pull -q "$i" ;; esac
+          done
       - name: a2dlc check
         env:
           A2DLC_ALLOWED_SIGNERS_DATA: ${{ vars.A2DLC_ALLOWED_SIGNERS }}

@@ -37,7 +37,7 @@
   "scripts/run_self_tests.sh"
  ],
  "tests": {
-  "image": "a2dlc-tests@sha256:f71285bd33e401aaf39bc61fb5c0c5c19809243bff8b2067cbcd597a191a418e",
+  "image": "ghcr.io/falsable/a2dlc-tests@sha256:dcc0e3a69098fd5b8481cc62b268a490cb54879daa4a561a79c11aa7fab4dc16",
   "paths": [
    "cmd/**/*_test.go",
    "internal/**/*_test.go",
