@@ -45,6 +45,8 @@ Optional variables (roles.<role>.env can set them):
   A2DLC_BUDGET_USD      with acp: the call is stopped once the cost the agent reports reaches this many USD. The stop
                         is soft (the overshoot is at most one model response) and the reason says so. claude has its
                         own hard cap (--max-budget-usd in A2DLC_LLM_CMD).
+  A2DLC_ROLE_PLUGIN_DIR plugin directory passed via --plugin-dir to Claude builders (default plugin/ next to this file).
+  A2DLC_NO_ROLE_PLUGIN  set to 1 to skip loading the built-in role guard plugin for Claude builders (HARNESS_OFF=1 also skips it).
 
 Role prompt: prompts/<role>.<stage>.md if it exists (e.g. builder_primary.3.md), else prompts/<role>.md. With neither
 of them, the adapter answers with an error: it does not make up instructions.
@@ -325,6 +327,23 @@ def build_prompt(role: str, stage: str, instructions: str, request_text: str, in
     return prompt
 
 
+def build_resumed_prompt(role: str, request_text: str, feedback_work: list[tuple[str, str]] | None = None) -> str:
+    """Incremental prompt sent when Claude resumes an existing session (--resume): omits static role instructions
+    and unchanged /in documents already present in session history, sending only new Tier 0 feedback and touched files."""
+    parts = [
+        "## Response format\n\nAnswer ONLY with the final JSON object {status, reason, files, payload} matching this role's contract.",
+        f"### request.json\n\n```json\n{request_text.strip()}\n```\n",
+    ]
+    if feedback_work:
+        parts.append("## /work (files named in tier0_feedback)\n")
+        for rel, content in feedback_work:
+            parts.append(f"### /work/{rel}\n\n```\n{content.rstrip()}\n```\n")
+    prompt = "\n\n".join(parts) + "\n"
+    if len(prompt.encode("utf-8")) > MAX_PROMPT_BYTES:
+        raise Failure(f"the prompt weighs {len(prompt.encode('utf-8'))} bytes, more than the cap of {MAX_PROMPT_BYTES}")
+    return prompt
+
+
 # ---------- agent CLI ----------
 
 
@@ -364,7 +383,7 @@ def cli_command(llm: str, builder: bool) -> list[str]:
                "--approve-all" if builder else "--deny-all", "--non-interactive-permissions", "fail"]
         if model:
             cmd += ["--model", model]
-        return cmd + ["--agent", agent, "exec", "--file", "-"]
+        return cmd + ["exec", "--file", "-"]
     raise Failure(f"A2DLC_LLM={llm!r}: only claude, gemini, acp, openrouter or entropos")
 
 
@@ -378,8 +397,42 @@ def session_args(req: dict) -> list[str]:
     config = os.path.join(root, "claude")
     os.environ["CLAUDE_CONFIG_DIR"] = config  # call_cli passes os.environ to the CLI
     sid = str(uuid.uuid5(uuid.NAMESPACE_URL, f"a2dlc:{req['run_id']}:{req.get('slice_id') or ''}:{req['role']}"))
-    # shortcut: a resumed round gets the full prompt again; send only what changed if the repeated prefix costs too much
     return ["--resume", sid] if any(Path(config, "projects").glob(f"*/{sid}.jsonl")) else ["--session-id", sid]
+
+
+def role_plugin_dir() -> str | None:
+    """Built-in plugin directory for Claude builders (H5/H6 guards), or None when disabled or absent."""
+    if os.environ.get("A2DLC_NO_ROLE_PLUGIN") == "1" or os.environ.get("HARNESS_OFF") == "1":
+        return None
+    raw = os.environ.get("A2DLC_ROLE_PLUGIN_DIR", "").strip()
+    path = Path(raw).resolve() if raw else Path(__file__).resolve().parent / "plugin"
+    return str(path) if path.is_dir() else None
+
+
+def gemini_session_args(req: dict) -> list[str]:
+    """Persists Gemini CLI session home under A2DLC_SESSION/gemini and resumes the latest session on later rounds."""
+    root = os.environ.get("A2DLC_SESSION", "").strip()
+    if not root or not os.path.isdir(root):
+        return []
+    gdir = Path(root, "gemini")
+    gdir.mkdir(parents=True, exist_ok=True)
+    os.environ["GEMINI_CLI_HOME"] = str(gdir)
+    marker = gdir / "session_started"
+    has_session = marker.exists() or any(gdir.rglob("*.json"))
+    marker.write_text(req["run_id"] + "\n", encoding="utf-8")
+    return ["--resume", "latest"] if has_session else []
+
+
+def acp_session_args(req: dict) -> list[str] | None:
+    """When A2DLC_SESSION is set for ACP, uses persistent named session subcommands instead of stateless exec."""
+    root = os.environ.get("A2DLC_SESSION", "").strip()
+    if not root or not os.path.isdir(root):
+        return None
+    adir = Path(root, "acp")
+    adir.mkdir(parents=True, exist_ok=True)
+    sid = f"a2dlc-{req['run_id']}-{req.get('slice_id') or 'root'}-{req['role']}"
+    (adir / f"{sid}.state").write_text(sid + "\n", encoding="utf-8")
+    return ["prompt", "--session", sid, "--file", "-"]
 
 
 def own_cost(cost: dict | None) -> dict | None:
@@ -453,16 +506,19 @@ def openrouter_opener(url: str) -> urllib.request.OpenerDirector:
 def call_openrouter(prompt: str) -> tuple[str, dict | None, str | None]:
     """One chat/completions call to OpenRouter with the whole prompt as the user message. Returns the model's text, the
     cost ({usd, input_tokens, output_tokens}: OpenRouter reports it with usage.include) and the model that answered.
-    The key comes from the environment (--env-file) and only travels in the header."""
+    The key comes from the environment (--env-file) or is injected by the egress proxy (A2DLC_EGRESS_CREDENTIAL_PROXY=1)."""
     key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    if not key:
+    proxy_injected = os.environ.get("A2DLC_EGRESS_CREDENTIAL_PROXY") == "1"
+    if not key and not proxy_injected:
         raise Failure("A2DLC_LLM=openrouter without OPENROUTER_API_KEY in the environment (roles.<role>.env_file)")
     model = os.environ.get("A2DLC_MODEL", "").strip() or OPENROUTER_MODEL
     url = os.environ.get("A2DLC_OPENROUTER_URL", "").strip() or OPENROUTER_URL
     body = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0,
                          "usage": {"include": True}}).encode("utf-8")
-    request = urllib.request.Request(url, data=body, method="POST", headers={
-        "Authorization": "Bearer " + key, "Content-Type": "application/json", "X-Title": "a2dlc-roles"})
+    headers = {"Content-Type": "application/json", "X-Title": "a2dlc-roles"}
+    if key:
+        headers["Authorization"] = "Bearer " + key
+    request = urllib.request.Request(url, data=body, method="POST", headers=headers)
     limit = cli_cap()
     try:
         with openrouter_opener(url).open(request, timeout=limit) as r:
@@ -500,13 +556,14 @@ def call_entropos(prompt: str) -> tuple[str, dict | None, str | None]:
     Shannon entropy and Thompson sampling to route dynamically to the most cost-effective model,
     returning usage.cost and _entropos_router_meta."""
     key = os.environ.get("ENTROPOS_API_KEY", "").strip() or os.environ.get("OPENROUTER_API_KEY", "").strip()
+    proxy_injected = os.environ.get("A2DLC_EGRESS_CREDENTIAL_PROXY") == "1"
     model = os.environ.get("A2DLC_MODEL", "").strip() or ENTROPOS_MODEL
     url = os.environ.get("A2DLC_ENTROPOS_URL", "").strip() or ENTROPOS_URL
     body = json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0}).encode("utf-8")
     headers = {"Content-Type": "application/json", "X-Title": "a2dlc-roles"}
     if key:
         headers["Authorization"] = "Bearer " + key
-    else:
+    elif not proxy_injected:
         headers["Authorization"] = "Bearer entropos-local"
     request = urllib.request.Request(url, data=body, method="POST", headers=headers)
     limit = cli_cap()
@@ -662,8 +719,8 @@ def call_cli(cmd: list[str], prompt: str, cwd: str, stream: Path | None = None,
                 proc.communicate(timeout=5)
             except subprocess.TimeoutExpired:
                 pass
-            cost = stream_cost(stream) if stream else None
-            raise Failure(f"the CLI {cmd[0]!r} exceeded the cap of {limit:g} s and was cut off" + stream_note(stream), cost,
+            cost, price_note = stream_cost_and_note(stream)
+            raise Failure(f"the CLI {cmd[0]!r} exceeded the cap of {limit:g} s and was cut off" + stream_note(stream) + price_note, cost,
                           kind="cli_cut")
     except FileNotFoundError:
         raise Failure(f"cannot find the CLI {cmd[0]!r} in the image", kind="cli_missing")
@@ -694,17 +751,116 @@ def stream_events(text: str) -> list[dict]:
     return events
 
 
-def stream_cost(stream: Path) -> dict | None:
-    """The cost a cut-off call reported: the "result" event, if the CLI got as far as printing it. Otherwise nothing: the
-    per-message usage of a partial stream has tokens but no USD, and the contract's cost is USD."""
+CLAUDE_PRICES: dict[str, dict[str, float]] = {
+    "claude-opus-4-6": {"input": 5.0, "output": 25.0, "cache_read": 0.5, "cache_write_5m": 6.25, "cache_write_1h": 10.0},
+    "claude-opus-4-5": {"input": 5.0, "output": 25.0, "cache_read": 0.5, "cache_write_5m": 6.25, "cache_write_1h": 10.0},
+    "claude-opus-4-1": {"input": 15.0, "output": 75.0, "cache_read": 1.5, "cache_write_5m": 18.75, "cache_write_1h": 30.0},
+    "claude-opus-4": {"input": 15.0, "output": 75.0, "cache_read": 1.5, "cache_write_5m": 18.75, "cache_write_1h": 30.0},
+    "claude-sonnet-4-6": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write_5m": 3.75, "cache_write_1h": 6.0},
+    "claude-sonnet-4-5": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write_5m": 3.75, "cache_write_1h": 6.0},
+    "claude-sonnet-4": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write_5m": 3.75, "cache_write_1h": 6.0},
+    "claude-3-7-sonnet": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write_5m": 3.75, "cache_write_1h": 6.0},
+    "claude-haiku-4-5": {"input": 1.0, "output": 5.0, "cache_read": 0.1, "cache_write_5m": 1.25, "cache_write_1h": 2.0},
+    "claude-3-5-haiku": {"input": 0.8, "output": 4.0, "cache_read": 0.08, "cache_write_5m": 1.0, "cache_write_1h": 1.6},
+}
+
+
+def price_for_model(model: str) -> dict[str, float]:
+    """USD per 1M tokens for an Anthropic model, or ValueError when unpriced (never defaults to 0)."""
+    norm = (model or "").strip().lower()
+    if norm in CLAUDE_PRICES:
+        return CLAUDE_PRICES[norm]
+    base = re.sub(r"[-@](?:\d{8}|latest)$", "", norm)
+    if base in CLAUDE_PRICES:
+        return CLAUDE_PRICES[base]
+    raise ValueError(f"no price in table for model {model!r}")
+
+
+def estimate_claude_stream_cost(events: list[dict]) -> dict | None:
+    """Computes an estimated USD cost from partial assistant events deduplicated by (message.id, requestId) using
+    per-field maximums, pricing 5m and 1h ephemeral cache writes distinctly. Raises ValueError if a model is unpriced."""
+    init_model = ""
+    for e in events:
+        if e.get("type") == "system" and isinstance(e.get("model"), str):
+            init_model = e["model"]
+            break
+    seen: dict[str, dict] = {}
+    for idx, e in enumerate(events):
+        if e.get("type") != "assistant":
+            continue
+        msg = e.get("message") if isinstance(e.get("message"), dict) else {}
+        u = msg.get("usage") if isinstance(msg.get("usage"), dict) else {}
+        if not u:
+            continue
+        mid = str(msg.get("id") or "")
+        rid = str(e.get("requestId") or msg.get("requestId") or "")
+        key = f"{mid}|{rid}" if (mid or rid) else f"idx:{idx}"
+        entry = seen.setdefault(key, {"model": "", "input": 0, "output": 0, "cache_read": 0, "c5m": 0, "c1h": 0})
+        if isinstance(msg.get("model"), str) and msg["model"].strip():
+            entry["model"] = msg["model"]
+        elif not entry["model"]:
+            entry["model"] = init_model
+        entry["input"] = max(entry["input"], _num(u.get("input_tokens")))
+        entry["output"] = max(entry["output"], _num(u.get("output_tokens")))
+        entry["cache_read"] = max(entry["cache_read"], _num(u.get("cache_read_input_tokens")))
+        cc = u.get("cache_creation") if isinstance(u.get("cache_creation"), dict) else {}
+        c5m = _num(cc.get("ephemeral_5m_input_tokens"))
+        c1h = _num(cc.get("ephemeral_1h_input_tokens"))
+        if c5m == 0 and c1h == 0:
+            c5m = _num(u.get("cache_creation_input_tokens"))
+        entry["c5m"] = max(entry["c5m"], c5m)
+        entry["c1h"] = max(entry["c1h"], c1h)
+    if not seen:
+        return None
+    usd = 0.0
+    input_t = output_t = cache_read_t = cache_create_t = 0
+    for entry in seen.values():
+        p = price_for_model(entry["model"])
+        usd += (
+            entry["input"] * p["input"]
+            + entry["output"] * p["output"]
+            + entry["cache_read"] * p["cache_read"]
+            + entry["c5m"] * p["cache_write_5m"]
+            + entry["c1h"] * p["cache_write_1h"]
+        ) / 1_000_000.0
+        input_t += entry["input"] + entry["cache_read"] + entry["c5m"] + entry["c1h"]
+        cache_read_t += entry["cache_read"]
+        cache_create_t += entry["c5m"] + entry["c1h"]
+        output_t += entry["output"]
+    cost: dict = {"usd": round(usd, 6), "estimated": True, "turns": len(seen)}
+    if input_t:
+        cost["input_tokens"] = input_t
+    if cache_read_t:
+        cost["cache_read_input_tokens"] = cache_read_t
+    if cache_create_t:
+        cost["cache_creation_input_tokens"] = cache_create_t
+    if output_t:
+        cost["output_tokens"] = output_t
+    return cost
+
+
+def stream_cost_and_note(stream: Path | None) -> tuple[dict | None, str]:
+    if not stream:
+        return None, ""
     try:
         events = stream_events(stream.read_text(encoding="utf-8", errors="replace"))
     except OSError:
-        return None
+        return None, ""
     if any(e.get("jsonrpc") == "2.0" for e in events):
-        return acp_cost(events)
+        return acp_cost(events), ""
     results = [e for e in events if e.get("type") == "result"]
-    return claude_cost(results[-1]) if results else None
+    if results:
+        return claude_cost(results[-1]), ""
+    try:
+        return estimate_claude_stream_cost(events), ""
+    except ValueError as e:
+        return None, f" (partial stream cost unavailable: {e})"
+
+
+def stream_cost(stream: Path) -> dict | None:
+    """The cost a cut-off call reported: the result event, or an estimate from partial message usage."""
+    cost, _ = stream_cost_and_note(stream)
+    return cost
 
 
 def stream_note(stream: Path | None) -> str:
@@ -766,10 +922,16 @@ def claude_result(stdout: str) -> dict | None:
 def read_claude(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, str | None]:
     """claude -p --output-format stream-json (or json): {type: result, subtype, is_error, result, total_cost_usd, usage, modelUsage}."""
     doc = claude_result(stdout)
+    events = stream_events(stdout)
     if doc is None:
-        if stream_events(stdout):
-            raise Failure(f"claude exited with {code} without a result event; the stream is kept in /out/{STREAM_FILE}: {clean(stderr)}",
-                          kind="cli_no_result")
+        if events:
+            est_cost, price_note = None, ""
+            try:
+                est_cost = estimate_claude_stream_cost(events)
+            except ValueError as e:
+                price_note = f" ({e})"
+            raise Failure(f"claude exited with {code} without a result event; the stream is kept in /out/{STREAM_FILE}: {clean(stderr)}{price_note}",
+                          est_cost, kind="cli_no_result")
         raise Failure(f"claude exited with {code} and its output is not JSON: {clean(stderr or stdout)}", kind="cli_output_not_json")
     cost = claude_cost(doc)
     model = None
@@ -785,8 +947,52 @@ def read_claude(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, 
     return str(doc["result"]), cost, model
 
 
+GEMINI_PRICES: dict[str, dict[str, float]] = {
+    "gemini-2.5-pro": {"input": 1.25, "output": 10.0, "cache_read": 0.3125},
+    "gemini-2.5-flash": {"input": 0.30, "output": 2.50, "cache_read": 0.075},
+    "gemini-2.5-flash-lite": {"input": 0.10, "output": 0.40, "cache_read": 0.025},
+    "gemini-2.0-flash": {"input": 0.10, "output": 0.40, "cache_read": 0.025},
+}
+
+
+def gemini_cost(doc: dict, model: str | None) -> dict | None:
+    """Computes cost from Gemini CLI stats (explicit usd or GEMINI_PRICES from tokens). None when neither is available."""
+    st = doc.get("stats")
+    if not isinstance(st, dict):
+        return None
+    models = st.get("models") if isinstance(st.get("models"), dict) else {}
+    entry = models.get(model) if (model and isinstance(models.get(model), dict)) else {}
+    tokens = entry.get("tokens") if isinstance(entry.get("tokens"), dict) else {}
+    raw_in = _num(tokens.get("prompt")) or _num(tokens.get("input"))
+    cached = _num(tokens.get("cached"))
+    out_t = (_num(tokens.get("candidates")) or _num(tokens.get("output"))) + _num(tokens.get("thoughts"))
+    if raw_in == 0 and out_t == 0 and cached == 0:
+        return None
+    input_total = max(raw_in, cached)
+    non_cached = max(0, input_total - cached)
+    usd = entry.get("cost_usd") if isinstance(entry.get("cost_usd"), (int, float)) else None
+    estimated = False
+    if usd is None and model:
+        norm = model.strip().lower()
+        price = GEMINI_PRICES.get(norm) or GEMINI_PRICES.get(re.sub(r"-(?:preview|exp).*$", "", norm))
+        if price is None:
+            return None
+        usd = round((non_cached * price["input"] + cached * price["cache_read"] + out_t * price["output"]) / 1_000_000.0, 6)
+        estimated = True
+    if usd is None or usd < 0:
+        return None
+    cost: dict = {"usd": float(usd), "input_tokens": input_total}
+    if cached:
+        cost["cache_read_input_tokens"] = cached
+    if out_t:
+        cost["output_tokens"] = out_t
+    if estimated:
+        cost["estimated"] = True
+    return cost
+
+
 def read_gemini(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, str | None]:
-    """gemini -p --output-format json: {response, stats, error?}. The documentation gives no cost: cost stays null."""
+    """gemini -p --output-format json: {response, stats, error?}. Computes token cost when stats include known model."""
     doc = first_object(stdout)
     if doc is None:
         raise Failure(f"gemini exited with {code} and its output is not JSON: {clean(stderr or stdout)}", kind="cli_output_not_json")
@@ -794,14 +1000,15 @@ def read_gemini(stdout: str, stderr: str, code: int) -> tuple[str, dict | None, 
     st = doc.get("stats")
     if isinstance(st, dict) and isinstance(st.get("models"), dict) and st["models"]:
         model = next(iter(st["models"]))
+    cost = gemini_cost(doc, model)
     if doc.get("error"):
         e = doc["error"]
-        raise Failure(f"gemini reported an error: {clean(e.get('message') if isinstance(e, dict) and e.get('message') else json.dumps(e))}", None, model)
+        raise Failure(f"gemini reported an error: {clean(e.get('message') if isinstance(e, dict) and e.get('message') else json.dumps(e))}", cost, model)
     if code != 0:
-        raise Failure(f"gemini exited with {code}: {clean(stderr)}", None, model)
+        raise Failure(f"gemini exited with {code}: {clean(stderr)}", cost, model)
     if not isinstance(doc.get("response"), str):
-        raise Failure("gemini returned no response", None, model)
-    return doc["response"], None, model
+        raise Failure("gemini returned no response", cost, model)
+    return doc["response"], cost, model
 
 
 def acp_budget() -> float | None:
@@ -1064,16 +1271,34 @@ def run(req: dict, request_path: Path, out_dir: Path) -> dict:
     builder = is_builder(role)
     llm = (os.environ.get("A2DLC_LLM") or "claude").strip().lower()
     cmd = cli_command(llm, builder) if llm not in ("openrouter", "entropos") else []
+    resumed_claude = False
     if builder and llm == "claude":
+        sflags = session_args(req)
         i = cmd.index("--no-session-persistence")
-        cmd[i:i + 1] = session_args(req)
+        cmd[i:i + 1] = sflags
+        resumed_claude = sflags[0] == "--resume"
+        plugin_dir = role_plugin_dir()
+        if plugin_dir:
+            cmd += ["--plugin-dir", plugin_dir]
+            if not os.environ.get("HARNESS_DATA_DIR", "").strip():
+                os.environ["HARNESS_DATA_DIR"] = str(out_dir.resolve() / "harness")
+    elif builder and llm == "gemini":
+        cmd += gemini_session_args(req)
+    elif llm == "acp":
+        agent = os.environ.get("A2DLC_ACP_AGENT", "").strip()
+        acp_tail = (builder and acp_session_args(req)) or ["exec", "--file", "-"]
+        cmd = cmd[:-3] + ["--agent", agent] + acp_tail
     work = work_dir()
     without_tools = builder and llm in ("openrouter", "entropos")
     if without_tools and not work.is_dir():
         raise Failure(f"a builder needs {work} and it does not exist")
     fb_work = feedback_work_files(req, work) if builder and not without_tools else None
-    prompt = build_prompt(role, stage, instructions(req), request_path.read_text(encoding="utf-8"),
-                          input_files(request_path.parent, request_path), work_files(work) if without_tools else None, fb_work)
+    req_text = request_path.read_text(encoding="utf-8")
+    if resumed_claude:
+        prompt = build_resumed_prompt(role, req_text, fb_work)
+    else:
+        prompt = build_prompt(role, stage, instructions(req), req_text,
+                              input_files(request_path.parent, request_path), work_files(work) if without_tools else None, fb_work)
     print(f"a2dlc-roles: role={role} stage={stage} llm={llm} prompt={len(prompt.encode('utf-8'))}B", file=sys.stderr)
     if llm == "openrouter":
         text, cost, model = call_openrouter(prompt)

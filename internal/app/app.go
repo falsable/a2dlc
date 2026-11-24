@@ -45,6 +45,8 @@ type App struct {
 	Probe DoctorProbe
 	// Builder builds the engine image that install derives from the repo's dependencies; nil makes install say so and keep the base image.
 	Builder ImageBuilder
+	// IgnoreSignerEnv ignores A2DLC_ALLOWED_SIGNERS, A2DLC_ALLOWED_SIGNERS_DATA, and A2DLC_SSH_KEYGEN (set by --pre-push).
+	IgnoreSignerEnv bool
 }
 
 func (a App) path(rel string) string { return filepath.Join(a.Repo.Dir, filepath.FromSlash(rel)) }
@@ -120,7 +122,7 @@ func (a App) approvals(commit string) ([]contract.Approval, error) {
 // the rejection reason of each one that does not.
 func (a App) approved(tree string, waivers map[string]contract.Waiver, approvals []contract.Approval) (map[string]bool, map[string]string) {
 	ok, reason := map[string]bool{}, map[string]string{}
-	signers, cleanup, err := approval.AllowedSigners()
+	signers, cleanup, err := approval.AllowedSignersWith(a.IgnoreSignerEnv)
 	defer cleanup()
 	for _, ap := range approvals {
 		w, found := waivers[ap.Target]
@@ -141,7 +143,7 @@ func (a App) approved(tree string, waivers map[string]contract.Waiver, approvals
 			reason[ap.Target] = err.Error()
 			continue
 		}
-		if e := approval.Verify(signers, ap.Principal, approval.Payload(ap.Target, ap.WaiverSHA256, ap.FileBlob), ap.Signature); e != nil {
+		if e := approval.VerifyWith(a.IgnoreSignerEnv, signers, ap.Principal, approval.Payload(ap.Target, ap.WaiverSHA256, ap.FileBlob), ap.Signature); e != nil {
 			reason[ap.Target] = e.Error()
 			continue
 		}
@@ -499,6 +501,12 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 				resp contract.Response
 				err  error
 			}
+			var engImgs []string
+			for _, i := range order {
+				engImgs = append(engImgs, cfg.Engines[i].Image)
+			}
+			engCtx, cleanWarmEng := a.attachWarmImages(ctx, a.Runner, engImgs, baseSha, tree)
+			defer cleanWarmEng()
 			answers := make([]answer, len(order))
 			sem := make(chan struct{}, engineJobs(len(order), os.Getenv("A2DLC_ENGINE_JOBS")))
 			var ewg sync.WaitGroup
@@ -530,7 +538,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 					var err error
 					if !reused {
 						t0 := time.Now()
-						resp, err = a.Runner.Run(ctx, e, req, baseDir, candDir)
+						resp, err = a.Runner.Run(engCtx, e, req, baseDir, candDir)
 						timerOf(ctx).engineOp("diff", time.Since(t0))
 						if err == nil {
 							a.Memo.put(baseSha, tree, e, req, resp)
@@ -642,7 +650,15 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	if fireOn == "" {
 		fireOn = FireOnCheck
 	}
-	checks, pendingChecks := a.runChecks(ctx, cfg, fireOn, changed, export, &baseDir, &candDir, waivers, approved)
+	var chkImgs []string
+	for _, c := range cfg.Checks {
+		if fires(c, fireOn) {
+			chkImgs = append(chkImgs, c.Image)
+		}
+	}
+	chkCtx, cleanWarmChk := a.attachWarmImages(ctx, a.Checks, chkImgs, baseSha, tree)
+	defer cleanWarmChk()
+	checks, pendingChecks := a.runChecks(chkCtx, cfg, fireOn, changed, export, &baseDir, &candDir, waivers, approved)
 	applyChecks(&v, checks, pendingChecks)
 	// Coverage precondition: what no engine examined and no test executed cannot be PASS.
 	if v.Coverage, err = a.precondition(cfg, baseSha, tree, sources, v.Targets, cov.report, cov.note); err != nil {
@@ -897,6 +913,20 @@ func (a App) Verify(commit string) ([]string, error) {
 			p += "; changed: " + strings.Join(truncate(diffs, 10), ", ")
 		}
 		probs = append(probs, p)
+	}
+	sig, err := a.VerdictSignature()
+	if err != nil {
+		return nil, err
+	}
+	switch sig.Status {
+	case SigInvalid:
+		probs = append(probs, "verdict signature is invalid ("+sig.Reason+"): run a2dlc check")
+	case SigUnverifiable:
+		probs = append(probs, "verdict signature cannot be verified ("+sig.Reason+")")
+	case SigUnsigned:
+		if signingKey() != "" {
+			probs = append(probs, "the verdict is unsigned (A2DLC_SIGNING_KEY is set, but "+pathVerdictSig+" is missing): run a2dlc check")
+		}
 	}
 	if v.Verdict != contract.PASS {
 		probs = append(probs, "the verdict is "+v.Verdict)
@@ -1183,6 +1213,15 @@ func (a App) preTool(agent, tool string, in map[string]any, stdout, stderr io.Wr
 			}
 		}
 		rel = strings.TrimPrefix(rel, "./")
+		if isGateArtifactPath(rel) {
+			msg := fmt.Sprintf("a2dlc PreToolUse: cannot %s %q: gate receipts and push hooks cannot be modified directly", tool, rel)
+			if agent == "gemini" {
+				json.NewEncoder(stdout).Encode(map[string]string{"decision": "block", "reason": msg})
+				return 0
+			}
+			fmt.Fprintln(stderr, msg)
+			return 2
+		}
 		cfg, err := a.config()
 		if err == nil && len(cfg.ProtectedPaths) > 0 {
 			matches := protectedMatches(cfg.ProtectedPaths, []string{rel})
@@ -1209,8 +1248,17 @@ func (a App) preTool(agent, tool string, in map[string]any, stdout, stderr io.Wr
 		cmd, _ := input["command"].(string)
 		cmdLower := strings.ToLower(cmd)
 		// The gate is the pre-push; a commit with --no-verify skips no a2dlc gate and stays allowed.
-		if strings.Contains(cmdLower, "--no-verify") && pushesWithoutVerify(cmdLower) {
-			msg := "a2dlc PreToolUse: cannot execute git push with --no-verify: a2dlc verification gates cannot be bypassed by an autonomous agent"
+		if pushesWithoutVerify(cmdLower) {
+			msg := "a2dlc PreToolUse: cannot execute git push with --no-verify/-n or core.hooksPath override: a2dlc verification gates cannot be bypassed by an autonomous agent"
+			if agent == "gemini" {
+				json.NewEncoder(stdout).Encode(map[string]string{"decision": "block", "reason": msg})
+				return 0
+			}
+			fmt.Fprintln(stderr, msg)
+			return 2
+		}
+		if target := writesGateArtifact(cmdLower); target != "" {
+			msg := fmt.Sprintf("a2dlc PreToolUse: cannot modify %s via shell: gate receipts and push hooks cannot be modified by an autonomous agent", target)
 			if agent == "gemini" {
 				json.NewEncoder(stdout).Encode(map[string]string{"decision": "block", "reason": msg})
 				return 0
@@ -1223,29 +1271,96 @@ func (a App) preTool(agent, tool string, in map[string]any, stdout, stderr io.Wr
 	return allow(agent, stdout)
 }
 
-// pushesWithoutVerify says whether a shell line runs git push with --no-verify. It looks at the git subcommand of each
-// segment (split on ;, & and |), so a commit whose message says "push" is not taken for a push.
+func isGateArtifactPath(rel string) bool {
+	switch rel {
+	case pathVerdict, pathVerdictSig, ".git/hooks/pre-push", ".beads/hooks/pre-push":
+		return true
+	}
+	return false
+}
+
+// pushesWithoutVerify says whether a shell line runs git push with --no-verify, -n, or core.hooksPath override,
+// including inside nested sh/bash -c invocations.
 func pushesWithoutVerify(cmd string) bool {
-	for _, seg := range strings.FieldsFunc(cmd, func(r rune) bool { return r == ';' || r == '&' || r == '|' || r == '\n' }) {
+	for _, seg := range shellSegments(cmd) {
 		words := strings.Fields(seg)
 		for i := 0; i < len(words); i++ {
 			if words[i] != "git" && !strings.HasSuffix(words[i], "/git") && !strings.HasSuffix(words[i], "git.exe") {
 				continue
 			}
+			hooksOverride := false
 			j := i + 1
 			for j < len(words) && strings.HasPrefix(words[j], "-") {
+				if words[j] == "-c" && j+1 < len(words) && strings.Contains(words[j+1], "core.hookspath") {
+					hooksOverride = true
+				}
+				if strings.HasPrefix(words[j], "-ccore.hookspath") {
+					hooksOverride = true
+				}
 				if words[j] == "-c" || words[j] == "-C" {
 					j++
 				}
 				j++
 			}
-			if j < len(words) && words[j] == "push" && strings.Contains(seg, "--no-verify") {
-				return true
+			if j < len(words) && words[j] == "push" {
+				if hooksOverride {
+					return true
+				}
+				for _, arg := range words[j+1:] {
+					if arg == "--" {
+						break
+					}
+					if arg == "--no-verify" || arg == "-n" || (strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.ContainsRune(arg[1:], 'n')) {
+						return true
+					}
+				}
 			}
 			break
 		}
 	}
 	return false
+}
+
+// shellSegments splits cmd by shell separators and unwraps quoted bash/sh -c payloads so nested commands are inspected too.
+func shellSegments(cmd string) []string {
+	var out []string
+	var walk func(string, int)
+	walk = func(s string, depth int) {
+		if depth > 3 {
+			return
+		}
+		for _, seg := range strings.FieldsFunc(s, func(r rune) bool { return r == ';' || r == '&' || r == '|' || r == '\n' }) {
+			out = append(out, seg)
+			for _, shell := range []string{"bash -c ", "sh -c ", "zsh -c ", "dash -c ", "eval "} {
+				if idx := strings.Index(seg, shell); idx >= 0 {
+					inner := strings.TrimSpace(seg[idx+len(shell):])
+					inner = strings.Trim(inner, `"'`)
+					walk(inner, depth+1)
+				}
+			}
+		}
+	}
+	walk(cmd, 0)
+	return out
+}
+
+// writesGateArtifact detects shell segments that write/overwrite/delete .a2dlc/verdict.json, .a2dlc/verdict.sig, or pre-push hooks.
+func writesGateArtifact(cmd string) string {
+	targets := []string{".a2dlc/verdict.json", ".a2dlc/verdict.sig", ".git/hooks/pre-push", ".beads/hooks/pre-push"}
+	writeOps := []string{">", "tee ", "cp ", "mv ", "rm ", "chmod ", "ln ", "install ", "touch ", "truncate ", "sed -i", "perl -i", "python", "node "}
+	for _, seg := range shellSegments(cmd) {
+		for _, tgt := range targets {
+			if !strings.Contains(seg, tgt) {
+				continue
+			}
+			for _, op := range writeOps {
+				if strings.Contains(seg, op) {
+					return tgt
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func sanitize(s string) string {

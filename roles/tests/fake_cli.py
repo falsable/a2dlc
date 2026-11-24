@@ -44,19 +44,41 @@ def result_event(text: str) -> dict:
 
 def stream_start() -> None:
     """The events stream-json prints before the result: init, one assistant message with a tool call, its tool result."""
-    for event in ({"type": "system", "subtype": "init", "session_id": "s", "model": "claude-fake"},
-                  {"type": "assistant", "message": {"role": "assistant", "content": [
-                      {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "npm test"}}],
-                      "usage": {"input_tokens": 90, "output_tokens": 10}}},
-                  {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "ok"}]}}):
+    model = os.environ.get("FAKE_SLEEP_MODEL", "claude-fake")
+    if os.environ.get("FAKE_SLEEP_CACHE") == "1":
+        events = (
+            {"type": "system", "subtype": "init", "session_id": "s", "model": model},
+            {"type": "assistant", "requestId": "req-1", "message": {
+                "id": "msg-1", "role": "assistant", "model": model,
+                "content": [{"type": "thinking", "thinking": "..."}],
+                "usage": {"input_tokens": 1000, "output_tokens": 20, "cache_read_input_tokens": 2000,
+                          "cache_creation": {"ephemeral_5m_input_tokens": 400, "ephemeral_1h_input_tokens": 100}},
+            }},
+            {"type": "assistant", "requestId": "req-1", "message": {
+                "id": "msg-1", "role": "assistant", "model": model,
+                "content": [{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "npm test"}}],
+                "usage": {"input_tokens": 1000, "output_tokens": 150, "cache_read_input_tokens": 2000,
+                          "cache_creation": {"ephemeral_5m_input_tokens": 400, "ephemeral_1h_input_tokens": 100}},
+            }},
+            {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "ok"}]}},
+        )
+    else:
+        events = (
+            {"type": "system", "subtype": "init", "session_id": "s", "model": model},
+            {"type": "assistant", "message": {"role": "assistant", "content": [
+                {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "npm test"}}],
+                "usage": {"input_tokens": 90, "output_tokens": 10}}},
+            {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "ok"}]}},
+        )
+    for event in events:
         print(json.dumps(event), flush=True)
 
 
 def main() -> int:
     argv = sys.argv[1:]
     prompt = sys.stdin.read()
-    claude = any(f in argv for f in ("--no-session-persistence", "--session-id", "--resume"))  # a builder with /session resumes
     gemini = "--skip-trust" in argv
+    claude = (not gemini) and any(f in argv for f in ("--no-session-persistence", "--session-id", "--resume"))
     if claude == gemini:
         fail(f"I cannot tell whether I was called as claude or as gemini: {argv}")
     role = os.environ.get("A2DLC_ROLE", "")
@@ -87,8 +109,9 @@ def main() -> int:
     # the TypeScript probe override is in the prompt exactly when the role payload says engine_language typescript
     req_match = re.search(r"### request\.json\n\n```json\n(.*?)\n```", prompt, re.S)
     req_payload = (json.loads(req_match.group(1)).get("payload") or {}) if req_match else {}
-    if ("## Probe expressions in TypeScript" in prompt) != (req_payload.get("engine_language") == "typescript"):
-        fail("the TypeScript probe override does not match engine_language in the payload")
+    if "--resume" not in argv:
+        if ("## Probe expressions in TypeScript" in prompt) != (req_payload.get("engine_language") == "typescript"):
+            fail("the TypeScript probe override does not match engine_language in the payload")
     if not role or f'"role": "{role}"' not in prompt:
         fail("the request.json in the prompt is not the role's")
     if role == "saboteur" and ("# Role: Saboteur" not in prompt or "### signatures.json" not in prompt):

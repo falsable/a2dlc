@@ -140,10 +140,13 @@ func TestAgentToolsAgreeWithTheCLI(t *testing.T) {
 	// approve --pending lists, signs nothing, asks nothing
 	sameAsCLI(t, a, exe, "a2dlc_approve_pending", map[string]any{}, 1, "approve", "--pending", "--json")
 
-	// answer: bad usage reaches the CLI's check (the tool needs every argument first), then a run that cannot take it,
-	// then the answer written
+	// answer: disabled by default for unauthenticated MCP clients; enabled with A2DLC_MCP_ALLOW_ANSWER=1, matching the CLI.
 	full := map[string]any{"slice": "pago.v1", "probe": "esc-1", "choice": "alpha", "reason": "the spec is strict", "by": "aldemar"}
 	cli := []string{"answer", "--slice=pago.v1", "--probe=esc-1", "--choice=alpha", "--reason=the spec is strict", "--by=aldemar"}
+	if r := callTool(t, a, "a2dlc_answer", full); !r.IsError || !strings.Contains(r.Text, "answer_requires_a_person") {
+		t.Fatalf("expected unauthenticated a2dlc_answer refusal, got %+v", r)
+	}
+	t.Setenv("A2DLC_MCP_ALLOW_ANSWER", "1")
 	sameAsCLI(t, a, exe, "a2dlc_answer", full, 2, cli...)
 
 	runDir := filepath.Join(a.Repo.Dir, ".a2dlc", "run", "pago.v1")
@@ -173,6 +176,7 @@ func TestAgentToolsAgreeWithTheCLI(t *testing.T) {
 // A tool never runs without a budget, never takes a question it cannot ask, and says why in a machine-readable error.
 func TestAgentToolsRefuseWhatTheyCannotDo(t *testing.T) {
 	a, _ := agentRepo(t)
+	t.Setenv("A2DLC_MCP_ALLOW_ANSWER", "1")
 	cases := []struct {
 		tool string
 		args map[string]any

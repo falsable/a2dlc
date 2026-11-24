@@ -126,7 +126,7 @@ func TestCB04N2OrthogonalCrossesBoundaryEscalatesStage(t *testing.T) {
 	if s3.Status != contract.StageEscalated || !strings.HasPrefix(s3.Reason, "CB-04: ") || st.Stages[6].Status != contract.StagePending {
 		t.Fatalf("%+v %+v", s3, st.Stages[6])
 	}
-	if len(seen) != 2 || seen[1].role != contract.RoleBuilderOrthogonal || engine.tier0 != 1 {
+	if len(seen) != 2 || seen[0].role == seen[1].role || engine.tier0 != 1 {
 		t.Fatalf("%+v tier0=%d (the primary runs Tier 0 and the orthogonal escalates first)", seen, engine.tier0)
 	}
 	var escalations contract.Escalations

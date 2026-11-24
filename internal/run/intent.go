@@ -1,6 +1,7 @@
 package run
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -142,7 +143,9 @@ var errCB03 = errors.New("CB-03: budget exhausted")
 // exceeded is CB-03: the reported cost or the reported tokens exceed their limit, and the reason names the one that tripped
 // first (cost, then tokens). Returns "" if there is no limit or none was exceeded. A cap of null in the intent is no cap.
 func (m *Machine) exceeded() string {
+	m.mu.Lock()
 	b := m.state.Budget
+	m.mu.Unlock()
 	if b.MaxCostUSD != nil && b.SpentUSD > *b.MaxCostUSD {
 		return fmt.Sprintf("CB-03: cost %.4f USD exceeds max_cost_usd %.4f", b.SpentUSD, *b.MaxCostUSD)
 	}
@@ -176,13 +179,32 @@ func (m *Machine) halfStarves(r contract.Role) bool {
 	for _, v := range r.Env {
 		uses = uses || strings.Contains(v, RoundUSD)
 	}
+	m.mu.Lock()
 	b := m.state.Budget
+	m.mu.Unlock()
 	return uses && b.MaxCostUSD != nil && (*b.MaxCostUSD-b.SpentUSD)/2 < roundFloor**b.MaxCostUSD
+}
+
+type roundsLeftKey struct{}
+
+func withRoundsLeft(ctx context.Context, n int) context.Context {
+	return context.WithValue(ctx, roundsLeftKey{}, n)
+}
+
+func roundsLeftFrom(ctx context.Context, fallback int) int {
+	if v, ok := ctx.Value(roundsLeftKey{}).(int); ok {
+		return v
+	}
+	return fallback
 }
 
 // withRemaining returns r with RemainingUSD and RoundUSD replaced in its env values. A role that uses either needs a cost cap
 // in the run and something left under it.
 func (m *Machine) withRemaining(role string, r contract.Role) (contract.Role, error) {
+	return m.withRemainingCtx(context.Background(), role, r)
+}
+
+func (m *Machine) withRemainingCtx(ctx context.Context, role string, r contract.Role) (contract.Role, error) {
 	uses := false
 	for _, v := range r.Env {
 		uses = uses || strings.Contains(v, RemainingUSD) || strings.Contains(v, RoundUSD)
@@ -190,7 +212,10 @@ func (m *Machine) withRemaining(role string, r contract.Role) (contract.Role, er
 	if !uses {
 		return r, nil
 	}
+	m.mu.Lock()
 	b := m.state.Budget
+	rl := roundsLeftFrom(ctx, m.roundsLeft)
+	m.mu.Unlock()
 	if b.MaxCostUSD == nil {
 		return r, fmt.Errorf("roles.%s.env uses %s or %s and the run has no max_cost_usd", role, RemainingUSD, RoundUSD)
 	}
@@ -199,7 +224,7 @@ func (m *Machine) withRemaining(role string, r contract.Role) (contract.Role, er
 		return r, fmt.Errorf("roles.%s: %.4f USD spent of max_cost_usd %.4f, nothing left for another launch", role, b.SpentUSD, *b.MaxCostUSD)
 	}
 	round := left
-	if m.roundsLeft > 1 {
+	if rl > 1 {
 		round = left / 2
 	}
 	env := make(map[string]string, len(r.Env))

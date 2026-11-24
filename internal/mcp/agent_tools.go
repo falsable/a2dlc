@@ -68,7 +68,7 @@ var agentTools = []agentTool{
 		description: "List every waiver of the current receipt that waits for a signature, grouped by the reason it gives, as `a2dlc approve --pending --json`. It signs nothing and takes no argument: signing is a person's act with their own key (`a2dlc approve --pending` in a terminal), and a tool call that tries to pass key, principal or yes is refused with code signing_requires_a_person. Returns exit_code, stdout, stderr and json (the list). Read-only.",
 		flags:       nil},
 	{name: "a2dlc_answer", command: []string{"answer"},
-		description: "Record a person's answer to a probe of a run, as `a2dlc answer`: writes answers.json in the run's folder, and a2dlc_run resumes with it. The answer carries who gave it (by) and why (reason); the tool records what it is given and authenticates nobody, so call it only with an answer a person gave. Returns exit_code (0 recorded, 2 the run or the probe is not answerable, 64 bad usage), stdout and stderr.",
+		description: "Record a person's answer to a probe of a run, as `a2dlc answer`: writes answers.json in the run's folder, and a2dlc_run resumes with it. Disabled for unauthenticated MCP clients unless A2DLC_MCP_ALLOW_ANSWER=1 is set by the operator; otherwise a person runs `a2dlc answer` in a terminal. Returns exit_code (0 recorded, 2 the run or the probe is not answerable, 64 bad usage or disabled), stdout and stderr.",
 		flags: []agentFlag{{"slice", "slice", 's', true}, {"probe", "probe", 's', true}, {"choice", "choice", 's', true},
 			{"reason", "reason", 's', true}, {"by", "by", 's', true}}},
 }
@@ -117,6 +117,9 @@ func callAgentTool(ctx context.Context, a app.App, name string, args map[string]
 }
 
 func (t agentTool) call(ctx context.Context, a app.App, args map[string]any) callToolResult {
+	if t.name == "a2dlc_answer" && os.Getenv("A2DLC_MCP_ALLOW_ANSWER") != "1" {
+		return refusal("answer_requires_a_person", "a2dlc_answer is disabled for unauthenticated MCP clients: a person runs `a2dlc answer` in a terminal (or the operator sets A2DLC_MCP_ALLOW_ANSWER=1)")
+	}
 	known := map[string]agentFlag{}
 	for _, f := range t.flags {
 		known[f.key] = f

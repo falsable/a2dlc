@@ -1,6 +1,7 @@
 package run
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -15,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/falsable/a2dlc/internal/app"
+	"github.com/falsable/a2dlc/internal/approval"
 	"github.com/falsable/a2dlc/internal/contract"
 )
 
@@ -31,6 +33,7 @@ import (
 
 const (
 	MaxSpecRoundsDefault  = 2
+	ArtContractAcceptance = "contract_acceptance.json"
 	catalogPath           = ".a2dlc/catalogue.json"
 	emptyTree             = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" // git's empty tree (sha1)
 	reasonWithoutDualSpec = "no dual-spec"                             // the reason of the skipped Stage 1 without the three roles; skipStale recognizes it
@@ -38,6 +41,12 @@ const (
 )
 
 func stageSpec(ctx context.Context, m *Machine) (string, string, string, error) {
+	if m.acceptedContract != nil {
+		return m.acceptHumanContract()
+	}
+	if handled, status, reason, artifact, err := m.preserveAcceptedContract(); err != nil || handled {
+		return status, reason, artifact, err
+	}
 	switch m.state.Mode {
 	case contract.ModeLite:
 		return contract.StageSkipped, "lite mode: no S* contract", "", nil
@@ -45,6 +54,307 @@ func stageSpec(ctx context.Context, m *Machine) (string, string, string, error) 
 		return m.specRefactor(ctx)
 	}
 	return m.specDual(ctx)
+}
+
+// ContractAcceptance is the signed acceptance envelope for a human-accepted slice contract (S*, namespace a2dlc-contract).
+type ContractAcceptance struct {
+	SliceID        string `json:"slice_id"`
+	BaseRef        string `json:"base_ref"`
+	ContractSHA256 string `json:"contract_sha256"`
+	Principal      string `json:"principal"`
+	Signature      string `json:"signature"`
+}
+
+type contractEnvelope struct {
+	SliceID        string          `json:"slice_id"`
+	BaseRef        string          `json:"base_ref"`
+	ContractSHA256 string          `json:"contract_sha256"`
+	Principal      string          `json:"principal"`
+	Signature      string          `json:"signature"`
+	Contract       json.RawMessage `json:"contract"`
+}
+
+// ContractAcceptanceRecord persists the signed acceptance alongside the exact signed contract bytes in the run folder,
+// allowing VerifyRun and Stage 1 resume to verify the signature without trusting unverified edits to contract.json.
+type ContractAcceptanceRecord struct {
+	SchemaVersion  int    `json:"schema_version"`
+	SliceID        string `json:"slice_id"`
+	BaseRef        string `json:"base_ref"`
+	ContractSHA256 string `json:"contract_sha256"`
+	Principal      string `json:"principal"`
+	Signature      string `json:"signature"`
+	SignedContract []byte `json:"signed_contract"`
+}
+
+type verifiedContract struct {
+	contract       contract.SliceContract
+	rawContract    []byte
+	contractSHA256 string
+	principal      string
+	signature      string
+}
+
+func sha256Hex(b []byte) string {
+	s := sha256.Sum256(b)
+	return hex.EncodeToString(s[:])
+}
+
+// SignContractFile validates a slice contract file against slice-contract.schema.json, signs its bytes under
+// approval.ContractNamespace bound to sliceID and baseSha, and verifies the signature against allowed_signers.
+func SignContractFile(contractPath, sliceID, baseSha, keyPath, principal string) (ContractAcceptance, error) {
+	var acc ContractAcceptance
+	raw, err := os.ReadFile(contractPath)
+	if err != nil {
+		return acc, err
+	}
+	var s contract.SliceContract
+	if err := contract.DecodeStrictBytes(raw, &s); err != nil {
+		return acc, fmt.Errorf("%s does not match slice-contract: %w", contractPath, err)
+	}
+	if err := s.Validate(); err != nil {
+		return acc, fmt.Errorf("%s is not valid: %w", contractPath, err)
+	}
+	if sliceID == "" {
+		sliceID = s.SliceID
+	} else if s.SliceID != sliceID {
+		return acc, fmt.Errorf("%s has slice_id %q, not %q", contractPath, s.SliceID, sliceID)
+	}
+	contractSHA := sha256Hex(raw)
+	payload := approval.ContractPayload(contractSHA, sliceID, baseSha)
+	sig, err := approval.SignContract(keyPath, payload)
+	if err != nil {
+		return acc, err
+	}
+	signers, cleanup, err := approval.AllowedSigners()
+	defer cleanup()
+	if err != nil {
+		return acc, err
+	}
+	if err := approval.VerifyContract(signers, principal, payload, sig); err != nil {
+		return acc, fmt.Errorf("signed, but the signature does not pass against the allowed signers (is your key missing from allowed_signers?): %w", err)
+	}
+	return ContractAcceptance{SliceID: sliceID, BaseRef: baseSha, ContractSHA256: contractSHA, Principal: principal, Signature: sig}, nil
+}
+
+func verifySignedContractBytes(rawContract []byte, sliceID, baseSha, signers, principal, sig, declaredSHA, declaredSlice, declaredBase string) (contract.SliceContract, string, error) {
+	var s contract.SliceContract
+	if err := contract.DecodeStrictBytes(rawContract, &s); err != nil {
+		return s, "", fmt.Errorf("accepted contract does not match slice-contract: %w", err)
+	}
+	if err := s.Validate(); err != nil {
+		return s, "", fmt.Errorf("accepted contract is invalid: %w", err)
+	}
+	if s.SliceID != sliceID {
+		return s, "", fmt.Errorf("accepted contract slice_id %q does not match run slice %q", s.SliceID, sliceID)
+	}
+	actualSHA := sha256Hex(rawContract)
+	if declaredSHA != "" && declaredSHA != actualSHA {
+		return s, "", fmt.Errorf("contract signature sha256 %q does not match contract %q", declaredSHA, actualSHA)
+	}
+	if declaredSlice != "" && declaredSlice != sliceID {
+		return s, "", fmt.Errorf("contract signature slice_id %q does not match run slice %q", declaredSlice, sliceID)
+	}
+	if declaredBase != "" && declaredBase != baseSha {
+		return s, "", fmt.Errorf("contract signature base_ref %q does not match run base %q", declaredBase, baseSha)
+	}
+	normSig := strings.ReplaceAll(sig, "\r\n", "\n")
+	payload := approval.ContractPayload(actualSHA, sliceID, baseSha)
+	if principal != "" {
+		if err := approval.VerifyContract(signers, principal, payload, normSig); err != nil {
+			return s, "", err
+		}
+		return s, principal, nil
+	}
+	p, err := approval.VerifyContractAnyPrincipal(signers, payload, normSig)
+	if err != nil {
+		return s, "", err
+	}
+	return s, p, nil
+}
+
+func (m *Machine) verifyAcceptedContract(contractPath, sigPath string) (*verifiedContract, error) {
+	rawInput, err := os.ReadFile(contractPath)
+	if err != nil {
+		return nil, fmt.Errorf("--accept-contract: %w", err)
+	}
+	var top map[string]json.RawMessage
+	if json.Unmarshal(rawInput, &top) != nil || top == nil {
+		return nil, fmt.Errorf("--accept-contract %s: not a JSON object", contractPath)
+	}
+	signers, cleanup, err := approval.AllowedSigners()
+	defer cleanup()
+	if err != nil {
+		return nil, fmt.Errorf("--accept-contract: allowed signers: %w", err)
+	}
+	if signers == "" {
+		return nil, fmt.Errorf("--accept-contract: no allowed signers configured (A2DLC_ALLOWED_SIGNERS, A2DLC_ALLOWED_SIGNERS_DATA or ~/.config/a2dlc/allowed_signers)")
+	}
+	if _, hasContract := top["contract"]; hasContract {
+		if sigPath != "" {
+			return nil, fmt.Errorf("--accept-contract-sig cannot be combined with a self-contained signed contract envelope")
+		}
+		var env contractEnvelope
+		if err := contract.DecodeStrictBytes(rawInput, &env); err != nil {
+			return nil, fmt.Errorf("--accept-contract envelope %s: %w", contractPath, err)
+		}
+		if env.SliceID == "" || env.BaseRef == "" || env.ContractSHA256 == "" || env.Principal == "" || env.Signature == "" || len(env.Contract) == 0 {
+			return nil, fmt.Errorf("--accept-contract envelope %s: slice_id, base_ref, contract_sha256, principal, signature and contract are required", contractPath)
+		}
+		// the signature covers the compact contract: an embedded RawMessage is re-indented by whoever pretty-prints the
+		// envelope, and whitespace is not content
+		var compact bytes.Buffer
+		if err := json.Compact(&compact, env.Contract); err != nil {
+			return nil, fmt.Errorf("--accept-contract envelope %s: contract: %w", contractPath, err)
+		}
+		env.Contract = compact.Bytes()
+		s, p, err := verifySignedContractBytes(env.Contract, m.state.SliceID, m.baseSha, signers, env.Principal, env.Signature, env.ContractSHA256, env.SliceID, env.BaseRef)
+		if err != nil {
+			return nil, fmt.Errorf("--accept-contract %s: %w", contractPath, err)
+		}
+		return &verifiedContract{contract: s, rawContract: env.Contract, contractSHA256: sha256Hex(env.Contract), principal: p, signature: strings.ReplaceAll(env.Signature, "\r\n", "\n")}, nil
+	}
+	resolvedSig := sigPath
+	if resolvedSig == "" {
+		resolvedSig = contractPath + ".sig"
+	}
+	sigBytes, err := os.ReadFile(resolvedSig)
+	if err != nil {
+		return nil, fmt.Errorf("--accept-contract signature %s: %w", resolvedSig, err)
+	}
+	sigTrim := bytes.TrimSpace(sigBytes)
+	if len(sigTrim) == 0 {
+		return nil, fmt.Errorf("--accept-contract signature %s is empty", resolvedSig)
+	}
+	if sigTrim[0] == '{' {
+		var acc ContractAcceptance
+		if err := contract.DecodeStrictBytes(sigBytes, &acc); err != nil {
+			return nil, fmt.Errorf("--accept-contract signature %s: %w", resolvedSig, err)
+		}
+		if acc.SliceID == "" || acc.BaseRef == "" || acc.ContractSHA256 == "" || acc.Principal == "" || acc.Signature == "" {
+			return nil, fmt.Errorf("--accept-contract signature %s: slice_id, base_ref, contract_sha256, principal and signature are required", resolvedSig)
+		}
+		s, p, err := verifySignedContractBytes(rawInput, m.state.SliceID, m.baseSha, signers, acc.Principal, acc.Signature, acc.ContractSHA256, acc.SliceID, acc.BaseRef)
+		if err != nil {
+			return nil, fmt.Errorf("--accept-contract %s: %w", contractPath, err)
+		}
+		return &verifiedContract{contract: s, rawContract: rawInput, contractSHA256: sha256Hex(rawInput), principal: p, signature: strings.ReplaceAll(acc.Signature, "\r\n", "\n")}, nil
+	}
+	s, p, err := verifySignedContractBytes(rawInput, m.state.SliceID, m.baseSha, signers, "", string(sigBytes), "", "", "")
+	if err != nil {
+		return nil, fmt.Errorf("--accept-contract %s: %w", contractPath, err)
+	}
+	return &verifiedContract{contract: s, rawContract: rawInput, contractSHA256: sha256Hex(rawInput), principal: p, signature: strings.ReplaceAll(string(sigBytes), "\r\n", "\n")}, nil
+}
+
+func (m *Machine) acceptHumanContract() (string, string, string, error) {
+	vc := m.acceptedContract
+	rec := ContractAcceptanceRecord{
+		SchemaVersion:  contract.SchemaVersion,
+		SliceID:        m.state.SliceID,
+		BaseRef:        m.baseSha,
+		ContractSHA256: vc.contractSHA256,
+		Principal:      vc.principal,
+		Signature:      vc.signature,
+		SignedContract: vc.rawContract,
+	}
+	if _, err := m.writeArtifact(ArtContractAcceptance, rec); err != nil {
+		return "", "", "", err
+	}
+	s := vc.contract
+	s.Source = contract.SourceHumanAccepted
+	artifact, err := m.closeContract(s)
+	if err != nil {
+		return "", "", "", err
+	}
+	return contract.StageDone, fmt.Sprintf("human-accepted contract signed by %s", vc.principal), artifact, nil
+}
+
+func verifyAcceptanceRecord(dir, sliceID, baseSha string, onDisk []byte) (contract.SliceContract, ContractAcceptanceRecord, error) {
+	var rec ContractAcceptanceRecord
+	b, err := os.ReadFile(filepath.Join(dir, ArtContractAcceptance))
+	if err != nil {
+		return contract.SliceContract{}, rec, fmt.Errorf("missing or unreadable %s: %w", ArtContractAcceptance, err)
+	}
+	if err := contract.DecodeStrictBytes(b, &rec); err != nil {
+		return contract.SliceContract{}, rec, fmt.Errorf("%s is out of contract: %w", ArtContractAcceptance, err)
+	}
+	if rec.SchemaVersion != contract.SchemaVersion || rec.SliceID == "" || rec.BaseRef == "" || rec.ContractSHA256 == "" || rec.Principal == "" || rec.Signature == "" || len(rec.SignedContract) == 0 {
+		return contract.SliceContract{}, rec, fmt.Errorf("%s is incomplete", ArtContractAcceptance)
+	}
+	signers, cleanup, err := approval.AllowedSigners()
+	defer cleanup()
+	if err != nil || signers == "" {
+		return contract.SliceContract{}, rec, fmt.Errorf("no allowed signers configured to verify %s", ArtContractAcceptance)
+	}
+	s, _, err := verifySignedContractBytes(rec.SignedContract, sliceID, baseSha, signers, rec.Principal, rec.Signature, rec.ContractSHA256, rec.SliceID, rec.BaseRef)
+	if err != nil {
+		return contract.SliceContract{}, rec, err
+	}
+	s.Source = contract.SourceHumanAccepted
+	expected, err := marshalArtifact(s)
+	if err != nil {
+		return contract.SliceContract{}, rec, err
+	}
+	if !bytes.Equal(expected, onDisk) {
+		return contract.SliceContract{}, rec, fmt.Errorf("%s on disk does not match the signed contract acceptance", ArtContract)
+	}
+	return s, rec, nil
+}
+
+func (m *Machine) preserveAcceptedContract() (bool, string, string, string, error) {
+	onDisk, err := os.ReadFile(filepath.Join(m.dir, ArtContract))
+	if errors.Is(err, os.ErrNotExist) {
+		_ = os.Remove(filepath.Join(m.dir, ArtContractAcceptance))
+		return false, "", "", "", nil
+	}
+	if err != nil {
+		return false, "", "", "", err
+	}
+	var diskS contract.SliceContract
+	if err := contract.DecodeStrictBytes(onDisk, &diskS); err != nil || diskS.Source != contract.SourceHumanAccepted {
+		return false, "", "", "", nil
+	}
+	s, rec, err := verifyAcceptanceRecord(m.dir, m.state.SliceID, m.baseSha, onDisk)
+	if err != nil {
+		return true, "", "", "", fmt.Errorf("cannot preserve %s with source %q: %w", ArtContract, contract.SourceHumanAccepted, err)
+	}
+	artifact, err := m.closeContract(s)
+	if err != nil {
+		return true, "", "", "", err
+	}
+	return true, contract.StageDone, fmt.Sprintf("preserved human-accepted contract signed by %s", rec.Principal), artifact, nil
+}
+
+func acceptedContractProblems(dir string, st contract.RunState) []string {
+	onDisk, err := os.ReadFile(filepath.Join(dir, ArtContract))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return []string{ArtContract + ": " + err.Error()}
+	}
+	var s contract.SliceContract
+	if err := contract.DecodeStrictBytes(onDisk, &s); err != nil || s.Source != contract.SourceHumanAccepted {
+		return nil
+	}
+	var problems []string
+	if _, _, err := verifyAcceptanceRecord(dir, st.SliceID, st.BaseSha, onDisk); err != nil {
+		problems = append(problems, "human-accepted contract: "+err.Error())
+	}
+	pb, err := os.ReadFile(filepath.Join(dir, ArtProbes))
+	if err != nil {
+		problems = append(problems, "human-accepted contract: "+ArtProbes+": "+err.Error())
+		return problems
+	}
+	var probes contract.Probes
+	if err := contract.DecodeStrictBytes(pb, &probes); err != nil {
+		problems = append(problems, "human-accepted contract: "+ArtProbes+" is out of contract: "+err.Error())
+		return problems
+	}
+	if probes.ContractHash != hashBytes(onDisk) {
+		problems = append(problems, "human-accepted contract: "+ArtProbes+" contract_hash does not match "+ArtContract)
+	}
+	return problems
 }
 
 // specRefactor captures and derives S* without launching any role.
@@ -526,7 +836,7 @@ func (m *Machine) escalateDivergence(pending []contract.SpecDiscrepancy, rounds 
 		msg := "α: " + d.Alpha + " · β: " + d.Beta
 		escalations.Items = append(escalations.Items, contract.Escalation{ID: id, Kind: "spec_divergence", Target: target,
 			Summary: fmt.Sprintf("Specifier α and β diverge and the Inquisitor did not resolve it after %d rounds: a person decides "+
-				"(a2dlc answer --slice %s --probe %s --choice <alpha, beta or the rule in words> --by <name> --reason <why>) and the run resumes; the specifiers see the decision.", rounds, m.state.SliceID, id),
+				"(a2dlc answer --slice %s --probe %s --choice <alpha, beta or the rule in words> --by <name> --reason <why>) and the run resumes (the specifiers see the decision), or accept a signed S* directly (a2dlc run --slice %s --accept-contract <path>).", rounds, m.state.SliceID, id, m.state.SliceID),
 			Evidence: contract.Evidence{Message: msg}, ResolveWith: []string{}, ClusterID: contract.ClusterID("spec_divergence", msg)})
 	}
 	artifact, err := m.writeArtifact(ArtEscalations, escalations)

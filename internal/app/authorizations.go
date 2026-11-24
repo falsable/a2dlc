@@ -94,7 +94,7 @@ func (a App) authorize(commit string, waivers map[string]contract.Waiver, cands 
 	if len(auths) == 0 {
 		return res
 	}
-	signers, cleanup, serr := approval.AllowedSigners()
+	signers, cleanup, serr := approval.AllowedSignersWith(a.IgnoreSignerEnv)
 	defer cleanup()
 	for _, au := range auths {
 		named := map[string]bool{}
@@ -132,7 +132,7 @@ func (a App) authorize(commit string, waivers map[string]contract.Waiver, cands 
 				continue
 			}
 			payload := approval.AuthorizationPayload(au.BaseRef, au.IntentSHA256, au.Decision, au.ExpiresAt, au.Targets)
-			if err := approval.VerifyAuthorization(signers, au.Principal, payload, au.Signature); err != nil {
+			if err := approval.VerifyAuthorizationWith(a.IgnoreSignerEnv, signers, au.Principal, payload, au.Signature); err != nil {
 				res.refused[t] = "authorization refused: " + err.Error()
 				continue
 			}

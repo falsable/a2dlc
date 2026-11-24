@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/falsable/a2dlc/internal/app"
@@ -39,6 +40,11 @@ type Options struct {
 	MaxSpecRounds int
 	// Z3: the satisfiability engine of Stage 1.5 (stage15.go); nil leaves Z3 as skipped with its reason.
 	Z3 Solver
+	// AcceptContract is the path to a human-signed S* contract JSON (resolves S* escalations).
+	AcceptContract string
+	// AcceptContractSig is the path to the SSH signature or acceptance envelope for AcceptContract;
+	// when empty, <AcceptContract>.sig is used (unless AcceptContract is a self-contained envelope).
+	AcceptContractSig string
 }
 
 // Machine is a run over a slice: its folder, its state, its ledger and the configured roles.
@@ -57,14 +63,17 @@ type Machine struct {
 	// Stage 3 builder rounds still to run, this one included, while a builder launches; 0 elsewhere ({round_usd}, intent.go)
 	roundsLeft int
 	// the slice's intent (nil without intent) and its bytes as they are: Stage 0 leaves them in the folder (intent.go)
-	intent      *contract.Intent
-	intentBytes []byte
-	maxSpec     int // round limit of Stage 1 (stage1.go)
-	maxMutants  int // mutant limit of Stage 5 if the intent sets it (budget.max_mutants), otherwise 0: config.mutation wins, then the default (stage5.go)
-	z3          Solver
+	intent           *contract.Intent
+	intentBytes      []byte
+	maxSpec          int // round limit of Stage 1 (stage1.go)
+	maxMutants       int // mutant limit of Stage 5 if the intent sets it (budget.max_mutants), otherwise 0: config.mutation wins, then the default (stage5.go)
+	z3               Solver
+	acceptedContract *verifiedContract
 	// differential are the engines' diff answers on the tree Stage 3 accepted, which Stage 4 may take (RFC-0005). Kept in
 	// memory only: a resumed run judges Stage 4 with a fresh diff.
 	differential app.DiffAnswers
+	mu           sync.Mutex // guards state, ledger, launchSeq, and iter during concurrent N=2 builds
+	launchSeq    int
 }
 
 // Stage is one step of the machine: it returns the final state (done, skipped, escalated, failed), the reason and the
@@ -74,6 +83,8 @@ type Stage func(ctx context.Context, m *Machine) (status, reason, artifact strin
 
 // Run runs (or resumes) the state machine over a slice and returns the final state.
 func Run(ctx context.Context, a app.App, l Launcher, opts Options) (contract.RunState, error) {
+	ctx, pool := WithRunEgressPool(ctx)
+	defer func() { _ = pool.Close() }()
 	m, err := open(a, l, opts)
 	if err != nil {
 		return contract.RunState{}, err
@@ -81,10 +92,11 @@ func Run(ctx context.Context, a app.App, l Launcher, opts Options) (contract.Run
 	redo := false // a stage that runs again leaves the later ones stale (a new candidate requires another verdict)
 	for i := range m.state.Stages {
 		s := &m.state.Stages[i]
-		if !redo && s.Status == contract.StageDone && m.artifactIntact(s) {
+		accepting := m.acceptedContract != nil && s.ID == "1"
+		if !accepting && !redo && s.Status == contract.StageDone && m.artifactIntact(s) {
 			continue
 		}
-		if !redo && s.Status == contract.StageSkipped && s.Artifact == nil && !m.skipStale(s) {
+		if !accepting && !redo && s.Status == contract.StageSkipped && s.Artifact == nil && !m.skipStale(s) {
 			continue
 		}
 		// CB-03 before spending: a resumed run over the limit launches nothing until the budget is raised
@@ -230,6 +242,19 @@ func open(a app.App, l Launcher, opts Options) (*Machine, error) {
 			m.state.Budget.ByRole = onDisk.ByRole
 		}
 	}
+	if opts.AcceptContract == "" && opts.AcceptContractSig != "" {
+		return nil, fmt.Errorf("--accept-contract-sig requires --accept-contract")
+	}
+	if opts.AcceptContract != "" {
+		if m.state.Mode == contract.ModeLite {
+			return nil, fmt.Errorf("--accept-contract does not apply in lite mode (lite has no S* contract); pass --mode greenfield|brownfield_facade|refactor or an intent with that mode")
+		}
+		vc, err := m.verifyAcceptedContract(opts.AcceptContract, opts.AcceptContractSig)
+		if err != nil {
+			return nil, err
+		}
+		m.acceptedContract = vc
+	}
 	return m, nil
 }
 
@@ -331,7 +356,29 @@ func (m *Machine) artifactIntact(s *contract.StageRun) bool {
 	return err == nil && h == s.Artifact.SHA256
 }
 
+func (m *Machine) incIter() {
+	m.mu.Lock()
+	m.iter++
+	m.mu.Unlock()
+}
+
+func (m *Machine) nextLaunchSeq() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if n := len(m.ledger.doc.Entries); n > m.launchSeq {
+		m.launchSeq = n
+	}
+	m.launchSeq++
+	return m.launchSeq
+}
+
 func (m *Machine) save() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.saveLocked()
+}
+
+func (m *Machine) saveLocked() error {
 	m.state.UpdatedAt = m.now().UTC().Format(timeRFC)
 	b, err := json.MarshalIndent(m.state, "", " ")
 	if err != nil {
@@ -343,16 +390,26 @@ func (m *Machine) save() error {
 	return os.WriteFile(filepath.Join(m.dir, "state.json"), append(b, '\n'), 0o644)
 }
 
+func marshalArtifact(v any) ([]byte, error) {
+	b, err := json.MarshalIndent(v, "", " ")
+	if err != nil {
+		return nil, err
+	}
+	return append(b, '\n'), nil
+}
+
 // writeArtifact leaves a JSON in the run's folder and returns its name.
 func (m *Machine) writeArtifact(name string, v any) (string, error) {
-	b, err := json.MarshalIndent(v, "", " ")
+	b, err := marshalArtifact(v)
 	if err != nil {
 		return "", err
 	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if err := os.MkdirAll(m.dir, 0o755); err != nil {
 		return "", err
 	}
-	return name, os.WriteFile(filepath.Join(m.dir, name), append(b, '\n'), 0o644)
+	return name, os.WriteFile(filepath.Join(m.dir, name), b, 0o644)
 }
 
 // checkWith is the check of a stage of the run. It binds the check to the run's intent, so that a signed authorization
@@ -461,6 +518,7 @@ func VerifyRun(a app.App, slice string) ([]string, error) {
 			problems = append(problems, "stage "+s.ID+": artifact "+s.Artifact.Path+" changed or is missing")
 		}
 	}
+	problems = append(problems, acceptedContractProblems(dir, st)...)
 	return problems, nil
 }
 

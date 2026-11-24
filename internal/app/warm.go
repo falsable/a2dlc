@@ -50,20 +50,24 @@ func plainPaths(paths []string) bool {
 // syncWarm brings the warm volume to the base tree and returns it, or nil when the runner has no warm trees or anything goes
 // wrong: the runs then export the whole tree as they always did.
 func (a App) syncWarm(ctx context.Context, in gateInput) *warmTree {
+	return a.syncWarmFor(ctx, a.Tests, in.cfg.Image, in.baseSha)
+}
+
+func (a App) syncWarmFor(ctx context.Context, runner any, image, baseSha string) *warmTree {
 	if os.Getenv(warmEnv) != "1" {
 		return nil
 	}
-	w, ok := a.Tests.(engine.WarmTests)
-	if !ok || !w.Warm() || in.cfg.Image == "" {
+	w, ok := runner.(engine.WarmSyncer)
+	if !ok || !w.Warm() || image == "" {
 		return nil
 	}
 	defer func(t0 time.Time) { timerOf(ctx).sync(time.Since(t0)) }(time.Now())
-	want, err := a.Repo.CommitTree(in.baseSha)
+	want, err := a.Repo.CommitTree(baseSha)
 	if err != nil {
 		return nil
 	}
-	vol := warmVolume(a.Repo.Dir, in.cfg.Image)
-	have, err := w.WarmTree(ctx, in.cfg.Image, vol)
+	vol := warmVolume(a.Repo.Dir, image)
+	have, err := w.WarmTree(ctx, image, vol)
 	if err != nil {
 		return nil
 	}
@@ -90,11 +94,52 @@ func (a App) syncWarm(ctx context.Context, in gateInput) *warmTree {
 			return nil
 		}
 	}
-	if err := w.SyncWarm(ctx, in.cfg.Image, vol, want, dir, deleted, full); err != nil {
+	if err := w.SyncWarm(ctx, image, vol, want, dir, deleted, full); err != nil {
 		fmt.Fprintf(os.Stderr, "a2dlc: warm tree not used: %v\n", err)
 		return nil
 	}
 	return &warmTree{vol, want}
+}
+
+// attachWarmImages syncs warm volumes for the given images (when A2DLC_WARM_TREE=1 and runner supports WarmSyncer) and
+// returns a context carrying their WarmTargets plus a cleanup function removing temporary candidate delta folders.
+func (a App) attachWarmImages(ctx context.Context, runner any, images []string, baseSha, candTree string) (context.Context, func()) {
+	var temps []string
+	cleanup := func() {
+		for _, d := range temps {
+			_ = os.RemoveAll(d)
+		}
+	}
+	if os.Getenv(warmEnv) != "1" {
+		return ctx, cleanup
+	}
+	w, ok := runner.(engine.WarmSyncer)
+	if !ok || !w.Warm() {
+		return ctx, cleanup
+	}
+	seen := map[string]bool{}
+	for _, img := range images {
+		if img == "" || seen[img] {
+			continue
+		}
+		seen[img] = true
+		wt := a.syncWarmFor(ctx, w, img, baseSha)
+		if wt == nil {
+			continue
+		}
+		dir, err := os.MkdirTemp("", "a2dlc-cdelta-*")
+		if err != nil {
+			continue
+		}
+		deleted, ok := a.warmDelta(gateInput{warm: wt}, candTree, dir)
+		if !ok {
+			_ = os.RemoveAll(dir)
+			continue
+		}
+		temps = append(temps, dir)
+		ctx = engine.WithWarm(ctx, img, engine.WarmTarget{Volume: wt.volume, CandDelta: dir, CandDeleted: deleted})
+	}
+	return ctx, cleanup
 }
 
 // warmDelta fills dir with the files of treeish that differ from the volume's tree and returns the paths to remove. false

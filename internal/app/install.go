@@ -328,7 +328,7 @@ func (a App) writeHook(hookName, comment, cmd string) (string, error) {
 func (a App) prePush(exe string) (string, error) {
 	return a.writeHook("pre-push",
 		"# Stops the push only on evidence about the tree: a FAIL, critical or protected code left unjudged, or an unsigned waiver of those. No verdict or INCONCLUSIVE only warns. It verifies HEAD, not each pushed ref.",
-		fmt.Sprintf("%q verify --commit HEAD || exit 1", exe))
+		fmt.Sprintf("%q verify --commit HEAD --pre-push || exit 1", exe))
 }
 
 // removeHook takes the a2dlc block out of a git hook (respects core.hooksPath) and leaves the rest of it as it was. A

@@ -100,8 +100,23 @@ func (d Docker) engineWith(ctx context.Context, e contract.EngineConfig, req con
 	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
 	var out bytes.Buffer
+	flags := []string{"--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus), "-v", io + ":/io"}
+	if d.CopyIn {
+		if wt, ok := WarmFromContext(ctx, e.Image); ok {
+			if origCmd, err := inspectImageCmd(ctx, d.bin(), e.Image); err == nil {
+				if err := withDeleted(wt.CandDelta, wt.CandDeleted); err == nil {
+					defer os.Remove(filepath.Join(wt.CandDelta, deletedFile))
+					warmFlags := append(append([]string{}, flags...), "-v", wt.Volume+":/warm:ro", "--entrypoint", "sh")
+					cmd := append([]string{"-c", warmBaseAndCandScript + `exec "$@"`, "a2dlc-warm"}, origCmd...)
+					errRun := container{bin: d.bin(), copyIn: true, image: e.Image, flags: warmFlags,
+						trees: []dirAt{{wt.CandDelta, "/cand_delta"}}, cmd: cmd}.run(ctx, &out)
+					return io, out.String(), errRun
+				}
+			}
+		}
+	}
 	errRun := container{bin: d.bin(), copyIn: d.CopyIn, image: e.Image, ro: true,
-		flags: []string{"--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus), "-v", io + ":/io"},
+		flags: flags,
 		trees: []dirAt{{baseDir, "/base"}, {candDir, "/cand"}}}.run(ctx, &out)
 	return io, out.String(), errRun
 }
@@ -271,6 +286,9 @@ type DockerTests struct {
 // ImageDigest returns the sha256 digest of the image from its RepoDigests, or "" when the image has none (a local
 // build that was never pushed). A missing image is an error: the tests cannot run either.
 func (d DockerTests) ImageDigest(ctx context.Context, image string) (string, error) {
+	if err := validateImage(image); err != nil {
+		return "", err
+	}
 	bin := d.Bin
 	if bin == "" {
 		bin = "docker"

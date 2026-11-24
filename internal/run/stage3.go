@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/falsable/a2dlc/internal/app"
@@ -97,16 +98,34 @@ func stageTier0(ctx context.Context, m *Machine) (string, string, string, error)
 	if err != nil {
 		return contract.StageFailed, err.Error(), "", nil
 	}
+	if n2 {
+		var p, o buildResult
+		var errP, errO error
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			p, errP = m.build(ctx, role, ArtTier0, in)
+		}()
+		go func() {
+			defer wg.Done()
+			o, errO = m.build(ctx, contract.RoleBuilderOrthogonal, ArtTier0Orthogonal, in)
+		}()
+		wg.Wait()
+		if errP != nil {
+			return "", "", "", errP
+		}
+		if errO != nil {
+			return "", "", "", errO
+		}
+		return m.resolveTier0N2(p, o)
+	}
 	p, err := m.build(ctx, role, ArtTier0, in)
 	if err != nil {
 		return "", "", "", err
 	}
 	if len(p.boundary) > 0 {
-		// the boundary escalates the whole stage: with N=2 the orthogonal does not get to run
 		return m.escalateBoundary(p)
-	}
-	if n2 {
-		return m.tier0N2(ctx, p, in)
 	}
 	if p.candidate == nil {
 		if p.agot != nil {
@@ -333,13 +352,12 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 			lastRound, maxRounds, agent.rounds = round, round, round
 			roundNotes = append(roundNotes, fmt.Sprintf("round %d got all that was left and was the last: half of it was under %.0f%% of max_cost_usd", round, roundFloor*100))
 		}
-		m.iter++
+		m.incIter()
 		pl := contract.BuilderRequest{Intent: in.intent, Contract: in.contractJSON, Probes: in.probes, Round: round, MaxRounds: maxRounds, Tier0Feedback: feedback, Header: &header, Boundary: in.boundary,
 			EngineLanguage: in.engineLanguage, Paradigm: m.roles.Roles[role].Paradigm, Critical: in.critical}
 		roundStart := time.Now()
-		m.roundsLeft = lastRound - round + 1
-		invocation, err := m.invokeRole(ctx, role, cfg, "3", pl, work)
-		m.roundsLeft = 0
+		rctx := withRoundsLeft(ctx, lastRound-round+1)
+		invocation, err := m.invokeRole(rctx, role, cfg, "3", pl, work)
 		if err != nil {
 			return buildResult{}, err
 		}
@@ -528,7 +546,9 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		if err != nil {
 			return buildResult{}, err
 		}
+		m.mu.Lock()
 		m.differential = div.answers
+		m.mu.Unlock()
 		var notes []string
 		if len(unreviewed) > 0 {
 			notes = append(notes, "Tier 0 did not review: "+strings.Join(unreviewed, ", "))

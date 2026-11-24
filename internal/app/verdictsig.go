@@ -90,7 +90,7 @@ func (a App) VerdictSignature() (VerdictSignature, error) {
 		return VerdictSignature{Status: SigInvalid, Reason: pathVerdict + " is not valid JSON: " + err.Error()}, nil
 	}
 	out := VerdictSignature{TreeHash: v.TreeHash}
-	signers, cleanup, err := approval.AllowedSigners()
+	signers, cleanup, err := approval.AllowedSignersWith(a.IgnoreSignerEnv)
 	defer cleanup()
 	if err != nil {
 		return VerdictSignature{}, err
@@ -99,7 +99,7 @@ func (a App) VerdictSignature() (VerdictSignature, error) {
 		out.Status, out.Reason = SigUnverifiable, "no allowed signers configured (A2DLC_ALLOWED_SIGNERS, A2DLC_ALLOWED_SIGNERS_DATA or ~/.config/a2dlc/allowed_signers)"
 		return out, nil
 	}
-	principal, err := approval.VerifyVerdict(signers, raw, strings.ReplaceAll(string(sig), "\r\n", "\n"))
+	principal, err := approval.VerifyVerdictWith(a.IgnoreSignerEnv, signers, raw, strings.ReplaceAll(string(sig), "\r\n", "\n"))
 	if err != nil {
 		out.Status, out.Reason = SigInvalid, err.Error()
 		return out, nil

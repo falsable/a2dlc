@@ -377,14 +377,13 @@ func (m *Machine) criticalityIntent() int {
 	return contract.CriticalityLevel(m.intent.Criticality)
 }
 
-// withoutChannelForS tells the truth about how to get out of an S* that escalated: today there is no step where a person
-// corrects or answers S* (README, "Open"). Editing contract.json does not help: Stage 1 runs again because its artifact
-// changed hash and regenerates it over the edit.
+// withoutChannelForS tells how to resolve an S* escalation: editing contract.json by hand does not help because Stage 1
+// regenerates over unverified edits; a person must sign an updated contract and pass it via --accept-contract.
 func (m *Machine) withoutChannelForS() string {
 	if m.state.Mode == contract.ModeRefactor {
-		return "in refactor S* is derived from the base's signatures and comes out the same when run again: there is no way out here"
+		return "in refactor S* is derived from the base's signatures and comes out the same when run again: there is no way out here without a signed contract (a2dlc run --accept-contract <path>)"
 	}
-	return "there is no step where a person corrects or answers S*, and editing contract.json does not help (Stage 1 regenerates it and overwrites the edit); starting over means deleting " + filepath.ToSlash(filepath.Join(pathRun, m.state.SliceID))
+	return "editing contract.json does not help (Stage 1 regenerates it and overwrites the edit); provide a signed contract with a2dlc run --accept-contract <path> or start over by deleting " + filepath.ToSlash(filepath.Join(pathRun, m.state.SliceID))
 }
 
 // lintOutput: if all the errors are function_exists (S* names something the candidate does not have), the code is fixed
@@ -536,7 +535,7 @@ func (m *Machine) backTranslation(ctx context.Context, h string) (string, string
 				"intent: "+d.IntentSays+" · S*: "+d.ContractImplies)
 			item.Summary = "The blind back-translation of S* does not say what the intent says: the contract or the translation may be wrong. A person decides " +
 				"(a2dlc answer --slice " + m.state.SliceID + " --probe " + item.ID + " --choice contract --by <name> --reason <why>) when S* is right as written and the run resumes; " +
-				"any other choice keeps the escalation: S* changes only by running Stage 1 again (delete " + ArtContract + ")."
+				"any other choice keeps the escalation: S* changes by running Stage 1 again (delete " + ArtContract + ") or passing a signed contract (a2dlc run --accept-contract <path>)."
 			// a person may already have decided on an earlier attempt (answers.json, bound to escalations.json)
 			ans, ok, _, err := m.answerFor(item.ID, ArtEscalations)
 			if err != nil {

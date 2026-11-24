@@ -1,0 +1,5 @@
+{
+  "name": "a2dlc-role-guards",
+  "version": "0.1.0",
+  "description": "Intra-turn builder guards for a2dlc roles: H5 long Bash stdout trimming (PostToolUse) and H6 whole-suite test scope guard (PreToolUse)."
+}

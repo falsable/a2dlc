@@ -1,0 +1,29 @@
+{
+  "description": "a2dlc builder guards: H5 long Bash stdout trimming (PostToolUse) and H6 whole-suite test scope guard (PreToolUse). Both scripts fail open.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/h6_test_scope.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/h5_output_trim.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

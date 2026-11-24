@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -25,6 +24,9 @@ type Z3 struct {
 // a usable response (missing image, crashed container, response outside contract), not an unsat.
 func (z Z3) Solve(ctx context.Context, req contract.Z3Request) (contract.Z3Response, error) {
 	var resp contract.Z3Response
+	if err := validateImage(z.Image); err != nil {
+		return resp, err
+	}
 	io, err := os.MkdirTemp("", "a2dlc-z3-*")
 	if err != nil {
 		return resp, err
@@ -44,9 +46,9 @@ func (z Z3) Solve(ctx context.Context, req contract.Z3Request) (contract.Z3Respo
 	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
 	var out bytes.Buffer
-	c := exec.CommandContext(ctx, bin, "run", "--rm", "--network", "none", "--memory", "1g", "--cpus", "1", "-v", io+":/io", z.Image)
-	c.Stdout, c.Stderr = &out, &out
-	errRun := c.Run()
+	errRun := container{bin: bin, copyIn: false,
+		flags: []string{"--network", "none", "--memory", "1g", "--cpus", "1", "-v", io + ":/io"},
+		image: z.Image}.run(ctx, &out)
 	raw, err := os.ReadFile(filepath.Join(io, "response.json"))
 	if err != nil {
 		return resp, noResponse(z.Image, errRun, out.String())

@@ -7,7 +7,7 @@
   "properties": {
     "schema_version": { "$ref": "defs.schema.json#/$defs/schema_version" },
     "slice_id": { "$ref": "run-defs.schema.json#/$defs/slice_id" },
-    "source": { "enum": ["specifier_alpha", "specifier_beta", "consensus"] },
+    "source": { "enum": ["specifier_alpha", "specifier_beta", "consensus", "human_accepted"] },
     "functions": { "type": "array", "items": { "$ref": "#/$defs/function" } },
     "probes": { "type": "array", "items": { "$ref": "#/$defs/probe" } },
     "assumptions": { "type": "array", "items": { "$ref": "#/$defs/assumption" } },

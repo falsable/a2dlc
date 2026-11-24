@@ -84,6 +84,7 @@ type Cost struct {
 	CacheCreationInputTokens int     `json:"cache_creation_input_tokens,omitempty"`
 	OutputTokens             int     `json:"output_tokens,omitempty"`
 	Turns                    int     `json:"turns,omitempty"` // model turns of the call; 0 = not reported
+	Estimated                bool    `json:"estimated,omitempty"`
 }
 
 // Invalid says why a cost that decodes is still not a valid report, or "" if it is: a negative value, or cache counters

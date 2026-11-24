@@ -57,7 +57,8 @@ const usage = `usage: a2dlc <command>
           the hash of target, args and old output against .a2dlc/reports/proposals.jsonl; a target waived with
           enforce_new_behavior is left out. It proposes only: it never edits an intent. 0 done (also with nothing new), 2 failed.
   run     --slice <id> [--intent <intent.json>] [--mode lite|refactor|greenfield|brownfield_facade] [--base <ref>]
-          [--max-cost-usd <n>] [--max-rounds <n>] [--max-inner <n>] [--max-spec-rounds <n>] [--z3-image <img>] [--json]
+          [--max-cost-usd <n>] [--max-rounds <n>] [--max-inner <n>] [--max-spec-rounds <n>] [--z3-image <img>]
+          [--accept-contract <path>] [--accept-contract-sig <path>] [--json]
           runs (or resumes) the protocol's state machine over a slice: Stages -1..5, roles from .a2dlc/roles.json
           in their own containers, state and ledger in .a2dlc/run/<slice>/ (0 PASS, 1 FAIL, 2 INCONCLUSIVE or escalated).
           --intent: the Stage 0 (goal, criticality, critical_paths, budget); the run is bound to that file.
@@ -65,6 +66,7 @@ const usage = `usage: a2dlc <command>
           --max-inner (Tier 0 loop, 5), --max-cost-usd (CB-03, no cap; on resume, raises the saved cap)
           --max-spec-rounds: Specifier α/β and Inquisitor rounds in Stage 1 before escalating (2 by default)
           --z3-image: z3 engine of Stage 1.5 (a2dlc-engine-z3:0.1 by default; empty leaves it skipped)
+          --accept-contract: human-signed S* contract JSON (resolves Stage 1/1.5 S* escalations; signature in --accept-contract-sig or <path>.sig)
           --json: prints the run's state (contracts/run-state.schema.json) instead of the stage lines, for an agent
   verify-run --slice <id>          recalculates the ledger chain and the run's artifacts (0 passes, 1 does not)
   verify-run --plan <feature>      checks that a plan run was accepted: the plan's signed approval or a plan.accept authorization
@@ -72,6 +74,8 @@ const usage = `usage: a2dlc <command>
   verify  [--commit HEAD] [--strict]  the pre-push, without running engines: blocks (exit 1) only on evidence, a FAIL or critical
           or protected code left unjudged; no receipt, a stale one or an INCONCLUSIVE one are warnings. --strict blocks on anything but a PASS receipt for this tree
   approve <target> --key <key> [--principal <id>]   signs a target's waiver (run by a person)
+  approve --contract <path> [--slice <id>] [--base <ref>] --key <key> [--principal <id>] [--out <sig>]
+          signs a slice contract JSON under namespace a2dlc-contract for a2dlc run --accept-contract (run by a person)
   authorize --target <path::symbol>... --decision <enforce_new_behavior|preserve_legacy|plan.accept> --intent <file> --expires <RFC 3339>
           --key <key> [--principal <id>] [--base <commit>]
           signs, before the code exists, that those exact targets may change (run by a person): a covered waiver needs no
@@ -129,7 +133,7 @@ func run(args []string) int {
 		return 64
 	}
 	a := app.App{Repo: repo, Runner: engine.Docker{CopyIn: engine.CopyInDefault}, Tests: engine.DockerTests{CopyIn: engine.CopyInDefault},
-		Checks: engine.DockerChecks{}, Version: version, Now: time.Now, Memo: app.NewEngineMemo(), Probe: engine.HostProbe{}, Builder: engine.DockerBuilder{}}
+		Checks: engine.DockerChecks{CopyIn: engine.CopyInDefault}, Version: version, Now: time.Now, Memo: app.NewEngineMemo(), Probe: engine.HostProbe{}, Builder: engine.DockerBuilder{}}
 	ctx := context.Background()
 	if args[0] == "check" || args[0] == "verify" {
 		warnHookBinary(a, os.Stderr)
@@ -239,13 +243,15 @@ func run(args []string) int {
 		inner := fs.Int("max-inner", 0, fmt.Sprintf("Tier 0 loop iterations in Stage 3 (0 = the intent's, or %d)", a2run.MaxInnerDefault))
 		specRounds := fs.Int("max-spec-rounds", a2run.MaxSpecRoundsDefault, "Specifier α/β and Inquisitor rounds in Stage 1 before escalating")
 		z3Image := fs.String("z3-image", "a2dlc-engine-z3:0.1", "z3 engine image for Stage 1.5 (empty: Z3 is skipped)")
+		acceptContract := fs.String("accept-contract", "", "human-signed S* contract JSON (resolves Stage 1/1.5 S* escalations)")
+		acceptContractSig := fs.String("accept-contract-sig", "", "SSH signature or acceptance envelope for --accept-contract (default: <path>.sig)")
 		asJSON := fs.Bool("json", false, "print the run's state as JSON instead of the stage lines, for an agent")
-		if fs.Parse(args[1:]) != nil || *slice == "" {
-			fmt.Fprintln(os.Stderr, "a2dlc run: missing --slice")
+		if fs.Parse(args[1:]) != nil || *slice == "" || (*acceptContract == "" && *acceptContractSig != "") {
+			fmt.Fprintln(os.Stderr, "a2dlc run: missing --slice (or --accept-contract-sig without --accept-contract)")
 			return 64
 		}
 		opts := a2run.Options{Slice: *slice, Mode: *mode, Base: *base, Intent: *intent, MaxCostUSD: *cost, MaxRounds: *rounds,
-			MaxInner: *inner, MaxSpecRounds: *specRounds}
+			MaxInner: *inner, MaxSpecRounds: *specRounds, AcceptContract: *acceptContract, AcceptContractSig: *acceptContractSig}
 		if *z3Image != "" {
 			opts.Z3 = engine.Z3{Image: *z3Image}
 		}
@@ -311,9 +317,11 @@ func run(args []string) int {
 	case "verify":
 		commit := fs.String("commit", "HEAD", "commit to verify")
 		strict := fs.Bool("strict", false, "block on anything but a PASS receipt for this tree, as before the policy of evidence")
+		prePush := fs.Bool("pre-push", false, "invoked by git pre-push hook (ignores signer/keygen env overrides)")
 		if fs.Parse(args[1:]) != nil {
 			return 64
 		}
+		a.IgnoreSignerEnv = *prePush
 		if !*strict {
 			rep, err := a.VerifyPolicy(*commit)
 			if err != nil {
@@ -348,6 +356,25 @@ func run(args []string) int {
 	case "approve":
 		if len(args) >= 2 && args[1] == "--pending" {
 			return approvePending(a, repo.Config("user.email"), args[2:])
+		}
+		if hasFlag(args[1:], "--contract") {
+			contractPath := fs.String("contract", "", "slice contract JSON to sign (namespace a2dlc-contract)")
+			slice := fs.String("slice", "", "slice id (default: contract.slice_id)")
+			base := fs.String("base", "", "commit base (default: the upstream, else the fork point from origin's default branch, else HEAD)")
+			key := fs.String("key", os.Getenv("A2DLC_SIGNING_KEY"), "private SSH key with passphrase")
+			principal := fs.String("principal", repo.Config("user.email"), "identity in allowed_signers")
+			out := fs.String("out", "", "signed acceptance output path (default: <contract>.sig)")
+			if fs.Parse(args[1:]) != nil || *contractPath == "" || *key == "" || *principal == "" {
+				fmt.Fprintln(os.Stderr, "a2dlc approve --contract: missing --contract, --key or --principal")
+				return 64
+			}
+			msg, err := approveContract(a, repo, *contractPath, *slice, *base, *key, *principal, *out)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "a2dlc approve --contract:", err)
+				return 1
+			}
+			fmt.Println(msg)
+			return 0
 		}
 		if len(args) < 2 || strings.HasPrefix(args[1], "-") {
 			fmt.Fprintln(os.Stderr, usage)
@@ -551,4 +578,41 @@ func approvePending(a app.App, email string, args []string) int {
 	}
 	fmt.Printf("a2dlc approve: signed %d approval(s); run a2dlc check again so the receipt sees them.\n", r.Count)
 	return 0
+}
+
+func hasFlag(args []string, name string) bool {
+	for _, a := range args {
+		if a == "--" {
+			return false
+		}
+		if a == name || strings.HasPrefix(a, name+"=") {
+			return true
+		}
+	}
+	return false
+}
+
+func approveContract(a app.App, repo gitx.Repo, contractPath, slice, base, key, principal, out string) (string, error) {
+	if base == "" {
+		base = a.DefaultBase()
+	}
+	baseSha, err := repo.ResolveCommit(base)
+	if err != nil {
+		return "", fmt.Errorf("--base %q: %w", base, err)
+	}
+	acc, err := a2run.SignContractFile(contractPath, slice, baseSha, key, principal)
+	if err != nil {
+		return "", err
+	}
+	if out == "" {
+		out = contractPath + ".sig"
+	}
+	b, err := json.MarshalIndent(acc, "", " ")
+	if err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(out, append(b, '\n'), 0o644); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("a2dlc approve: signed contract %s for slice %s on base %s -> %s", acc.ContractSHA256[:12], acc.SliceID, acc.BaseRef[:12], out), nil
 }

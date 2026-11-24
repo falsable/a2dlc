@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/falsable/a2dlc/internal/app"
@@ -48,10 +49,12 @@ const rolesN2 = `{"schema_version":1,"roles":{
 // launchRecord is what the fake launcher saw of each builder: role, /work and the content of src/f.py on entry.
 type launchRecord struct {
 	role, work, fOnEntry string
+	inFiles              []string
 }
 
 // buildersN2 writes in /work what content says for each role and iteration, and records each launchRecord.
 func buildersN2(t *testing.T, seen *[]launchRecord, content func(role string, pl contract.BuilderRequest) map[string]string) func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
+	var seenMu sync.Mutex
 	return func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
 		var req contract.RoleRequest
 		b, _ := os.ReadFile(filepath.Join(s.InDir, "request.json"))
@@ -63,7 +66,16 @@ func buildersN2(t *testing.T, seen *[]launchRecord, content func(role string, pl
 			t.Fatal(err)
 		}
 		f, _ := os.ReadFile(filepath.Join(s.WorkDir, "src", "f.py"))
-		*seen = append(*seen, launchRecord{s.Role, s.WorkDir, string(f)})
+		entries, _ := os.ReadDir(s.InDir)
+		var names []string
+		for _, e := range entries {
+			if !e.IsDir() {
+				names = append(names, e.Name())
+			}
+		}
+		seenMu.Lock()
+		*seen = append(*seen, launchRecord{role: s.Role, work: s.WorkDir, fOnEntry: string(f), inFiles: names})
+		seenMu.Unlock()
 		var touched []string
 		for rel, c := range content(s.Role, pl) {
 			p := filepath.Join(s.WorkDir, filepath.FromSlash(rel))
@@ -126,14 +138,19 @@ func TestN2TwoBuildersOrthogonalWinsByOccam(t *testing.T) {
 		git(t, dir, "show", o.Commit+":src/f.py") != "def f(x):\n    return x + x" {
 		t.Fatalf("orthogonal commit built wrongly: %s", o.Commit)
 	}
-	// policy: the orthogonal starts from the base with its own /work and sees only its request (without the primary's
-	// feedback, which already existed when they launched it)
-	if len(seen) != 3 || seen[2].role != contract.RoleBuilderOrthogonal || seen[2].fOnEntry != baseFile || seen[2].work == seen[0].work ||
-		seen[1].fOnEntry == baseFile || strings.Join(launcherFake.seen[2], ",") != "request.json" || strings.Join(launcherFake.seen[1], ",") != "request.json,tier0_feedback.json" {
-		t.Fatalf("%+v %v", seen, launcherFake.seen)
+	// policy: the orthogonal starts from the base with its own /work and sees only request.json (never tier0_feedback.json).
+	var primRecs, orthRecs []launchRecord
+	for _, rec := range seen {
+		if rec.role == contract.RoleBuilderPrimary {
+			primRecs = append(primRecs, rec)
+		} else if rec.role == contract.RoleBuilderOrthogonal {
+			orthRecs = append(orthRecs, rec)
+		}
 	}
-	if _, err := os.Stat(filepath.Join(run, ArtTier0)); err != nil {
-		t.Fatal("the primary's feedback had to exist when launching the orthogonal")
+	if len(primRecs) != 2 || len(orthRecs) != 1 || orthRecs[0].fOnEntry != baseFile || orthRecs[0].work == primRecs[0].work ||
+		strings.Join(orthRecs[0].inFiles, ",") != "request.json" ||
+		strings.Join(primRecs[1].inFiles, ",") != "request.json,tier0_feedback.json" {
+		t.Fatalf("unexpected N=2 records: seen=%+v", seen)
 	}
 	// Stage 4: one verdict per candidate, each from its own tree, and the selection picks the simpler one
 	var verdictP, verdictO, v contract.Verdict
@@ -170,7 +187,14 @@ func TestN2TwoBuildersOrthogonalWinsByOccam(t *testing.T) {
 	}
 	var lg contract.RunLedger
 	readJSONTest(t, filepath.Join(run, "ledger.json"), &lg)
-	if len(lg.Entries) != 3 || lg.Entries[2].Role != contract.RoleBuilderOrthogonal || lg.Entries[2].Family != "gemini" || len(lg.Entries[2].Inputs) != 1 {
+	var orthEntry *contract.LedgerEntry
+	for i := range lg.Entries {
+		if lg.Entries[i].Role == contract.RoleBuilderOrthogonal {
+			orthEntry = &lg.Entries[i]
+			break
+		}
+	}
+	if len(lg.Entries) != 3 || orthEntry == nil || orthEntry.Family != "gemini" || len(orthEntry.Inputs) != 1 {
 		t.Fatalf("%+v", lg.Entries)
 	}
 	if problems, err := VerifyRun(a, "n2.v1"); err != nil || len(problems) != 0 {
@@ -244,7 +268,7 @@ func TestN2FromIntentWithRealRouter(t *testing.T) {
 	if r.Track != contract.TrackN2 || r.CriticalityEffective != contract.CriticalityHigh {
 		t.Fatalf("%+v", r)
 	}
-	if len(seen) != 2 || seen[0].role != contract.RoleBuilderPrimary || seen[1].role != contract.RoleBuilderOrthogonal {
+	if len(seen) != 2 || seen[0].role == seen[1].role {
 		t.Fatalf("builders launched: %+v", seen)
 	}
 	var c contract.Candidate

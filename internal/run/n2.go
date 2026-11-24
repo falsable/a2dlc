@@ -57,11 +57,22 @@ func (m *Machine) trackN2() (bool, string, error) {
 	return true, "", nil
 }
 
-// tier0N2 runs the orthogonal after the primary (p) and writes candidate.json with those that converged.
+// tier0N2 runs the orthogonal after the primary (p) and resolves N=2 candidates.
 func (m *Machine) tier0N2(ctx context.Context, p buildResult, in builderInput) (string, string, string, error) {
 	o, err := m.build(ctx, contract.RoleBuilderOrthogonal, ArtTier0Orthogonal, in)
 	if err != nil {
 		return "", "", "", err
+	}
+	return m.resolveTier0N2(p, o)
+}
+
+// resolveTier0N2 combines concurrent or sequential N=2 build results into candidate.json or escalation.
+func (m *Machine) resolveTier0N2(p, o buildResult) (string, string, string, error) {
+	if m.exceeded() != "" {
+		return "", "", "", errCB03
+	}
+	if len(p.boundary) > 0 {
+		return m.escalateBoundary(p)
 	}
 	if len(o.boundary) > 0 {
 		return m.escalateBoundary(o)

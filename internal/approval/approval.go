@@ -37,8 +37,14 @@ func Payload(target, waiverSHA, fileBlob string) []byte {
 }
 
 func keygen() string {
-	if b := os.Getenv("A2DLC_SSH_KEYGEN"); b != "" {
-		return b
+	return keygenWith(false)
+}
+
+func keygenWith(ignoreEnv bool) string {
+	if !ignoreEnv {
+		if b := os.Getenv("A2DLC_SSH_KEYGEN"); b != "" {
+			return b
+		}
 	}
 	return "ssh-keygen"
 }
@@ -125,18 +131,26 @@ func sign(keyPath, namespace string, payload []byte, stdin io.Reader, stderr io.
 // A2DLC_ALLOWED_SIGNERS (path), A2DLC_ALLOWED_SIGNERS_DATA (contents, for CI) or ~/.config/a2dlc/allowed_signers.
 // Empty if there is none: then nothing is approved.
 func AllowedSigners() (string, func(), error) {
+	return AllowedSignersWith(false)
+}
+
+// AllowedSignersWith resolves allowed_signers, ignoring env overrides when ignoreEnv is true (used by --pre-push so
+// the pushing shell cannot inject its own signer list via A2DLC_ALLOWED_SIGNERS / A2DLC_ALLOWED_SIGNERS_DATA).
+func AllowedSignersWith(ignoreEnv bool) (string, func(), error) {
 	nothing := func() {}
-	if p := os.Getenv("A2DLC_ALLOWED_SIGNERS"); p != "" {
-		return p, nothing, nil
-	}
-	if data := os.Getenv("A2DLC_ALLOWED_SIGNERS_DATA"); data != "" {
-		f, err := os.CreateTemp("", "a2dlc-signers-*")
-		if err != nil {
-			return "", nothing, err
+	if !ignoreEnv {
+		if p := os.Getenv("A2DLC_ALLOWED_SIGNERS"); p != "" {
+			return p, nothing, nil
 		}
-		f.WriteString(strings.TrimSpace(data) + "\n")
-		f.Close()
-		return f.Name(), func() { os.Remove(f.Name()) }, nil
+		if data := os.Getenv("A2DLC_ALLOWED_SIGNERS_DATA"); data != "" {
+			f, err := os.CreateTemp("", "a2dlc-signers-*")
+			if err != nil {
+				return "", nothing, err
+			}
+			f.WriteString(strings.TrimSpace(data) + "\n")
+			f.Close()
+			return f.Name(), func() { os.Remove(f.Name()) }, nil
+		}
 	}
 	if h, err := os.UserHomeDir(); err == nil {
 		p := filepath.Join(h, ".config", "a2dlc", "allowed_signers")
@@ -149,13 +163,27 @@ func AllowedSigners() (string, func(), error) {
 
 // Verify checks the signature of principal over payload against allowedSigners.
 func Verify(allowedSigners, principal string, payload []byte, signature string) error {
-	return verify(allowedSigners, principal, Namespace, payload, signature)
+	return verifyWith(false, allowedSigners, principal, Namespace, payload, signature)
+}
+
+// VerifyWith checks an approval signature, optionally ignoring A2DLC_SSH_KEYGEN env overrides.
+func VerifyWith(ignoreEnv bool, allowedSigners, principal string, payload []byte, signature string) error {
+	return verifyWith(ignoreEnv, allowedSigners, principal, Namespace, payload, signature)
 }
 
 // VerifyVerdict checks a verdict signature against allowedSigners and returns the principal whose key made it. The
 // signature file does not name a principal, so they are the ones allowedSigners lists for the signing key
 // (ssh-keygen -Y find-principals); the signature is valid if it verifies for any of them.
 func VerifyVerdict(allowedSigners string, payload []byte, signature string) (string, error) {
+	return VerifyVerdictWith(false, allowedSigners, payload, signature)
+}
+
+// VerifyVerdictWith checks a verdict signature, optionally ignoring A2DLC_SSH_KEYGEN env overrides.
+func VerifyVerdictWith(ignoreEnv bool, allowedSigners string, payload []byte, signature string) (string, error) {
+	return verifyAnyPrincipalWith(ignoreEnv, allowedSigners, VerdictNamespace, payload, signature)
+}
+
+func verifyAnyPrincipalWith(ignoreEnv bool, allowedSigners, namespace string, payload []byte, signature string) (string, error) {
 	if allowedSigners == "" {
 		return "", fmt.Errorf("no allowed signers configured")
 	}
@@ -169,14 +197,14 @@ func VerifyVerdict(allowedSigners string, payload []byte, signature string) (str
 		return "", err
 	}
 	var out bytes.Buffer
-	c := exec.Command(keygen(), "-Y", "find-principals", "-f", allowedSigners, "-n", VerdictNamespace, "-s", sig)
+	c := exec.Command(keygenWith(ignoreEnv), "-Y", "find-principals", "-f", allowedSigners, "-n", namespace, "-s", sig)
 	c.Stdout, c.Stderr = &out, &out
 	if err := c.Run(); err != nil {
-		return "", fmt.Errorf("the signing key is not in the allowed signers for namespace %s: %s", VerdictNamespace, strings.TrimSpace(out.String()))
+		return "", fmt.Errorf("the signing key is not in the allowed signers for namespace %s: %s", namespace, strings.TrimSpace(out.String()))
 	}
 	var last error
 	for _, p := range strings.Fields(out.String()) {
-		if last = verify(allowedSigners, p, VerdictNamespace, payload, signature); last == nil {
+		if last = verifyWith(ignoreEnv, allowedSigners, p, namespace, payload, signature); last == nil {
 			return p, nil
 		}
 	}
@@ -187,6 +215,10 @@ func VerifyVerdict(allowedSigners string, payload []byte, signature string) (str
 }
 
 func verify(allowedSigners, principal, namespace string, payload []byte, signature string) error {
+	return verifyWith(false, allowedSigners, principal, namespace, payload, signature)
+}
+
+func verifyWith(ignoreEnv bool, allowedSigners, principal, namespace string, payload []byte, signature string) error {
 	if allowedSigners == "" {
 		return fmt.Errorf("no allowed signers configured")
 	}
@@ -200,7 +232,7 @@ func verify(allowedSigners, principal, namespace string, payload []byte, signatu
 		return err
 	}
 	var out bytes.Buffer
-	c := exec.Command(keygen(), "-Y", "verify", "-f", allowedSigners, "-I", principal, "-n", namespace, "-s", sig)
+	c := exec.Command(keygenWith(ignoreEnv), "-Y", "verify", "-f", allowedSigners, "-I", principal, "-n", namespace, "-s", sig)
 	c.Stdin = bytes.NewReader(payload)
 	c.Stdout, c.Stderr = &out, &out
 	if err := c.Run(); err != nil {
@@ -247,6 +279,32 @@ func VerifyPlan(allowedSigners, principal string, payload []byte, signature stri
 	return verify(allowedSigners, principal, PlanNamespace, payload, signature)
 }
 
+// ContractNamespace is the ssh signature namespace of a human-accepted slice contract (S*). It is distinct from
+// Namespace, VerdictNamespace, AuthorizationNamespace and PlanNamespace so signatures cannot cross domains.
+const ContractNamespace = "a2dlc-contract"
+
+// ContractPayload is the signed text of a human-accepted slice contract: the contract bytes' sha256 (bare hex),
+// the slice ID and the base commit SHA.
+func ContractPayload(contractSHA256, sliceID, baseRef string) []byte {
+	return []byte("a2dlc-contract/1\n" + contractSHA256 + "\n" + sliceID + "\n" + baseRef + "\n")
+}
+
+// SignContract signs a contract acceptance payload with the person's key in ContractNamespace.
+func SignContract(keyPath string, payload []byte) (string, error) {
+	return sign(keyPath, ContractNamespace, payload, os.Stdin, os.Stderr)
+}
+
+// VerifyContract checks the signature of principal over payload in ContractNamespace against allowedSigners.
+func VerifyContract(allowedSigners, principal string, payload []byte, signature string) error {
+	return verify(allowedSigners, principal, ContractNamespace, payload, signature)
+}
+
+// VerifyContractAnyPrincipal checks a contract signature against allowedSigners when no principal is named
+// explicitly (a raw .sig file produced by ssh-keygen -Y sign) and returns the principal whose key made it.
+func VerifyContractAnyPrincipal(allowedSigners string, payload []byte, signature string) (string, error) {
+	return verifyAnyPrincipalWith(false, allowedSigners, ContractNamespace, payload, signature)
+}
+
 // AuthorizationID is the sha256 of the signed text: what the receipt and the ledger call the authorization.
 func AuthorizationID(payload []byte) string {
 	s := sha256.Sum256(payload)
@@ -262,4 +320,9 @@ func SignAuthorization(keyPath string, payload []byte) (string, error) {
 // VerifyAuthorization checks the signature of principal over payload in AuthorizationNamespace against allowedSigners.
 func VerifyAuthorization(allowedSigners, principal string, payload []byte, signature string) error {
 	return verify(allowedSigners, principal, AuthorizationNamespace, payload, signature)
+}
+
+// VerifyAuthorizationWith checks an authorization signature, optionally ignoring A2DLC_SSH_KEYGEN env overrides.
+func VerifyAuthorizationWith(ignoreEnv bool, allowedSigners, principal string, payload []byte, signature string) error {
+	return verifyWith(ignoreEnv, allowedSigners, principal, AuthorizationNamespace, payload, signature)
 }

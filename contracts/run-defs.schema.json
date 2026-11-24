@@ -41,7 +41,8 @@
             "cache_read_input_tokens": { "type": "integer", "minimum": 0, "description": "Part of input_tokens served from the prompt cache. Absent when the CLI did not report it." },
             "cache_creation_input_tokens": { "type": "integer", "minimum": 0, "description": "Part of input_tokens written to the prompt cache. Absent when the CLI did not report it." },
             "output_tokens": { "type": "integer", "minimum": 0 },
-            "turns": { "type": "integer", "minimum": 1, "description": "Model turns of this call (num_turns of claude -p --output-format json). Absent when the CLI did not report it." }
+            "turns": { "type": "integer", "minimum": 1, "description": "Model turns of this call (num_turns of claude -p --output-format json). Absent when the CLI did not report it." },
+            "estimated": { "type": "boolean", "description": "True when usd was estimated from a partial stream rather than reported by the CLI's result event." }
           },
           "required": ["usd"],
           "additionalProperties": false

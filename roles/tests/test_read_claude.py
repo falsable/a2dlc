@@ -125,6 +125,46 @@ class ReadClaudeCost(unittest.TestCase):
         _, cost, _ = adapter.read_claude(json.dumps(doc), "", 0)
         self.assertIsNone(cost)
 
+    def test_resumed_prompt_skips_full_role_instructions_and_static_inputs(self):
+        prompt = adapter.build_resumed_prompt("builder_primary", '{"role":"builder_primary"}', [("src/x.py", "def x(): return 1\n")])
+        self.assertIn("## Response format", prompt)
+        self.assertIn("### request.json", prompt)
+        self.assertIn("### /work/src/x.py", prompt)
+        self.assertNotIn("Only these inputs count", prompt)
+        self.assertLess(len(prompt), 1000)
+
+    def test_gemini_reports_estimated_token_cost_and_tracks_session_home(self):
+        import os
+        import tempfile
+        gem_out = json.dumps({
+            "response": "ok",
+            "stats": {"models": {"gemini-2.5-pro": {"tokens": {"prompt": 1000, "candidates": 200, "cached": 400, "thoughts": 50}}}},
+        })
+        resp, cost, model = adapter.read_gemini(gem_out, "", 0)
+        self.assertEqual(resp, "ok")
+        self.assertEqual(model, "gemini-2.5-pro")
+        self.assertIsNotNone(cost)
+        self.assertTrue(cost["estimated"])
+        self.assertGreater(cost["usd"], 0)
+        self.assertLessEqual(cost["cache_read_input_tokens"], cost["input_tokens"])
+
+        with tempfile.TemporaryDirectory() as sdir:
+            old_sess, old_home = os.environ.get("A2DLC_SESSION"), os.environ.get("GEMINI_CLI_HOME")
+            try:
+                os.environ["A2DLC_SESSION"] = sdir
+                req = {"run_id": "run-1234", "role": "builder_primary"}
+                self.assertEqual(adapter.gemini_session_args(req), [])
+                self.assertEqual(adapter.gemini_session_args(req), ["--resume", "latest"])
+            finally:
+                if old_sess is None:
+                    os.environ.pop("A2DLC_SESSION", None)
+                else:
+                    os.environ["A2DLC_SESSION"] = old_sess
+                if old_home is None:
+                    os.environ.pop("GEMINI_CLI_HOME", None)
+                else:
+                    os.environ["GEMINI_CLI_HOME"] = old_home
+
 
 if __name__ == "__main__":
     unittest.main()

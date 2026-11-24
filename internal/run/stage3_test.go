@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/falsable/a2dlc/internal/app"
@@ -18,6 +19,7 @@ import (
 // engineRun is a fake engine for a2dlc run: Tier 0 gives a compile finding per line with ROTO (a fixture marker shared
 // with the other run tests); the differential gives PASS on each changed file and notes which candidate it saw.
 type engineRun struct {
+	mu      sync.Mutex
 	tier0   int
 	sawCand []string
 	// lemmas scripts the lemmas operation (lemmas_test.go); nil means the engine does not do it.
@@ -34,11 +36,13 @@ func (f *engineRun) Run(ctx context.Context, _ contract.EngineConfig, req contra
 	r := contract.Response{SchemaVersion: 1, Targets: []contract.TargetResult{}, OutOfScope: []contract.OutOfScope{}}
 	for _, file := range req.ChangedFiles {
 		b, _ := os.ReadFile(filepath.Join(candidateDir, file))
+		f.mu.Lock()
 		if app.DivergenceProbe(ctx) {
 			f.probes++
 		} else {
 			f.sawCand = append(f.sawCand, string(b))
 		}
+		f.mu.Unlock()
 		t := contract.TargetResult{Target: file + "::f", Engine: "crosshair-diffbehavior", EngineVersion: "fake",
 			Verdict: contract.PASS, SearchBudget: json.RawMessage(`{"iterations":1,"per_condition_timeout_s":10}`), Generators: "typed_default",
 			Equivalence: "strict"}
@@ -65,7 +69,9 @@ func (f *engineRun) Mutate(context.Context, contract.EngineConfig, contract.Requ
 }
 
 func (f *engineRun) Tier0(_ context.Context, _ contract.EngineConfig, req contract.Request, _, candidateDir string) (contract.Tier0Response, error) {
+	f.mu.Lock()
 	f.tier0++
+	f.mu.Unlock()
 	r := contract.Tier0Response{SchemaVersion: 1, Findings: []contract.Tier0Finding{}}
 	for _, file := range req.ChangedFiles {
 		b, _ := os.ReadFile(filepath.Join(candidateDir, file))

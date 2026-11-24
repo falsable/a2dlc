@@ -28,7 +28,12 @@ func main() {
 		log.Print(err)
 		os.Exit(2)
 	}
-	log.Printf("egress-proxy listening on %s with %d allowed hosts", listenAddr, len(allow))
-	srv := &http.Server{Addr: listenAddr, Handler: NewProxy(allow), ReadHeaderTimeout: 10 * time.Second}
+	routes, err := ParseRoutes(os.Getenv("A2DLC_EGRESS_ROUTES"), allow)
+	if err != nil {
+		log.Print(err)
+		os.Exit(2)
+	}
+	log.Printf("egress-proxy listening on %s with %d allowed hosts and %d routes", listenAddr, len(allow), len(routes))
+	srv := &http.Server{Addr: listenAddr, Handler: NewProxy(allow, routes), ReadHeaderTimeout: 10 * time.Second}
 	log.Fatal(srv.ListenAndServe())
 }

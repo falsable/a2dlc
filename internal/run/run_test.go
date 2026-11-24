@@ -57,13 +57,21 @@ func repoLite(t *testing.T) (app.App, string) {
 		t.Fatal(err)
 	}
 	tick := time.Date(2026, 10, 17, 12, 0, 0, 0, time.UTC)
-	a := app.App{Repo: repo, Version: "test", Now: func() time.Time { tick = tick.Add(time.Second); return tick }}
+	var tickMu sync.Mutex
+	a := app.App{Repo: repo, Version: "test", Now: func() time.Time {
+		tickMu.Lock()
+		tick = tick.Add(time.Second)
+		now := tick
+		tickMu.Unlock()
+		return now
+	}}
 	return a, dir
 }
 
 // fakeLauncher simulates a role's command: it writes in /out what script says for that attempt and records what it saw.
 type fakeLauncher struct {
 	script func(s LaunchSpec) (resp *contract.RoleResponse, exit int, timeout bool)
+	seenMu sync.Mutex
 	seen   [][]string
 	proxy  *contract.EgressProxy // what the launch reports about its egress proxy; nil = none
 }
@@ -76,7 +84,9 @@ func (l *fakeLauncher) Launch(_ context.Context, r contract.Role, s LaunchSpec) 
 		}
 		return nil
 	})
+	l.seenMu.Lock()
 	l.seen = append(l.seen, vio)
+	l.seenMu.Unlock()
 	resp, exit, to := l.script(s)
 	if resp != nil {
 		b, _ := json.Marshal(resp)

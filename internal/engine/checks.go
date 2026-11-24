@@ -33,10 +33,16 @@ type CheckRunner interface {
 }
 
 // DockerChecks runs a check in Docker: docker run --rm --network none, with the resources of the check.
-type DockerChecks struct{ Bin string }
+type DockerChecks struct {
+	Bin    string
+	CopyIn bool
+}
 
 func (d DockerChecks) RunCheck(ctx context.Context, c contract.CheckConfig, files []string, baseDir, candDir string) (CheckRun, error) {
 	var r CheckRun
+	if err := validateImage(c.Image); err != nil {
+		return r, err
+	}
 	io, err := os.MkdirTemp("", "a2dlc-cio-*")
 	if err != nil {
 		return r, err
@@ -60,14 +66,29 @@ func (d DockerChecks) RunCheck(ctx context.Context, c contract.CheckConfig, file
 	}
 	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
-	args := []string{"run", "--rm", "--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus),
-		"-v", baseDir + ":/base:ro", "-v", candDir + ":/cand:ro", "-v", io + ":/io", "-w", "/cand",
+	flags := []string{"--network", "none", "--memory", mem, "--cpus", fmt.Sprint(cpus),
+		"-v", io + ":/io", "-w", "/cand",
 		"-e", "A2DLC_CHECK=" + c.ID, "-e", "A2DLC_CHANGED=" + strings.Join(files, " "), "-e", "A2DLC_CHANGED_FILE=/io/changed.txt",
-		"-e", "A2DLC_OUT=/io/response.json", "--entrypoint", "sh", c.Image, "-c", c.Command}
+		"-e", "A2DLC_OUT=/io/response.json", "--entrypoint", "sh"}
 	var out bytes.Buffer
-	cmd := exec.CommandContext(ctx, bin, args...)
-	cmd.Stdout, cmd.Stderr = &out, &out
-	errRun := cmd.Run()
+	var errRun error
+	if d.CopyIn {
+		if wt, ok := WarmFromContext(ctx, c.Image); ok {
+			if err := withDeleted(wt.CandDelta, wt.CandDeleted); err == nil {
+				defer os.Remove(filepath.Join(wt.CandDelta, deletedFile))
+				warmFlags := append(append([]string{}, flags...), "-v", wt.Volume+":/warm:ro", "-e", "A2DLC_CMD="+c.Command)
+				script := warmBaseAndCandScript + `cd /cand; exec sh -c "$A2DLC_CMD"`
+				errRun = container{bin: bin, copyIn: true, flags: warmFlags,
+					trees: []dirAt{{wt.CandDelta, "/cand_delta"}},
+					image: c.Image, cmd: []string{"-c", script}}.run(ctx, &out)
+				goto done
+			}
+		}
+	}
+	errRun = container{bin: bin, copyIn: d.CopyIn, flags: flags,
+		trees: []dirAt{{baseDir, "/base"}, {candDir, "/cand"}}, ro: true,
+		image: c.Image, cmd: []string{"-c", c.Command}}.run(ctx, &out)
+done:
 	r.Log = tail(out.String())
 	var ee *exec.ExitError
 	switch {

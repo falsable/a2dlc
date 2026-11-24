@@ -561,6 +561,55 @@ func TestEgressAllowlistDefaultsAndFailsClosed(t *testing.T) {
 			t.Errorf("Launch of %+v made docker calls before refusing: %q", r, calls)
 		}
 	}
+	if line := firstCall(dockerCalls(t, logPathEntropos), "run -d"); !strings.Contains(line, "--add-host host.docker.internal:host-gateway") {
+		t.Errorf("entropos proxy missing --add-host host.docker.internal:host-gateway: %q", line)
+	}
+}
+
+func TestEgressStripsSecretsFromRoleEnvAndConfiguresProxyRoutes(t *testing.T) {
+	dir := t.TempDir()
+	envFile := filepath.Join(dir, "secrets.env")
+	if err := os.WriteFile(envFile, []byte("ANTHROPIC_API_KEY=sk-secret-ant\nA2DLC_MODEL=claude-sonnet-4-5\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	bin, logPath := dockerLog(t, "")
+	r := contract.Role{
+		Family:      "claude",
+		Image:       "i",
+		Argv:        []string{"a"},
+		Network:     "provider",
+		EgressAllow: []string{"api.anthropic.com"},
+		EnvFile:     envFile,
+		Env:         map[string]string{"A2DLC_LLM": "claude"},
+	}
+	res, err := launch(t, bin, r, LaunchSpec{Name: "a2dlc-run-1-011-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := dockerCalls(t, logPath)
+	roleCall := firstCall(calls, "run --rm")
+	proxyCall := firstCall(calls, "run -d")
+	if strings.Contains(roleCall, "sk-secret-ant") || strings.Contains(proxyCall, "sk-secret-ant") {
+		t.Fatalf("secret leaked onto docker CLI argv: role=%q proxy=%q", roleCall, proxyCall)
+	}
+	if strings.Contains(roleCall, envFile) {
+		t.Fatalf("role still received raw secret env_file %q: %q", envFile, roleCall)
+	}
+	if !strings.Contains(roleCall, "ANTHROPIC_BASE_URL=http://a2dlc-run-1-011-1-egress:3128/r/anthropic") {
+		t.Fatalf("role missing proxy ANTHROPIC_BASE_URL: %q", roleCall)
+	}
+	if !strings.Contains(roleCall, "A2DLC_EGRESS_CREDENTIAL_PROXY=1") {
+		t.Fatalf("role missing A2DLC_EGRESS_CREDENTIAL_PROXY=1: %q", roleCall)
+	}
+	if !strings.Contains(proxyCall, "--env-file ") {
+		t.Fatalf("proxy missing --env-file for A2DLC_EGRESS_ROUTES: %q", proxyCall)
+	}
+	if slices.Contains(res.EnvKeys, "ANTHROPIC_API_KEY") {
+		t.Fatalf("secret key recorded in role EnvKeys: %v", res.EnvKeys)
+	}
+	if !slices.Contains(res.EnvKeys, "A2DLC_MODEL") {
+		t.Fatalf("non-secret env_file key missing from EnvKeys: %v", res.EnvKeys)
+	}
 }
 
 // A failure to set the egress up is a launcher error and the role never runs; what was created is removed.

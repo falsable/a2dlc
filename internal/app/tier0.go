@@ -9,10 +9,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
 	"github.com/falsable/a2dlc/internal/engine"
+	"github.com/falsable/a2dlc/internal/graph"
 	"github.com/falsable/a2dlc/internal/junit"
 	"github.com/falsable/a2dlc/internal/verdict"
 )
@@ -85,10 +87,37 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 			idx = append(idx, i)
 		}
 	}
+	var baseDir, candDir string
+	var exportOnce sync.Once
+	var exportErr error
+	export := func() error {
+		exportOnce.Do(func() {
+			defer func(t0 time.Time) { timerOf(ctx).sync(time.Since(t0)) }(time.Now())
+			if baseDir, exportErr = os.MkdirTemp("", "a2dlc-base-*"); exportErr != nil {
+				return
+			}
+			if candDir, exportErr = os.MkdirTemp("", "a2dlc-cand-*"); exportErr != nil {
+				return
+			}
+			if exportErr = a.Repo.Export(baseSha, baseDir); exportErr != nil {
+				return
+			}
+			exportErr = a.Repo.Export(tree, candDir)
+		})
+		return exportErr
+	}
+	defer func() {
+		if baseDir != "" {
+			_ = os.RemoveAll(baseDir)
+		}
+		if candDir != "" {
+			_ = os.RemoveAll(candDir)
+		}
+	}()
 	if len(idx) == 0 {
-		resp, err := a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, changed)
+		resp, err := a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, changed, export, &baseDir, &candDir)
 		if err == nil {
-			resp.Findings = append(resp.Findings, a.checksTier0(ctx, cfg, extra, baseSha, tree, changed)...)
+			resp.Findings = append(resp.Findings, a.checksTier0(ctx, cfg, extra, tree, baseSha, changed, export, &baseDir, &candDir)...)
 			resp.OK = len(resp.Findings) == 0
 		}
 		return resp, unique(unreviewed), err
@@ -104,30 +133,21 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 	var testsErr error
 	go func() {
 		defer close(testsDone)
-		tests, testsErr = a.testsTier0(testsCtx, contract.Tier0Response{Findings: []contract.Tier0Finding{}}, cfg, baseSha, tree, extra, changed)
+		tests, testsErr = a.testsTier0(testsCtx, contract.Tier0Response{Findings: []contract.Tier0Finding{}}, cfg, baseSha, tree, extra, changed, export, &baseDir, &candDir)
 	}()
 	defer func() {
 		cancelTests()
 		<-testsDone
 	}()
-	baseDir, err := os.MkdirTemp("", "a2dlc-base-*")
-	if err != nil {
+	if err := export(); err != nil {
 		return resp, nil, err
 	}
-	defer os.RemoveAll(baseDir)
-	candDir, err := os.MkdirTemp("", "a2dlc-cand-*")
-	if err != nil {
-		return resp, nil, err
+	var engImgs []string
+	for _, i := range idx {
+		engImgs = append(engImgs, cfg.Engines[i].Image)
 	}
-	defer os.RemoveAll(candDir)
-	t0 := time.Now()
-	if err := a.Repo.Export(baseSha, baseDir); err != nil {
-		return resp, nil, err
-	}
-	if err := a.Repo.Export(tree, candDir); err != nil {
-		return resp, nil, err
-	}
-	timerOf(ctx).sync(time.Since(t0))
+	engCtx, cleanWarmEng := a.attachWarmImages(ctx, a.Runner, engImgs, baseSha, tree)
+	defer cleanWarmEng()
 	reviewed := false
 	for _, i := range idx {
 		e, files := cfg.Engines[i], byEngine[i]
@@ -141,7 +161,7 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		req := contract.Request{SchemaVersion: contract.SchemaVersion, Language: e.Language, BaseRef: baseSha,
 			BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: files, Budget: b}
 		t0 := time.Now()
-		r, err := a.Runner.Tier0(ctx, e, req, baseDir, candDir)
+		r, err := a.Runner.Tier0(engCtx, e, req, baseDir, candDir)
 		timerOf(ctx).engineOp("tier0", time.Since(t0))
 		if errors.Is(err, engine.ErrWithoutTier0) {
 			unreviewed = append(unreviewed, files...)
@@ -164,7 +184,7 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		return resp, unique(unreviewed), testsErr
 	}
 	resp.Findings = append(resp.Findings, tests.Findings...)
-	resp.Findings = append(resp.Findings, a.checksTier0(ctx, cfg, extra, baseSha, tree, changed)...)
+	resp.Findings = append(resp.Findings, a.checksTier0(ctx, cfg, extra, tree, baseSha, changed, export, &baseDir, &candDir)...)
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = reviewed || tests.Reviewed
 	return resp, unique(unreviewed), nil
@@ -180,48 +200,27 @@ const FireOnTier0 = "stage:3"
 // never count as a review: the verdict still comes from Stage 4, where the same checks fire at check.
 // shortcut: Tier 0 reads no waivers, so a finding with a signed accept_finding still comes back; read waivers.json if a
 // repo ever relies on that inside a run.
-func (a App) checksTier0(ctx context.Context, cfg contract.Config, extra Tier0Extra, baseSha, tree string, changed []string) []contract.Tier0Finding {
+func (a App) checksTier0(ctx context.Context, cfg contract.Config, extra Tier0Extra, tree, baseSha string, changed []string,
+	export func() error, baseDir, candDir *string) []contract.Tier0Finding {
 	out := []contract.Tier0Finding{}
 	if !extra.Tests || len(changed) == 0 {
 		return out
 	}
 	blocking := cfg
 	blocking.Checks = nil
+	var chkImgs []string
 	for _, c := range cfg.Checks {
 		if c.Severity == contract.CheckBlocking && fires(c, FireOnTier0) {
 			blocking.Checks = append(blocking.Checks, c)
+			chkImgs = append(chkImgs, c.Image)
 		}
 	}
 	if len(blocking.Checks) == 0 {
 		return out
 	}
-	var baseDir, candDir string
-	exported, exportErr := false, error(nil)
-	export := func() error {
-		if exported {
-			return exportErr
-		}
-		exported = true
-		if baseDir, exportErr = os.MkdirTemp("", "a2dlc-base-*"); exportErr != nil {
-			return exportErr
-		}
-		if candDir, exportErr = os.MkdirTemp("", "a2dlc-cand-*"); exportErr != nil {
-			return exportErr
-		}
-		if exportErr = a.Repo.Export(baseSha, baseDir); exportErr != nil {
-			return exportErr
-		}
-		exportErr = a.Repo.Export(tree, candDir)
-		return exportErr
-	}
-	defer func() {
-		for _, d := range []string{baseDir, candDir} {
-			if d != "" {
-				os.RemoveAll(d)
-			}
-		}
-	}()
-	checks, _ := a.runChecks(ctx, blocking, FireOnTier0, changed, export, &baseDir, &candDir, nil, nil)
+	chkCtx, cleanWarmChk := a.attachWarmImages(ctx, a.Checks, chkImgs, baseSha, tree)
+	defer cleanWarmChk()
+	checks, _ := a.runChecks(chkCtx, blocking, FireOnTier0, changed, export, baseDir, candDir, nil, nil)
 	for _, c := range checks {
 		if c.Status != contract.CheckRan {
 			continue
@@ -261,7 +260,8 @@ const maxTestFindings = 30
 // returned to the caller: it is neither a review nor feedback, because sending it to the builder would spend paid rounds on
 // something that is not its own. The files stay in the list of what Tier 0 did not review (the caller keeps it): Stage 4
 // has its own coverage precondition. Without config.tests, with no changed files, or without extra.Tests it does nothing.
-func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg contract.Config, baseSha, tree string, extra Tier0Extra, files []string) (contract.Tier0Response, error) {
+func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg contract.Config, baseSha, tree string, extra Tier0Extra, files []string,
+	export func() error, baseDir, candDir *string) (contract.Tier0Response, error) {
 	if !extra.Tests || cfg.Tests == nil || cfg.Tests.Command == "" || len(files) == 0 {
 		return resp, nil
 	}
@@ -269,7 +269,7 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 		return resp, fmt.Errorf("this binary has no test runner: config.tests cannot review %s", strings.Join(unique(files), ", "))
 	}
 	cov := &accumulated{}
-	c, err := a.tier0Run(ctx, *cfg.Tests, baseSha, tree, files, cov)
+	c, err := a.tier0Run(ctx, cfg, baseSha, tree, files, cov, export, baseDir, candDir)
 	if err == nil && len(c.cases) == 0 {
 		err = fmt.Errorf("the run reported no testcase (exit %d): %s", c.exit, c.log)
 	}
@@ -300,7 +300,7 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 		resp.Findings = append(resp.Findings, contract.Tier0Finding{Kind: contract.Tier0Test, File: testFile(x), Message: msg})
 	}
 	if len(ids) == 0 {
-		cf, err := a.coverageFindings(ctx, cfg, baseSha, tree, files, cov)
+		cf, err := a.coverageFindings(ctx, cfg, baseSha, tree, files, cov, export, baseDir, candDir)
 		if err != nil {
 			return resp, err
 		}
@@ -315,9 +315,12 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 // tests.tier0_command "baseline" (RFC-0004) it is baseline_command with the selection Stage 4's baseline gate gives it, through
 // the same cache: the run on the tree of the builder's last round is then the one Stage 4 takes for the candidate, instead of
 // running the whole suite again on the same tree. An image without a digest cannot key that cache, so the run is not kept.
-func (a App) tier0Run(ctx context.Context, t contract.TestsConfig, baseSha, tree string, files []string, cov *accumulated) (run, error) {
+func (a App) tier0Run(ctx context.Context, cfg contract.Config, baseSha, tree string, files []string, cov *accumulated,
+	export func() error, baseDir, candDir *string) (run, error) {
+	t := *cfg.Tests
 	if t.Tier0Command != contract.Tier0CommandBaseline || t.BaselineCommand == "" {
-		c, err := a.run(ctx, gateInput{cfg: t, tree: tree, cov: cov}, t.Command, tree, nil, nil, envTests(nil, unique(files)))
+		selectedTests := a.selectTier0Tests(ctx, cfg, baseSha, tree, files, export, baseDir, candDir)
+		c, err := a.run(ctx, gateInput{cfg: t, tree: tree, cov: cov}, t.Command, tree, nil, nil, envTests(selectedTests, unique(files)))
 		if err == nil {
 			err = c.readable()
 		}
@@ -343,12 +346,149 @@ func (a App) tier0Run(ctx context.Context, t contract.TestsConfig, baseSha, tree
 	return c, err
 }
 
+// selectTier0Tests narrows Tier 0 inner-loop tests to affected test files via .tests-impact.json or engine deps_graph.
+// Returns nil when no signal covers all changed sources, safely falling back to running the full test suite.
+func (a App) selectTier0Tests(ctx context.Context, cfg contract.Config, baseSha, tree string, files []string,
+	export func() error, baseDir, candDir *string) []string {
+	if cfg.Tests == nil {
+		return nil
+	}
+	uniq := unique(files)
+	changedTests, sources := partition(cfg.Tests.Paths, uniq)
+	if len(sources) == 0 && len(changedTests) > 0 {
+		sort.Strings(changedTests)
+		return changedTests
+	}
+	if len(sources) == 0 {
+		return nil
+	}
+	if selected := a.selectFromImpactFile(tree, changedTests, sources); len(selected) > 0 {
+		return selected
+	}
+	return a.selectFromDepsGraph(ctx, cfg, baseSha, tree, changedTests, sources, export, baseDir, candDir)
+}
+
+func (a App) selectFromImpactFile(tree string, changedTests, sources []string) []string {
+	raw, err := a.Repo.Show(tree, ".tests-impact.json")
+	if err != nil {
+		return nil
+	}
+	var nested struct {
+		ByFile   map[string][]string `json:"by_file"`
+		ByTarget map[string][]string `json:"by_target"`
+	}
+	flat := map[string][]string{}
+	_ = json.Unmarshal(raw, &nested)
+	if len(nested.ByFile) == 0 && len(nested.ByTarget) == 0 {
+		if err := json.Unmarshal(raw, &flat); err != nil {
+			return nil
+		}
+	}
+	selected := map[string]bool{}
+	for _, tf := range changedTests {
+		selected[tf] = true
+	}
+	for _, src := range sources {
+		var mapped []string
+		mapped = append(mapped, nested.ByFile[src]...)
+		mapped = append(mapped, flat[src]...)
+		for k, v := range nested.ByTarget {
+			if strings.HasPrefix(k, src+"::") {
+				mapped = append(mapped, v...)
+			}
+		}
+		for k, v := range flat {
+			if strings.HasPrefix(k, src+"::") {
+				mapped = append(mapped, v...)
+			}
+		}
+		hits := 0
+		for _, tf := range mapped {
+			if _, err := a.Repo.Blob(tree, tf); err == nil {
+				selected[tf] = true
+				hits++
+			}
+		}
+		if hits == 0 {
+			return nil
+		}
+	}
+	out := make([]string, 0, len(selected))
+	for tf := range selected {
+		out = append(out, tf)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func (a App) selectFromDepsGraph(ctx context.Context, cfg contract.Config, baseSha, tree string,
+	changedTests, sources []string, export func() error, baseDir, candDir *string) []string {
+	deps, ok := a.Runner.(DepsRunner)
+	if a.Runner == nil || !ok || len(cfg.Engines) == 0 {
+		return nil
+	}
+	allFiles, err := a.Repo.Files(tree)
+	if err != nil {
+		return nil
+	}
+	allTests, _ := partition(cfg.Tests.Paths, allFiles)
+	if len(allTests) == 0 {
+		return nil
+	}
+	srcByEng, unmapped := verdict.Assign(cfg.Engines, sources)
+	if len(unmapped) > 0 || len(srcByEng) == 0 {
+		return nil
+	}
+	if err := export(); err != nil || candDir == nil || *candDir == "" || baseDir == nil || *baseDir == "" {
+		return nil
+	}
+	allByEng, _ := verdict.Assign(cfg.Engines, allFiles)
+	srcSet := map[string]bool{}
+	for _, s := range sources {
+		srcSet[s] = true
+	}
+	var allEdges []contract.DepsEdge
+	for _, i := range sortedIndexes(srcByEng) {
+		e := cfg.Engines[i]
+		files := unique(append(append([]string{}, allByEng[i]...), allTests...))
+		req := contract.Request{SchemaVersion: contract.SchemaVersion, Operation: "deps_graph", Language: e.Language,
+			BaseRef: baseSha, BaseDir: "/base", CandidateDir: "/cand", ChangedFiles: files, Budget: json.RawMessage("{}")}
+		r, err := deps.Deps(ctx, e, req, *baseDir, *candDir)
+		if err != nil || r.Error != nil {
+			return nil
+		}
+		allEdges = append(allEdges, r.Edges...)
+	}
+	reach := graph.Reach(allEdges, srcSet)
+	selected := map[string]bool{}
+	for _, tf := range changedTests {
+		selected[tf] = true
+	}
+	hits := 0
+	for _, tf := range allTests {
+		if reach[tf] {
+			selected[tf] = true
+			hits++
+		}
+	}
+	if hits == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(selected))
+	for tf := range selected {
+		out = append(out, tf)
+	}
+	sort.Strings(out)
+	return out
+}
+
 // coverageFindings are the changed source lines that the green run left unexecuted (RFC-0002, step 4): the lines Stage 4's
 // coverage precondition would list as unexamined, with the same classification (noteUncovered), one finding per file. It
 // reads the coverage the run wrote; a run that wrote none, or none that can be read, gives no finding, because there is
 // nothing to say to the builder, and Stage 4 keeps its own precondition. Only a green suite gets here: a failing run's
 // coverage is partial and its testcases come first.
-func (a App) coverageFindings(ctx context.Context, cfg contract.Config, baseSha, tree string, files []string, cov *accumulated) ([]contract.Tier0Finding, error) {
+func (a App) coverageFindings(ctx context.Context, cfg contract.Config, baseSha, tree string, files []string, cov *accumulated,
+	export func() error, baseDir, candDir *string) ([]contract.Tier0Finding, error) {
 	if cov.report == nil {
 		return nil, nil
 	}
@@ -357,25 +497,7 @@ func (a App) coverageFindings(ctx context.Context, cfg contract.Config, baseSha,
 	if err != nil {
 		return nil, err
 	}
-	var baseDir, candDir string
-	defer func() {
-		os.RemoveAll(baseDir)
-		os.RemoveAll(candDir)
-	}()
-	export := func() error {
-		var err error
-		if baseDir, err = os.MkdirTemp("", "a2dlc-base-*"); err != nil {
-			return err
-		}
-		if candDir, err = os.MkdirTemp("", "a2dlc-cand-*"); err != nil {
-			return err
-		}
-		if err := a.Repo.Export(baseSha, baseDir); err != nil {
-			return err
-		}
-		return a.Repo.Export(tree, candDir)
-	}
-	a.noteUncovered(ctx, cfg, pre, export, &baseDir, &candDir)
+	a.noteUncovered(ctx, cfg, pre, export, baseDir, candDir)
 	out := []contract.Tier0Finding{}
 	for _, f := range pre.Files {
 		if len(f.Uncovered) == 0 {

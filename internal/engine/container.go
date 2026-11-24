@@ -19,10 +19,26 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
 )
+
+// refImage is the image pattern in roles.schema.json: the image goes as the positional argument of `docker run`, where
+// docker still reads flags, so one that starts with "-" (--volume=/:/host) or carries whitespace/control characters is refused.
+var refImage = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/:@-]*$`)
+
+// validateImage rejects anything that is not an image reference.
+func validateImage(image string) error {
+	if strings.HasPrefix(image, "-") {
+		return fmt.Errorf("image %q starts with - and docker would read it as a flag", image)
+	}
+	if !refImage.MatchString(image) {
+		return fmt.Errorf("image %q is not an image reference (must match %s)", image, refImage)
+	}
+	return nil
+}
 
 // CopyInDefault says whether the trees go into the container as a copy instead of a bind mount: on every host but Linux,
 // where Docker runs in a VM and a bind mount crosses into it file by file. Measured on Docker Desktop for Windows
@@ -48,8 +64,8 @@ type container struct {
 // run returns what docker run would: an *exec.ExitError carries the container's exit code. A failure to create the
 // container or to copy the trees in is any other error, so it is never read as the exit code of the command.
 func (c container) run(ctx context.Context, out io.Writer) error {
-	if strings.HasPrefix(c.image, "-") {
-		return fmt.Errorf("image %q starts with - and docker would read it as a flag", c.image)
+	if err := validateImage(c.image); err != nil {
+		return err
 	}
 	if !c.copyIn {
 		name := containerName()

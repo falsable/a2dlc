@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/falsable/a2dlc/internal/app"
 	"github.com/falsable/a2dlc/internal/contract"
@@ -180,6 +181,8 @@ func (m *Machine) measureMutants(ctx context.Context, d app.DiffMutable, overlay
 			}
 		}
 	}
+	results := make([]contract.MutantResult, len(d.Mutants))
+	var toRun []int
 	for i, mu := range d.Mutants {
 		r := contract.MutantResult{Mutant: mu.Mutant, KilledBy: []string{}}
 		switch {
@@ -192,25 +195,68 @@ func (m *Machine) measureMutants(ctx context.Context, d app.DiffMutable, overlay
 		case len(rep.Tests) == 0:
 			r.Status, r.Reason = contract.MutantSurvived, "T empty: no test can kill it"
 		default:
-			c, err := m.app.RunTests(ctx, d.Tree, append(append([]app.OverlayFile{}, ov...), app.OverlayFile{Path: mu.File, Content: mu.Content}), rep.Tests, d.Sources)
-			switch {
-			case err != nil:
-				return rep, err
-			case c.Reason != "" && ctx.Err() != nil:
-				r.Status, r.Reason = contract.MutantNotRun, "run interrupted: "+ctx.Err().Error()
-			case c.Reason != "":
-				r.Status, r.Reason = contract.MutantInconclusive, c.Reason
-			default:
-				// the clean run had no reds: any red here was caused by the mutant
-				if r.KilledBy = c.With(junit.Red); len(r.KilledBy) > 0 {
-					r.Status = contract.MutantKilled
-				} else {
-					r.Status = contract.MutantSurvived
-				}
-			}
+			toRun = append(toRun, i)
 		}
-		rep.Mutants = append(rep.Mutants, r)
+		results[i] = r
 	}
+	if len(toRun) > 0 {
+		const mutantWorkers = 4
+		workers := mutantWorkers
+		if len(toRun) < workers {
+			workers = len(toRun)
+		}
+		jobs := make(chan int, len(toRun))
+		for _, idx := range toRun {
+			jobs <- idx
+		}
+		close(jobs)
+		wctx, cancelWorkers := context.WithCancel(ctx)
+		defer cancelWorkers()
+		var errMu sync.Mutex
+		var firstErr error
+		var wg sync.WaitGroup
+		wg.Add(workers)
+		for w := 0; w < workers; w++ {
+			go func() {
+				defer wg.Done()
+				for i := range jobs {
+					if wctx.Err() != nil {
+						results[i].Status, results[i].Reason = contract.MutantNotRun, "run interrupted: "+wctx.Err().Error()
+						continue
+					}
+					mu := d.Mutants[i]
+					ovWithMu := append(append([]app.OverlayFile{}, ov...), app.OverlayFile{Path: mu.File, Content: mu.Content})
+					c, err := m.app.RunTests(wctx, d.Tree, ovWithMu, rep.Tests, d.Sources)
+					if err != nil {
+						errMu.Lock()
+						if firstErr == nil {
+							firstErr = err
+							cancelWorkers()
+						}
+						errMu.Unlock()
+						return
+					}
+					switch {
+					case c.Reason != "" && ctx.Err() != nil:
+						results[i].Status, results[i].Reason = contract.MutantNotRun, "run interrupted: "+ctx.Err().Error()
+					case c.Reason != "":
+						results[i].Status, results[i].Reason = contract.MutantInconclusive, c.Reason
+					default:
+						if results[i].KilledBy = c.With(junit.Red); len(results[i].KilledBy) > 0 {
+							results[i].Status = contract.MutantKilled
+						} else {
+							results[i].Status = contract.MutantSurvived
+						}
+					}
+				}
+			}()
+		}
+		wg.Wait()
+		if firstErr != nil {
+			return rep, firstErr
+		}
+	}
+	rep.Mutants = append(rep.Mutants, results...)
 	judge(&rep, threshold)
 	return rep, nil
 }

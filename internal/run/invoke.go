@@ -86,7 +86,8 @@ func (m *Machine) invokeWith(ctx context.Context, role string, r contract.Role, 
 		if m.exceeded() != "" {
 			return invocation, errCB03 // CB-03 before each launchRecord: the limit cuts in the middle of a loop, not at the end of the stage
 		}
-		dir := filepath.Join(m.dir, "launches", fmt.Sprintf("%03d-%s-%s-%d", len(m.ledger.doc.Entries)+1, stage, role, intent))
+		seq := m.nextLaunchSeq()
+		dir := filepath.Join(m.dir, "launches", fmt.Sprintf("%03d-%s-%s-%d", seq, stage, role, intent))
 		in, out := filepath.Join(dir, "in"), filepath.Join(dir, "out")
 		if err := os.MkdirAll(in, 0o755); err != nil {
 			return invocation, err
@@ -130,12 +131,12 @@ func (m *Machine) invokeWith(ctx context.Context, role string, r contract.Role, 
 			return invocation, err
 		}
 		req.Inputs = append([]contract.HashedFile{{Path: "/in/request.json", SHA256: hashBytes(append(rb, '\n'))}}, inputs...)
-		launched, err := m.withRemaining(role, r)
+		launched, err := m.withRemainingCtx(ctx, role, r)
 		if err != nil {
 			return invocation, err
 		}
 		res, err := m.launcher.Launch(ctx, launched, LaunchSpec{Role: role, Stage: stage, Attempt: intent, InDir: in, OutDir: out, WorkDir: workdir, SessionDir: session,
-			Name: fmt.Sprintf("a2dlc-%s-%03d-%d", m.state.RunID, len(m.ledger.doc.Entries)+1, intent)})
+			Name: fmt.Sprintf("a2dlc-%s-%03d-%d", m.state.RunID, seq, intent)})
 		if err != nil {
 			return invocation, fmt.Errorf("launch %s: %w", role, err)
 		}
@@ -165,12 +166,16 @@ func (m *Machine) invokeWith(ctx context.Context, role string, r contract.Role, 
 				entry.Status, entry.Cost = resp.Status, resp.Cost
 			}
 		}
+		m.mu.Lock()
 		e, err := m.ledger.Append(entry)
+		if err == nil {
+			invocation.Entries = append(invocation.Entries, e)
+			m.accountLocked(entry)
+		}
+		m.mu.Unlock()
 		if err != nil {
 			return invocation, err
 		}
-		invocation.Entries = append(invocation.Entries, e)
-		m.account(entry)
 		if entry.Status == contract.RoleOK || entry.Status == contract.RoleRefused {
 			invocation.Response, invocation.OutDir = &resp, out
 			return invocation, nil
@@ -218,6 +223,12 @@ func networkOf(r contract.Role) string {
 
 // account adds the reported cost to the budget; without a report, it counts the role as unreported (CB-03 says so).
 func (m *Machine) account(e contract.LedgerEntry) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.accountLocked(e)
+}
+
+func (m *Machine) accountLocked(e contract.LedgerEntry) {
 	sumSpend(&m.state.Budget, e)
 }
 

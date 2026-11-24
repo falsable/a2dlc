@@ -9,11 +9,14 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/falsable/a2dlc/internal/contract"
 )
 
 func hangingDocker(t *testing.T) (bin, log string) {
@@ -59,5 +62,55 @@ func TestEngineRemovesItsContainerOnTimeout(t *testing.T) {
 		if !copyIn && !strings.Contains(string(b), "--name a2dlc-") {
 			t.Fatalf("no --name in log %s", b)
 		}
+	}
+}
+
+func TestChecksRejectsInvalidImageAndRemovesContainerOnTimeout(t *testing.T) {
+	for _, img := range []string{"--volume=/:/host", "", "bad image"} {
+		bin, log := hangingDocker(t)
+		_, err := DockerChecks{Bin: bin}.RunCheck(context.Background(), contract.CheckConfig{ID: "c1", Image: img, Command: "true"}, []string{"a.go"}, t.TempDir(), t.TempDir())
+		if err == nil {
+			t.Fatalf("image %q: expected error", img)
+		}
+		if b, _ := os.ReadFile(log); len(b) != 0 {
+			t.Fatalf("image %q: docker ran: %s", img, b)
+		}
+	}
+
+	bin, log := hangingDocker(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	_, err := DockerChecks{Bin: bin}.RunCheck(ctx, contract.CheckConfig{ID: "c1", Image: "chk:1", Command: "true"}, []string{"a.go"}, t.TempDir(), t.TempDir())
+	if !errors.Is(err, ErrCheckTimeout) {
+		t.Fatalf("expected ErrCheckTimeout, got %v", err)
+	}
+	b, _ := os.ReadFile(log)
+	if !strings.Contains(string(b), "--name a2dlc-") || !strings.Contains(string(b), "rm -f a2dlc-") {
+		t.Fatalf("timed-out check container not named/removed: %s", b)
+	}
+}
+
+func TestZ3RejectsInvalidImageAndRemovesContainerOnTimeout(t *testing.T) {
+	for _, img := range []string{"--privileged", "", "bad image"} {
+		bin, log := hangingDocker(t)
+		_, err := Z3{Bin: bin, Image: img}.Solve(context.Background(), contract.Z3Request{SchemaVersion: 1})
+		if err == nil {
+			t.Fatalf("image %q: expected error", img)
+		}
+		if b, _ := os.ReadFile(log); len(b) != 0 {
+			t.Fatalf("image %q: docker ran: %s", img, b)
+		}
+	}
+
+	bin, log := hangingDocker(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	_, err := Z3{Bin: bin, Image: "z3:1", Timeout: time.Second}.Solve(ctx, contract.Z3Request{SchemaVersion: 1})
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	b, _ := os.ReadFile(log)
+	if !strings.Contains(string(b), "--name a2dlc-") || !strings.Contains(string(b), "rm -f a2dlc-") {
+		t.Fatalf("timed-out z3 container not named/removed: %s", b)
 	}
 }

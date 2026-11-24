@@ -4,13 +4,17 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
+	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/falsable/a2dlc/internal/contract"
@@ -138,11 +142,16 @@ func (d DockerLauncher) Launch(ctx context.Context, r contract.Role, s LaunchSpe
 	if provider {
 		network = name + "-net"
 	}
-	args := []string{"run", "--rm", "--name", name, "--network", network, "--memory", mem, "--cpus", fmt.Sprint(cpus),
+	args := []string{"run", "--rm", "--name", name, "--network", network,
+		"--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--pids-limit", "256",
+		"--memory", mem, "--cpus", fmt.Sprint(cpus),
 		"-v", s.InDir + ":/in:ro", "-v", s.OutDir + ":/out", "-w", "/out",
 		"-e", "HOME=/tmp/home", "-e", "A2DLC_REQUEST=/in/request.json", "-e", "A2DLC_RESPONSE=/out/response.json",
 		"-e", "A2DLC_ROLE=" + s.Role, "-e", "A2DLC_STAGE=" + s.Stage,
 		"-e", "A2DLC_TIMEOUT_S=" + fmt.Sprint(int(limit/time.Second))}
+	if runtime.GOOS != "windows" && os.Getuid() != 0 {
+		args = append(args, "--user", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()))
+	}
 	if s.WorkDir != "" {
 		args = append(args, "-v", s.WorkDir+":/work", "-w", "/work")
 	}
@@ -150,18 +159,61 @@ func (d DockerLauncher) Launch(ctx context.Context, r contract.Role, s LaunchSpe
 		args = append(args, "-v", s.SessionDir+":/session", "-e", "A2DLC_SESSION=/session")
 	}
 	keys := map[string]bool{}
+	roleEnvFile := r.EnvFile
+	var cleanups []func()
+	defer func() {
+		for _, fn := range cleanups {
+			fn()
+		}
+	}()
+	secretVals := map[string]string{}
 	if r.EnvFile != "" {
-		envKeys, err := readEnvKeys(r.EnvFile)
+		entries, err := readEnvEntries(r.EnvFile)
 		if err != nil {
 			return out, err
 		}
-		for _, k := range envKeys {
-			if reserved[k] {
-				return out, fmt.Errorf("roles.%s.env_file: %s is set by the core", s.Role, k)
+		var kept []string
+		stripped := false
+		for _, e := range entries {
+			if reserved[e.key] {
+				return out, fmt.Errorf("roles.%s.env_file: %s is set by the core", s.Role, e.key)
 			}
-			keys[k] = true
+			if provider && isProviderSecretKey(e.key) {
+				secretVals[e.key] = e.val
+				stripped = true
+				continue
+			}
+			keys[e.key] = true
+			kept = append(kept, e.line)
 		}
-		args = append(args, "--env-file", r.EnvFile)
+		if provider && stripped {
+			if len(kept) == 0 {
+				roleEnvFile = ""
+			} else {
+				tf, err := writeTempEnvFile("a2dlc-role-env-*", strings.Join(kept, "\n")+"\n")
+				if err != nil {
+					return out, err
+				}
+				cleanups = append(cleanups, func() { _ = os.Remove(tf) })
+				roleEnvFile = tf
+			}
+		}
+	}
+	if provider {
+		if extraPath := strings.TrimSpace(os.Getenv("A2DLC_PROXY_ENV_FILE")); extraPath != "" {
+			extraEntries, err := readEnvEntries(extraPath)
+			if err != nil {
+				return out, fmt.Errorf("A2DLC_PROXY_ENV_FILE: %w", err)
+			}
+			for _, e := range extraEntries {
+				if isProviderSecretKey(e.key) {
+					secretVals[e.key] = e.val
+				}
+			}
+		}
+	}
+	if roleEnvFile != "" {
+		args = append(args, "--env-file", roleEnvFile)
 	}
 	// roles.json may set non-secret variables (which CLI, which model); never the ones the core already sets.
 	names := make([]string, 0, len(r.Env))
@@ -181,13 +233,85 @@ func (d DockerLauncher) Launch(ctx context.Context, r contract.Role, s LaunchSpe
 	}
 	sort.Strings(out.EnvKeys)
 	proxy := name + "-egress"
+	var proxyEnvFile string
+	var proxyEnvBody string
 	if provider {
+		if pool := egressPoolFrom(ctx); pool != nil {
+			// Compute deterministic pool key based on allowlist + routes target/headers (with empty proxyURL placeholder, then rewrite URL with shared proxy host).
+			routesKeyMap, _ := buildProxyRoutes(allow, r.Env["A2DLC_LLM"], "__PROXY__", secretVals)
+			poolKey := canonicalPoolKey(allow, routesKeyMap)
+			shared, err := pool.ensure(ctx, bin, name, allow, poolKey, func(sharedProxyURL string) (string, error) {
+				routes, _ := buildProxyRoutes(allow, r.Env["A2DLC_LLM"], sharedProxyURL, secretVals)
+				if len(routes) == 0 {
+					return "", nil
+				}
+				raw, err := json.Marshal(routes)
+				if err != nil {
+					return "", err
+				}
+				return writeTempEnvFile("a2dlc-proxy-env-*", "A2DLC_EGRESS_ROUTES="+string(raw)+"\n")
+			})
+			if err != nil {
+				return out, err
+			}
+			proxy = shared.proxy
+			network = shared.netName
+			// Rebuild role args network flag to attach to the shared internal network instead of per-launch netName.
+			if idx := slices.Index(args, "--network"); idx >= 0 && idx+1 < len(args) {
+				args[idx+1] = shared.netName
+			}
+			proxyURL := fmt.Sprintf("http://%s:%d", proxy, egressPort)
+			args = append(args, "-e", "HTTPS_PROXY="+proxyURL, "-e", "HTTP_PROXY="+proxyURL,
+				"-e", "https_proxy="+proxyURL, "-e", "http_proxy="+proxyURL,
+				"-e", "NO_PROXY="+egressNoProxy, "-e", "no_proxy="+egressNoProxy)
+			_, extraRoleEnv := buildProxyRoutes(allow, r.Env["A2DLC_LLM"], proxyURL, secretVals)
+			if len(extraRoleEnv) > 0 {
+				ek := make([]string, 0, len(extraRoleEnv))
+				for k := range extraRoleEnv {
+					ek = append(ek, k)
+				}
+				sort.Strings(ek)
+				for _, k := range ek {
+					args = append(args, "-e", k+"="+extraRoleEnv[k])
+				}
+			}
+			args = append(args, "--entrypoint", r.Argv[0], r.Image)
+			args = append(args, r.Argv[1:]...)
+			out.Argv = append([]string{bin}, args...)
+			out.ImageDigest = digest(ctx, bin, r.Image)
+			out.Network = NetworkProxyAllowlist
+			out.EgressProxy = &contract.EgressProxy{Image: EgressProxyImage, ImageDigest: shared.digest}
+			return runRole(ctx, bin, name, args, limit, out)
+		}
 		// after the env_file and roles.env, so these win; the core's names are reserved, so roles.json cannot set them.
 		proxyURL := fmt.Sprintf("http://%s:%d", proxy, egressPort)
 		args = append(args, "-e", "HTTPS_PROXY="+proxyURL, "-e", "HTTP_PROXY="+proxyURL,
 			"-e", "https_proxy="+proxyURL, "-e", "http_proxy="+proxyURL,
 			"-e", "NO_PROXY="+egressNoProxy, "-e", "no_proxy="+egressNoProxy)
+		routes, extraRoleEnv := buildProxyRoutes(allow, r.Env["A2DLC_LLM"], proxyURL, secretVals)
+		if len(routes) > 0 {
+			raw, err := json.Marshal(routes)
+			if err != nil {
+				return out, err
+			}
+			proxyEnvBody = "A2DLC_EGRESS_ROUTES=" + string(raw) + "\n"
+			pf, err := writeTempEnvFile("a2dlc-proxy-env-*", proxyEnvBody)
+			if err != nil {
+				return out, err
+			}
+			cleanups = append(cleanups, func() { _ = os.Remove(pf) })
+			proxyEnvFile = pf
+			ek := make([]string, 0, len(extraRoleEnv))
+			for k := range extraRoleEnv {
+				ek = append(ek, k)
+			}
+			sort.Strings(ek)
+			for _, k := range ek {
+				args = append(args, "-e", k+"="+extraRoleEnv[k])
+			}
+		}
 	}
+	_ = proxyEnvBody
 	args = append(args, "--entrypoint", r.Argv[0], r.Image)
 	args = append(args, r.Argv[1:]...)
 	out.Argv = append([]string{bin}, args...)
@@ -197,7 +321,7 @@ func (d DockerLauncher) Launch(ctx context.Context, r contract.Role, s LaunchSpe
 		return runRole(ctx, bin, name, args, limit, out)
 	}
 	out.Network = NetworkProxyAllowlist
-	return runWithEgress(ctx, bin, name, allow, args, limit, out)
+	return runWithEgress(ctx, bin, name, allow, proxyEnvFile, args, limit, out)
 }
 
 // runWithEgress is a role with network provider. It removes what an earlier attempt of the same launchRecord left behind
@@ -206,7 +330,7 @@ func (d DockerLauncher) Launch(ctx context.Context, r contract.Role, s LaunchSpe
 // on a shared network, so no other container can use it as a relay. It waits for the proxy's healthcheck and only then
 // runs the role on the internal network. The proxy and both networks are removed on every path, after the role. Any
 // failure before the role starts is an error and the role does not run.
-func runWithEgress(ctx context.Context, bin, name string, allow []string, roleArgs []string, limit time.Duration, out LaunchResult) (res LaunchResult, err error) {
+func runWithEgress(ctx context.Context, bin, name string, allow []string, proxyEnvFile string, roleArgs []string, limit time.Duration, out LaunchResult) (res LaunchResult, err error) {
 	netName, outName, proxy := name+"-net", name+"-up", name+"-egress"
 	var created []string
 	proxyTried := false
@@ -241,9 +365,17 @@ func runWithEgress(ctx context.Context, bin, name string, allow []string, roleAr
 	}
 	created = append(created, outName)
 	proxyTried = true
-	if err := dockerCmd(setup, bin, "run", "-d", "--name", proxy, "--network", netName, "--read-only",
+	proxyArgs := []string{"run", "-d", "--name", proxy, "--network", netName, "--read-only",
 		"--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--memory", "64m",
-		"-e", "A2DLC_EGRESS_ALLOW="+strings.Join(allow, ","), proxyRef); err != nil {
+		"-e", "A2DLC_EGRESS_ALLOW=" + strings.Join(allow, ",")}
+	if slices.Contains(allow, "host.docker.internal") {
+		proxyArgs = append(proxyArgs, "--add-host", "host.docker.internal:host-gateway")
+	}
+	if proxyEnvFile != "" {
+		proxyArgs = append(proxyArgs, "--env-file", proxyEnvFile)
+	}
+	proxyArgs = append(proxyArgs, proxyRef)
+	if err := dockerCmd(setup, bin, proxyArgs...); err != nil {
 		return out, fmt.Errorf("egress proxy: %w", err)
 	}
 	if err := dockerCmd(setup, bin, "network", "connect", outName, proxy); err != nil {
@@ -380,7 +512,250 @@ func killContainer(bin, name string) {
 // reserved are the variables Launch sets for every role: roles.<role>.env and env_file do not override them. The proxy
 // variables are among them, so a role cannot point its egress somewhere else.
 var reserved = map[string]bool{"HOME": true, "A2DLC_REQUEST": true, "A2DLC_RESPONSE": true, "A2DLC_ROLE": true, "A2DLC_STAGE": true, "A2DLC_TIMEOUT_S": true,
-	"A2DLC_SESSION": true, "HTTPS_PROXY": true, "HTTP_PROXY": true, "NO_PROXY": true, "https_proxy": true, "http_proxy": true, "no_proxy": true}
+	"A2DLC_SESSION": true, "A2DLC_EGRESS_CREDENTIAL_PROXY": true, "HTTPS_PROXY": true, "HTTP_PROXY": true, "NO_PROXY": true, "https_proxy": true, "http_proxy": true, "no_proxy": true}
+
+type egressRoute struct {
+	Target    string            `json:"target"`
+	Headers   map[string]string `json:"headers,omitempty"`
+	AllowHTTP bool              `json:"allow_http,omitempty"`
+}
+
+type envEntry struct {
+	key  string
+	val  string
+	line string
+}
+
+type providerCredSpec struct {
+	route     string
+	host      string
+	target    string
+	header    string
+	prefix    string
+	allowHTTP bool
+	urlEnv    string
+	urlSuffix string
+}
+
+var providerCredSpecs = map[string]providerCredSpec{
+	"ANTHROPIC_API_KEY":    {route: "anthropic", host: "api.anthropic.com", target: "https://api.anthropic.com", header: "x-api-key", urlEnv: "ANTHROPIC_BASE_URL"},
+	"ANTHROPIC_AUTH_TOKEN": {route: "anthropic", host: "api.anthropic.com", target: "https://api.anthropic.com", header: "Authorization", prefix: "Bearer ", urlEnv: "ANTHROPIC_BASE_URL"},
+	"OPENROUTER_API_KEY":   {route: "openrouter", host: "openrouter.ai", target: "https://openrouter.ai", header: "Authorization", prefix: "Bearer ", urlEnv: "A2DLC_OPENROUTER_URL", urlSuffix: "/api/v1/chat/completions"},
+	"ENTROPOS_API_KEY":     {route: "entropos", host: "host.docker.internal", target: "http://host.docker.internal:3000", header: "Authorization", prefix: "Bearer ", allowHTTP: true, urlEnv: "A2DLC_ENTROPOS_URL", urlSuffix: "/v1/chat/completions"},
+	"GEMINI_API_KEY":       {route: "gemini", host: "generativelanguage.googleapis.com", target: "https://generativelanguage.googleapis.com", header: "x-goog-api-key", urlEnv: "GOOGLE_GEMINI_BASE_URL"},
+	"GOOGLE_API_KEY":       {route: "gemini", host: "generativelanguage.googleapis.com", target: "https://generativelanguage.googleapis.com", header: "x-goog-api-key", urlEnv: "GOOGLE_GEMINI_BASE_URL"},
+	"OPENAI_API_KEY":       {route: "openai", host: "api.openai.com", target: "https://api.openai.com", header: "Authorization", prefix: "Bearer ", urlEnv: "OPENAI_BASE_URL", urlSuffix: "/v1"},
+}
+
+func isProviderSecretKey(k string) bool {
+	_, ok := providerCredSpecs[k]
+	return ok
+}
+
+func buildProxyRoutes(allow []string, llm, proxyURL string, secrets map[string]string) (map[string]egressRoute, map[string]string) {
+	allowSet := make(map[string]bool, len(allow))
+	for _, h := range allow {
+		allowSet[h] = true
+	}
+	routes := map[string]egressRoute{}
+	roleEnv := map[string]string{}
+	addCred := func(spec providerCredSpec, val string) {
+		if !allowSet[spec.host] {
+			return
+		}
+		rt := routes[spec.route]
+		if rt.Target == "" {
+			rt.Target = spec.target
+			rt.AllowHTTP = spec.allowHTTP
+		}
+		if rt.Headers == nil {
+			rt.Headers = map[string]string{}
+		}
+		rt.Headers[spec.header] = spec.prefix + val
+		routes[spec.route] = rt
+		if spec.urlEnv != "" {
+			roleEnv[spec.urlEnv] = proxyURL + "/r/" + spec.route + spec.urlSuffix
+		}
+		roleEnv["A2DLC_EGRESS_CREDENTIAL_PROXY"] = "1"
+	}
+	if allowSet["host.docker.internal"] {
+		routes["entropos"] = egressRoute{Target: "http://host.docker.internal:3000", AllowHTTP: true}
+		roleEnv["A2DLC_ENTROPOS_URL"] = proxyURL + "/r/entropos/v1/chat/completions"
+	}
+	for k, v := range secrets {
+		if v == "" {
+			continue
+		}
+		if k == "OPENROUTER_API_KEY" && llm == "entropos" && !allowSet["openrouter.ai"] && allowSet["host.docker.internal"] {
+			addCred(providerCredSpecs["ENTROPOS_API_KEY"], v)
+			continue
+		}
+		if spec, ok := providerCredSpecs[k]; ok {
+			addCred(spec, v)
+		}
+	}
+	return routes, roleEnv
+}
+
+func readEnvEntries(path string) ([]envEntry, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("env_file: %w", err)
+	}
+	defer f.Close()
+	var out []envEntry
+	sc := bufio.NewScanner(f)
+	for n := 1; sc.Scan(); n++ {
+		l := strings.TrimSpace(sc.Text())
+		if l == "" || strings.HasPrefix(l, "#") {
+			continue
+		}
+		k, v, ok := strings.Cut(l, "=")
+		if !ok || !refEnvName.MatchString(k) {
+			return nil, fmt.Errorf("env_file %s: line %d is not NAME=value with NAME in uppercase (%s)", path, n, refEnvName)
+		}
+		out = append(out, envEntry{key: k, val: v, line: k + "=" + v})
+	}
+	return out, sc.Err()
+}
+
+func writeTempEnvFile(pattern, content string) (string, error) {
+	f, err := os.CreateTemp("", pattern)
+	if err != nil {
+		return "", err
+	}
+	name := f.Name()
+	if _, err := f.WriteString(content); err != nil {
+		_ = f.Close()
+		_ = os.Remove(name)
+		return "", err
+	}
+	if err := f.Close(); err != nil {
+		_ = os.Remove(name)
+		return "", err
+	}
+	return name, nil
+}
+
+type egressPoolKey struct{}
+
+// RunEgressPool reuses one egress proxy + internal network per unique allowlist/routes key across all role launches in a run.
+type RunEgressPool struct {
+	mu      sync.Mutex
+	entries map[string]sharedEgress
+}
+
+type sharedEgress struct {
+	bin     string
+	proxy   string
+	netName string
+	upName  string
+	digest  string
+}
+
+// WithRunEgressPool attaches a shared RunEgressPool to ctx so provider launches reuse one proxy per unique allowlist/routes config.
+func WithRunEgressPool(ctx context.Context) (context.Context, *RunEgressPool) {
+	pool := &RunEgressPool{entries: map[string]sharedEgress{}}
+	return context.WithValue(ctx, egressPoolKey{}, pool), pool
+}
+
+func egressPoolFrom(ctx context.Context) *RunEgressPool {
+	p, _ := ctx.Value(egressPoolKey{}).(*RunEgressPool)
+	return p
+}
+
+func canonicalPoolKey(allow []string, routes map[string]egressRoute) string {
+	b, _ := json.Marshal(routes)
+	return strings.Join(allow, ",") + "|" + string(b)
+}
+
+func (p *RunEgressPool) ensure(ctx context.Context, bin, seedName string, allow []string, key string, makeEnv func(proxyURL string) (string, error)) (sharedEgress, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if cur, ok := p.entries[key]; ok {
+		return cur, nil
+	}
+	baseName := fmt.Sprintf("%s-pool-%d", seedName, len(p.entries)+1)
+	netName, upName, proxy := baseName+"-net", baseName+"-up", baseName+"-egress"
+	proxyRef, proxyDigest, err := resolveProxyImage(ctx, bin)
+	if err != nil {
+		return sharedEgress{}, err
+	}
+	proxyURL := fmt.Sprintf("http://%s:%d", proxy, egressPort)
+	proxyEnvFile, err := makeEnv(proxyURL)
+	if err != nil {
+		return sharedEgress{}, err
+	}
+	if proxyEnvFile != "" {
+		defer func() { _ = os.Remove(proxyEnvFile) }()
+	}
+	setup, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	_ = dockerCmd(setup, bin, "rm", "-f", proxy)
+	_ = dockerCmd(setup, bin, "network", "rm", netName)
+	_ = dockerCmd(setup, bin, "network", "rm", upName)
+	var created []string
+	proxyTried := false
+	cleanupOnErr := func() {
+		_ = teardownEgress(bin, proxy, proxyTried, created)
+	}
+	if err := dockerCmd(setup, bin, "network", "create", "--internal", netName); err != nil {
+		return sharedEgress{}, fmt.Errorf("egress network: %w", err)
+	}
+	created = append(created, netName)
+	if err := dockerCmd(setup, bin, "network", "create", upName); err != nil {
+		cleanupOnErr()
+		return sharedEgress{}, fmt.Errorf("egress network: %w", err)
+	}
+	created = append(created, upName)
+	proxyTried = true
+	proxyArgs := []string{"run", "-d", "--name", proxy, "--network", netName, "--read-only",
+		"--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--memory", "64m",
+		"-e", "A2DLC_EGRESS_ALLOW=" + strings.Join(allow, ",")}
+	if slices.Contains(allow, "host.docker.internal") {
+		proxyArgs = append(proxyArgs, "--add-host", "host.docker.internal:host-gateway")
+	}
+	if proxyEnvFile != "" {
+		proxyArgs = append(proxyArgs, "--env-file", proxyEnvFile)
+	}
+	proxyArgs = append(proxyArgs, proxyRef)
+	if err := dockerCmd(setup, bin, proxyArgs...); err != nil {
+		cleanupOnErr()
+		return sharedEgress{}, fmt.Errorf("egress proxy: %w", err)
+	}
+	if err := dockerCmd(setup, bin, "network", "connect", upName, proxy); err != nil {
+		cleanupOnErr()
+		return sharedEgress{}, fmt.Errorf("egress proxy to its network: %w", err)
+	}
+	if err := awaitProxy(setup, bin, proxy); err != nil {
+		cleanupOnErr()
+		return sharedEgress{}, err
+	}
+	res := sharedEgress{bin: bin, proxy: proxy, netName: netName, upName: upName, digest: proxyDigest}
+	p.entries[key] = res
+	return res, nil
+}
+
+// Close tears down all shared egress proxies and networks created during the run.
+func (p *RunEgressPool) Close() error {
+	if p == nil {
+		return nil
+	}
+	p.mu.Lock()
+	items := make([]sharedEgress, 0, len(p.entries))
+	for _, e := range p.entries {
+		items = append(items, e)
+	}
+	p.entries = map[string]sharedEgress{}
+	p.mu.Unlock()
+	var errs []error
+	for _, e := range items {
+		if err := teardownEgress(e.bin, e.proxy, true, []string{e.netName, e.upName}); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
 
 // refImage is the `image` pattern in roles.schema.json: the image goes as the positional argument of `docker run`, where
 // docker still reads flags, so one that starts with "-" (--volume=/:/host) would widen the mounts.

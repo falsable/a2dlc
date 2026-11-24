@@ -60,6 +60,33 @@ class CutOff(unittest.TestCase):
         self.assertEqual(response["cost"]["input_tokens"], 110)
         self.assertEqual(json.loads(stream.read_text(encoding="utf-8").splitlines()[-1])["type"], "result")
 
+    def test_a_cut_call_without_result_estimates_deduped_5m_1h_cost_or_errors_when_unpriced(self):
+        # 1. Known priced model deduplicates msg-1|req-1 using max(output_tokens)=150 and prices 5m vs 1h writes apart.
+        _, resp, _ = run_adapter("sleep_cut", {"FAKE_SLEEP_MODEL": "claude-sonnet-4-5-20250929", "FAKE_SLEEP_CACHE": "1"})
+        self.assertEqual(resp["status"], "error")
+        cost = resp["cost"]
+        self.assertIsNotNone(cost)
+        self.assertTrue(cost["estimated"])
+        # Expected: (1000*3 + 150*15 + 2000*0.3 + 400*3.75 + 100*6.0) / 1e6 = 0.00795
+        self.assertAlmostEqual(cost["usd"], 0.00795, places=6)
+        self.assertEqual(cost["output_tokens"], 150)
+        self.assertEqual(cost["input_tokens"], 3500)
+        self.assertEqual(cost["cache_read_input_tokens"], 2000)
+        self.assertEqual(cost["cache_creation_input_tokens"], 500)
+
+        # 2. Unknown model never falls back to 0: estimate_claude_stream_cost raises and response stays error with cost=None.
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("adapter", str(ADAPTER))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        events = [{"type": "assistant", "requestId": "r1", "message": {"id": "m1", "model": "unknown-tier-x", "usage": {"input_tokens": 100, "output_tokens": 10}}}]
+        with self.assertRaises(ValueError):
+            mod.estimate_claude_stream_cost(events)
+        _, resp_unknown, _ = run_adapter("sleep_cut", {"FAKE_SLEEP_MODEL": "unknown-tier-x"})
+        self.assertEqual(resp_unknown["status"], "error")
+        self.assertIsNone(resp_unknown["cost"])
+        self.assertIn("no price in table", resp_unknown["reason"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -101,6 +101,16 @@ class Acp(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("A2DLC_LLM=acp needs A2DLC_ACP_AGENT", response["reason"])
 
+    def test_acp_uses_persistent_session_when_session_dir_present(self):
+        with tempfile.TemporaryDirectory() as sdir:
+            code, _, _, tmp = run_adapter("ok", {"A2DLC_SESSION": sdir})
+            self.assertEqual(code, 0)
+            argv = json.loads((tmp / "argv.json").read_text(encoding="utf-8"))
+            self.assertIn("prompt", argv)
+            self.assertIn("--session", argv)
+            self.assertNotIn("exec", argv)
+            self.assertTrue(list((Path(sdir) / "acp").glob("*.state")))
+
 
 if __name__ == "__main__":
     unittest.main()

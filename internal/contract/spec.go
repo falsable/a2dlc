@@ -11,9 +11,10 @@ import (
 // catalogue (assumption-catalogue) and the payloads of the Specifiers and of the Inquisitor (role-payloads).
 
 const (
-	SourceAlpha     = "specifier_alpha"
-	SourceBeta      = "specifier_beta"
-	SourceConsensus = "consensus"
+	SourceAlpha         = "specifier_alpha"
+	SourceBeta          = "specifier_beta"
+	SourceConsensus     = "consensus"
+	SourceHumanAccepted = "human_accepted"
 
 	EquivalenceStrict  = "strict"
 	EquivalenceRelaxed = "relaxed"
@@ -183,7 +184,7 @@ func (c SliceContract) Validate() error {
 		return fmt.Errorf("schema_version %d", c.SchemaVersion)
 	case !sliceRe.MatchString(c.SliceID):
 		return fmt.Errorf("slice_id %q is invalid", c.SliceID)
-	case c.Source != SourceAlpha && c.Source != SourceBeta && c.Source != SourceConsensus:
+	case c.Source != SourceAlpha && c.Source != SourceBeta && c.Source != SourceConsensus && c.Source != SourceHumanAccepted:
 		return fmt.Errorf("source %q is unknown", c.Source)
 	case c.checkV34() != nil:
 		return c.checkV34()

@@ -22,5 +22,12 @@ ENV PATH=/opt/agents/node_modules/.bin:$PATH
 ENV CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
 COPY adapter.py /a2dlc/adapter.py
 COPY prompts/ /a2dlc/prompts/
+COPY plugin/ /a2dlc/plugin/
+RUN groupadd -r a2dlc \
+ && useradd -r -g a2dlc -d /tmp/home -s /sbin/nologin a2dlc \
+ && mkdir -p /tmp/home \
+ && chown -R a2dlc:a2dlc /tmp/home /opt/agents /a2dlc \
+ && chmod -R a+rX /a2dlc/plugin
+USER a2dlc
 # The core launches with --entrypoint <argv[0]>; this ENTRYPOINT is for whoever runs the image by hand.
 ENTRYPOINT ["python3", "/a2dlc/adapter.py"]

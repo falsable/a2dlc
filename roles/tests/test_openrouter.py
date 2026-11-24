@@ -244,6 +244,12 @@ def check_entropos(t: Path, url: str, failures: list[str]) -> None:
                   env_extra={"A2DLC_LLM": "entropos", "A2DLC_ENTROPOS_URL": url, "ENTROPOS_API_KEY": KEY})
     if not (code == 1 and r["status"] == "error" and "401" in r["reason"] and KEY not in json.dumps(r)):
         failures.append(f"entropos_401: exit={code} {json.dumps(r)[:300]}")
+    # Role with A2DLC_EGRESS_CREDENTIAL_PROXY=1 and NO OPENROUTER_API_KEY completes cleanly without exposing any secret.
+    code, r = run(t, "openrouter_proxy_injected", "saboteur", "4", url,
+                  env_extra={"OPENROUTER_API_KEY": "", "A2DLC_EGRESS_CREDENTIAL_PROXY": "1"})
+    p = Fake.received[-1]
+    if not (code == 0 and r["status"] == "ok" and p["auth"] is None):
+        failures.append(f"openrouter_proxy_injected: exit={code} auth={p['auth']!r} {json.dumps(r)[:300]}")
 
 
 def check_probe_syntax(t: Path, url: str, failures: list[str]) -> None:

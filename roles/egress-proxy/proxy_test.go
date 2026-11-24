@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -221,4 +222,123 @@ type closeNotifier struct {
 func (c *closeNotifier) Close() error {
 	c.once.Do(func() { close(c.done) })
 	return c.Conn.Close()
+}
+
+func TestEntroposHTTPPort3000AndConnectAllowed(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "ok auth=%s path=%s host=%s", r.Header.Get("Authorization"), r.URL.Path, r.Host)
+	}))
+	defer up.Close()
+	echo := echoServer(t)
+
+	allow := map[string]bool{"host.docker.internal": true}
+	routes, err := ParseRoutes(`{"entropos":{"target":"http://host.docker.internal:3000","headers":{"Authorization":"Bearer entropos-secret"},"allow_http":true}}`, allow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := &Proxy{
+		allow:  allow,
+		routes: routes,
+		dial: func(_ context.Context, addr string) (net.Conn, error) {
+			if addr == "host.docker.internal:3000" {
+				return net.Dial("tcp", echo.Addr().String())
+			}
+			return nil, fmt.Errorf("unexpected dial %s", addr)
+		},
+		transport: &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("tcp", up.Listener.Addr().String())
+			},
+		},
+	}
+	srv := httptest.NewServer(p)
+	defer srv.Close()
+	proxyURL, _ := url.Parse(srv.URL)
+
+	// 1. Plain HTTP via HTTP_PROXY to http://host.docker.internal:3000/v1/chat/completions works & injects Authorization.
+	req, _ := http.NewRequest(http.MethodPost, "http://host.docker.internal:3000/v1/chat/completions", strings.NewReader(`{}`))
+	req.Header.Set("Authorization", "Bearer dummy")
+	resp, err := (&http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}).Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != 200 || !strings.Contains(string(body), "auth=Bearer entropos-secret") || !strings.Contains(string(body), "path=/v1/chat/completions") {
+		t.Fatalf("unexpected entropos proxy response: %d %q", resp.StatusCode, string(body))
+	}
+
+	// 2. CONNECT host.docker.internal:3000 is permitted, while non-allowlisted hosts/ports fail closed (403).
+	if code, _, _ := connect(t, srv.Listener.Addr().String(), http.MethodConnect, "host.docker.internal:3000"); code != 200 {
+		t.Fatalf("CONNECT host.docker.internal:3000 = %d, want 200", code)
+	}
+	for _, blocked := range []string{"other.test:3000", "host.docker.internal:80", "host.docker.internal:9999"} {
+		if code, _, _ := connect(t, srv.Listener.Addr().String(), http.MethodConnect, blocked); code != 403 {
+			t.Errorf("CONNECT %s = %d, want 403", blocked, code)
+		}
+	}
+	reqBad, _ := http.NewRequest(http.MethodPost, "http://other.test:3000/v1/chat/completions", strings.NewReader(`{}`))
+	respBad, err := (&http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}).Do(reqBad)
+	if err != nil {
+		t.Fatal(err)
+	}
+	respBad.Body.Close()
+	if respBad.StatusCode != 403 {
+		t.Fatalf("HTTP POST to non-allowlisted host = %d, want 403", respBad.StatusCode)
+	}
+}
+
+func TestTLSReoriginationInjectsHeaderAndRejectsUnallowlistedRoutes(t *testing.T) {
+	tlsUp := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "tls key=%s path=%s host=%s", r.Header.Get("x-api-key"), r.URL.Path, r.Host)
+	}))
+	defer tlsUp.Close()
+
+	allow := map[string]bool{"example.com": true}
+	if _, err := ParseRoutes(`{"evil":{"target":"https://evil.example.com"}}`, allow); err == nil {
+		t.Fatal("ParseRoutes accepted target outside allowlist")
+	}
+	routes, err := ParseRoutes(`{"anthropic":{"target":"https://example.com","headers":{"x-api-key":"sk-ant-real"}}}`, allow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr := tlsUp.Client().Transport.(*http.Transport).Clone()
+	tr.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+		return net.Dial("tcp", tlsUp.Listener.Addr().String())
+	}
+	p := &Proxy{allow: allow, routes: routes, transport: tr}
+	srv := httptest.NewServer(p)
+	defer srv.Close()
+
+	// Role sends plain HTTP to /r/anthropic/v1/messages with NO key; proxy re-originates TLS and injects x-api-key.
+	resp, err := http.Post(srv.URL+"/r/anthropic/v1/messages", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != 200 || string(body) != "tls key=sk-ant-real path=/v1/messages host=example.com" {
+		t.Fatalf("unexpected TLS re-origination result: %d %q", resp.StatusCode, string(body))
+	}
+
+	// Single-route default fallback also re-originates /v1/messages without prefix.
+	resp2, err := http.Post(srv.URL+"/v1/messages", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body2, _ := io.ReadAll(resp2.Body)
+	resp2.Body.Close()
+	if resp2.StatusCode != 200 || string(body2) != "tls key=sk-ant-real path=/v1/messages host=example.com" {
+		t.Fatalf("unexpected default-route TLS result: %d %q", resp2.StatusCode, string(body2))
+	}
+
+	// Unknown route prefix fails closed with 403.
+	resp3, err := http.Post(srv.URL+"/r/other/v1/messages", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp3.Body.Close()
+	if resp3.StatusCode != 403 {
+		t.Fatalf("unknown route = %d, want 403", resp3.StatusCode)
+	}
 }
