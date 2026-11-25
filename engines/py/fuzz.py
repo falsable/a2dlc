@@ -214,7 +214,8 @@ def _load_target(spec: dict) -> tuple[Callable[..., Any], list[Decoder]]:
     return fn, decoders
 
 
-ALLOW_EXC_RE = re.compile(r"@a2dlc:allow-exceptions\s+([A-Za-z0-9_,\s]+)")
+# [ \t], not \s: the names end with their line, so a blank line and "Returns:" below are not swallowed.
+ALLOW_EXC_RE = re.compile(r"@a2dlc:allow-exceptions[ \t]+([A-Za-z0-9_, \t]+)")
 
 
 def _allowed_exceptions_for(fn: Callable[..., Any], configured: list[str]) -> set[str]:

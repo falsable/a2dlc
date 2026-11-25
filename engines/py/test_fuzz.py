@@ -441,5 +441,34 @@ class RealAtherisRun(unittest.TestCase):
         self.assertGreater(resp["runs"], 0)
 
 
+def _directive_before_returns(x: int) -> int:
+    """Parse x.
+
+    @a2dlc:allow-exceptions ValueError
+
+    Returns:
+        x unchanged.
+    """
+    if x < 0:
+        raise ValueError("negative")
+    return x
+
+
+class AllowExceptionsDirective(unittest.TestCase):
+    def test_directive_name_stops_at_the_end_of_its_line(self):
+        got = fuzz._allowed_exceptions_for(_directive_before_returns, [])
+        self.assertEqual(got, {"ValueError"})
+
+    def test_comma_and_space_separated_names_on_one_line_still_match(self):
+        def fn():
+            """@a2dlc:allow-exceptions ValueError, KeyError
+
+            Returns:
+                None.
+            """
+
+        self.assertEqual(fuzz._allowed_exceptions_for(fn, []), {"ValueError", "KeyError"})
+
+
 if __name__ == "__main__":
     unittest.main()
