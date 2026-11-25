@@ -126,7 +126,7 @@ func (m *Machine) resolveTier0N2(p, o buildResult) (string, string, string, erro
 	}
 	c := candidates[0]
 	artifact, err := m.writeArtifact(ArtCandidate, contract.Candidate{SchemaVersion: contract.SchemaVersion, Builder: c.Builder,
-		Commit: c.Commit, TreeHash: c.TreeHash, Iterations: c.Iterations, Unchecked: c.Unchecked, HeadersMissing: c.HeadersMissing, Tier0Reviewed: c.Tier0Reviewed, Lemmas: c.Lemmas, Candidates: candidates, Dropped: dropped})
+		Commit: c.Commit, TreeHash: c.TreeHash, Iterations: c.Iterations, Unchecked: c.Unchecked, HeadersMissing: c.HeadersMissing, Tier0Reviewed: c.Tier0Reviewed, Lemmas: c.Lemmas, ReturnedDivergences: c.ReturnedDivergences, Candidates: candidates, Dropped: dropped})
 	return contract.StageDone, join(notes...), artifact, err
 }
 
@@ -190,7 +190,7 @@ func (m *Machine) judgmentN2(ctx context.Context, p, o contract.CandidateEntry) 
 		}
 	}
 	overlay := filepath.Join(m.dir, dirOverlay)
-	verdictP, reasonP, fuzzP, err := m.judge(ctx, app.CheckOptions{CandidateTree: p.Commit, Peers: []string{o.Commit}}, ArtVerdictPrimary)
+	verdictP, reasonP, fuzzP, err := m.judge(ctx, app.CheckOptions{CandidateTree: p.Commit, Peers: []string{o.Commit}, ForceStrictDivergence: true}, ArtVerdictPrimary)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -202,7 +202,7 @@ func (m *Machine) judgmentN2(ctx context.Context, p, o contract.CandidateEntry) 
 	if err := os.Remove(filepath.Join(m.dir, ArtSignatures)); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return "", "", "", err
 	}
-	verdictO, reasonO, fuzzO, err := m.judge(ctx, app.CheckOptions{CandidateTree: o.Commit, Peers: []string{p.Commit}}, ArtVerdictOrthogonal)
+	verdictO, reasonO, fuzzO, err := m.judge(ctx, app.CheckOptions{CandidateTree: o.Commit, Peers: []string{p.Commit}, ForceStrictDivergence: true}, ArtVerdictOrthogonal)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -218,7 +218,7 @@ func (m *Machine) judgmentN2(ctx context.Context, p, o contract.CandidateEntry) 
 			return "", "", "", err
 		}
 		if verdictP, err = m.checkWith(ctx, "4", app.CheckOptions{CandidateTree: p.Commit, Peers: []string{o.Commit}, TestsOverlay: overlay,
-			EquivalenceRelaxations: m.relaxations(), StrictDivergence: true, CriticalRoute: critRoute}); err != nil {
+			EquivalenceRelaxations: m.relaxations(), StrictDivergence: true, ForceStrictDivergence: true, CriticalRoute: critRoute}); err != nil {
 			return "", "", "", err
 		}
 		if err := m.seal(&verdictP); err != nil {
@@ -299,15 +299,6 @@ func (m *Machine) judgmentN2(ctx context.Context, p, o contract.CandidateEntry) 
 		}
 		winner, why = occam(complexities)
 		why = "both PASS; " + why
-		// with config.run_divergence critical_code a PASS can carry divergence notes: the one with fewer ranks higher, and
-		// the complexity only decides between candidates with as many
-		if np, no := divergenceNotes(verdictP), divergenceNotes(verdictO); np != no {
-			winner = 0
-			if no < np {
-				winner = 1
-			}
-			why = fmt.Sprintf("both PASS; %s has fewer divergence notes (%s: %d, %s: %d)", judgments[winner].c.Builder, p.Builder, np, o.Builder, no)
-		}
 		if len(unmeasured) > 0 {
 			why += " (complexity unmeasured: " + strings.Join(unmeasured, "; ") + ")"
 		}
@@ -421,17 +412,6 @@ func rank(v string) int {
 		return 1
 	}
 	return 0
-}
-
-// divergenceNotes counts the targets of a verdict that carry a behavior_divergence note.
-func divergenceNotes(v contract.Verdict) int {
-	n := 0
-	for _, t := range v.Targets {
-		if t.Note == contract.NoteBehaviorDivergence {
-			n++
-		}
-	}
-	return n
 }
 
 // occam chooses between two candidates with PASS the one with lower complexity, lexicographically (§5 Stage 5): sum of

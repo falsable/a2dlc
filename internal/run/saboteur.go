@@ -182,7 +182,13 @@ func stageTier1(ctx context.Context, m *Machine) (string, string, string, error)
 	if err != nil {
 		return "", "", "", err
 	}
-	v, reason, _, err := m.judge(ctx, app.CheckOptions{CandidateTree: candidate, Differential: m.differential}, ArtVerdict)
+	var returned []contract.ReturnedDivergence
+	if c, err := m.readCandidate(); err != nil {
+		return "", "", "", err
+	} else if c != nil {
+		returned = c.ReturnedDivergences
+	}
+	v, reason, _, err := m.judge(ctx, app.CheckOptions{CandidateTree: candidate, Differential: m.differential, ReturnedDivergences: returned}, ArtVerdict)
 	if err != nil {
 		return "", "", "", err
 	}

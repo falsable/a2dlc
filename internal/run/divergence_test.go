@@ -143,6 +143,11 @@ func TestRunDivergenceStrictIsAFail(t *testing.T) {
 
 func TestRunDivergenceCriticalCodeOutsideIsAPassWithTheNote(t *testing.T) {
 	st, requests, _, dir := runDivergenceWith(t, Options{}, "critical_code", []string{"lib/**", "src/other.py::*"}, keepsTheDivergence)
+	var cand contract.Candidate
+	readJSONTest(t, filepath.Join(dir, ".a2dlc/run/div", ArtCandidate), &cand)
+	if len(cand.ReturnedDivergences) != 1 || cand.ReturnedDivergences[0] != (contract.ReturnedDivergence{Target: "src/f.py::f", Args: "x=2"}) {
+		t.Fatalf("candidate returned_divergences = %+v", cand.ReturnedDivergences)
+	}
 	var v contract.Verdict
 	readJSONTest(t, filepath.Join(dir, ".a2dlc/run/div", ArtVerdict), &v)
 	if len(requests) != 2 || v.Verdict != contract.PASS || len(v.Targets) != 1 || v.Targets[0].Verdict != contract.FAIL ||
@@ -151,6 +156,20 @@ func TestRunDivergenceCriticalCodeOutsideIsAPassWithTheNote(t *testing.T) {
 	}
 	if esc := st.Stages[6]; esc.Status != contract.StageDone {
 		t.Fatalf("%+v", esc)
+	}
+}
+
+func TestRunDivergenceCriticalCodeNeverReturnedIsAFail(t *testing.T) {
+	st, requests, _, dir := runDivergenceWith(t, Options{MaxInner: 1}, "critical_code", []string{"lib/**"}, keepsTheDivergence)
+	var cand contract.Candidate
+	readJSONTest(t, filepath.Join(dir, ".a2dlc/run/div", ArtCandidate), &cand)
+	if len(cand.ReturnedDivergences) != 0 {
+		t.Fatalf("expected empty returned_divergences on last-round-only run, got %+v", cand.ReturnedDivergences)
+	}
+	var v contract.Verdict
+	readJSONTest(t, filepath.Join(dir, ".a2dlc/run/div", ArtVerdict), &v)
+	if len(requests) != 1 || v.Verdict != contract.FAIL || v.Targets[0].Note != "" || st.Outcome == nil || *st.Outcome != contract.FAIL {
+		t.Fatalf("requests=%d verdict=%s targets=%+v outcome=%v", len(requests), v.Verdict, v.Targets, st.Outcome)
 	}
 }
 
@@ -216,9 +235,9 @@ func TestRunDivergenceUnknownValueIsRefused(t *testing.T) {
 	}
 }
 
-// N=2, run_divergence critical_code: both PASS, but the orthogonal (the simpler one, which Occam would pick) changes behavior
-// where the primary does not; fewer divergence notes ranks higher than lower complexity.
-func TestN2FewerDivergenceNotesRanksAboveComplexity(t *testing.T) {
+// N=2 stays strict in both run_divergence modes (a2dlc-48i): a divergence on either candidate fails that candidate
+// rather than becoming a note, so only the non-divergent builder gives PASS.
+func TestN2StaysStrictUnderRunDivergenceCriticalCode(t *testing.T) {
 	withRouterN2(t)
 	a, dir, eng := repoBuilder(t)
 	commitRunDivergence(t, dir, "critical_code", nil)
@@ -243,7 +262,7 @@ func TestN2FewerDivergenceNotesRanksAboveComplexity(t *testing.T) {
 	var sel contract.Selection
 	readJSONTest(t, filepath.Join(dir, ".a2dlc/run/n2.v1", ArtSelection), &sel)
 	if st.Stages[6].Status != contract.StageDone || sel.Selected == nil || *sel.Selected != contract.RoleBuilderPrimary ||
-		!strings.Contains(sel.Reason, "has fewer divergence notes (builder_primary: 0, builder_orthogonal: 1)") {
+		!strings.Contains(sel.Reason, "only builder_primary gave PASS (builder_orthogonal: FAIL)") {
 		t.Fatalf("%+v selected=%v reason=%q", st.Stages[6], sel.Selected, sel.Reason)
 	}
 }

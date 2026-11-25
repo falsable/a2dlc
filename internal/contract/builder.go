@@ -83,18 +83,26 @@ type BuilderLemma struct {
 	Postcondition string `json:"postcondition"`
 }
 
+// ReturnedDivergence identifies an engine divergence (target + args) that Stage 3 returned to a builder and the builder kept.
+type ReturnedDivergence struct {
+	Target string `json:"target"`
+	Args   string `json:"args"`
+}
+
 // Candidate is candidate.json, the Stage 3 artifact: the state of /work as a commit on top of the base.
 type Candidate struct {
 	// Lemmas are the lemma verdicts of this candidate (Critical slices).
 	Lemmas []CandidateLemma `json:"lemmas,omitempty"`
 	// DependencyChanges are the manifest changes checked against the allowlist.
 	DependencyChanges []DependencyChange `json:"dependency_changes,omitempty"`
-	SchemaVersion     int                `json:"schema_version"`
-	Builder           string             `json:"builder"`
-	Commit            string             `json:"commit"`
-	TreeHash          string             `json:"tree_hash"`
-	Iterations        int                `json:"iterations"`
-	Unchecked         []string           `json:"unchecked"`
+	// ReturnedDivergences lists (target, args) pairs Stage 3 already returned once to the builder and the builder kept.
+	ReturnedDivergences []ReturnedDivergence `json:"returned_divergences,omitempty"`
+	SchemaVersion       int                  `json:"schema_version"`
+	Builder             string               `json:"builder"`
+	Commit              string               `json:"commit"`
+	TreeHash            string               `json:"tree_hash"`
+	Iterations          int                  `json:"iterations"`
+	Unchecked           []string             `json:"unchecked"`
 	// @a2dlc headers without a slice_id line (§6.3): the stage does not fail. See header.go.
 	HeadersMissing []string `json:"headers_missing,omitempty"`
 	// Tier0Reviewed: whether Tier 0 ran anything on the candidate. Nil in candidates older than this field.

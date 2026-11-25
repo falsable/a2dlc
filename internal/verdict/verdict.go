@@ -23,6 +23,12 @@ func Aggregate(targets []contract.TargetResult, waived, approved map[string]bool
 // (inconclusive_covered_by_tests) and does not make the diff INCONCLUSIVE: an engine that gave no information is not worse
 // than no engine for the file. It keeps its INCONCLUSIVE verdict and reason. A nil covered never applies the rule.
 func AggregateCovered(targets []contract.TargetResult, waived, approved map[string]bool, engineErrors int, critical []string, covered func(contract.TargetResult) bool) (string, []contract.VerdictTarget, []string) {
+	return AggregateWith(targets, waived, approved, engineErrors, critical, covered, nil)
+}
+
+// AggregateWith is AggregateCovered with an optional predicate restricting when an uncritical FAIL with a
+// counterexample may become NoteBehaviorDivergence (nil allows any non-critical divergence).
+func AggregateWith(targets []contract.TargetResult, waived, approved map[string]bool, engineErrors int, critical []string, covered func(contract.TargetResult) bool, noteAllowed func(contract.TargetResult) bool) (string, []contract.VerdictTarget, []string) {
 	out := make([]contract.VerdictTarget, 0, len(targets))
 	pending := []string{}
 	fail, inc := false, engineErrors > 0
@@ -30,7 +36,7 @@ func AggregateCovered(targets []contract.TargetResult, waived, approved map[stri
 		w := t.Verdict == contract.FAIL && waived[t.Target]
 		note := ""
 		switch {
-		case t.Verdict == contract.FAIL && !w && t.Counterexample != nil && !IsCritical(critical, t.Target):
+		case t.Verdict == contract.FAIL && !w && t.Counterexample != nil && !IsCritical(critical, t.Target) && (noteAllowed == nil || noteAllowed(t)):
 			note = contract.NoteBehaviorDivergence
 		case t.Verdict == contract.FAIL && !w:
 			fail = true

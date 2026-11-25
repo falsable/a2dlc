@@ -139,7 +139,7 @@ func stageTier0(ctx context.Context, m *Machine) (string, string, string, error)
 	}
 	c := p.candidate
 	artifact, err := m.writeArtifact(ArtCandidate, contract.Candidate{SchemaVersion: contract.SchemaVersion, Builder: c.Builder,
-		Commit: c.Commit, TreeHash: c.TreeHash, Iterations: c.Iterations, Unchecked: c.Unchecked, HeadersMissing: c.HeadersMissing, Tier0Reviewed: c.Tier0Reviewed, Lemmas: c.Lemmas})
+		Commit: c.Commit, TreeHash: c.TreeHash, Iterations: c.Iterations, Unchecked: c.Unchecked, HeadersMissing: c.HeadersMissing, Tier0Reviewed: c.Tier0Reviewed, Lemmas: c.Lemmas, ReturnedDivergences: c.ReturnedDivergences})
 	return contract.StageDone, join(append([]string{note}, p.notes...)...), artifact, err
 }
 
@@ -566,7 +566,7 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		}
 		reviewed := res.Reviewed
 		return buildResult{status: contract.StageDone, notes: notes,
-			candidate: &contract.CandidateEntry{Builder: role, Commit: commit, TreeHash: hash, Iterations: round, Unchecked: unreviewed, HeadersMissing: rev.faltan, Tier0Reviewed: &reviewed, Lemmas: lem.recorded}}, nil
+			candidate: &contract.CandidateEntry{Builder: role, Commit: commit, TreeHash: hash, Iterations: round, Unchecked: unreviewed, HeadersMissing: rev.faltan, Tier0Reviewed: &reviewed, Lemmas: lem.recorded, ReturnedDivergences: div.kept}}, nil
 	}
 	agent.last = findingsSummary(feedback)
 	return m.exhausted(agent, tier0Artifact), nil

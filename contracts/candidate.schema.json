@@ -31,7 +31,8 @@
       "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true
     },
     "lemmas": { "$ref": "#/$defs/candidate/properties/lemmas" },
-    "dependency_changes": { "$ref": "#/$defs/candidate/properties/dependency_changes" }
+    "dependency_changes": { "$ref": "#/$defs/candidate/properties/dependency_changes" },
+    "returned_divergences": { "$ref": "#/$defs/candidate/properties/returned_divergences" }
   },
   "required": ["schema_version", "builder", "commit", "tree_hash", "iterations", "unchecked"],
   "additionalProperties": false,
@@ -80,6 +81,19 @@
               "allowed": { "type": "boolean" }
             },
             "required": ["ecosystem", "name", "allowed"],
+            "additionalProperties": false
+          }
+        },
+        "returned_divergences": {
+          "description": "Engine behavior divergences (target + args) that Stage 3 already returned to this builder once and the builder kept on the accepted candidate.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "target": { "type": "string", "minLength": 1 },
+              "args": { "type": "string" }
+            },
+            "required": ["target", "args"],
             "additionalProperties": false
           }
         }

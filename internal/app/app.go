@@ -330,8 +330,12 @@ type CheckOptions struct {
 	// StrictDivergence keeps a divergence on any code a FAIL, as if everything were critical. a2dlc run sets it: the
 	// Stage 4 oracle ranks candidates by their verdict, and a note would let a candidate that changes the base's behavior
 	// pass. a2dlc check leaves it off, and config.critical_code decides there. A base config with
-	// run_divergence "critical_code" turns it off for a run too (an autonomous consumer signs no waivers).
+	// run_divergence "critical_code" allows notes in single-builder runs only for divergences in ReturnedDivergences.
 	StrictDivergence bool
+	// ForceStrictDivergence overrides run_divergence "critical_code" (N=2 stays strict in both modes).
+	ForceStrictDivergence bool
+	// ReturnedDivergences are (target, args) pairs Stage 3 returned once to the builder and it kept.
+	ReturnedDivergences []contract.ReturnedDivergence
 	// CriticalRoute is set by a2dlc run when the Stage 2 route has criticality_effective above low: with config.rung
 	// "critical_code", it keeps Stage 5 mutation active even when no changed file matches config.critical_code.
 	CriticalRoute bool
@@ -609,8 +613,19 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 		return v, engErr
 	}
 	critical := cfg.CriticalCode
-	if opts.StrictDivergence && cfg.RunDivergence != contract.RunDivergenceCriticalCode {
-		critical = allCritical
+	var divergenceNoteAllowed func(contract.TargetResult) bool
+	if opts.StrictDivergence {
+		if opts.ForceStrictDivergence || cfg.RunDivergence != contract.RunDivergenceCriticalCode {
+			critical = allCritical
+		} else {
+			returned := make(map[string]bool, len(opts.ReturnedDivergences))
+			for _, rd := range opts.ReturnedDivergences {
+				returned[rd.Target+"\x00"+rd.Args] = true
+			}
+			divergenceNoteAllowed = func(t contract.TargetResult) bool {
+				return t.Counterexample != nil && returned[t.Target+"\x00"+t.Counterexample.Args]
+			}
+		}
 	}
 	// An engine target that could not judge a file the candidate's tests executed completely does not make the diff
 	// INCONCLUSIVE (note inconclusive_covered_by_tests); without a tests block, coverage or a clean run nothing changes.
@@ -630,7 +645,7 @@ func (a App) CheckWith(ctx context.Context, base string, opts CheckOptions) (con
 	}
 	authz.mergeInto(engineApproved, map[string]string{})
 	v.Authorization = authz.report(opts.IntentSHA256)
-	v.Verdict, v.Targets, v.PendingWaivers = verdict.AggregateCovered(targets, waived, engineApproved, len(errs), critical, coveredByTests)
+	v.Verdict, v.Targets, v.PendingWaivers = verdict.AggregateWith(targets, waived, engineApproved, len(errs), critical, coveredByTests, divergenceNoteAllowed)
 	v.BaseRef, v.TreeHash, v.OutOfScope, v.EngineErrors = baseSha, treePrefix+tree, oos, errs
 	v.DiffBudget = diffBudget
 	if cfg.Tests != nil {

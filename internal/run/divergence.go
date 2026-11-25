@@ -3,6 +3,7 @@ package run
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/falsable/a2dlc/internal/app"
@@ -15,13 +16,15 @@ import (
 // old behavior if the intent does not ask for the change, or adds a test that pins the new behavior if it does.
 // A divergence the builder keeps on purpose does not go away, and the differential cannot tell a wanted change from an
 // accident, so each function and input is returned once and never on the last round: after that the run goes on, Stage 4
-// judges the divergence as it always does (strictly in a run, so it is still a FAIL there) and the stage reason says the
+// judges the divergence (failing in strict runs, N=2, or when never returned; receipt note outside critical_code when returned and kept) and the stage reason says the
 // builder was told. It only adds feedback; nothing here raises or lowers a verdict, and an engine that cannot run is a note.
 
-// divergenceReview is what the differential left: the feedback that sends the builder back (nil if none) and the notes.
+// divergenceReview is what the differential left: the feedback that sends the builder back (nil if none), the notes,
+// the kept divergences already returned to the builder, and the engine diff answers for RFC-0005.
 type divergenceReview struct {
 	feedback *contract.Tier0Response
 	notes    []string
+	kept     []contract.ReturnedDivergence
 	answers  app.DiffAnswers // the engines' answers on tree, for Stage 4 with config.run_differential "stage3" (RFC-0005)
 }
 
@@ -33,6 +36,7 @@ func (m *Machine) checkDivergences(ctx context.Context, tree string, returned ma
 		return divergenceReview{}, err
 	}
 	r := divergenceReview{notes: notes, answers: answers}
+	seenKept := map[string]bool{}
 	for _, d := range found {
 		key := "divergence|" + d.Target + "|" + d.Args
 		if nextRound && !returned[key] {
@@ -46,9 +50,19 @@ func (m *Machine) checkDivergences(ctx context.Context, tree string, returned ma
 		why := "no round is left to act on it"
 		if returned[key] {
 			why = "returned to the builder, which kept it"
+			if !seenKept[key] {
+				seenKept[key] = true
+				r.kept = append(r.kept, contract.ReturnedDivergence{Target: d.Target, Args: d.Args})
+			}
 		}
 		r.notes = append(r.notes, fmt.Sprintf("divergence %s (args: %s; old: %s; new: %s): %s; Stage 4 judges it as it always does", d.Target, d.Args, d.Old, d.New, why))
 	}
+	sort.Slice(r.kept, func(i, j int) bool {
+		if r.kept[i].Target != r.kept[j].Target {
+			return r.kept[i].Target < r.kept[j].Target
+		}
+		return r.kept[i].Args < r.kept[j].Args
+	})
 	return r, nil
 }
 

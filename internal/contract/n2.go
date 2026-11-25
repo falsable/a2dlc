@@ -66,6 +66,8 @@ type CandidateEntry struct {
 	Tier0Reviewed *bool `json:"tier0_reviewed,omitempty"`
 	// Lemmas are the verdicts of the lemmas this builder declared (§5 Stage 2, decision 12; see run/lemmas.go).
 	Lemmas []CandidateLemma `json:"lemmas,omitempty"`
+	// ReturnedDivergences lists (target, args) pairs Stage 3 already returned once to this builder and it kept.
+	ReturnedDivergences []ReturnedDivergence `json:"returned_divergences,omitempty"`
 }
 
 // DroppedBuilder is a builder that left no candidate with N=2, with its reason.
