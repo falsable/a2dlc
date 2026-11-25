@@ -26,6 +26,10 @@ type Planner struct {
 	Rounds   int
 	// Work is a folder for the calls' /in and /out (outside the repository); empty uses the system's temporary folder.
 	Work string
+	// RepoDir optionally points to the repository root so the Planner extracts AST signatures and import edges.
+	RepoDir        string
+	FileSignatures []contract.SignatureFile
+	ImportGraph    []contract.DepsEdge
 }
 
 // Proposal is what the planner ended with: the last plan it answered (nil if it never answered one), its report, the
@@ -73,13 +77,17 @@ func (pl Planner) loop(ctx context.Context, feature contract.Intent, baseSha str
 	if len(list) > maxPlannerFiles {
 		list, truncated = list[:maxPlannerFiles], true
 	}
+	sigs, deps := pl.FileSignatures, pl.ImportGraph
+	if pl.RepoDir != "" && len(sigs) == 0 && len(deps) == 0 {
+		sigs, deps = ExtractGoContext(pl.RepoDir, list)
+	}
 	var out Proposal
 	findings := []contract.PlannerFinding{}
 	var previous *contract.Plan
 	for round := 1; round <= rounds; round++ {
 		out.Rounds = round
 		req := contract.PlannerRequest{FeatureIntent: feature, Files: list, FilesTruncated: truncated, Round: round, MaxRounds: rounds,
-			Findings: findings, PreviousPlan: previous, Replan: replan}
+			Findings: findings, PreviousPlan: previous, Replan: replan, FileSignatures: sigs, ImportGraph: deps}
 		p, status, reason, cost, err := pl.call(ctx, feature.SliceID, baseSha, round, req)
 		out.CostUSD += cost
 		if err != nil {
@@ -92,7 +100,7 @@ func (pl Planner) loop(ctx context.Context, feature contract.Intent, baseSha str
 			}
 			continue
 		}
-		out.Plan, out.Report, out.Replan = p, Check(*p, feature, files), nil
+		out.Plan, out.Report, out.Replan = p, CheckWithDeps(*p, feature, files, deps), nil
 		if replan != nil {
 			out.Replan = CheckReplan(replan.Plan, *p, replan.SliceID, files)
 		}

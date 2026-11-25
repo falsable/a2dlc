@@ -56,6 +56,11 @@ type Report struct {
 
 // Check judges p against the feature's intent and the files of the base tree.
 func Check(p contract.Plan, feature contract.Intent, baseFiles []string) Report {
+	return CheckWithDeps(p, feature, baseFiles, nil)
+}
+
+// CheckWithDeps runs G1..G7 and, when deps is non-nil, G8 import-graph dependency validation.
+func CheckWithDeps(p contract.Plan, feature contract.Intent, baseFiles []string, deps []contract.DepsEdge) Report {
 	r := Report{FeatureID: p.FeatureID, Waves: [][]string{}}
 	g := newGraph(p)
 	add := func(rule string, findings []string, note string) {
@@ -84,7 +89,8 @@ func Check(p contract.Plan, feature contract.Intent, baseFiles []string) Report 
 	findings, note := budget(p, feature)
 	add("G6", findings, note)
 	add("G7", sliceIntents(p, feature), "")
-	add("G8", nil, "not checked: it needs the engines' deps_graph, which `a2dlc plan check` does not run yet")
+	g8Findings, g8Note := g8ImportGraph(p, reach, deps)
+	add("G8", g8Findings, g8Note)
 
 	r.Valid = true
 	for _, x := range r.Results {
@@ -287,8 +293,7 @@ func overlap(a, b []string, files []string) []string {
 			if !isGlob(x) || !isGlob(y) {
 				continue
 			}
-			px, py := staticPrefix(x), staticPrefix(y)
-			if underDir(px, py) || underDir(py, px) {
+			if globsIntersect(x, y) {
 				k := x + " and " + y + " (globs that can match the same new file)"
 				if !seen[k] {
 					seen[k] = true

@@ -292,6 +292,8 @@ type PlannerRequest struct {
 	Findings       []PlannerFinding `json:"findings"`
 	PreviousPlan   *Plan            `json:"previous_plan"`
 	Replan         *PlannerReplan   `json:"replan"`
+	FileSignatures []SignatureFile  `json:"file_signatures,omitempty"`
+	ImportGraph    []DepsEdge       `json:"import_graph,omitempty"`
 }
 
 // PlannerFinding is a gate the previous round's plan broke.

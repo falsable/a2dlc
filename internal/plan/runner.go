@@ -25,6 +25,7 @@ type SliceRun struct {
 	Reason    string
 	Exhausted bool
 	RunDir    string
+	CostUSD   float64
 }
 
 // SliceExec runs the slices of a plan. The real one is RunExec (exec.go): an `a2dlc run` per slice, each in its own
@@ -54,6 +55,11 @@ type Runner struct {
 	// IntentSHA256 is the bare sha256 of the feature intent file, which a plan.accept authorization must name.
 	Accept       AcceptFunc
 	IntentSHA256 string
+	// MaxCostUSD caps total USD spend across all slices in one Run invocation (0 = unlimited).
+	MaxCostUSD float64
+	// RepairFunc optionally attempts bounded repair when merging candidates conflicts or Final fails.
+	RepairFunc func(ctx context.Context, base, merged, reason string) (fixedCommit string, ok bool, err error)
+	MaxRepairs int
 }
 
 // pathPlan is under .a2dlc/run, which gitx.Excluded keeps out of the tree_hash: the plan state and the final receipt are
@@ -176,9 +182,11 @@ func (r Runner) Run(ctx context.Context, planBytes []byte, feature contract.Inte
 	settled, started, reran := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	results := make(chan finished)
 	running := 0
+	totalCostUSD := 0.0
 	var ran []string
 	var fatal error
 	settle := func(f finished) {
+		totalCostUSD += f.res.CostUSD
 		if f.res.Exhausted && !strings.HasPrefix(f.res.Reason, exhaustedPrefix) {
 			f.res.Reason = exhaustedPrefix + f.res.Reason
 		}
@@ -233,6 +241,12 @@ func (r Runner) Run(ctx context.Context, planBytes []byte, feature contract.Inte
 					continue
 				}
 				if running >= jobs {
+					continue
+				}
+				if r.MaxCostUSD > 0 && totalCostUSD >= r.MaxCostUSD {
+					*cur = contract.PlanSliceState{SliceID: id, Status: contract.PlanEscalated, FinishedIn: st.Invocation,
+						Reason: fmt.Sprintf("aggregate plan max_cost_usd exceeded (%.4f >= %.4f)", totalCostUSD, r.MaxCostUSD), DefinitionSHA256: cur.DefinitionSHA256}
+					settled[id], progressed = true, true
 					continue
 				}
 				ran, reran[id], started[id], progressed = append(ran, id), true, true, true
@@ -418,26 +432,57 @@ func (r Runner) finish(ctx context.Context, dir string, st *contract.PlanState, 
 	}
 	merged, err := r.Repo.MergeCommits(baseSha, commits, "a2dlc plan: "+st.FeatureID)
 	if errors.Is(err, gitx.ErrMergeConflict) {
+		if r.RepairFunc != nil {
+			fixed, ok, repErr := r.RepairFunc(ctx, baseSha, "", "merge conflict: "+err.Error())
+			if repErr != nil {
+				return repErr
+			}
+			if ok && fixed != "" {
+				merged = fixed
+				goto mergedOK
+			}
+		}
 		set("escalated", "every slice passed but their candidates do not merge: "+err.Error())
 		return nil
 	}
 	if err != nil {
 		return err
 	}
+mergedOK:
 	if err := r.Repo.UpdateRef("refs/a2dlc/plan/"+st.FeatureID+"/merged", merged); err != nil {
 		return err
 	}
 	st.Merged = &merged
-	ok, reason, err := r.Final(ctx, baseSha, merged)
-	if err != nil {
-		return err
+	maxRepairs := r.MaxRepairs
+	if maxRepairs <= 0 && r.RepairFunc != nil {
+		maxRepairs = 1
 	}
-	if !ok {
+	for attempt := 0; ; attempt++ {
+		ok, reason, err := r.Final(ctx, baseSha, merged)
+		if err != nil {
+			return err
+		}
+		if ok {
+			set(contract.PASS, fmt.Sprintf("%d slice(s) passed and the merged tree passes the final check", len(order)))
+			return nil
+		}
+		if r.RepairFunc != nil && attempt < maxRepairs {
+			fixed, repOK, repErr := r.RepairFunc(ctx, baseSha, merged, reason)
+			if repErr != nil {
+				return repErr
+			}
+			if repOK && fixed != "" {
+				merged = fixed
+				if err := r.Repo.UpdateRef("refs/a2dlc/plan/"+st.FeatureID+"/merged", merged); err != nil {
+					return err
+				}
+				st.Merged = &merged
+				continue
+			}
+		}
 		set("escalated", "every slice passed but the final check of the merged tree did not: "+reason)
 		return nil
 	}
-	set(contract.PASS, fmt.Sprintf("%d slice(s) passed and the merged tree passes the final check", len(order)))
-	return nil
 }
 
 func save(dir string, st contract.PlanState) error {
