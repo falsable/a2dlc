@@ -49,9 +49,9 @@ func TestInvalidBaseFailuresExplicitListReplacesDefaults(t *testing.T) {
 // With no engine of a known language (a tests-only repo) the defaults are the union of every language's: an empty list
 // would make any failed testcase on the base a valid failure, even a failed import (bead a2dlc-pef).
 func TestInvalidBaseFailuresWithoutEnginesIsTheUnionOfTheLanguages(t *testing.T) {
-	want := len(unique(append(append(append([]string{}, defaultInvalidBaseFailures["python"]...), defaultInvalidBaseFailures["typescript"]...), defaultInvalidBaseFailures["php"]...)))
+	want := len(unique(append(append(append(append([]string{}, defaultInvalidBaseFailures["python"]...), defaultInvalidBaseFailures["typescript"]...), defaultInvalidBaseFailures["php"]...), defaultInvalidBaseFailures["go"]...)))
 	noEngines := contract.Config{Tests: &contract.TestsConfig{}}
-	unknownLanguage := contract.Config{Engines: []contract.EngineConfig{{Language: "go"}}, Tests: &contract.TestsConfig{}}
+	unknownLanguage := contract.Config{Engines: []contract.EngineConfig{{Language: "rust"}}, Tests: &contract.TestsConfig{}}
 	for _, cfg := range []contract.Config{noEngines, unknownLanguage} {
 		if got := invalidBaseFailures(cfg); len(got) != want {
 			t.Errorf("%+v gave %d patterns %v, want %d", cfg.Engines, len(got), got, want)

@@ -85,6 +85,7 @@ var defaultInvalidBaseFailures = map[string][]string{
 	"python":     {"ImportError", "ModuleNotFoundError", "AttributeError", "NameError", "^collection"},
 	"typescript": {"is not a function", "Cannot find module", "ReferenceError", "does not provide an export named"},
 	"php":        {`(Class|Interface|Trait|Enum) "[^"]+" not found`, "Call to undefined function", "Call to undefined method", "Failed opening required"},
+	"go":         {"undefined: ", "cannot find package", "no required module provides package", "has no field or method"},
 }
 
 // invalidBaseFailures is the list the NOP gate classifies with: config.tests.invalid_base_failures when declared, otherwise
