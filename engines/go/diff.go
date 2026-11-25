@@ -145,12 +145,26 @@ func fileInconclusive(rel, reason string, budget json.RawMessage) contract.Targe
 	return inconclusiveTarget(rel+"::"+filepath.Base(rel), reason, budget)
 }
 
-// packageDecls is the formatted package-level var, const and type declarations of a file, sorted so that moving one is not a change.
+// packageDecls is the formatted package-level var, const and type declarations of a file plus its (name, path) imports,
+// sorted so that moving one is not a change.
 func packageDecls(fset *token.FileSet, f *ast.File) string {
 	var decls []string
 	for _, decl := range f.Decls {
-		if gd, ok := decl.(*ast.GenDecl); ok && gd.Tok != token.IMPORT {
+		gd, ok := decl.(*ast.GenDecl)
+		if !ok {
+			continue
+		}
+		if gd.Tok != token.IMPORT {
 			decls = append(decls, formatNode(fset, gd))
+			continue
+		}
+		for _, spec := range gd.Specs {
+			is := spec.(*ast.ImportSpec)
+			name := ""
+			if is.Name != nil {
+				name = is.Name.Name
+			}
+			decls = append(decls, "import "+name+" "+is.Path.Value)
 		}
 	}
 	sort.Strings(decls)

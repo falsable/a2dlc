@@ -144,6 +144,34 @@ func TestGoEngineTier0VetFindingInUnrequestedFileStaysFiltered(t *testing.T) {
 	}
 }
 
+func TestGoEngineDiffSwappedImportIsNotIdentical(t *testing.T) {
+	base, cand := t.TempDir(), t.TempDir()
+	writeFile(t, base, "go.mod", "module example.com/demo\n\ngo 1.23\n")
+	writeFile(t, cand, "go.mod", "module example.com/demo\n\ngo 1.23\n")
+	writeFile(t, base, "calc/calc.go", "package calc\n\nimport \"math/rand\"\n\nfunc Roll() int { return rand.Intn(10) }\n")
+	writeFile(t, cand, "calc/calc.go", "package calc\n\nimport rand \"crypto/rand\"\n\nfunc Roll() int { return rand.Intn(10) }\n")
+	resp := opDiff(diffReq(base, cand, "calc/calc.go"))
+	for _, id := range resp.Identical {
+		if id == "calc/calc.go::Roll" {
+			t.Fatalf("Roll listed Identical although the import behind rand changed: %+v", resp)
+		}
+	}
+	got := targetByID(resp, "calc/calc.go::Roll")
+	if got == nil || got.Verdict == contract.PASS {
+		t.Fatalf("Roll must be judged and must not PASS: %+v", resp)
+	}
+}
+
+func TestGoEngineDiffReorderedImportsStayIdentical(t *testing.T) {
+	base, cand := t.TempDir(), t.TempDir()
+	writeFile(t, base, "calc/calc.go", "package calc\n\nimport (\n\t\"fmt\"\n\t\"strings\"\n)\n\nfunc F() string { return strings.ToUpper(fmt.Sprint(1)) }\n")
+	writeFile(t, cand, "calc/calc.go", "package calc\n\nimport (\n\t\"strings\"\n\t\"fmt\"\n)\n\nfunc F() string { return strings.ToUpper(fmt.Sprint(1)) }\n")
+	resp := opDiff(diffReq(base, cand, "calc/calc.go"))
+	if len(resp.Identical) != 1 || resp.Identical[0] != "calc/calc.go::F" {
+		t.Fatalf("Identical = %+v", resp.Identical)
+	}
+}
+
 func TestGoEngineDiffUnchangedDeclsKeepIdentical(t *testing.T) {
 	base, cand := t.TempDir(), t.TempDir()
 	src := "package calc\n\nvar rate = 2\n\nfunc Price(n int) int { return n * rate }\n"
