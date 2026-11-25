@@ -304,6 +304,13 @@ func stateReason(a app.App, p contract.Plan, slice string) string {
 	return "its Builders were exhausted (CB-02b)"
 }
 
+// newPlanRunner wires the plan machine of `a2dlc plan run`. maxCost caps each slice's run (opts) and, summed over every
+// slice of the invocation, the plan (Runner.MaxCostUSD).
+func newPlanRunner(a app.App, repo gitx.Repo, p contract.Plan, f contract.Intent, opts a2run.Options, slots plan.Slots, intentSHA string, maxCost float64) plan.Runner {
+	return plan.Runner{Repo: repo, Exec: plan.RunExec{App: a, Launcher: a2run.DockerLauncher{}, Options: opts, Feature: p.FeatureID},
+		Final: plan.AppFinalCheck(a, f), Slots: slots, IntentSHA256: intentSHA, MaxCostUSD: maxCost}
+}
+
 // planRun is one invocation of `a2dlc plan run`. Exit codes as a2dlc run: 0 PASS, 2 escalated, the verdict's code for
 // INCONCLUSIVE, 1 for a plan that does not pass its gates or a state on another base. With --max-replan above the
 // replans already proposed and a planner role configured, a slice whose Builders were exhausted (CB-02b) gets a
@@ -327,8 +334,7 @@ func planRun(ctx context.Context, a app.App, repo gitx.Repo, planPath string, pl
 			return 1
 		}
 	}
-	r := plan.Runner{Repo: repo, Exec: plan.RunExec{App: a, Launcher: a2run.DockerLauncher{}, Options: opts, Feature: p.FeatureID},
-		Final: plan.AppFinalCheck(a, f), Slots: plan.AutoSlots(ctx, cfg, roles, jobs, ""), IntentSHA256: intentSHA}
+	r := newPlanRunner(a, repo, p, f, opts, plan.AutoSlots(ctx, cfg, roles, jobs, ""), intentSHA, maxCost)
 	st, ran, err := r.Run(ctx, planBytes, f, base)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "a2dlc plan run:", err)

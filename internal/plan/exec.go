@@ -87,21 +87,24 @@ func (e RunExec) Run(ctx context.Context, s contract.PlanSlice, intentPath, base
 	return res, err
 }
 
+// outcome is what a finished run means for the plan. CostUSD is the run's reported spend whatever its outcome: the
+// plan's aggregate cap (Runner.MaxCostUSD) sums it, and a resumed run reports its total so far.
 func outcome(a app.App, st contract.RunState) (SliceRun, error) {
 	reason := lastReason(st)
+	cost := st.Budget.SpentUSD
 	switch {
 	case st.Outcome == nil:
-		return SliceRun{Status: contract.PlanFailed, Reason: "the run ended without a verdict: " + reason}, nil
+		return SliceRun{Status: contract.PlanFailed, Reason: "the run ended without a verdict: " + reason, CostUSD: cost}, nil
 	case *st.Outcome == contract.PASS:
 		c, err := a2run.Candidate(a, st)
 		if err != nil {
 			return SliceRun{}, err
 		}
-		return SliceRun{Status: contract.PlanPassed, Candidate: c, Reason: "PASS (run " + st.RunID + ")"}, nil
+		return SliceRun{Status: contract.PlanPassed, Candidate: c, Reason: "PASS (run " + st.RunID + ")", CostUSD: cost}, nil
 	case *st.Outcome == "escalated":
-		return SliceRun{Status: contract.PlanEscalated, Reason: reason, Exhausted: exhaustedRun(st)}, nil
+		return SliceRun{Status: contract.PlanEscalated, Reason: reason, Exhausted: exhaustedRun(st), CostUSD: cost}, nil
 	}
-	return SliceRun{Status: contract.PlanFailed, Reason: reason}, nil
+	return SliceRun{Status: contract.PlanFailed, Reason: reason, CostUSD: cost}, nil
 }
 
 // exhaustedRun says whether the run stopped at CB-02b: Stage 3 escalated with every Builder's rounds spent.

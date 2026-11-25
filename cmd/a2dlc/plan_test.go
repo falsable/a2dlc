@@ -5,7 +5,24 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/falsable/a2dlc/internal/app"
+	"github.com/falsable/a2dlc/internal/contract"
+	"github.com/falsable/a2dlc/internal/gitx"
+	"github.com/falsable/a2dlc/internal/plan"
+	a2run "github.com/falsable/a2dlc/internal/run"
 )
+
+// --max-cost reaches the plan's aggregate cap and each slice's run, not only the run.
+func TestNewPlanRunnerCarriesTheCostCap(t *testing.T) {
+	r := newPlanRunner(app.App{}, gitx.Repo{}, contract.Plan{FeatureID: "feat"}, contract.Intent{}, a2run.Options{MaxCostUSD: 0.75}, nil, "sha", 0.75)
+	if r.MaxCostUSD != 0.75 {
+		t.Fatalf("Runner.MaxCostUSD = %v, want 0.75: the aggregate cap never fires", r.MaxCostUSD)
+	}
+	if ex, ok := r.Exec.(plan.RunExec); !ok || ex.Options.MaxCostUSD != 0.75 || ex.Feature != "feat" {
+		t.Fatalf("Exec = %+v", r.Exec)
+	}
+}
 
 // plan import through the real dispatch: a Spec Kit tasks.md whose stories run side by side on different files is a
 // plan that passes (0, written to --out); the same with two stories on one file is written and rejected (1, G3).

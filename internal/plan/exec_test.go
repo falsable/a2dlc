@@ -78,6 +78,7 @@ func (e *passEngine) Mutate(context.Context, contract.EngineConfig, contract.Req
 // builder writes, for the slice its intent names, what files says.
 type builder struct {
 	files    func(slice string) map[string]string
+	usd      float64 // USD each launch reports; 0.01 when unset
 	launches map[string]int
 	mu       sync.Mutex
 	inflight int
@@ -120,9 +121,13 @@ func (b *builder) Launch(_ context.Context, r contract.Role, s a2run.LaunchSpec)
 		os.WriteFile(p, []byte(c), 0o644)
 		touched = append(touched, rel)
 	}
+	usd := b.usd
+	if usd == 0 {
+		usd = 0.01
+	}
 	out, _ := json.Marshal(contract.BuilderResponse{Summary: "done", FilesChanged: touched})
 	resp, _ := json.Marshal(contract.RoleResponse{SchemaVersion: 1, RunID: req.RunID, Role: s.Role, Stage: s.Stage, Attempt: s.Attempt,
-		Status: contract.RoleOK, Cost: &contract.Cost{USD: 0.01}, Payload: out})
+		Status: contract.RoleOK, Cost: &contract.Cost{USD: usd}, Payload: out})
 	os.WriteFile(filepath.Join(s.OutDir, "response.json"), resp, 0o644)
 	return a2run.LaunchResult{Argv: []string{"docker", "run", r.Image}, Network: a2run.NetworkNone}, nil
 }
@@ -332,5 +337,40 @@ func TestPlanRunMarksExhaustedSlices(t *testing.T) {
 	}
 	if st, err := LoadState(a.Repo.Dir, "feat"); err != nil || st.Replans != 1 {
 		t.Fatalf("replans %d (%v)", st.Replans, err)
+	}
+}
+
+// outcome carries the run's reported spend into SliceRun.CostUSD, whatever the run ended in: the aggregate cap sums it.
+func TestOutcomeCarriesTheRunsSpend(t *testing.T) {
+	esc, fail := "escalated", contract.FAIL
+	for name, st := range map[string]contract.RunState{
+		"no verdict": {RunID: "r1"},
+		"escalated":  {RunID: "r2", Outcome: &esc},
+		"failed":     {RunID: "r3", Outcome: &fail},
+	} {
+		st.Budget.SpentUSD = 0.37
+		got, err := outcome(app.App{}, st)
+		if err != nil || got.CostUSD != 0.37 {
+			t.Fatalf("%s: CostUSD = %v (err %v), want 0.37", name, got.CostUSD, err)
+		}
+	}
+}
+
+// Through real runs: the builder reports 0.25 USD per slice, the plan caps at 0.50, so after left and right (0.50 in
+// all) join does not start: it escalates on the aggregate cap, and its Builder is never launched.
+func TestPlanRunStopsOnTheAggregateCostCap(t *testing.T) {
+	a, base, _ := e2eRepo(t)
+	p, f := threeSlices()
+	planBytes, _ := json.Marshal(p)
+	b := &builder{files: ownFile, launches: map[string]int{}, usd: 0.25}
+	r := Runner{Repo: a.Repo, Accept: acceptAll, Exec: RunExec{App: a, Launcher: b, Feature: p.FeatureID}, Final: AppFinalCheck(a, f),
+		MaxCostUSD: 0.50} // Slots nil: one slice at a time, so the spend of left and right is known before join
+	st, _, err := r.Run(context.Background(), planBytes, f, base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	join := st.Slices[2]
+	if join.Status != contract.PlanEscalated || !strings.Contains(join.Reason, "max_cost_usd exceeded") || b.launched("feat.join") != 0 {
+		t.Fatalf("join: status %s (%s), launches %v: the aggregate cap did not stop it", join.Status, join.Reason, b.launches)
 	}
 }
