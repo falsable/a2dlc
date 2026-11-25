@@ -17,6 +17,8 @@ type UsageSummary struct {
 	CacheReadInputTokens     int     `json:"cache_read_input_tokens"`
 	CacheCreationInputTokens int     `json:"cache_creation_input_tokens"`
 	USD                      float64 `json:"usd"`
+	// Unparsed counts non-streamed responses from which no usage could be read: their spend is missing from the totals.
+	Unparsed int `json:"unparsed"`
 }
 
 type usageTracker struct {
@@ -37,7 +39,14 @@ func (u *usageTracker) recordCall(resp *http.Response) {
 	}
 }
 
-func (u *usageTracker) recordPayload(b []byte) {
+func (u *usageTracker) recordUnparsed() {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.summary.Unparsed++
+}
+
+// recordPayload adds the usage found in one JSON document and reports whether it found any.
+func (u *usageTracker) recordPayload(b []byte) bool {
 	var parsed struct {
 		Usage *struct {
 			InputTokens              int     `json:"input_tokens"`
@@ -58,8 +67,9 @@ func (u *usageTracker) recordPayload(b []byte) {
 		} `json:"message"`
 	}
 	if json.Unmarshal(b, &parsed) != nil {
-		return
+		return false
 	}
+	found := parsed.Usage != nil || (parsed.Message != nil && parsed.Message.Usage != nil)
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	if parsed.Usage != nil {
@@ -85,6 +95,7 @@ func (u *usageTracker) recordPayload(b []byte) {
 		u.summary.CacheReadInputTokens += parsed.Message.Usage.CacheReadInputTokens
 		u.summary.CacheCreationInputTokens += parsed.Message.Usage.CacheCreationInputTokens
 	}
+	return found
 }
 
 func (u *usageTracker) snapshot() UsageSummary {
@@ -105,6 +116,8 @@ type streamUsageInspector struct {
 	tracker *usageTracker
 	isSSE   bool
 	buf     bytes.Buffer
+	tail    []byte
+	total   int
 	lineBuf bytes.Buffer
 }
 
@@ -131,15 +144,53 @@ func (s *streamUsageInspector) write(chunk []byte) {
 		}
 		return
 	}
-	const maxBuf = 256 * 1024
-	if s.buf.Len() < maxBuf {
-		rem := maxBuf - s.buf.Len()
+	s.total += len(chunk)
+	if s.buf.Len() < maxHeadBuf {
+		rem := maxHeadBuf - s.buf.Len()
 		if len(chunk) > rem {
 			s.buf.Write(chunk[:rem])
 		} else {
 			s.buf.Write(chunk)
 		}
 	}
+	// Keep the last maxTailBuf bytes of the whole body: providers put `usage` after the content.
+	s.tail = append(s.tail, chunk...)
+	if len(s.tail) > 2*maxTailBuf {
+		s.tail = append(s.tail[:0], s.tail[len(s.tail)-maxTailBuf:]...)
+	}
+}
+
+// Non-streamed bodies are held as a head (parsed whole when the body fits in it) and a tail window.
+const (
+	maxHeadBuf = 256 * 1024
+	maxTailBuf = 64 * 1024
+)
+
+// trailingUsage returns the last `"usage":{...}` object of a JSON body tail as a one-key document.
+// An unescaped `"usage"` can only be an object key: inside strings the quotes are escaped.
+func trailingUsage(tail []byte) []byte {
+	key := []byte(`"usage"`)
+	for end := len(tail); end > 0; {
+		i := bytes.LastIndex(tail[:end], key)
+		if i < 0 {
+			return nil
+		}
+		end = i
+		rest := bytes.TrimLeft(tail[i+len(key):], " \t\r\n")
+		if len(rest) == 0 || rest[0] != ':' {
+			continue
+		}
+		rest = bytes.TrimLeft(rest[1:], " \t\r\n")
+		if len(rest) == 0 || rest[0] != '{' {
+			continue
+		}
+		var obj json.RawMessage
+		if json.NewDecoder(bytes.NewReader(rest)).Decode(&obj) != nil {
+			continue
+		}
+		return append(append([]byte(`{"usage":`), obj...), '}')
+	}
+	return nil
 }
 
 func (s *streamUsageInspector) finish() {
@@ -155,7 +206,16 @@ func (s *streamUsageInspector) finish() {
 		}
 		return
 	}
-	if s.buf.Len() > 0 {
-		s.tracker.recordPayload(s.buf.Bytes())
+	if s.total == 0 {
+		return
+	}
+	var found bool
+	if s.total <= maxHeadBuf {
+		found = s.tracker.recordPayload(s.buf.Bytes())
+	} else if doc := trailingUsage(s.tail); doc != nil {
+		found = s.tracker.recordPayload(doc)
+	}
+	if !found {
+		s.tracker.recordUnparsed()
 	}
 }
