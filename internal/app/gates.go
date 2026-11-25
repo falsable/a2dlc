@@ -775,7 +775,8 @@ func (a App) saveCache(key string, c run) {
 
 // stubs asks each engine for the base with stubs for what the candidate added in its sources. An engine that does not
 // produce them stops nothing: NOP runs without stubs and import failures remain INCONCLUSIVE. The stub engine of
-// config.tests comes last: it gets the sources no reviewing engine claimed, and only for stubs. A second ask names the
+// config.tests comes last: it gets the sources no reviewing engine claimed, then those of a reviewing engine that answered
+// stub with an error, and only for stubs. A second ask names the
 // changed test files that exist on the base and keeps only what the engines say about them, modified_tests: their stubs
 // and unstubbed symbols are test code's, not the change's, so they never reach the NOP run.
 func (a App) stubs(ctx context.Context, cfg contract.Config, in *gateInput, baseDir, candDir string) {
@@ -785,7 +786,11 @@ func (a App) stubs(ctx context.Context, cfg contract.Config, in *gateInput, base
 		engines = append(append([]contract.EngineConfig{}, cfg.Engines...), *cfg.Tests.StubEngine)
 	}
 	var notes []string
-	ask := func(changed []string, modifiedOnly bool) {
+	// refused and refusedNotes: the sources of a reviewing engine that answered stub with an error, held for the stub
+	// engine. Assign gives each file to its first engine, so without this the stub engine never sees a file a reviewing
+	// engine claims (a black-box engine that does not do stub, over the same language).
+	var refused, refusedNotes []string
+	ask := func(engines []contract.EngineConfig, changed []string, modifiedOnly bool) {
 		byEngine, _ := verdict.Assign(engines, changed)
 		for _, i := range sortedIndexes(byEngine) {
 			e := engines[i]
@@ -795,7 +800,12 @@ func (a App) stubs(ctx context.Context, cfg contract.Config, in *gateInput, base
 			resp, files, err := a.Runner.Stub(ctx, e, req, baseDir, candDir)
 			timerOf(ctx).engineOp("stub", time.Since(t0))
 			if err != nil {
-				if !modifiedOnly {
+				switch {
+				case modifiedOnly:
+				case len(engines) > len(cfg.Engines) && i < len(cfg.Engines):
+					refused = append(refused, byEngine[i]...)
+					refusedNotes = append(refusedNotes, e.Language+": "+err.Error())
+				default:
 					notes = append(notes, e.Language+": "+err.Error())
 				}
 				continue
@@ -815,14 +825,22 @@ func (a App) stubs(ctx context.Context, cfg contract.Config, in *gateInput, base
 			in.unstubbed = append(in.unstubbed, resp.Unstubbed...)
 		}
 	}
-	ask(in.sources, false)
+	ask(engines, in.sources, false)
+	if len(refused) > 0 {
+		before := len(notes)
+		_, without := verdict.Assign([]contract.EngineConfig{*cfg.Tests.StubEngine}, refused)
+		ask([]contract.EngineConfig{*cfg.Tests.StubEngine}, refused, false)
+		if len(notes) > before || len(without) > 0 {
+			notes = append(notes, refusedNotes...)
+		}
+	}
 	var oldTests []string
 	for _, f := range in.tests {
 		if _, err := a.Repo.Blob(in.baseSha, f); err == nil {
 			oldTests = append(oldTests, f)
 		}
 	}
-	ask(oldTests, true)
+	ask(engines, oldTests, true)
 	sort.Strings(in.symbols)
 	if len(notes) > 0 {
 		in.stubNote = "no stubs from " + strings.Join(notes, "; ")

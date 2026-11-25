@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,7 +30,10 @@ func withoutImpl(b []byte) []byte {
 }
 
 // Stub of the fake engine: each IMPL the candidate adds goes to the base as STUB.
-func (m *fakeEngine) Stub(_ context.Context, _ contract.EngineConfig, req contract.Request, baseDir, candDir string) (contract.StubResponse, map[string][]byte, error) {
+func (m *fakeEngine) Stub(_ context.Context, e contract.EngineConfig, req contract.Request, baseDir, candDir string) (contract.StubResponse, map[string][]byte, error) {
+	if msg, ok := m.stubErr[e.Image]; ok {
+		return contract.StubResponse{}, nil, errors.New(msg)
+	}
 	r := contract.StubResponse{SchemaVersion: 1, Stubbed: []contract.StubFile{}, Unstubbed: []string{}, ModifiedTests: m.modified}
 	files := map[string][]byte{}
 	for _, f := range req.ChangedFiles {
@@ -564,6 +568,28 @@ func TestStubEngineIsAskedForStubsOnly(t *testing.T) {
 	}
 	if len(v.TestGates.NOPOracle.Stubs) != 1 {
 		t.Fatalf("it gave no stub: %+v", v.TestGates.NOPOracle)
+	}
+}
+
+// A reviewing engine that does not do stub (a black-box engine) claims the source first, so verdict.Assign never gives it
+// to the stub engine. The core offers it to the stub engine after the refusal, and the new test is judged.
+func TestStubEngineGetsTheSourcesAReviewingEngineGaveNoStubsFor(t *testing.T) {
+	a, dir := testsOnlyRepo(t, `{"schema_version":1,"engines":[{"language":"typescript","image":"bb","paths":["src/lib/**"],"budget":{}}],`+
+		`"tests":{"image":"fake","paths":["tests/**"],"source_paths":["src/**"],"command":"nop","baseline_command":"baseline",`+
+		`"stub_engine":{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}}}`)
+	a.Runner.(*fakeEngine).stubErr = map[string]string{"bb": "stub is not performed by the black-box engine"}
+	write(t, dir, "src/lib/limiter.ts", "IMPL added\n")
+	write(t, dir, "tests/n.t", "test_added uses:added\n")
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := testsOf(v)["test_added"]
+	if got.Verdict != contract.PASS || got.Base != contract.TestFailed || !strings.Contains(got.Message, "NotImplementedError") {
+		t.Fatalf("%+v", got)
+	}
+	if g := v.TestGates.NOPOracle; len(g.Stubs) != 1 || strings.Contains(g.Reason, "no stubs from") {
+		t.Fatalf("%+v", g)
 	}
 }
 

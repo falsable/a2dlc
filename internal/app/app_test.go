@@ -26,7 +26,8 @@ import (
 type fakeEngine struct {
 	mu       sync.Mutex
 	calls    int
-	modified []string // what the stub operation reports as modified_tests
+	modified []string          // what the stub operation reports as modified_tests
+	stubErr  map[string]string // engine image -> the error its stub operation answers
 }
 
 func (m *fakeEngine) Run(_ context.Context, _ contract.EngineConfig, req contract.Request, baseDir, candDir string) (contract.Response, error) {
