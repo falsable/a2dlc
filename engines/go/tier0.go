@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -43,6 +44,11 @@ func opTier0(req contract.Request) contract.Tier0Response {
 		abs := absUnder(req.CandidateDir, rel)
 		src, err := os.ReadFile(abs)
 		if err != nil {
+			resp.Findings = append(resp.Findings, contract.Tier0Finding{
+				Kind:    contract.Tier0Compile,
+				File:    rel,
+				Message: "cannot read file: " + err.Error(),
+			})
 			continue
 		}
 		file, err := parser.ParseFile(fset, abs, src, parser.ParseComments)
@@ -214,12 +220,14 @@ func runGoVet(out *[]contract.Tier0Finding, candDir string, reqSet map[string]bo
 	if err == nil {
 		return
 	}
+	parsed := false
 	for _, rawLine := range strings.Split(combined.String(), "\n") {
 		line := strings.TrimSpace(rawLine)
 		m := vetLineRe.FindStringSubmatch(line)
 		if m == nil {
 			continue
 		}
+		parsed = true
 		rel := filepath.ToSlash(strings.TrimPrefix(m[1], "./"))
 		if !reqSet[rel] {
 			continue
@@ -236,4 +244,27 @@ func runGoVet(out *[]contract.Tier0Finding, candDir string, reqSet map[string]bo
 			Message: "go vet: " + strings.TrimSpace(m[3]),
 		})
 	}
+	// A non-zero exit with no file:line output at all (toolchain too old, broken go.mod, a load error) is still a
+	// failure: it must not read as a clean Tier 0. Findings in files nobody asked about stay filtered out.
+	if !parsed {
+		msg := strings.TrimSpace(combined.String())
+		if msg == "" {
+			msg = err.Error()
+		}
+		*out = append(*out, contract.Tier0Finding{Kind: contract.Tier0Compile, File: firstGoFile(reqSet), Message: "go vet failed: " + msg})
+	}
+}
+
+func firstGoFile(reqSet map[string]bool) string {
+	var files []string
+	for f := range reqSet {
+		if isGoFile(f) {
+			files = append(files, f)
+		}
+	}
+	sort.Strings(files)
+	if len(files) == 0 {
+		return "go.mod"
+	}
+	return files[0]
 }

@@ -29,6 +29,7 @@ func opStub(req contract.Request) contract.StubResponse {
 		baseAbs := absUnder(req.BaseDir, rel)
 		candSrc, err := os.ReadFile(candAbs)
 		if err != nil {
+			resp.Unstubbed = append(resp.Unstubbed, rel)
 			continue
 		}
 		if isGoTestFile(rel) {

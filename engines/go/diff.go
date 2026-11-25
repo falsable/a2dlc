@@ -7,6 +7,8 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/falsable/a2dlc/internal/contract"
 )
@@ -36,6 +38,7 @@ func opDiff(req contract.Request) contract.Response {
 		candAbs := absUnder(req.CandidateDir, rel)
 		candSrc, err := os.ReadFile(candAbs)
 		if err != nil {
+			resp.Targets = append(resp.Targets, fileInconclusive(rel, "cannot read candidate file: "+err.Error(), budget))
 			continue
 		}
 		candAST, err := parser.ParseFile(fset, candAbs, candSrc, 0)
@@ -55,25 +58,35 @@ func opDiff(req contract.Request) contract.Response {
 		}
 
 		baseFuncs := map[string]string{}
+		var baseOrder []string
+		var baseDecls string
 		baseAbs := absUnder(req.BaseDir, rel)
 		if baseSrc, err := os.ReadFile(baseAbs); err == nil {
 			if baseAST, bErr := parser.ParseFile(fset, baseAbs, baseSrc, 0); bErr == nil {
+				baseDecls = packageDecls(fset, baseAST)
 				for _, decl := range baseAST.Decls {
 					if fn, ok := decl.(*ast.FuncDecl); ok {
-						baseFuncs[funcKey(fset, fn)] = formatNode(fset, fn)
+						k := funcKey(fset, fn)
+						baseFuncs[k] = formatNode(fset, fn)
+						baseOrder = append(baseOrder, k)
 					}
 				}
 			}
 		}
+		// A changed package-level var, const or type can change what an unchanged function does, so with one the
+		// function body being the same no longer proves the function is.
+		declsChanged := len(baseFuncs) > 0 && baseDecls != packageDecls(fset, candAST)
 
+		candKeys := map[string]bool{}
 		for _, decl := range candAST.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
 			if !ok {
 				continue
 			}
 			key := funcKey(fset, fn)
+			candKeys[key] = true
 			targetID := rel + "::" + key
-			if baseBody, ok := baseFuncs[key]; ok && baseBody == formatNode(fset, fn) {
+			if baseBody, ok := baseFuncs[key]; ok && !declsChanged && baseBody == formatNode(fset, fn) {
 				resp.Identical = append(resp.Identical, targetID)
 				continue
 			}
@@ -103,8 +116,45 @@ func opDiff(req contract.Request) contract.Response {
 				Counterexample: ce,
 			})
 		}
+		// A function the candidate dropped has no candidate to run: callers may still need it, so it is never a silent PASS.
+		for _, key := range baseOrder {
+			if !candKeys[key] {
+				resp.Targets = append(resp.Targets, inconclusiveTarget(rel+"::"+key, "function removed in the candidate: nothing to compare", budget))
+			}
+		}
 	}
 	return resp
+}
+
+func inconclusiveTarget(id, reason string, budget json.RawMessage) contract.TargetResult {
+	return contract.TargetResult{
+		Target:        id,
+		Engine:        engineName,
+		EngineVersion: engineVersion,
+		Verdict:       contract.INCONCLUSIVE,
+		Reason:        reason,
+		SearchBudget:  budget,
+		Generators:    "typed_default",
+		Typed:         true,
+		Equivalence:   "strict",
+	}
+}
+
+// fileInconclusive is the file-level target for a changed file the engine could not read, named like the Python engine's.
+func fileInconclusive(rel, reason string, budget json.RawMessage) contract.TargetResult {
+	return inconclusiveTarget(rel+"::"+filepath.Base(rel), reason, budget)
+}
+
+// packageDecls is the formatted package-level var, const and type declarations of a file, sorted so that moving one is not a change.
+func packageDecls(fset *token.FileSet, f *ast.File) string {
+	var decls []string
+	for _, decl := range f.Decls {
+		if gd, ok := decl.(*ast.GenDecl); ok && gd.Tok != token.IMPORT {
+			decls = append(decls, formatNode(fset, gd))
+		}
+	}
+	sort.Strings(decls)
+	return strings.Join(decls, "\n")
 }
 
 func funcKey(fset *token.FileSet, fn *ast.FuncDecl) string {
