@@ -3,6 +3,7 @@ package run
 import (
 	"context"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,5 +50,49 @@ printf '{"schema_version":1,"type":"completed"}\n'
 	if evs[0].Type != contract.StreamStarted || evs[1].Type != contract.StreamToolUse || evs[1].Tool != "read_file" ||
 		evs[2].Type != contract.StreamSteering || evs[3].Type != contract.StreamCompleted {
 		t.Fatalf("unexpected events: %+v", evs)
+	}
+}
+
+// A caller that Waits before it reads Events must not hang the reader once the 64-event buffer is full; the events stay
+// available to a later reader, Events closes at EOF, and Steer after the process exited says the session is closed.
+func TestStreamSessionWaitDoesNotNeedEventsDrained(t *testing.T) {
+	const n = 70 // above the 64-event buffer
+	cmd := exec.Command("sh", "-c", `i=0; while [ $i -lt 70 ]; do echo "line $i"; i=$((i+1)); done`)
+	sess, err := StartStreamCmd(context.Background(), cmd, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waited := make(chan error, 1)
+	go func() { waited <- sess.Wait() }()
+	select {
+	case err := <-waited:
+		if err != nil {
+			t.Fatalf("Wait: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Wait did not return: the reader is blocked on an undrained Events channel")
+	}
+	if got := len(sess.CollectedEvents()); got != n {
+		t.Fatalf("collected %d events, want %d", got, n)
+	}
+	if err := sess.Steer("late"); err == nil || !strings.Contains(err.Error(), "closed") {
+		t.Fatalf("Steer after exit: %v, want a closed-session error", err)
+	}
+	got := 0
+	timeout := time.After(5 * time.Second)
+	for done := false; !done; {
+		select {
+		case _, ok := <-sess.Events():
+			if !ok {
+				done = true
+			} else {
+				got++
+			}
+		case <-timeout:
+			t.Fatalf("Events not closed after %d events", got)
+		}
+	}
+	if got != n {
+		t.Fatalf("Events delivered %d, want %d", got, n)
 	}
 }

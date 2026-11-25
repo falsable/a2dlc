@@ -21,14 +21,16 @@ type StreamSession struct {
 	cancel context.CancelFunc
 	stdin  io.WriteCloser
 	mu     sync.Mutex
-	closed bool
+	closed bool // the process exited: nothing reads stdin any more
 
 	events chan contract.StreamEvent
 	done   chan error
 
 	evMu   sync.Mutex
+	evCond *sync.Cond // on evMu: allEvs grew or eof was set
 	logBuf strings.Builder
 	allEvs []contract.StreamEvent
+	eof    bool // stdout reached EOF: allEvs is complete
 }
 
 // StartStreamCmd starts cmd with bidirectional stdin/stdout JSON-lines/ACP streaming.
@@ -65,9 +67,10 @@ func StartStreamCmd(ctx context.Context, cmd *exec.Cmd, onEvent func(contract.St
 		events: make(chan contract.StreamEvent, 64),
 		done:   make(chan error, 1),
 	}
+	sess.evCond = sync.NewCond(&sess.evMu)
 
+	// The reader never waits for a consumer of Events: Wait depends on it, and a caller may Wait before it drains.
 	go func() {
-		defer close(sess.events)
 		sc := bufio.NewScanner(stdout)
 		sc.Buffer(make([]byte, 64*1024), 4*1024*1024)
 		seq := 0
@@ -86,20 +89,54 @@ func StartStreamCmd(ctx context.Context, cmd *exec.Cmd, onEvent func(contract.St
 			if onEvent != nil {
 				onEvent(ev)
 			}
-			sess.events <- ev
+			sess.evCond.Signal()
 		}
+		sess.evMu.Lock()
+		sess.eof = true
+		sess.evMu.Unlock()
+		sess.evCond.Broadcast()
 		waitErr := bound.Wait()
 		if waitErr != nil && stderr.Len() > 0 {
 			waitErr = fmt.Errorf("%w: %s", waitErr, strings.TrimSpace(stderr.String()))
 		}
+		sess.mu.Lock()
+		sess.closed = true
+		sess.mu.Unlock()
 		sess.done <- waitErr
 		close(sess.done)
 	}()
+	go sess.forward(sCtx)
 
 	return sess, nil
 }
 
-// Events returns the channel of typed stream events (closed when stdout reaches EOF).
+// forward delivers allEvs, in order and without loss, to the Events channel at the pace of its consumer, and closes the
+// channel once stdout reached EOF and every event was delivered. Cancel (the context) stops it early.
+func (s *StreamSession) forward(ctx context.Context) {
+	defer close(s.events)
+	for next := 0; ; next++ {
+		s.evMu.Lock()
+		for next >= len(s.allEvs) && !s.eof {
+			s.evCond.Wait()
+		}
+		if next >= len(s.allEvs) {
+			s.evMu.Unlock()
+			return
+		}
+		ev := s.allEvs[next]
+		s.evMu.Unlock()
+		select {
+		case s.events <- ev:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// Events returns the channel of typed stream events, closed at EOF once every event was delivered. It never holds the
+// process back: Wait returns whether or not it is read, and events not yet read stay queued for a later reader.
+// CollectedEvents has all of them regardless. Reading is optional, but an unread feed of a session that was not
+// cancelled keeps one goroutine until it is.
 func (s *StreamSession) Events() <-chan contract.StreamEvent {
 	return s.events
 }
