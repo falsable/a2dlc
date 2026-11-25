@@ -55,12 +55,13 @@ jobs:
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-ts:$v" engines/ts
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-py:$v" -t a2dlc-engine-py:0.15 engines/py
           docker build -q --label "$fuente" -t "$r/a2dlc-engine-php:$v" engines/php
+          docker build -q --label "$fuente" -t "$r/a2dlc-engine-go:$v" -f engines/go/Dockerfile .
           # the self-gate's tests image (.a2dlc/tests.Dockerfile builds FROM the two local tags), so CI can pull what
           # tests.image pins instead of an image that exists only on the maintainer's machine
           docker build -q -t a2dlc-tests-go:0.1 -f .a2dlc/tests-go.Dockerfile .a2dlc
           docker build -q --label "$fuente" -t "$r/a2dlc-tests:$v" -f .a2dlc/tests.Dockerfile .a2dlc
           : > dist/IMAGENES.txt
-          for m in bb bb-go ts py php; do
+          for m in bb bb-go ts py php go; do
             docker push -q "$r/a2dlc-engine-$m:$v"
             # the ghcr digest, not RepoDigests[0]: an image that also carries a local tag (bb, py) lists that one first
             docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$r/a2dlc-engine-$m:$v" | grep "^$r/" >> dist/IMAGENES.txt
