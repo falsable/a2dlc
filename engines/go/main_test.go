@@ -104,7 +104,7 @@ func TestGoEngineSignaturesAndStubAndDepsAndMutate(t *testing.T) {
 		t.Fatalf("stubResp = %+v", stubResp)
 	}
 	stubBytes, err := os.ReadFile(filepath.Join(io, "stubs", "util", "util.go"))
-	if err != nil || !strings.Contains(string(stubBytes), `panic("a2dlc stub: not implemented")`) {
+	if err != nil || !strings.Contains(string(stubBytes), "return a2dlcR0") {
 		t.Fatalf("stub file = %q, err = %v", string(stubBytes), err)
 	}
 
