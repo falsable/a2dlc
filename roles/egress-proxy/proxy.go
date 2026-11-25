@@ -36,6 +36,7 @@ type Proxy struct {
 	routes    map[string]Route
 	dial      func(ctx context.Context, addr string) (net.Conn, error)
 	transport http.RoundTripper
+	usage     *usageTracker
 }
 
 // ParseAllow reads the comma-separated allowlist from A2DLC_EGRESS_ALLOW. Names are lowercased; an empty list allows
@@ -109,6 +110,7 @@ func NewProxy(allow map[string]bool, routes ...map[string]Route) *Proxy {
 			return d.DialContext(ctx, "tcp", addr)
 		},
 		transport: http.DefaultTransport,
+		usage:     &usageTracker{},
 	}
 }
 
@@ -171,6 +173,11 @@ func (p *Proxy) matchHTTPRequest(r *http.Request) (Route, string, bool) {
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet && r.URL.Path == "/__a2dlc/usage" {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(p.Usage())
+		return
+	}
 	if r.Method != http.MethodConnect {
 		if len(p.routes) == 0 {
 			http.Error(w, "only CONNECT is proxied", http.StatusMethodNotAllowed)
@@ -277,11 +284,21 @@ func (p *Proxy) forwardHTTP(w http.ResponseWriter, r *http.Request, rt Route, up
 	}
 	w.WriteHeader(resp.StatusCode)
 	log.Printf("allow HTTP %s -> %s (%d)", r.URL.Path, target.Host, resp.StatusCode)
+	if p.usage != nil {
+		p.usage.recordCall(resp)
+	}
+	ct := strings.ToLower(resp.Header.Get("Content-Type"))
+	insp := &streamUsageInspector{
+		tracker: p.usage,
+		isSSE:   strings.Contains(ct, "text/event-stream"),
+	}
+	defer insp.finish()
 	if fl, ok := w.(http.Flusher); ok {
 		buf := make([]byte, 32*1024)
 		for {
 			n, rerr := resp.Body.Read(buf)
 			if n > 0 {
+				insp.write(buf[:n])
 				if _, werr := w.Write(buf[:n]); werr != nil {
 					return
 				}
@@ -292,7 +309,19 @@ func (p *Proxy) forwardHTTP(w http.ResponseWriter, r *http.Request, rt Route, up
 			}
 		}
 	}
-	_, _ = io.Copy(w, resp.Body)
+	buf := make([]byte, 32*1024)
+	for {
+		n, rerr := resp.Body.Read(buf)
+		if n > 0 {
+			insp.write(buf[:n])
+			if _, werr := w.Write(buf[:n]); werr != nil {
+				return
+			}
+		}
+		if rerr != nil {
+			return
+		}
+	}
 }
 
 // tunnel copies both ways until either side ends, then closes both. buf holds bytes the client sent before the

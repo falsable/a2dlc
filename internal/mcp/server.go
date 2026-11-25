@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/falsable/a2dlc/internal/app"
 	"github.com/falsable/a2dlc/internal/contract"
@@ -48,6 +49,20 @@ type toolDef struct {
 type callToolParams struct {
 	Name      string         `json:"name"`
 	Arguments map[string]any `json:"arguments,omitempty"`
+	Meta      *struct {
+		ProgressToken any `json:"progressToken,omitempty"`
+	} `json:"_meta,omitempty"`
+}
+
+type cancelledParams struct {
+	RequestID json.RawMessage `json:"requestId"`
+	Reason    string          `json:"reason,omitempty"`
+}
+
+type rpcNotification struct {
+	JSONRPC string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  any    `json:"params,omitempty"`
 }
 
 type contentBlock struct {
@@ -61,10 +76,33 @@ type callToolResult struct {
 }
 
 // Serve runs the JSON-RPC 2.0 MCP server over in/out until EOF.
+// tools/call requests execute concurrently so notifications/cancelled and progress notifications work mid-flight.
 func Serve(ctx context.Context, a app.App, in io.Reader, out io.Writer) error {
 	scanner := bufio.NewScanner(in)
 	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
 	enc := json.NewEncoder(out)
+	var encMu sync.Mutex
+	writeJSON := func(v any) error {
+		encMu.Lock()
+		defer encMu.Unlock()
+		return enc.Encode(v)
+	}
+
+	var inflightMu sync.Mutex
+	inflight := map[string]context.CancelFunc{}
+	toolJobs := make(chan func(), 64)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for job := range toolJobs {
+			job()
+		}
+	}()
+	defer func() {
+		close(toolJobs)
+		wg.Wait()
+	}()
 
 	for scanner.Scan() {
 		line := bytes.TrimSpace(scanner.Bytes())
@@ -77,20 +115,75 @@ func Serve(ctx context.Context, a app.App, in io.Reader, out io.Writer) error {
 		}
 		var req rpcRequest
 		if err := json.Unmarshal(line, &req); err != nil {
-			_ = enc.Encode(rpcResponse{
-				JSONRPC: "2.0",
-				ID:      json.RawMessage("null"),
-				Error:   &rpcError{Code: -32700, Message: "parse error: " + err.Error()},
-			})
+			errMsg := err.Error()
+			toolJobs <- func() {
+				_ = writeJSON(rpcResponse{
+					JSONRPC: "2.0",
+					ID:      json.RawMessage("null"),
+					Error:   &rpcError{Code: -32700, Message: "parse error: " + errMsg},
+				})
+			}
 			continue
 		}
 		// Notifications have no ID and expect no response.
 		if len(req.ID) == 0 || string(req.ID) == "null" {
+			if req.Method == "notifications/cancelled" {
+				var cp cancelledParams
+				if json.Unmarshal(req.Params, &cp) == nil && len(cp.RequestID) > 0 {
+					key := string(bytes.TrimSpace(cp.RequestID))
+					inflightMu.Lock()
+					cancel := inflight[key]
+					inflightMu.Unlock()
+					if cancel != nil {
+						cancel()
+					}
+				}
+			}
 			continue
 		}
-		resp := handleRequest(ctx, a, req)
-		if err := enc.Encode(resp); err != nil {
-			return err
+		key := string(bytes.TrimSpace(req.ID))
+		reqCtx, cancel := context.WithCancel(ctx)
+		inflightMu.Lock()
+		inflight[key] = cancel
+		inflightMu.Unlock()
+
+		rCopy, kCopy := req, key
+		toolJobs <- func() {
+			defer func() {
+				cancel()
+				inflightMu.Lock()
+				delete(inflight, kCopy)
+				inflightMu.Unlock()
+			}()
+			if rCopy.Method == "tools/call" {
+				var params callToolParams
+				if err := json.Unmarshal(rCopy.Params, &params); err == nil && params.Meta != nil && params.Meta.ProgressToken != nil {
+					_ = writeJSON(rpcNotification{
+						JSONRPC: "2.0",
+						Method:  "notifications/progress",
+						Params: map[string]any{
+							"progressToken": params.Meta.ProgressToken,
+							"progress":      0,
+							"total":         1,
+							"message":       "started " + params.Name,
+						},
+					})
+					defer func() {
+						_ = writeJSON(rpcNotification{
+							JSONRPC: "2.0",
+							Method:  "notifications/progress",
+							Params: map[string]any{
+								"progressToken": params.Meta.ProgressToken,
+								"progress":      1,
+								"total":         1,
+								"message":       "completed " + params.Name,
+							},
+						})
+					}()
+				}
+			}
+			resp := handleRequest(reqCtx, a, rCopy)
+			_ = writeJSON(resp)
 		}
 	}
 	return scanner.Err()
