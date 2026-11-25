@@ -544,12 +544,20 @@ for (const file of req.changed_files as string[]) {
       const OldCls = oldMod![clsName] as (new () => Record<string, (...a: unknown[]) => unknown>) & Record<string, unknown>;
       const NewCls = newMod![clsName] as (new () => Record<string, (...a: unknown[]) => unknown>) & Record<string, unknown>;
       if (typeof OldCls !== 'function' || typeof NewCls !== 'function') { inconclusive('the exported class is missing in one of the versions'); continue; }
-      if (typeof OldCls[methodName] === 'function' && typeof NewCls[methodName] === 'function') {
+      // Own members only: `typeof Cls.valueOf` is also 'function' for what every class inherits from Function.prototype.
+      const own = (c: object) => Object.prototype.hasOwnProperty.call(c, methodName);
+      if (own(OldCls) && own(NewCls) && typeof OldCls[methodName] === 'function' && typeof NewCls[methodName] === 'function') {
         old = (OldCls[methodName] as (...a: unknown[]) => unknown).bind(OldCls);
         fresh = (NewCls[methodName] as (...a: unknown[]) => unknown).bind(NewCls);
       } else {
-        const oldInst = new OldCls();
-        const newInst = new NewCls();
+        let oldInst: Record<string, (...a: unknown[]) => unknown>, newInst: Record<string, (...a: unknown[]) => unknown>;
+        try {
+          oldInst = new OldCls();
+          newInst = new NewCls();
+        } catch (e) {
+          inconclusive(`could not construct the class without arguments: ${(e as Error).message}`.slice(0, 200));
+          continue;
+        }
         if (typeof oldInst[methodName] !== 'function' || typeof newInst[methodName] !== 'function') {
           inconclusive('the method is not a function in one of the versions');
           continue;
