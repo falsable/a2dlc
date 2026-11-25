@@ -75,8 +75,14 @@ type callToolResult struct {
 	IsError bool           `json:"isError,omitempty"`
 }
 
-// Serve runs the JSON-RPC 2.0 MCP server over in/out until EOF.
-// tools/call requests execute concurrently so notifications/cancelled and progress notifications work mid-flight.
+// maxToolCalls is how many tools/call requests run at once; the rest wait for a slot without holding up the reader.
+const maxToolCalls = 8
+
+// Serve runs the JSON-RPC 2.0 MCP server over in/out until EOF, then waits for the tools/call requests still running.
+// tools/call requests execute concurrently (at most maxToolCalls at a time), each in its own goroutine, so a long call
+// never holds up ping, tools/list or another call, and notifications/cancelled and progress notifications work
+// mid-flight. Every other request is answered by the reader itself. Responses are written whole, one at a time, in the
+// order they finish, which JSON-RPC allows: a client matches them by id.
 func Serve(ctx context.Context, a app.App, in io.Reader, out io.Writer) error {
 	scanner := bufio.NewScanner(in)
 	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
@@ -90,19 +96,9 @@ func Serve(ctx context.Context, a app.App, in io.Reader, out io.Writer) error {
 
 	var inflightMu sync.Mutex
 	inflight := map[string]context.CancelFunc{}
-	toolJobs := make(chan func(), 64)
+	slots := make(chan struct{}, maxToolCalls)
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for job := range toolJobs {
-			job()
-		}
-	}()
-	defer func() {
-		close(toolJobs)
-		wg.Wait()
-	}()
+	defer wg.Wait()
 
 	for scanner.Scan() {
 		line := bytes.TrimSpace(scanner.Bytes())
@@ -115,14 +111,11 @@ func Serve(ctx context.Context, a app.App, in io.Reader, out io.Writer) error {
 		}
 		var req rpcRequest
 		if err := json.Unmarshal(line, &req); err != nil {
-			errMsg := err.Error()
-			toolJobs <- func() {
-				_ = writeJSON(rpcResponse{
-					JSONRPC: "2.0",
-					ID:      json.RawMessage("null"),
-					Error:   &rpcError{Code: -32700, Message: "parse error: " + errMsg},
-				})
-			}
+			_ = writeJSON(rpcResponse{
+				JSONRPC: "2.0",
+				ID:      json.RawMessage("null"),
+				Error:   &rpcError{Code: -32700, Message: "parse error: " + err.Error()},
+			})
 			continue
 		}
 		// Notifications have no ID and expect no response.
@@ -147,44 +140,54 @@ func Serve(ctx context.Context, a app.App, in io.Reader, out io.Writer) error {
 		inflight[key] = cancel
 		inflightMu.Unlock()
 
-		rCopy, kCopy := req, key
-		toolJobs <- func() {
-			defer func() {
-				cancel()
-				inflightMu.Lock()
-				delete(inflight, kCopy)
-				inflightMu.Unlock()
-			}()
-			if rCopy.Method == "tools/call" {
-				var params callToolParams
-				if err := json.Unmarshal(rCopy.Params, &params); err == nil && params.Meta != nil && params.Meta.ProgressToken != nil {
+		finish := func() {
+			cancel()
+			inflightMu.Lock()
+			delete(inflight, key)
+			inflightMu.Unlock()
+		}
+		if req.Method != "tools/call" {
+			resp := handleRequest(reqCtx, a, req)
+			finish()
+			_ = writeJSON(resp)
+			continue
+		}
+		wg.Add(1)
+		go func(req rpcRequest) {
+			defer wg.Done()
+			defer finish()
+			// a free slot wins over a cancellation that raced the start; only a call that has to queue is dropped by it
+			select {
+			case slots <- struct{}{}:
+			default:
+				select {
+				case slots <- struct{}{}:
+				case <-reqCtx.Done():
+					_ = writeJSON(rpcResponse{JSONRPC: "2.0", ID: req.ID, Error: &rpcError{Code: -32800, Message: "request cancelled"}})
+					return
+				}
+			}
+			defer func() { <-slots }()
+			var params callToolParams
+			if err := json.Unmarshal(req.Params, &params); err == nil && params.Meta != nil && params.Meta.ProgressToken != nil {
+				progress := func(n int, what string) {
 					_ = writeJSON(rpcNotification{
 						JSONRPC: "2.0",
 						Method:  "notifications/progress",
 						Params: map[string]any{
 							"progressToken": params.Meta.ProgressToken,
-							"progress":      0,
+							"progress":      n,
 							"total":         1,
-							"message":       "started " + params.Name,
+							"message":       what + " " + params.Name,
 						},
 					})
-					defer func() {
-						_ = writeJSON(rpcNotification{
-							JSONRPC: "2.0",
-							Method:  "notifications/progress",
-							Params: map[string]any{
-								"progressToken": params.Meta.ProgressToken,
-								"progress":      1,
-								"total":         1,
-								"message":       "completed " + params.Name,
-							},
-						})
-					}()
 				}
+				progress(0, "started")
+				defer progress(1, "completed")
 			}
-			resp := handleRequest(reqCtx, a, rCopy)
+			resp := handleRequest(reqCtx, a, req)
 			_ = writeJSON(resp)
-		}
+		}(req)
 	}
 	return scanner.Err()
 }
@@ -233,7 +236,7 @@ func handleRequest(ctx context.Context, a app.App, req rpcRequest) rpcResponse {
 				Error:   &rpcError{Code: -32602, Message: "invalid params: " + err.Error()},
 			}
 		}
-		res := dispatchTool(ctx, a, params)
+		res := dispatch(ctx, a, params)
 		return rpcResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
@@ -408,6 +411,9 @@ func toolsCatalog() []toolDef {
 		},
 	}, agentToolDefs()...)
 }
+
+// dispatch is dispatchTool; tests swap it to run a tool that takes as long as they say.
+var dispatch = dispatchTool
 
 func dispatchTool(ctx context.Context, a app.App, params callToolParams) callToolResult {
 	switch params.Name {

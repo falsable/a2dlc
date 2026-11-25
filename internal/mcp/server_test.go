@@ -108,9 +108,22 @@ func TestMCPServeProtocolAndTools(t *testing.T) {
 		t.Fatalf("Serve failed: %v", err)
 	}
 
-	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
-	if len(lines) != 12 {
-		t.Fatalf("expected 12 JSON-RPC responses (notification skipped), got %d:\n%s", len(lines), out.String())
+	// tools/call requests run concurrently and answer in the order they finish: put each response back at its id's place
+	// (the parse error, which has no id, goes last)
+	raw := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(raw) != 12 {
+		t.Fatalf("expected 12 JSON-RPC responses (notification skipped), got %d:\n%s", len(raw), out.String())
+	}
+	lines := make([]string, 12)
+	for _, l := range raw {
+		var head struct {
+			ID int `json:"id"`
+		}
+		_ = json.Unmarshal([]byte(l), &head)
+		if head.ID == 0 {
+			head.ID = 12
+		}
+		lines[head.ID-1] = l
 	}
 
 	// 1. Verify initialize response
