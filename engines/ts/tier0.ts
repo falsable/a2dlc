@@ -121,8 +121,29 @@ export const NODE_GLOBALS = new Set([
 ]);
 const UNKNOWN_NAME = new Set([2304, 2503]);
 
-export function dropped(d: ts.Diagnostic): boolean {
-  if (d.code === 2307) return !/^(\.{1,2}\/|\/)/.test(specifierOf(d));
+export function compilerOptionsFor(candDir: string): ts.CompilerOptions {
+  const nm = path.join(candDir, 'node_modules');
+  if (existsSync(nm)) {
+    const typesDir = path.join(nm, '@types');
+    return {
+      ...COMPILER_OPTIONS,
+      moduleResolution: ts.ModuleResolutionKind.Node10,
+      types: undefined,
+      typeRoots: existsSync(typesDir) ? [typesDir] : undefined,
+    };
+  }
+  return COMPILER_OPTIONS;
+}
+
+export function dropped(d: ts.Diagnostic, candDir = ''): boolean {
+  if (d.code === 2307) {
+    const spec = specifierOf(d);
+    if (/^(\.{1,2}\/|\/)/.test(spec)) return false;
+    if (candDir && existsSync(path.join(candDir, 'node_modules', spec.split('/')[0].startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0]))) {
+      return false;
+    }
+    return true;
+  }
   if (UNKNOWN_NAME.has(d.code)) return NODE_GLOBALS.has(specifierOf(d));
   return NOT_INSTALLED.has(d.code);
 }
@@ -411,7 +432,7 @@ export function runTier0(req: Tier0Request, options: Tier0Options = {}): Tier0Re
     let program: ts.Program | undefined;
     try {
       const create = options.createProgram ?? ts.createProgram;
-      program = create({ rootNames: roots, options: COMPILER_OPTIONS });
+      program = create({ rootNames: roots, options: compilerOptionsFor(cand) });
     } catch (e) {
       findings.push(tooling(files[0], `TypeScript program did not build (no typecheck in this round): ${(e as Error).message}`));
     }
@@ -440,10 +461,10 @@ export function runTier0(req: Tier0Request, options: Tier0Options = {}): Tier0Re
         for (const f of typed) {
           const candSf = prog.getSourceFile(path.join(cand, f))!;
           const baseSf = existsSync(path.join(base, f)) ? prog.getSourceFile(path.join(base, f)) : undefined;
-          const now = prog.getSemanticDiagnostics(candSf).filter((d) => !dropped(d)).map((d) => ({
+          const now = prog.getSemanticDiagnostics(candSf).filter((d) => !dropped(d, cand)).map((d) => ({
             kind: 'typecheck' as Kind, file: f, line: d.start === undefined ? null : lineOf(candSf, d.start), message: messageOf(d, normRoots),
           }));
-          const before = baseSf ? prog.getSemanticDiagnostics(baseSf).filter((d) => !dropped(d)).map((d) => messageOf(d, normRoots)) : [];
+          const before = baseSf ? prog.getSemanticDiagnostics(baseSf).filter((d) => !dropped(d, base)).map((d) => messageOf(d, normRoots)) : [];
           findings.push(...onlyNew(now, before));
         }
       } catch (e) {

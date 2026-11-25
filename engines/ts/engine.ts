@@ -79,8 +79,26 @@ function topLevel(sf: ts.SourceFile): Map<string, Decl> {
         const fn = !!init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init));
         out.set(d.name.text, { name: d.name.text, text: codeOf(st, sf), raw: st.getText(sf), lines: linesOf(st, sf), exported: isExported(st), isFunction: fn, refs: refsOf(d) });
       }
-    } else if (ts.isClassDeclaration(st) && st.name) add(st.name.text, st, false);
-    else if (ts.isEnumDeclaration(st) || ts.isTypeAliasDeclaration(st) || ts.isInterfaceDeclaration(st)) add(st.name.text, st, false);
+    } else if (ts.isClassDeclaration(st) && st.name) {
+      add(st.name.text, st, false);
+      const clsName = st.name.text;
+      const clsExp = isExported(st);
+      for (const mem of st.members) {
+        if (!ts.isMethodDeclaration(mem) || !mem.body || !mem.name || !ts.isIdentifier(mem.name)) continue;
+        const mFlags = ts.getCombinedModifierFlags(mem);
+        if (mFlags & (ts.ModifierFlags.Private | ts.ModifierFlags.Protected)) continue;
+        const mName = `${clsName}.${mem.name.text}`;
+        out.set(mName, {
+          name: mName,
+          text: codeOf(mem, sf),
+          raw: mem.getText(sf),
+          lines: linesOf(mem, sf),
+          exported: clsExp,
+          isFunction: true,
+          refs: refsOf(mem),
+        });
+      }
+    } else if (ts.isEnumDeclaration(st) || ts.isTypeAliasDeclaration(st) || ts.isInterfaceDeclaration(st)) add(st.name.text, st, false);
   }
   for (const n of exportedNames) {
     const d = out.get(n);
@@ -220,6 +238,31 @@ function arbOf(t: ts.Type, ch: ts.TypeChecker, literals: ReturnType<typeof harve
 }
 
 function argsArb(name: string, sf: ts.SourceFile, ch: ts.TypeChecker, literals: ReturnType<typeof harvest>, typed: { ok: boolean }) {
+  const dot = name.indexOf('.');
+  if (dot > 0) {
+    const clsName = name.slice(0, dot);
+    const methodName = name.slice(dot + 1);
+    const sym = ch.getSymbolAtLocation(sf)?.exports?.get(ts.escapeLeadingUnderscores(clsName));
+    if (!sym) throw new NoDerivable('no exported class');
+    const target = sym.flags & ts.SymbolFlags.Alias ? ch.getAliasedSymbol(sym) : sym;
+    const decl = target.valueDeclaration ?? target.declarations?.[0];
+    if (!decl || !ts.isClassDeclaration(decl)) throw new NoDerivable('no class declaration');
+    const instType = ch.getDeclaredTypeOfSymbol(target);
+    const memSym = ch.getPropertyOfType(instType, methodName) ?? target.exports?.get(ts.escapeLeadingUnderscores(methodName));
+    if (!memSym) throw new NoDerivable('no method symbol');
+    const memDecl = memSym.valueDeclaration ?? memSym.declarations?.[0];
+    if (!memDecl) throw new NoDerivable('no method declaration');
+    const sig = ch.getTypeOfSymbolAtLocation(memSym, memDecl).getCallSignatures()[0];
+    if (!sig) throw new NoDerivable('method not callable');
+    const params = sig.getParameters().map((p) => {
+      const pd = p.valueDeclaration as ts.ParameterDeclaration | undefined;
+      if (pd?.dotDotDotToken) throw new NoDerivable('rest parameter');
+      let a = arbOf(ch.getTypeOfSymbolAtLocation(p, pd ?? memDecl), ch, literals, 0, typed);
+      if (pd && (pd.questionToken || pd.initializer)) a = fc.option(a, { nil: undefined });
+      return a;
+    });
+    return fc.tuple(...params);
+  }
   const sym = ch.getSymbolAtLocation(sf)?.exports?.get(ts.escapeLeadingUnderscores(name));
   if (!sym) throw new NoDerivable('no exported symbol');
   const target = sym.flags & ts.SymbolFlags.Alias ? ch.getAliasedSymbol(sym) : sym;
@@ -492,9 +535,33 @@ for (const file of req.changed_files as string[]) {
     const inconclusive = (reason: string) => Object.assign(t, { verdict: 'INCONCLUSIVE', reason });
     if (overrideError && !ov) inconclusive(overrideError);
     if (importErr) { inconclusive(importErr); continue; }
-    const old = oldMod![name] as (...a: unknown[]) => unknown;
-    const fresh = newMod![name] as (...a: unknown[]) => unknown;
-    if (typeof old !== 'function' || typeof fresh !== 'function') { inconclusive('the export is not a function in one of the versions'); continue; }
+    let old: (...a: unknown[]) => unknown;
+    let fresh: (...a: unknown[]) => unknown;
+    const dot = name.indexOf('.');
+    if (dot > 0) {
+      const clsName = name.slice(0, dot);
+      const methodName = name.slice(dot + 1);
+      const OldCls = oldMod![clsName] as (new () => Record<string, (...a: unknown[]) => unknown>) & Record<string, unknown>;
+      const NewCls = newMod![clsName] as (new () => Record<string, (...a: unknown[]) => unknown>) & Record<string, unknown>;
+      if (typeof OldCls !== 'function' || typeof NewCls !== 'function') { inconclusive('the exported class is missing in one of the versions'); continue; }
+      if (typeof OldCls[methodName] === 'function' && typeof NewCls[methodName] === 'function') {
+        old = (OldCls[methodName] as (...a: unknown[]) => unknown).bind(OldCls);
+        fresh = (NewCls[methodName] as (...a: unknown[]) => unknown).bind(NewCls);
+      } else {
+        const oldInst = new OldCls();
+        const newInst = new NewCls();
+        if (typeof oldInst[methodName] !== 'function' || typeof newInst[methodName] !== 'function') {
+          inconclusive('the method is not a function in one of the versions');
+          continue;
+        }
+        old = (...a: unknown[]) => oldInst[methodName](...a);
+        fresh = (...a: unknown[]) => newInst[methodName](...a);
+      }
+    } else {
+      old = oldMod![name] as (...a: unknown[]) => unknown;
+      fresh = newMod![name] as (...a: unknown[]) => unknown;
+      if (typeof old !== 'function' || typeof fresh !== 'function') { inconclusive('the export is not a function in one of the versions'); continue; }
+    }
     let args: fc.Arbitrary<unknown[]>;
     try {
       args = ov ?? argsArb(name, candSf, ch, literals, typed);

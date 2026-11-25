@@ -214,6 +214,27 @@ def _load_target(spec: dict) -> tuple[Callable[..., Any], list[Decoder]]:
     return fn, decoders
 
 
+ALLOW_EXC_RE = re.compile(r"@a2dlc:allow-exceptions\s+([A-Za-z0-9_,\s]+)")
+
+
+def _allowed_exceptions_for(fn: Callable[..., Any], configured: list[str]) -> set[str]:
+    allowed = {e.strip() for e in configured if isinstance(e, str) and e.strip()}
+    doc = inspect.getdoc(fn) or ""
+    for m in ALLOW_EXC_RE.findall(doc):
+        for part in m.split(","):
+            if part.strip():
+                allowed.add(part.strip())
+    try:
+        src = inspect.getsource(fn)
+        for m in ALLOW_EXC_RE.findall(src):
+            for part in m.split(","):
+                if part.strip():
+                    allowed.add(part.strip())
+    except OSError:
+        pass
+    return allowed
+
+
 def _describe(exc: BaseException) -> str:
     return f"{type(exc).__name__}: {exc}"[:MAX_TEXT]
 
@@ -236,6 +257,7 @@ def child_fuzz(spec: dict) -> int:
         return _emit({"status": "import_error", "error": _describe(exc)})
 
     report = Path(spec["artifact_dir"]) / REPORT_NAME
+    allowed = _allowed_exceptions_for(fn, spec.get("allowed_exceptions") or [])
 
     def one_input(data: bytes) -> None:
         fdp = atheris.FuzzedDataProvider(data)
@@ -243,6 +265,8 @@ def child_fuzz(spec: dict) -> int:
         try:
             fn(*args)
         except BaseException as exc:
+            if type(exc).__name__ in allowed:
+                return
             report.write_text(json.dumps({"exception": type(exc).__name__, "message": str(exc)[:MAX_TEXT]}),
                               encoding="utf-8")
             raise
