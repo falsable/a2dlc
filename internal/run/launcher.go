@@ -365,7 +365,9 @@ func runWithEgress(ctx context.Context, bin, name string, allow []string, proxyE
 	}
 	created = append(created, outName)
 	proxyTried = true
-	proxyArgs := []string{"run", "-d", "--name", proxy, "--network", netName, "--read-only",
+	// Connect the proxy to the outbound network first so Docker installs a default gateway (0.0.0.0/0);
+	// attaching the --internal network first suppresses the default route on Docker 27+ (Kiri).
+	proxyArgs := []string{"run", "-d", "--name", proxy, "--network", outName, "--read-only",
 		"--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--memory", "64m",
 		"-e", "A2DLC_EGRESS_ALLOW=" + strings.Join(allow, ",")}
 	if slices.Contains(allow, "host.docker.internal") {
@@ -378,7 +380,7 @@ func runWithEgress(ctx context.Context, bin, name string, allow []string, proxyE
 	if err := dockerCmd(setup, bin, proxyArgs...); err != nil {
 		return out, fmt.Errorf("egress proxy: %w", err)
 	}
-	if err := dockerCmd(setup, bin, "network", "connect", outName, proxy); err != nil {
+	if err := dockerCmd(setup, bin, "network", "connect", netName, proxy); err != nil {
 		return out, fmt.Errorf("egress proxy to its network: %w", err)
 	}
 	if err := awaitProxy(setup, bin, proxy); err != nil {
@@ -709,7 +711,9 @@ func (p *RunEgressPool) ensure(ctx context.Context, bin, seedName string, allow 
 	}
 	created = append(created, upName)
 	proxyTried = true
-	proxyArgs := []string{"run", "-d", "--name", proxy, "--network", netName, "--read-only",
+	// Connect the proxy to the outbound network first so Docker installs a default gateway (0.0.0.0/0);
+	// attaching the --internal network first suppresses the default route on Docker 27+ (Kiri).
+	proxyArgs := []string{"run", "-d", "--name", proxy, "--network", upName, "--read-only",
 		"--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--memory", "64m",
 		"-e", "A2DLC_EGRESS_ALLOW=" + strings.Join(allow, ",")}
 	if slices.Contains(allow, "host.docker.internal") {
@@ -723,7 +727,7 @@ func (p *RunEgressPool) ensure(ctx context.Context, bin, seedName string, allow 
 		cleanupOnErr()
 		return sharedEgress{}, fmt.Errorf("egress proxy: %w", err)
 	}
-	if err := dockerCmd(setup, bin, "network", "connect", upName, proxy); err != nil {
+	if err := dockerCmd(setup, bin, "network", "connect", netName, proxy); err != nil {
 		cleanupOnErr()
 		return sharedEgress{}, fmt.Errorf("egress proxy to its network: %w", err)
 	}
