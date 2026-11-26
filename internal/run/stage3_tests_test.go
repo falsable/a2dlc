@@ -219,3 +219,40 @@ func TestRunNeverRunsTheSameSuiteTwiceOnACandidateTree(t *testing.T) {
 		})
 	}
 }
+
+func TestReadTier0ExtraPropagatesChangeKind(t *testing.T) {
+	extra, err := readTier0Extra([]byte(`{"change_kind":"feature","capabilities":{"forbidden_imports":["os"]}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if extra.ChangeKind != "feature" || len(extra.ForbiddenImports) != 1 || extra.ForbiddenImports[0] != "os" {
+		t.Fatalf("unexpected extra: %+v", extra)
+	}
+}
+
+func TestStage3ReusesTier0WhenTreeUnchanged(t *testing.T) {
+	runner := &runnerDoubles{}
+	a, _ := repoTestsOnly(t, runner)
+	var requests []contract.BuilderRequest
+	inner := fakeBuilder(t, &requests, func(contract.BuilderRequest) map[string]string {
+		return map[string]string{"src/f.py": doublesFile}
+	})
+	launcherFake := &fakeLauncher{script: func(s LaunchSpec) (*contract.RoleResponse, int, bool) {
+		resp, exit, to := inner(s)
+		if len(requests) == 1 {
+			return nil, 1, false
+		}
+		return resp, exit, to
+	}}
+	st, err := Run(context.Background(), a, launcherFake, Options{Slice: "t.tier0cache", MaxInner: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s3 := st.Stages[5]
+	if s3.Status != contract.StageDone || s3.Iterations != 2 || len(requests) != 2 || runner.runs != 1 {
+		t.Fatalf("%+v requests=%d runs=%d", s3, len(requests), runner.runs)
+	}
+	if !strings.Contains(s3.Reason, "reused Tier 0 result") {
+		t.Fatalf("expected reused Tier 0 note in reason, got: %s", s3.Reason)
+	}
+}

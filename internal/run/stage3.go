@@ -339,6 +339,11 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		coverageOnce = cfg.Tests.Tier0Coverage == contract.Tier0CoverageOnce
 	}
 	var prevFindings []contract.Tier0Finding
+	type cachedTier0 struct {
+		res        contract.Tier0Response
+		unreviewed []string
+	}
+	tier0Cache := map[string]cachedTier0{}
 	for round := 1; round <= lastRound; round++ {
 		cfg, maxRounds := (*contract.Role)(nil), in.rounds
 		if round > in.rounds {
@@ -445,14 +450,23 @@ func (m *Machine) build(ctx context.Context, role, tier0Artifact string, in buil
 		extra := in.extra
 		extra.Tests = true
 		timing.ReviewMs = time.Since(reviewStart).Milliseconds()
-		tctx, tier0Timings := app.WithTimings(ctx)
-		tier0Start := time.Now()
-		res, unreviewed, err := m.app.Tier0With(tctx, m.baseSha, tree, in.probes, extra)
-		timing.Tier0Ms, timing.Tier0 = time.Since(tier0Start).Milliseconds(), tier0Timings()
-		timing.log()
-		if err != nil {
-			// a downed engine is not feedback: sending it to the builder would spend paid rounds on something that is not its own
-			return buildResult{status: contract.StageFailed, reason: "Tier 0 could not run: " + err.Error()}, nil
+		var res contract.Tier0Response
+		var unreviewed []string
+		if cached, ok := tier0Cache[tree]; ok {
+			res, unreviewed = cached.res, cached.unreviewed
+			roundNotes = append(roundNotes, fmt.Sprintf("round %d: tree unchanged (%s); reused Tier 0 result", round, shortSHA(tree)))
+			timing.log()
+		} else {
+			tctx, tier0Timings := app.WithTimings(ctx)
+			tier0Start := time.Now()
+			res, unreviewed, err = m.app.Tier0With(tctx, m.baseSha, tree, in.probes, extra)
+			timing.Tier0Ms, timing.Tier0 = time.Since(tier0Start).Milliseconds(), tier0Timings()
+			timing.log()
+			if err != nil {
+				// a downed engine is not feedback: sending it to the builder would spend paid rounds on something that is not its own
+				return buildResult{status: contract.StageFailed, reason: "Tier 0 could not run: " + err.Error()}, nil
+			}
+			tier0Cache[tree] = cachedTier0{res: res, unreviewed: unreviewed}
 		}
 		if _, err := m.writeArtifact(tier0Artifact, res); err != nil {
 			return buildResult{}, err
@@ -638,8 +652,8 @@ func demingDefectScore(fb *contract.Tier0Response) int {
 	return score
 }
 
-// readTier0Extra reads what the intent adds to the Tier 0 policy: intent.capabilities.forbidden_imports and
-// intent.boundary.forbidden_side_effects. A nil intent or one without them adds nothing.
+// readTier0Extra reads what the intent adds to the Tier 0 policy: intent.capabilities.forbidden_imports,
+// intent.boundary.forbidden_side_effects, and intent.change_kind. A nil intent or one without them adds nothing.
 func readTier0Extra(intent json.RawMessage) (app.Tier0Extra, error) {
 	var out app.Tier0Extra
 	if intent == nil {
@@ -648,6 +662,7 @@ func readTier0Extra(intent json.RawMessage) (app.Tier0Extra, error) {
 	var in struct {
 		Capabilities *contract.Capabilities `json:"capabilities"`
 		Boundary     *contract.Boundary     `json:"boundary"`
+		ChangeKind   string                 `json:"change_kind"`
 	}
 	if err := json.Unmarshal(intent, &in); err != nil {
 		return out, fmt.Errorf("intent.json does not match the contract: %w", err)
@@ -658,6 +673,7 @@ func readTier0Extra(intent json.RawMessage) (app.Tier0Extra, error) {
 	if in.Boundary != nil {
 		out.ForbiddenSideEffects = in.Boundary.ForbiddenSideEffects
 	}
+	out.ChangeKind = in.ChangeKind
 	return out, nil
 }
 

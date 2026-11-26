@@ -268,3 +268,56 @@ func TestTier0BoundsTheFailedTestcasesItReports(t *testing.T) {
 		t.Fatalf("%v %d findings", err, len(r.Findings))
 	}
 }
+
+// A feature intent that changes source files without adding or updating a test matching config.tests.paths is a Tier 0
+// finding so the builder proves new behavior before leaving Stage 3; refactors or candidates with a changed test pass.
+func TestTier0FeatureIntentRequiresChangedTest(t *testing.T) {
+	a, _ := testsRepo(t, junitRun(0, "test/a.test.ts ok"), junitRun(0, "test/a.test.ts ok"), junitRun(0, "test/a.test.ts ok"))
+	candNoTest := candidateOf(t, a, map[string]string{"src/server.ts": "export const s = 2\n"})
+
+	r, _, err := a.Tier0With(context.Background(), "HEAD", candNoTest, nil, Tier0Extra{Tests: true, ChangeKind: "feature"})
+	if err != nil || r.OK || !r.Reviewed || len(r.Findings) != 1 || r.Findings[0].Kind != contract.Tier0Test || r.Findings[0].File != "src/server.ts" {
+		t.Fatalf("feature without test: err=%v %+v", err, r)
+	}
+
+	rRef, _, err := a.Tier0With(context.Background(), "HEAD", candNoTest, nil, Tier0Extra{Tests: true, ChangeKind: "refactor"})
+	if err != nil || !rRef.OK || len(rRef.Findings) != 0 {
+		t.Fatalf("refactor without test: err=%v %+v", err, rRef)
+	}
+
+	candWithTest := candidateOf(t, a, map[string]string{
+		"src/server.ts":        "export const s = 2\n",
+		"test/feature.test.ts": "test('s', () => {})\n",
+	})
+	rFeat, _, err := a.Tier0With(context.Background(), "HEAD", candWithTest, nil, Tier0Extra{Tests: true, ChangeKind: "feature"})
+	if err != nil || !rFeat.OK || len(rFeat.Findings) != 0 {
+		t.Fatalf("feature with changed test: err=%v %+v", err, rFeat)
+	}
+}
+
+// With tier0_command "baseline" and no baseline_command, Tier 0 falls back to tests.command through the suite cache
+// whenever the test image carries a digest, so a second Tier 0 call on the same candidate tree is served from cache.
+func TestTier0BaselineWithoutBaselineCommandCachesCandidate(t *testing.T) {
+	t.Setenv("A2DLC_CACHE_DIR", t.TempDir())
+	a, tf, dir := suiteRepo(t)
+	cfg := strings.Replace(gatesConfig, `"command":"nop","baseline_command":"baseline"`, `"command":"run-all","tier0_command":"baseline"`, 1)
+	write(t, dir, ".a2dlc/config.json", cfg)
+	write(t, dir, "tests/a.t", "old uses:old\n")
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "tier0 baseline without baseline_command")
+
+	cand := candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 2\nIMPL old\n"})
+	if r, _, err := a.Tier0With(context.Background(), "HEAD", cand, nil, withTests); err != nil || !r.OK || !r.Reviewed {
+		t.Fatalf("first tier0: err=%v %+v", err, r)
+	}
+	runsAfterFirst := len(tf.runs)
+	if runsAfterFirst == 0 || tf.runs[runsAfterFirst-1] != "run-all" {
+		t.Fatalf("expected run-all via suite cache, got %+v", tf.runs)
+	}
+	if r, _, err := a.Tier0With(context.Background(), "HEAD", cand, nil, withTests); err != nil || !r.OK || !r.Reviewed {
+		t.Fatalf("second tier0: err=%v %+v", err, r)
+	}
+	if len(tf.runs) != runsAfterFirst {
+		t.Fatalf("expected cached candidate suite run on second call, got %d total runs (was %d)", len(tf.runs), runsAfterFirst)
+	}
+}

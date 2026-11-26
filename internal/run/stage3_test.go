@@ -658,9 +658,10 @@ func TestStage3JudgesWorkOfABuilderThatGaveNoAnswer(t *testing.T) {
 		reason   string
 	}{
 		// a green tree left without an answer goes back while a round is left (a2dlc-4dt.7), and the last round's is taken
-		{"changed", func(int) map[string]string { return map[string]string{"src/f.py": fixed} }, 0, contract.StageDone, 2, 2,
+		// (round 2 reuses round 1's Tier 0 result when the tree is unchanged, so eng.tier0 is 1)
+		{"changed", func(int) map[string]string { return map[string]string{"src/f.py": fixed} }, 0, contract.StageDone, 2, 1,
 			"round 1: Tier 0 passed the tree of a builder that did not answer; it went back to finish"},
-		{"changed then answered", func(int) map[string]string { return map[string]string{"src/f.py": fixed} }, 2, contract.StageDone, 2, 2,
+		{"changed then answered", func(int) map[string]string { return map[string]string{"src/f.py": fixed} }, 2, contract.StageDone, 2, 1,
 			"round 1: the builder did not give a valid answer in 1 attempts; its changes in /work were judged"},
 		{"empty then changed", func(r int) map[string]string {
 			if r == 1 {
@@ -693,7 +694,7 @@ func TestStage3JudgesWorkOfABuilderThatGaveNoAnswer(t *testing.T) {
 			if eng.tier0 != tc.tier0 {
 				t.Fatalf("tier0=%d, want %d", eng.tier0, tc.tier0)
 			}
-			if tc.tier0 == 2 {
+			if tc.name == "changed" || tc.name == "changed then answered" {
 				fb := requests[1].Tier0Feedback
 				if fb == nil || len(fb.Findings) != 1 || fb.Findings[0].Kind != contract.Tier0Unfinished {
 					t.Fatalf("round 2 feedback %+v", fb)

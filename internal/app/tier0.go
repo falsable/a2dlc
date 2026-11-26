@@ -38,6 +38,9 @@ type Tier0Extra struct {
 	// Tests turns on the Tier 0 of the repo's own tests (testsTier0): the builder's loop sets it, the review of a working
 	// tree that no builder wrote does not.
 	Tests bool
+	// ChangeKind is intent.change_kind (feature, bugfix, refactor, or ""). On feature intents, a candidate that
+	// changes source files without adding or updating any test file gets a Tier 0 test finding.
+	ChangeKind string
 }
 
 // Tier0With is Tier0 with the intent's extra policy (see Tier0Extra), unioned into the policy of config.tier0 that the
@@ -305,6 +308,17 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 			return resp, err
 		}
 		resp.Findings = append(resp.Findings, cf...)
+		if extra.ChangeKind == "feature" {
+			changedTests, sources := partition(cfg.Tests.Paths, unique(files))
+			if len(sources) > 0 && len(changedTests) == 0 {
+				sort.Strings(sources)
+				resp.Findings = append(resp.Findings, contract.Tier0Finding{
+					Kind:    contract.Tier0Test,
+					File:    sources[0],
+					Message: "feature intent changed source files without adding or updating any test matching config.tests.paths; add a test that proves the new behavior",
+				})
+			}
+		}
 	}
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = true
@@ -312,19 +326,24 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 }
 
 // tier0Run is the run of step 4. By default it is tests.command with every changed file in $A2DLC_CHANGED. With
-// tests.tier0_command "baseline" (RFC-0004) it is baseline_command with the selection Stage 4's baseline gate gives it, through
-// the same cache: the run on the tree of the builder's last round is then the one Stage 4 takes for the candidate, instead of
-// running the whole suite again on the same tree. An image without a digest cannot key that cache, so the run is not kept.
+// tests.tier0_command "baseline" (RFC-0004) it runs baseline_command (or falls back to tests.command when
+// baseline_command is omitted) through the same cache: the run on the tree of the builder's last round is then the one
+// Stage 4 takes for the candidate, instead of running the whole suite again on the same tree. An image without a digest
+// cannot key that cache, so the run is not kept.
 func (a App) tier0Run(ctx context.Context, cfg contract.Config, baseSha, tree string, files []string, cov *accumulated,
 	export func() error, baseDir, candDir *string) (run, error) {
 	t := *cfg.Tests
-	if t.Tier0Command != contract.Tier0CommandBaseline || t.BaselineCommand == "" {
+	if t.Tier0Command != contract.Tier0CommandBaseline {
 		selectedTests := a.selectTier0Tests(ctx, cfg, baseSha, tree, files, export, baseDir, candDir)
 		c, err := a.run(ctx, gateInput{cfg: t, tree: tree, cov: cov}, t.Command, tree, nil, nil, envTests(selectedTests, unique(files)))
 		if err == nil {
 			err = c.readable()
 		}
 		return c, err
+	}
+	cmd := t.BaselineCommand
+	if cmd == "" {
+		cmd = t.Command
 	}
 	// the selection check makes: what changed from the base to the candidate, split by tests.paths
 	changed, _, err := a.Repo.Changed(baseSha, tree)
@@ -336,13 +355,13 @@ func (a App) tier0Run(ctx context.Context, cfg contract.Config, baseSha, tree st
 	env := envTests(tests, sources)
 	digest, err := a.imageDigest(ctx, t.Image)
 	if err != nil || digest == "" {
-		c, err := a.run(ctx, in, t.BaselineCommand, tree, nil, nil, env)
+		c, err := a.run(ctx, in, cmd, tree, nil, nil, env)
 		if err == nil {
 			err = c.readable()
 		}
 		return c, err
 	}
-	c, _, err := a.suite(ctx, in, t.BaselineCommand, tree, digest, env)
+	c, _, err := a.suite(ctx, in, cmd, tree, digest, env)
 	return c, err
 }
 
