@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -286,6 +287,9 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 		}
 	}
 	sort.Strings(ids)
+	if len(ids) > 0 && baseSha != "" && cfg.Tests.Tier0Command == contract.Tier0CommandBaseline && cfg.Tests.BaselineCommand != "" {
+		ids = a.filterPreexistingBaseReds(ctx, cfg, baseSha, files, c.cases, ids)
+	}
 	for i, id := range ids {
 		x := c.cases[id]
 		if i == maxTestFindings {
@@ -363,6 +367,77 @@ func (a App) tier0Run(ctx context.Context, cfg contract.Config, baseSha, tree st
 	}
 	c, _, err := a.suite(ctx, in, cmd, tree, digest, env)
 	return c, err
+}
+
+// filterPreexistingBaseReds drops red testcases that already fail on baseSha when they belong to unchanged test files,
+// so Tier 0 only feeds regressions or failing new/changed tests back to the builder (Stage 4's baseline gate performs
+// the authoritative comparison anyway). Fail-closed: any error verifying baseSha leaves ids unchanged.
+func (a App) filterPreexistingBaseReds(ctx context.Context, cfg contract.Config, baseSha string, files []string, candCases map[string]junit.Case, ids []string) []string {
+	changedTests, sources := partition(cfg.Tests.Paths, unique(files))
+	if len(sources) == 0 {
+		return ids
+	}
+	changedSet := changedTestSet(changedTests)
+	needsBaseCheck := false
+	for _, id := range ids {
+		if !isInChangedTests(candCases[id], changedSet) {
+			needsBaseCheck = true
+			break
+		}
+	}
+	if !needsBaseCheck {
+		return ids
+	}
+	digest, err := a.imageDigest(ctx, cfg.Tests.Image)
+	if err != nil || digest == "" {
+		return ids
+	}
+	in := gateInput{cfg: *cfg.Tests, baseSha: baseSha, tree: baseSha, sources: sources}
+	baseRun, _, err := a.suite(ctx, in, cfg.Tests.BaselineCommand, baseSha, digest, envTests(nil, sources))
+	if err != nil {
+		return ids
+	}
+	kept := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if !isInChangedTests(candCases[id], changedSet) {
+			if bc, ok := baseRun.cases[id]; ok && junit.Red(bc.Status) {
+				continue
+			}
+		}
+		kept = append(kept, id)
+	}
+	return kept
+}
+
+func changedTestSet(changedTests []string) map[string]bool {
+	out := make(map[string]bool, len(changedTests)*2)
+	for _, f := range changedTests {
+		norm := strings.ReplaceAll(f, "\\", "/")
+		out[norm] = true
+		if ext := path.Ext(norm); ext != "" {
+			out[strings.ReplaceAll(strings.TrimSuffix(norm, ext), "/", ".")] = true
+		}
+	}
+	return out
+}
+
+func isInChangedTests(c junit.Case, changed map[string]bool) bool {
+	if len(changed) == 0 {
+		return false
+	}
+	if c.File != "" && changed[strings.ReplaceAll(c.File, "\\", "/")] {
+		return true
+	}
+	tf := testFile(c)
+	if changed[tf] {
+		return true
+	}
+	for k := range changed {
+		if strings.HasPrefix(tf, k+".") {
+			return true
+		}
+	}
+	return false
 }
 
 // selectTier0Tests narrows Tier 0 inner-loop tests to affected test files via .tests-impact.json or engine deps_graph.

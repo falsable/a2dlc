@@ -321,3 +321,60 @@ func TestTier0BaselineWithoutBaselineCommandCachesCandidate(t *testing.T) {
 		t.Fatalf("expected cached candidate suite run on second call, got %d total runs (was %d)", len(tf.runs), runsAfterFirst)
 	}
 }
+
+type digestScriptedTests struct {
+	*scriptedTests
+}
+
+func (*digestScriptedTests) ImageDigest(context.Context, string) (string, error) {
+	return fakeTestsDigest, nil
+}
+
+// With tier0_command "baseline" and a configured baseline_command, red testcases in unchanged test files that already
+// fail on baseSha are filtered out of Tier 0 findings, while regressions (green on base, red on candidate) and
+// failing changed/new tests are still returned to the builder.
+func TestTier0IgnoresPreexistingBaseReds(t *testing.T) {
+	t.Setenv("A2DLC_CACHE_DIR", t.TempDir())
+	a, _, dir := suiteRepo(t)
+	cfg := strings.Replace(gatesConfig, `"command":"nop","baseline_command":"baseline"`, `"command":"run-all","baseline_command":"baseline","tier0_command":"baseline"`, 1)
+	write(t, dir, ".a2dlc/config.json", cfg)
+	write(t, dir, "tests/pre.py", "def test_pre(): pass\n")
+	write(t, dir, "tests/reg.py", "def test_reg(): pass\n")
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "preexisting and regression baseline")
+
+	// 1. Only an unchanged preexisting base red fails on candidate -> filtered out (OK=true).
+	st := &digestScriptedTests{scriptedTests: &scriptedTests{script: []engine.TestRun{
+		junitRun(1, "tests.pre test_pre:missing git"),
+		junitRun(1, "tests.pre test_pre:missing git"),
+	}}}
+	a.Tests = st
+	candPreOnly := candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 2\nIMPL old\n"})
+	r, _, err := a.Tier0With(context.Background(), "HEAD", candPreOnly, nil, withTests)
+	if err != nil || !r.OK || !r.Reviewed || len(r.Findings) != 0 {
+		t.Fatalf("preexisting-only red: err=%v r=%+v", err, r)
+	}
+	if len(st.cmds) != 2 || st.envs[1]["A2DLC_TESTS"] != "" {
+		t.Fatalf("expected candidate baseline + base baseline without A2DLC_TESTS, got cmds=%v envs=%v", st.cmds, st.envs)
+	}
+
+	// 2. Same preexisting red PLUS a real regression (passes on base) PLUS a new failing test -> only regression + new fail kept.
+	t.Setenv("A2DLC_CACHE_DIR", t.TempDir())
+	st2 := &digestScriptedTests{scriptedTests: &scriptedTests{script: []engine.TestRun{
+		junitRun(1, "tests.pre test_pre:missing git", "tests.reg test_reg:broke", "tests.new test_new:fail new"),
+		junitRun(1, "tests.pre test_pre:missing git", "tests.reg test_reg"),
+	}}}
+	a.Tests = st2
+	candMixed := candidateOf(t, a, map[string]string{
+		"src/lib/f.ts": "export const f = 2\nIMPL old\n",
+		"tests/new.py": "def test_new(): assert False\n",
+	})
+	r2, _, err := a.Tier0With(context.Background(), "HEAD", candMixed, nil, withTests)
+	if err != nil || r2.OK || !r2.Reviewed || len(r2.Findings) != 2 {
+		t.Fatalf("mixed reds: err=%v r=%+v", err, r2)
+	}
+	msgs := r2.Findings[0].Message + " | " + r2.Findings[1].Message
+	if strings.Contains(msgs, "test_pre") || !strings.Contains(msgs, "test_reg") || !strings.Contains(msgs, "test_new") {
+		t.Fatalf("unexpected filtered findings: %+v", r2.Findings)
+	}
+}

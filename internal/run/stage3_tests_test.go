@@ -159,6 +159,9 @@ func (r *runnerLog) RunTests(ctx context.Context, cfg contract.TestsConfig, cmd 
 	r.mu.Lock()
 	r.pairs = append(r.pairs, cmd+"@"+hashBytes(src))
 	r.mu.Unlock()
+	if !strings.Contains(string(src), "x * 2") && !strings.Contains(string(src), "x + 1") {
+		return engine.TestRun{JUnit: []byte(`<testsuites><testsuite><testcase classname="c" name="doubles" file="test/t.test.py"/></testsuite></testsuites>`)}, nil
+	}
 	return r.runnerDoubles.RunTests(ctx, cfg, cmd, env, tree)
 }
 
