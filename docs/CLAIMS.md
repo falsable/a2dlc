@@ -1,6 +1,6 @@
 # Claims and the gates that back them
 
-A2-DLC makes four claims. Each one is backed by a numbered gate with a reproducible measurement, or it is not made. The README states only what a gate below has passed; when a gate changes status, this file changes first and the README follows. Tracker: epic `a2dlc-pe6` (`bd show a2dlc-pe6`).
+A2-DLC makes four claims. Each one is backed by a numbered gate with a reproducible measurement, or it is not made. The README states only what a gate below has passed; when a gate changes status, this file changes first and the README follows. Tracker: epic `a2dlc-pe6` (`bd show a2dlc-pe6`, task `a2dlc-pe6.5`).
 
 Decision of 2026-11-06. Source: a mechanism-level comparison of A2-DLC `0254043`, AI-DLC `awslabs/aidlc-workflows@11daa8ff` (main, 2026-11-06, MIT-0) and Entropos `2f82218`, read from code and reference docs, not from READMEs.
 
@@ -12,24 +12,31 @@ From a signal (ticket, issue, alert) to a verified diff plus a `delivery.json`. 
 
 | Gate | Claim | Status | Number published | Reproduce | Bead |
 |---|---|---|---|---|---|
-| P1 | **Verified quality** — a `PASS` means the oracles ran on this tree; outside the declared scope the verdict is `INCONCLUSIVE`, never `PASS` | OPEN | 0 false `PASS` on frozen cases + SWE-ABS after closing `fjl`/`5fq`/`zs7`/`aln`; false-positive rate over ≥ 50 real commits from ≥ 2 repos | — | `a2dlc-pe6.1` |
+| P1 | **Verified quality** — a `PASS` means the oracles ran on this tree; outside the declared scope the verdict is `INCONCLUSIVE`, never `PASS` | OPEN | 0 false `PASS` on frozen cases + SWE-ABS after closing `fjl`/`5fq`/`zs7`/`aln`; false-positive rate over ≥ 50 real commits from ≥ 2 repos | `docs/COVERAGE_AND_BENCHMARKS.md` | `a2dlc-pe6.1` |
 | P2 | **Autonomous** — tickets reach `PASS` with zero human turns when the change class is pre-authorized | OPEN | ≥ 10 real tickets through `a2dlc_intent_from_ticket` with 0 human turns; "human stops per ticket" with escalation `kind` breakdown | — | `a2dlc-pe6.2` |
 | P3 | **Faster** — fewer human reviews and reverts per verified slice, not fewer seconds per commit (A2-DLC always adds seconds) | OPEN | `check` p95 ≤ 60 s (3 reps, median + max; max > 120 s ⇒ async receipt) on ≥ 20 commits; before/after ≥ 2 weeks each on a ~4 commits/day repo: verified slices/day and revert rate | — | `a2dlc-pe6.3` |
-| P4 | **Agent-oriented** — every interaction is a versioned contract (JSON, exit codes, MCP), none requires a chat turn | OPEN | One Hermes kanban worker completes ticket → `a2dlc run` → `PASS` → push using only MCP/CLI, with ledger and transcript in `e2e/`; `escalations.schema.json` and the exit-code table validated by the conformance kit | — | `a2dlc-pe6.4` |
+| P4 | **Agent-oriented** — every interaction is a versioned contract (JSON, exit codes, MCP), none requires a chat turn | OPEN | One Hermes kanban worker completes ticket → `a2dlc run` → `PASS` → push using only MCP/CLI, with ledger and transcript in `e2e/`; `escalations.schema.json` and the exit-code table validated by the conformance kit | `conformance/run.py` | `a2dlc-pe6.4` |
 
 Order: P1 → P2 → P4 → P3. P1 first because a false `PASS` voids the other three. P3 is measured last, once P1 and P2 are stable; its latency work can run in parallel.
 
 ## README sentences and the gate behind each
 
-| README sentence | Gate | Current evidence |
-|---|---|---|
-| SWE-bench Verified: 38 real agent patches, 18/18 rejected caught with peer | P1 | `docs/COVERAGE_AND_BENCHMARKS.md`, frozen fixtures pinned by SHA-256 |
-| TypeScript engine 8/8, black-box 4/4 behavior-changing mutants (`mutantes-bb-2`, 2026-11-07; the fifth is equivalent under the surface's schema), test & property gates 12/12, self-verification 3/5 vs `check` | P1 | `e2e/testdata/`, seeds 1–3 |
-| Greenfield slice converges in 84–127 s at $0.025–$0.069 | P3 (cost/latency of `run`, not of `check`) | measured run, see README §Measured |
-| `a2dlc verify` runs no engine and no Docker at `pre-push` | P4 | `internal/app` verify path; no latency figure is published until P3 measures it (one Windows sample on 2026-11-07: about 1 s wall with the unsigned dev build) |
-| "How it compares" table, AI-DLC column | — (descriptive, read from source at 11daa8ff) | this document, §What is not adopted |
+Every quantitative sentence or benchmark claim in `README.md` appears in the table below with its gate (`P1`–`P4`), status, measured number, reproduction command, measurement date, and commit. `contracts/tests/check_claims.py` enforces this mapping in CI.
 
-Sentences that are **not** in the README and must not be added until their gate closes ("Autonomous" in the protocol's name, the expansion of A2, is a name and not this claim): "autonomous", "faster development", "increases velocity", "agent-native orchestration of the SDLC".
+| README sentence | Gate | Status | Number | Reproduce command | Date | Commit |
+|---|---|---|---|---|---|---|
+| SWE-bench Verified: 38 real agent patches (18 rejected, 20 accepted); CrossHair alone 0/18; repo tests + coverage + Saboteur overlay + peer 18/18 caught (100%, Wilson 95% CI 82–100%), 0/20 false positives | P1 (fixture upper bound, gate OPEN for ≥ 50 real commits) | OPEN | `18/18` (`100%`, Wilson `95%` CI `82–100%`), `0/20` false positives, `0/18` CrossHair alone | `python3 e2e/bench-swe-abs/run.py` (`e2e/bench-swe-abs/RESULTS.md`) | 2026-10-31 | `0254043` |
+| Multi-issue `a2dlc run` chains (`rung: "critical_code"`): `tinylinks` (`#1 → #2 → #5`) 3/3 PASS in 117.4 s (`47.1 s`, `41.6 s`, `28.7 s`; `3/3` hidden suites, final `check` `14.5 s`); `click` (`#1 → #5 → #6`) 3/3 PASS in 425.6 s (`91.9 s`, `65.0 s`, `268.7 s`; `28/28` holdout tests, final `check` `73.9 s`) | P1 / P3 (fixture chain measurement) | OPEN | `3/3` PASS (`tinylinks` `117.4 s`, `47.1 s`, `41.6 s`, `28.7 s`, `check` `14.5 s`); `3/3` PASS (`click` `425.6 s`, `91.9 s`, `65.0 s`, `268.7 s`, `28/28` tests, `check` `73.9 s`) | `docs/COVERAGE_AND_BENCHMARKS.md` (§Multi-issue `a2dlc run` chains) | 2026-11-18 | `f8fe7ae` |
+| Greenfield slice converges in 84–127 s across 6–8 role containers at $0.025–$0.069 per slice | P3 (fixture `run` cost/latency) | OPEN | `84–127 s`, `6–8 role containers`, `$0.025–$0.069` | `docs/COVERAGE_AND_BENCHMARKS.md` (measured greenfield slice run) | 2026-11-06 | `0254043` |
+| "Every session verifies its own work" vs `a2dlc check`, 9 frozen trees: self-verification lets 3/5 blocking cases through; gate blocks 5/5, passes 4/4 | P1 | OPEN | `3/5` leaked vs `5/5` blocked, `4/4` passed (`9` trees) | `e2e/testdata/` self-verification comparison harness | 2026-11-06 | `0254043` |
+| TypeScript engine — 8 frozen mutants + 1 equivalent refactor, seeds 1–3: 8/8 caught on every seed; refactor PASS | P1 | OPEN | `8/8` caught, refactor `PASS` (seeds `1–3`) | `e2e/testdata/` TS engine mutant suite | 2026-11-06 | `0254043` |
+| Black-box engine (`a2dlc-engine-bb-go:0.2`, 2026-11-07, `mutantes-bb-2`) — 4/4 behavior-changing mutants caught in 21–26 s; fifth (equivalent under surface schema) and refactor give PASS | P1 | OPEN | `4/4` caught in `21–26 s` (`mutantes-bb-2`, seeds `1–3`) | `FIXTURE=mutantes-bb-2 bash e2e/measure_bb.sh <folder>` | 2026-11-07 | `0254043` |
+| Equivalent-mutant pruning (`mutmut`, `billing.py`): kill rate 48.9% → 65.6% after pruning 13 equivalent mutants | P1 | OPEN | `48.9%` → `65.6%` (`13` equivalent mutants pruned) | `docs/COVERAGE_AND_BENCHMARKS.md` (mutation pruning section) | 2026-11-06 | `0254043` |
+| Test & property gates — 12 frozen cases: 12/12 judged as expected; every receipt validates against the JSON Schemas | P1 / P4 | OPEN | `12/12` judged as expected | `go test ./internal/app -run TestGate` && `python3 contracts/tests/validate.py` | 2026-11-06 | `0254043` |
+| `a2dlc verify` runs no engine and no Docker at `pre-push` (descriptive architectural capability) | P4 | OPEN | `0` engines / `0` Docker invocations on `verify` | `go test ./internal/app -run TestVerify` | 2026-11-07 | `0254043` |
+| "How it compares" table, AI-DLC column (descriptive comparison read from `awslabs/aidlc-workflows@11daa8ff`) | Descriptive (no quantitative claim) | — | read-only comparison at `11daa8ff` (`2.11.2` / `2026-11-03`) | `docs/CLAIMS.md` (§What A2-DLC adopts from AI-DLC, and what it does not) | 2026-11-06 | `0254043` |
+
+Sentences that are **not** in the README and must not be added until their gate closes ("Autonomous" in the protocol's name, the expansion of A2, is a name and not this claim): `"autonomous"`, `"faster development"`, `"increases velocity"`, `"agent-native orchestration of the SDLC"`.
 
 ## What A2-DLC adopts from AI-DLC, and what it does not
 

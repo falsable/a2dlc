@@ -7,6 +7,8 @@ on:
     branches: [main]
     paths:
       - 'docs/A2-DLC_*_protocol.md'
+      - 'docs/CLAIMS.md'
+      - 'README.md'
       - 'contracts/**'
       - 'conformance/**'
       - 'verifiers/**'
@@ -17,6 +19,8 @@ on:
   pull_request:
     paths:
       - 'docs/A2-DLC_*_protocol.md'
+      - 'docs/CLAIMS.md'
+      - 'README.md'
       - 'contracts/**'
       - 'conformance/**'
       - 'verifiers/**'
@@ -41,6 +45,10 @@ jobs:
           /tmp/v/bin/python -m unittest discover -s contracts/tests -p "test_check_rfc.py"
       - name: RFC rules against git and the frozen Go output
         run: python3 -m unittest discover -s e2e -p "test_rfc_reference.py"
+      - name: README claims trace to docs/CLAIMS.md gates P1-P4
+        run: |
+          python3 contracts/tests/check_claims.py .
+          python3 -m unittest discover -s contracts/tests -p "test_check_claims.py"
   kit:
     runs-on: ubuntu-latest
     timeout-minutes: 20
