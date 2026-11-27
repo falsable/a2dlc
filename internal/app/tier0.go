@@ -119,11 +119,12 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 		}
 	}()
 	if len(idx) == 0 {
-		resp, err := a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, changed, export, &baseDir, &candDir)
-		if err == nil {
-			resp.Findings = append(resp.Findings, a.checksTier0(ctx, cfg, extra, tree, baseSha, changed, export, &baseDir, &candDir)...)
-			resp.OK = len(resp.Findings) == 0
+		// the checks first: a round they flag goes back without paying the test run (RFC-0012)
+		if chk := a.checksTier0(ctx, cfg, extra, tree, baseSha, changed, export, &baseDir, &candDir); len(chk) > 0 {
+			resp.Findings, resp.OK = chk, false
+			return resp, unique(unreviewed), nil
 		}
+		resp, err := a.testsTier0(ctx, resp, cfg, baseSha, tree, extra, changed, export, &baseDir, &candDir)
 		return resp, unique(unreviewed), err
 	}
 	if a.Runner == nil {
@@ -183,12 +184,22 @@ func (a App) Tier0With(ctx context.Context, base, candidate string, probes []con
 	}
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = reviewed
+	// RFC-0012: the checks run while the tests still do, and a round the engines or the checks flag goes back to the
+	// builder without waiting for the tests: they would run again on the next round's tree anyway
+	chk := a.checksTier0(ctx, cfg, extra, tree, baseSha, changed, export, &baseDir, &candDir)
+	if extra.Tests && len(resp.Findings)+len(chk) > 0 {
+		cancelTests()
+		<-testsDone
+		resp.Findings = append(resp.Findings, chk...)
+		resp.OK = false
+		return resp, unique(unreviewed), nil
+	}
 	<-testsDone
 	if testsErr != nil {
 		return resp, unique(unreviewed), testsErr
 	}
 	resp.Findings = append(resp.Findings, tests.Findings...)
-	resp.Findings = append(resp.Findings, a.checksTier0(ctx, cfg, extra, tree, baseSha, changed, export, &baseDir, &candDir)...)
+	resp.Findings = append(resp.Findings, chk...)
 	resp.OK = len(resp.Findings) == 0
 	resp.Reviewed = reviewed || tests.Reviewed
 	return resp, unique(unreviewed), nil

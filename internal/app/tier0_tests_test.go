@@ -22,15 +22,19 @@ type scriptedTests struct {
 	finished int           // runs that returned
 }
 
-func (s *scriptedTests) RunTests(_ context.Context, _ contract.TestsConfig, command string, env map[string]string, _ string) (engine.TestRun, error) {
+func (s *scriptedTests) RunTests(ctx context.Context, _ contract.TestsConfig, command string, env map[string]string, _ string) (engine.TestRun, error) {
 	if s.started != nil {
 		close(s.started)
 		s.started = nil
 	}
-	time.Sleep(s.delay)
 	defer func() { s.finished++ }()
 	i := len(s.cmds)
 	s.cmds, s.envs = append(s.cmds, command), append(s.envs, env)
+	select {
+	case <-time.After(s.delay):
+	case <-ctx.Done():
+		return engine.TestRun{}, ctx.Err()
+	}
 	if i < len(s.errs) && s.errs[i] != nil {
 		return engine.TestRun{}, s.errs[i]
 	}
@@ -152,12 +156,19 @@ func TestTier0RunsTheTestsOnceOverEngineCoveredFilesToo(t *testing.T) {
 		t.Fatalf("%v %+v %v ran %v %v", err, r, unreviewed, st.cmds, st.envs)
 	}
 	st.cmds, st.envs = nil, nil
-	// a file the engine does not cover brings the tests in, and the engine's findings and the tests' add up
+	// a file the engine does not cover brings the tests in; with an engine finding the round goes back with it alone
+	// (RFC-0012): the tests' red would come again on the next round's tree
 	st.script = []engine.TestRun{junitRun(1, "tests/a.t broke:boom")}
 	c = candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 2\nBROKEN\n", "README.md": "bye\n"})
 	r, unreviewed, err = a.Tier0With(context.Background(), "HEAD", c, nil, withTests)
-	if err != nil || r.OK || len(r.Findings) != 2 || r.Findings[0].Kind != contract.Tier0Compile || r.Findings[1].Kind != contract.Tier0Test || strings.Join(unreviewed, ",") != "README.md" {
+	if err != nil || r.OK || len(r.Findings) != 1 || r.Findings[0].Kind != contract.Tier0Compile || strings.Join(unreviewed, ",") != "README.md" {
 		t.Fatalf("%v %+v %v", err, r, unreviewed)
+	}
+	// with the engine green, the tests' red is the feedback
+	st.script, st.cmds, st.envs = []engine.TestRun{junitRun(1, "tests/a.t broke:boom")}, nil, nil
+	c = candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 3\n", "README.md": "bye\n"})
+	if r, _, err = a.Tier0With(context.Background(), "HEAD", c, nil, withTests); err != nil || r.OK || len(r.Findings) != 1 || r.Findings[0].Kind != contract.Tier0Test {
+		t.Fatalf("%v %+v", err, r)
 	}
 	// an engine that does not do tier0 leaves its files to the tests too
 	st.script = []engine.TestRun{junitRun(0, "tests/a.t fine")}
@@ -203,7 +214,7 @@ func TestTier0RunsTheTestsWhileTheEnginesReview(t *testing.T) {
 	we := &waitingEngine{fakeEngine: &fakeEngine{}, testsStarted: started}
 	a.Tests, a.Runner = st, we
 	r, _, err := a.Tier0With(context.Background(), "HEAD", c, nil, withTests)
-	if err != nil || r.OK || !r.Reviewed || len(r.Findings) != 2 || r.Findings[0].Kind != contract.Tier0Compile || r.Findings[1].Kind != contract.Tier0Test {
+	if err != nil || r.OK || !r.Reviewed || len(r.Findings) != 1 || r.Findings[0].Kind != contract.Tier0Compile {
 		t.Fatalf("%v %+v", err, r)
 	}
 	if !we.overlapped {
@@ -376,5 +387,48 @@ func TestTier0IgnoresPreexistingBaseReds(t *testing.T) {
 	msgs := r2.Findings[0].Message + " | " + r2.Findings[1].Message
 	if strings.Contains(msgs, "test_pre") || !strings.Contains(msgs, "test_reg") || !strings.Contains(msgs, "test_new") {
 		t.Fatalf("unexpected filtered findings: %+v", r2.Findings)
+	}
+}
+
+// RFC-0012: a round the engines or the checks flag goes back to the builder without waiting for the test run, which is
+// cancelled; with no engine the checks run first and the tests do not start.
+func TestTier0CheapFindingsDoNotWaitForTheTests(t *testing.T) {
+	a, _, dir := newRepo(t)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],
+ "tests":{"image":"fake","paths":["tests/**"],"command":"run-all"}}`)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "engine and tests")
+	st := &scriptedTests{script: []engine.TestRun{junitRun(0, "tests/a.t fine")}, delay: 30 * time.Second}
+	a.Tests = st
+	c := candidateOf(t, a, map[string]string{"src/lib/f.ts": "export const f = 2\nBROKEN\n"})
+	t0 := time.Now()
+	r, _, err := a.Tier0With(context.Background(), "HEAD", c, nil, withTests)
+	if err != nil || r.OK || len(r.Findings) != 1 || r.Findings[0].Kind != contract.Tier0Compile {
+		t.Fatalf("%v %+v", err, r)
+	}
+	if d := time.Since(t0); d > 10*time.Second {
+		t.Fatalf("the round waited %v for the tests after an engine finding", d)
+	}
+	if st.finished != len(st.cmds) {
+		t.Fatalf("Tier0 returned with the tests still running: %d started, %d finished", len(st.cmds), st.finished)
+	}
+
+	a, _, dir = newRepo(t)
+	write(t, dir, ".a2dlc/config.json", `{"schema_version":1,"engines":[],"tests":{"image":"fake","paths":["test/**"],"command":"run-all"},
+ "checks":[{"id":"lint","image":"lint:1","command":"lint","severity":"blocking","fire_on":["stage:3"]}]}`)
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "tests and a check")
+	st = &scriptedTests{script: []engine.TestRun{junitRun(0, "test/a.t fine")}}
+	a.Tests = st
+	a.Checks = &fakeChecks{resp: map[string]contract.CheckResponse{"lint": response("lint", false, "src/server.ts::L1")}}
+	c = candidateOf(t, a, map[string]string{"src/server.ts": "export const s = 2\n"})
+	r, _, err = a.Tier0With(context.Background(), "HEAD", c, nil, withTests)
+	if err != nil || r.OK || len(r.Findings) != 1 || r.Findings[0].Kind != contract.Tier0Check || len(st.cmds) != 0 {
+		t.Fatalf("%v %+v, test runs %v", err, r, st.cmds)
+	}
+	// a clean check lets the tests run
+	a.Checks = &fakeChecks{resp: map[string]contract.CheckResponse{"lint": response("lint", true)}}
+	if r, _, err = a.Tier0With(context.Background(), "HEAD", c, nil, withTests); err != nil || !r.OK || len(st.cmds) != 1 {
+		t.Fatalf("%v %+v, test runs %v", err, r, st.cmds)
 	}
 }
