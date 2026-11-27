@@ -546,7 +546,16 @@ func (a App) gateBaseline(ctx context.Context, in gateInput) baselineJudge {
 	if len(in.tests)+len(in.sources) == 0 {
 		return done(contract.Gate{Status: contract.GateNotApplicable, Reason: "nothing changed"})
 	}
-	env := envTests(in.tests, in.sources)
+	var inBase []string
+	for _, f := range in.tests {
+		if _, err := a.Repo.Blob(in.baseSha, f); err == nil {
+			inBase = append(inBase, f)
+		}
+	}
+	baseIn := in
+	baseIn.tests = inBase
+	baseEnv := envTests(inBase, in.sources)
+	candEnv := envTests(in.tests, in.sources)
 	digest, err := a.imageDigest(ctx, in.cfg.Image)
 	if err != nil {
 		return done(gateError("image digest", err))
@@ -578,13 +587,13 @@ func (a App) gateBaseline(ctx context.Context, in gateInput) baselineJudge {
 			defer func() { <-slots }()
 		}
 		g := contract.Gate{Status: contract.GateRan}
-		base, cached, err := a.suite(ctx, in, cmd, in.baseSha, digest, env)
+		base, cached, err := a.suite(ctx, baseIn, cmd, in.baseSha, digest, baseEnv)
 		if err != nil {
 			ch <- ran{g: gateError("base", err)}
 			return
 		}
 		g.Cached = cached
-		candidate, cached, err := a.suite(ctx, in, cmd, in.tree, digest, env)
+		candidate, cached, err := a.suite(ctx, in, cmd, in.tree, digest, candEnv)
 		if err != nil {
 			ch <- ran{g: gateError("candidate", err)}
 			return
@@ -608,11 +617,11 @@ func (a App) gateBaseline(ctx context.Context, in gateInput) baselineJudge {
 		}
 		var baseRuns, candRuns []map[string]junit.Case
 		for i := 0; i < k; i++ {
-			x, err := a.run(ctx, in, cmd, in.baseSha, nil, nil, env)
+			x, err := a.run(ctx, baseIn, cmd, in.baseSha, nil, nil, baseEnv)
 			if err != nil {
 				return gateError(fmt.Sprintf("re-run %d on the base", i+1), err), nil
 			}
-			y, err := a.run(ctx, in, cmd, in.tree, nil, nil, env)
+			y, err := a.run(ctx, in, cmd, in.tree, nil, nil, candEnv)
 			if err != nil {
 				return gateError(fmt.Sprintf("re-run %d on the candidate", i+1), err), nil
 			}

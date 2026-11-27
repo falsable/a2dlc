@@ -1071,3 +1071,56 @@ func TestJudgeNOPMissingOnBase(t *testing.T) {
 		}
 	}
 }
+
+type baselineNewTestsRunner struct {
+	*fakeTests
+	sawNewOnBase bool
+}
+
+func (b *baselineNewTestsRunner) RunTests(ctx context.Context, cfg contract.TestsConfig, command string, env map[string]string, tree string) (engine.TestRun, error) {
+	if strings.HasPrefix(command, "baseline") {
+		for _, f := range strings.Fields(env["A2DLC_TESTS"]) {
+			if _, err := os.Stat(filepath.Join(tree, filepath.FromSlash(f))); err != nil {
+				b.mu.Lock()
+				b.sawNewOnBase = true
+				b.mu.Unlock()
+				// Like pytest exit 4 on a missing path argument: abort with 0 testcases.
+				return engine.TestRun{Exit: 4, JUnit: []byte("<testsuites><testsuite/></testsuites>")}, nil
+			}
+		}
+	}
+	return b.fakeTests.RunTests(ctx, cfg, command, env, tree)
+}
+
+// TestBaselineOmitsNewTestFilesOnBase verifies that gateBaseline omits newly added test files from $A2DLC_TESTS when
+// running baseline_command on the base commit, so a command like `pytest $sel $A2DLC_TESTS` does not abort on base
+// and turn preexisting base reds into missing->failed regressions.
+func TestBaselineOmitsNewTestFilesOnBase(t *testing.T) {
+	const cfg = `{"schema_version":1,"engines":[{"language":"typescript","image":"fake","paths":["src/lib/**"],"budget":{}}],"tests":{"image":"fake","paths":["tests/**"],"source_paths":["src/**"],"command":"nop","baseline_command":"baseline $A2DLC_TESTS","invalid_base_failures":["ImportError"]}}`
+	t.Setenv("A2DLC_CACHE_DIR", t.TempDir())
+	a, _, dir := newRepo(t)
+	runner := &baselineNewTestsRunner{fakeTests: &fakeTests{}}
+	a.Runner, a.Tests = &fakeEngine{}, runner
+	write(t, dir, ".a2dlc/config.json", cfg)
+	write(t, dir, "src/lib/f.ts", "export const f = 1\nIMPL old\n")
+	write(t, dir, "tests/preexisting.t", "pre_red failed:AssertionError\n")
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "base")
+
+	write(t, dir, "src/lib/f.ts", "export const f = 1\nIMPL old\nIMPL added\n")
+	write(t, dir, "tests/new.t", "new_proves uses:added\n")
+
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runner.sawNewOnBase {
+		t.Fatal("gateBaseline passed tests/new.t in $A2DLC_TESTS on the base commit")
+	}
+	if v.Verdict != contract.PASS {
+		t.Fatalf("verdict %s, want PASS; tests=%+v", v.Verdict, v.Tests)
+	}
+	if _, flagged := testsOf(v)["pre_red"]; flagged {
+		t.Fatalf("preexisting red test was falsely flagged: %+v", testsOf(v)["pre_red"])
+	}
+}
