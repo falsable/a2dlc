@@ -921,6 +921,31 @@ def _def_names(node: ast.AST) -> set[str]:
     return {n.name for n in ast.walk(node) if isinstance(n, DEFS)}
 
 
+def _class_attrs(cls: ast.ClassDef) -> set[str]:
+    """Names a class body assigns (`x = 1`, `x: int = 1`, `x: int`), dunders left out."""
+    names = set()
+    for n in cls.body:
+        for t in (n.targets if isinstance(n, ast.Assign) else [n.target] if isinstance(n, ast.AnnAssign) else []):
+            names.update(x.id for x in ast.walk(t) if isinstance(x, ast.Name))
+    return {x for x in names if not (x.startswith("__") and x.endswith("__"))}
+
+
+def _declarative(stmt: ast.stmt) -> bool:
+    """Whether a top-level statement of a new module only declares: a def, class, import, assignment or docstring, or an
+    if/try whose branches hold only imports, assignments and pass (`if TYPE_CHECKING:`, an optional import with its
+    `except ImportError: x = None`). Anything else runs code
+    of the candidate on the base when the stub is imported (a2dlc-fxa)."""
+    # shortcut: a literal assigned inside a kept if/try is not nulled; null those branches too if one ever carries the fix
+    if isinstance(stmt, (*DEFS, ast.Import, ast.ImportFrom, ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Pass)):
+        return True
+    if isinstance(stmt, ast.Expr):
+        return isinstance(stmt.value, ast.Constant)
+    if isinstance(stmt, (ast.If, ast.Try)):
+        inner = [s for s in ast.walk(stmt) if isinstance(s, ast.stmt) and s is not stmt]
+        return all(isinstance(s, (ast.Import, ast.ImportFrom, ast.Pass, ast.Assign, ast.AnnAssign)) for s in inner)
+    return False
+
+
 def stub_of(base_txt: str | None, cand_txt: str) -> tuple[str | None, list[str], set[str]]:
     """(text of the base with stubs or None if not needed, symbols with a stub, new names without a stub).
 
@@ -935,6 +960,7 @@ def stub_of(base_txt: str | None, cand_txt: str) -> tuple[str | None, list[str],
       it, the gate treats it as an invalid failure."""
     impl = ast.parse(cand_txt)
     if base_txt is None:
+        impl.body = [n for n in impl.body if _declarative(n)]
         assigned = _bound(ast.Module(body=[n for n in impl.body if isinstance(n, (ast.Assign, ast.AnnAssign, ast.AugAssign))],
                                         type_ignores=[]))
         symbols = sorted(_def_names(impl) | {x for x in assigned if not (x.startswith("__") and x.endswith("__"))})
@@ -961,6 +987,7 @@ def stub_of(base_txt: str | None, cand_txt: str) -> tuple[str | None, list[str],
             covered |= _def_names(n)
     before = {n.name: {m.name for m in n.body if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
              for n in previous.body if isinstance(n, ast.ClassDef)}
+    attrs_before = {n.name: _class_attrs(n) for n in previous.body if isinstance(n, ast.ClassDef)}
     for n in impl.body:
         if isinstance(n, ast.ClassDef) and n.name in before:
             for m in n.body:
@@ -969,6 +996,11 @@ def stub_of(base_txt: str | None, cand_txt: str) -> tuple[str | None, list[str],
                     defs += [_stub(m), ast.parse(f"{n.name}.{method} = {m.name}").body[0]]
                     symbols.append(f"{n.name}.{method}")
                     covered.add(method)
+            # a new attribute or field of an existing class (a pydantic field): None on the class, so a test that reads it
+            # or passes it fails on the base because of the test, not with an AttributeError; never the candidate's value
+            for name in sorted(_class_attrs(n) - attrs_before[n.name] - before[n.name]):
+                defs.append(ast.parse(f"{n.name}.{name} = None").body[0])
+                symbols.append(f"{n.name}.{name}")
     for name in sorted(_bound(impl) - bound):
         if any(isinstance(n, DEFS) and n.name == name for n in impl.body):
             continue
