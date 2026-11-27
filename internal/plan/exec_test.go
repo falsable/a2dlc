@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,6 +84,10 @@ type builder struct {
 	mu       sync.Mutex
 	inflight int
 	peak     int
+	// meet: the first launch of each of these slices waits (up to 10 s) until all of them are in flight, so a test
+	// that asserts they overlap does not depend on host timing; a scheduler that runs them one at a time still gives peak 1
+	meet map[string]bool
+	met  int
 }
 
 func (b *builder) launched(slice string) int {
@@ -111,9 +116,21 @@ func (b *builder) Launch(_ context.Context, r contract.Role, s a2run.LaunchSpec)
 	if b.inflight > b.peak {
 		b.peak = b.inflight
 	}
+	waits := b.meet[in.SliceID] && b.launches[in.SliceID] == 1
+	if waits {
+		b.met++
+	}
 	b.mu.Unlock()
-	time.Sleep(50 * time.Millisecond) // long enough for a slice beside it to start
+	time.Sleep(50 * time.Millisecond)
 	defer func() { b.mu.Lock(); b.inflight--; b.mu.Unlock() }()
+	for deadline := time.Now().Add(10 * time.Second); waits && time.Now().Before(deadline); time.Sleep(time.Millisecond) {
+		b.mu.Lock()
+		all := b.met >= len(b.meet)
+		b.mu.Unlock()
+		if all {
+			break
+		}
+	}
 	var touched []string
 	for rel, c := range b.files(in.SliceID) {
 		p := filepath.Join(s.WorkDir, filepath.FromSlash(rel))
@@ -191,7 +208,7 @@ func TestPlanRunEndToEnd(t *testing.T) {
 	a, base, eng := e2eRepo(t)
 	p, f := threeSlices()
 	planBytes, _ := json.Marshal(p)
-	b := &builder{files: ownFile, launches: map[string]int{}}
+	b := &builder{files: ownFile, launches: map[string]int{}, meet: map[string]bool{"feat.left": true, "feat.right": true}}
 	ex := RunExec{App: a, Launcher: b, Feature: p.FeatureID}
 	r := Runner{Repo: a.Repo, Accept: acceptAll, Exec: ex, Final: AppFinalCheck(a, f), Slots: func(int) (int, *contract.PlanScheduler) {
 		return 2, &contract.PlanScheduler{Jobs: 2, Why: "test", Host: contract.PlanPlace{Name: "test"}}
@@ -317,7 +334,17 @@ func TestPlanRunMarksExhaustedSlices(t *testing.T) {
 	eng.stuck = map[string]bool{"src/left.py": true}
 	p, f := threeSlices()
 	planBytes, _ := json.Marshal(p)
-	b := &builder{files: ownFile, launches: map[string]int{}}
+	// each round of left writes a different tree, as a Builder trying a fix does: the same tree twice would get Tier 0's
+	// cached answer by tree hash, the same findings, and CB-02b no-progress after 2 rounds
+	round := 0
+	b := &builder{launches: map[string]int{}, files: func(slice string) map[string]string {
+		m := ownFile(slice)
+		if slice == "feat.left" {
+			round++
+			m["src/left.py"] += fmt.Sprintf("# attempt %d\n", round)
+		}
+		return m
+	}}
 	r := Runner{Repo: a.Repo, Accept: acceptAll, Exec: RunExec{App: a, Launcher: b, Feature: p.FeatureID}, Final: AppFinalCheck(a, f)}
 	st, _, err := r.Run(context.Background(), planBytes, f, base)
 	if err != nil {
