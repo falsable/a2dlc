@@ -113,23 +113,24 @@ func invalidBaseFailures(cfg contract.Config) []string {
 }
 
 type gateInput struct {
-	cfg        contract.TestsConfig
-	baseSha    string
-	tree       string
-	tests      []string          // changed test files that exist in the candidate
-	overlay    map[string][]byte // --tests-overlay: tests brought by the Saboteur, keyed by relative path; they are in no tree
-	sources    []string          // the rest of what changed
-	intent     bool              // the change declares the intent to change behavior (enforce_new_behavior waiver)
-	changeKind string            // intent.change_kind: feature, bugfix or refactor; "" when not declared
-	stubs      map[string][]byte
-	symbols    []string                // symbols that received a stub
-	unstubbed  []string                // new symbols the engine could not stub
-	modified   []string                // tests whose body changed (file::Class.name), reported by the engines' stub operation
-	stubNote   string                  // why there were no stubs, if there were none
-	cov        *accumulated            // coverage from the runs overlaid on the candidate (all that leave it)
-	engines    []contract.EngineConfig // config.engines: the static listing of the base's tests asks them
-	warm       *warmTree               // the warm volume holding the base tree; nil runs export the whole tree
-	slots      chan struct{}           // the test runs of one check that may be in flight at once; nil does not limit
+	prerequisite bool // Stage -1's run: baseline_command gets A2DLC_STAGE=-1 (EnvStage)
+	cfg          contract.TestsConfig
+	baseSha      string
+	tree         string
+	tests        []string          // changed test files that exist in the candidate
+	overlay      map[string][]byte // --tests-overlay: tests brought by the Saboteur, keyed by relative path; they are in no tree
+	sources      []string          // the rest of what changed
+	intent       bool              // the change declares the intent to change behavior (enforce_new_behavior waiver)
+	changeKind   string            // intent.change_kind: feature, bugfix or refactor; "" when not declared
+	stubs        map[string][]byte
+	symbols      []string                // symbols that received a stub
+	unstubbed    []string                // new symbols the engine could not stub
+	modified     []string                // tests whose body changed (file::Class.name), reported by the engines' stub operation
+	stubNote     string                  // why there were no stubs, if there were none
+	cov          *accumulated            // coverage from the runs overlaid on the candidate (all that leave it)
+	engines      []contract.EngineConfig // config.engines: the static listing of the base's tests asks them
+	warm         *warmTree               // the warm volume holding the base tree; nil runs export the whole tree
+	slots        chan struct{}           // the test runs of one check that may be in flight at once; nil does not limit
 }
 
 // maxTestRuns is how many test containers a check runs at once: two, the most it ran before the baseline overlapped NOP, so
@@ -258,6 +259,18 @@ func runName(ctx context.Context, in gateInput, treeish string, overlay map[stri
 
 func envTests(tests, sources []string) map[string]string {
 	return map[string]string{"A2DLC_TESTS": strings.Join(tests, " "), "A2DLC_CHANGED": strings.Join(sources, " ")}
+}
+
+// EnvStage names Stage -1's runs of baseline_command (A2DLC_STAGE=-1, RFC-0013): $A2DLC_TESTS then lists every test of the
+// base, and a repo whose whole suite is too long for the base run can run its own selection instead. No other run sets it.
+const EnvStage = "A2DLC_STAGE"
+
+// stageKey is what suiteKey adds for a command that reads A2DLC_STAGE: its answer in Stage -1 may differ from a check's.
+func stageKey(in gateInput, cmd string) string {
+	if in.prerequisite && strings.Contains(cmd, EnvStage) {
+		return "\x00stage -1"
+	}
+	return ""
 }
 
 // gateNOP runs the changed tests and the overlay ones on the candidate, on the base as is (to know which ones already
@@ -696,6 +709,7 @@ func suiteKey(tree string, in gateInput, cmd, digest string) string {
 	if strings.Contains(cmd, "A2DLC_TESTS") || strings.Contains(cmd, "A2DLC_CHANGED") {
 		fmt.Fprintf(h, "\x00%s\x00%s", strings.Join(in.tests, " "), strings.Join(in.sources, " "))
 	}
+	h.Write([]byte(stageKey(in, cmd)))
 	return hex.EncodeToString(h.Sum(nil))[:24]
 }
 

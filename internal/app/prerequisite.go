@@ -89,7 +89,7 @@ func (a App) SetBaseline(ctx context.Context, base string) (Baseline, error) {
 		out.Reason = fmt.Sprintf("image without digest: tests.image %q has no RepoDigests (a local build that was never pushed), so the baseline cannot be keyed to it", cfg.Tests.Image)
 		return out, nil
 	}
-	in := gateInput{cfg: *cfg.Tests, baseSha: baseSha, tree: baseSha, tests: tests}
+	in := gateInput{cfg: *cfg.Tests, baseSha: baseSha, tree: baseSha, tests: tests, prerequisite: true}
 	cmd := cfg.Tests.BaselineCommand
 	tree, err := a.suiteTree(baseSha)
 	if err != nil {
@@ -143,7 +143,11 @@ func (a App) SetBaseline(ctx context.Context, base string) (Baseline, error) {
 
 // runReadable runs the command on the base and checks that its result can be judged.
 func (a App) runReadable(ctx context.Context, in gateInput, cmd, baseSha string) (run, error) {
-	c, err := a.run(ctx, in, cmd, baseSha, nil, nil, envTests(in.tests, nil))
+	env := envTests(in.tests, nil)
+	if in.prerequisite {
+		env[EnvStage] = "-1"
+	}
+	c, err := a.run(ctx, in, cmd, baseSha, nil, nil, env)
 	if err == nil {
 		err = c.readable()
 	}

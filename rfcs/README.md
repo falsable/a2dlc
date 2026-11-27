@@ -16,6 +16,7 @@ An RFC is a written proposal to change what the protocol requires or what a cont
 | [0010](0010-nop-tests-absent-on-the-base.md) | Opt-in: a new test that does not appear on the base and passes on the candidate is NOP PASS, recorded with `absent_on_base` | Draft |
 | [0011](0011-blocking-checks-in-tier0.md) | Blocking checks that fire at stage:3 run in Tier 0 and their findings return to the Builder | Draft |
 | [0012](0012-cheap-tier0-findings-first.md) | A Tier 0 round the engines or the checks flag goes back to the Builder without waiting for the tests | Draft |
+| [0013](0013-stage-minus-one-names-its-runs.md) | Stage −1's runs of baseline_command get A2DLC_STAGE=-1, so a repo can run its own selection on the base | Draft |
 
 ## What needs an RFC
 

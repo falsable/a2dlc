@@ -155,7 +155,7 @@ Mandatory order, because the seaming is itself a refactor and needs a safety net
 3. **Seaming with deterministic codemods** (OpenRewrite, LibCST, jscodeshift, ast-grep), which preserve behavior by construction. Singletons, clock, network and DB are wrapped behind interfaces (`Clock`, `DatabaseGateway`). **No LLMs are used to rewrite here.**
 4. **Re-run the baseline**: it must pass identically.
 
-If a hermetic build and a green baseline are not achieved within the timeout, **CB-05 PREREQUISITE_FAILURE** fires. This stage is semi-manual and is usually most of the work.
+If a hermetic build and a green baseline are not achieved within the timeout, **CB-05 PREREQUISITE_FAILURE** fires. This stage is semi-manual and is usually most of the work. Its two runs of `tests.baseline_command` get every test of the base in `$A2DLC_TESTS` and `A2DLC_STAGE=-1`, which no other run gets: a repo whose whole suite is too long for the base run reads it and runs its own selection (RFC-0013).
 
 ### Stage 0: Intent, invariants and budget
 The human provides the goal in natural language, the SLAs (e.g. `p99 < 25 ms`), the known business invariants and the maximum budget (USD/tokens) per slice.

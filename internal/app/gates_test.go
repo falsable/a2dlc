@@ -112,6 +112,7 @@ type fakeTests struct {
 	mu       sync.Mutex // the candidate and the NOP run are concurrent
 	runs     []string
 	selected []string      // A2DLC_TESTS of each run, in the order they started
+	stages   []string      // A2DLC_STAGE of each run
 	module   bool          // classname is the module of the file, as pytest writes it, instead of "c"
 	noFile   bool          // no file attribute and the file as classname, as vitest writes it
 	delay    time.Duration // each run takes at least this long
@@ -146,6 +147,7 @@ func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command 
 	f.mu.Lock()
 	f.runs = append(f.runs, command)
 	f.selected = append(f.selected, env["A2DLC_TESTS"])
+	f.stages = append(f.stages, env[EnvStage])
 	f.inflight++
 	f.peak = max(f.peak, f.inflight)
 	if f.byCmd == nil {

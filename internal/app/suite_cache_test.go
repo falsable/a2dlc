@@ -220,3 +220,31 @@ func TestSetBaselineIgnoresACommittedRolesFile(t *testing.T) {
 		t.Fatalf("a change outside the roles file must miss the cache, got %d runs (cached %v)", got, out.Cached)
 	}
 }
+
+// Stage -1's runs get A2DLC_STAGE=-1 and no other run does (RFC-0013). A command that reads it is keyed apart, so a check's
+// run of the same tree does not stand in for one of Stage -1's two; a command that does not read it keeps the shared key.
+func TestStageMinusOneRunsAreNamedAndKeyedApart(t *testing.T) {
+	a, tf, dir := suiteRepo(t)
+	write(t, dir, ".a2dlc/config.json", strings.Replace(gatesConfig, `"baseline_command":"baseline"`, `"baseline_command":"baseline $A2DLC_STAGE"`, 1))
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "config")
+	write(t, dir, "src/lib/f.ts", "export const f = 2\nIMPL old\n")
+	if _, err := a.Check(context.Background(), ""); err != nil {
+		t.Fatal(err)
+	}
+	for i, s := range tf.stages {
+		if s != "" {
+			t.Fatalf("a check's run %d (%s) got %s=%q", i, tf.runs[i], EnvStage, s)
+		}
+	}
+	git(t, dir, "add", "src")
+	git(t, dir, "commit", "-qm", "step 1")
+	n := len(tf.runs)
+	out, err := a.SetBaseline(context.Background(), "HEAD")
+	if err != nil || !out.Stable || out.Cached || out.Reruns != 2 {
+		t.Fatalf("the check's run of this tree must not count for Stage -1: %v %+v", err, out)
+	}
+	if got := tf.stages[n:]; len(got) != 2 || got[0] != "-1" || got[1] != "-1" {
+		t.Fatalf("Stage -1's runs got %s %v", EnvStage, got)
+	}
+}
