@@ -576,7 +576,9 @@ func (a App) gateBaseline(ctx context.Context, in gateInput) baselineJudge {
 			return done(gateError("base", ctx.Err()))
 		}
 	}
-	in.slots = nil
+	// both runs go under that one slot: baseIn was copied while in.slots was set, and a base run that took a second slot
+	// held both and kept NOP waiting for the whole base suite (a2dlc-ie2s)
+	in.slots, baseIn.slots = nil, nil
 	type ran struct {
 		g               contract.Gate
 		base, candidate run

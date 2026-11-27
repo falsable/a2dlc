@@ -119,6 +119,10 @@ type fakeTests struct {
 	peak     int            // most runs in flight at once
 	byCmd    map[string]int // runs in flight by command
 	mixed    bool           // a baseline run and a NOP run were in flight at once
+	// nopAwaitsBaseline makes a NOP run wait, up to this long, until a baseline run is in flight: the overlap no longer
+	// depends on which goroutine the scheduler runs first, and a baseline that needs NOP's slot shows up as a timeout
+	nopAwaitsBaseline time.Duration
+	awaitTimeouts     int // NOP runs whose wait ran out: no baseline run started while they held their slot
 }
 
 // fakeTestsDigest is the digest the fake tests image resolves to; the baseline gate keys its cache by it.
@@ -128,6 +132,17 @@ const fakeTestsDigest = "sha256:000000000000000000000000000000000000000000000000
 func (f *fakeTests) ImageDigest(context.Context, string) (string, error) { return fakeTestsDigest, nil }
 
 func (f *fakeTests) RunTests(_ context.Context, _ contract.TestsConfig, command string, env map[string]string, tree string) (engine.TestRun, error) {
+	for end := time.Now().Add(f.nopAwaitsBaseline); command == "nop" && f.nopAwaitsBaseline > 0; time.Sleep(5 * time.Millisecond) {
+		f.mu.Lock()
+		running, out := f.byCmd["baseline"] > 0, time.Now().After(end)
+		if out && !running {
+			f.awaitTimeouts++
+		}
+		f.mu.Unlock()
+		if running || out {
+			break
+		}
+	}
 	f.mu.Lock()
 	f.runs = append(f.runs, command)
 	f.selected = append(f.selected, env["A2DLC_TESTS"])

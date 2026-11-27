@@ -217,9 +217,9 @@ func TestBaselineOverlapsNOPWithinTheRunLimit(t *testing.T) {
 	a.Runner = &lister{fakeEngine: fe, listed: map[string][]contract.ListedTest{
 		"tests/a.t": {{Name: "old"}, {Name: "previous"}}, "tests/b.t": {{Name: "oldb"}}}}
 	sequential := judged(t, a)
-	ft.delay = 300 * time.Millisecond // longer than the export of either tree, so the overlap does not depend on scheduling
+	ft.delay, ft.nopAwaitsBaseline = 300*time.Millisecond, 10*time.Second
 	for i := 0; i < 3; i++ {
-		ft.runs, ft.selected, ft.peak, ft.mixed = nil, nil, 0, false
+		ft.runs, ft.selected, ft.peak, ft.mixed, ft.awaitTimeouts = nil, nil, 0, false, 0
 		t.Setenv("A2DLC_CACHE_DIR", t.TempDir()) // the baseline runs on both trees every round
 		t0 := time.Now()
 		got := judged(t, a)
@@ -227,8 +227,8 @@ func TestBaselineOverlapsNOPWithinTheRunLimit(t *testing.T) {
 		if !reflect.DeepEqual(got, sequential) {
 			t.Fatalf("round %d: the overlap changed the result:\n%+v\n%+v", i, got, sequential)
 		}
-		if !ft.mixed {
-			t.Fatalf("round %d: no baseline run overlapped a NOP run: %v", i, ft.runs)
+		if !ft.mixed || ft.awaitTimeouts > 0 {
+			t.Fatalf("round %d: no baseline run started while a NOP run held its slot (%d waits ran out): %v", i, ft.awaitTimeouts, ft.runs)
 		}
 		if ft.peak > maxTestRuns {
 			t.Fatalf("round %d: %d test runs at once, the limit is %d", i, ft.peak, maxTestRuns)
