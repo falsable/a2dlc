@@ -1141,3 +1141,55 @@ func TestBaselineOmitsNewTestFilesOnBase(t *testing.T) {
 		t.Fatalf("preexisting red test was falsely flagged: %+v", testsOf(v)["pre_red"])
 	}
 }
+
+type baselineOverlapRunner struct {
+	*fakeTests
+	entered chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+func (r *baselineOverlapRunner) RunTests(ctx context.Context, cfg contract.TestsConfig, command string, env map[string]string, tree string) (engine.TestRun, error) {
+	if command == "baseline" {
+		r.entered <- struct{}{}
+		select {
+		case <-r.release:
+		case <-time.After(3 * time.Second):
+			return engine.TestRun{}, errors.New("gateBaseline base and candidate did not overlap concurrently")
+		case <-ctx.Done():
+			return engine.TestRun{}, ctx.Err()
+		}
+	}
+	return r.fakeTests.RunTests(ctx, cfg, command, env, tree)
+}
+
+// TestGateBaselineOverlapsBaseAndCandidateAfterNOP verifies that gateBaseline runs its base and candidate suite runs
+// concurrently once a slot is available, while staying within maxTestRuns.
+func TestGateBaselineOverlapsBaseAndCandidateAfterNOP(t *testing.T) {
+	a, _, tf, dir := gatesRepo(t)
+	br := &baselineOverlapRunner{
+		fakeTests: tf,
+		entered:   make(chan struct{}, 2),
+		release:   make(chan struct{}),
+	}
+	a.Tests = br
+	write(t, dir, "src/lib/f.ts", "export const f = 1\nIMPL old\nIMPL added\n")
+	write(t, dir, "tests/n.t", "test_added uses:added\n")
+
+	go func() {
+		<-br.entered
+		<-br.entered
+		br.once.Do(func() { close(br.release) })
+	}()
+
+	v, err := a.Check(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Verdict != contract.PASS {
+		t.Fatalf("verdict %s, want PASS; gates=%+v", v.Verdict, v.TestGates)
+	}
+	if tf.peak > maxTestRuns {
+		t.Fatalf("peak test runs %d exceeded maxTestRuns %d", tf.peak, maxTestRuns)
+	}
+}

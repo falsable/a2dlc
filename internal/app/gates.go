@@ -442,10 +442,15 @@ func fileStem(path string) string {
 // (as a whole word, case-insensitive; stems under three characters are too common to say anything).
 func classifier(patterns, unstubbed, added []string) (func(string) bool, error) {
 	var res []*regexp.Regexp
+	var attrRe *regexp.Regexp
 	for _, p := range patterns {
 		re, err := regexp.Compile(p)
 		if err != nil {
 			return nil, fmt.Errorf("pattern %q: %v", p, err)
+		}
+		if p == "AttributeError" {
+			attrRe = re
+			continue
 		}
 		res = append(res, re)
 	}
@@ -459,6 +464,9 @@ func classifier(patterns, unstubbed, added []string) (func(string) bool, error) 
 		}
 	}
 	return func(msg string) bool {
+		if attrRe != nil && attrRe.MatchString(msg) && !strings.Contains(msg, "'NoneType' object has no attribute") {
+			return true
+		}
 		for _, re := range res {
 			if re.MatchString(msg) {
 				return true
@@ -589,39 +597,64 @@ func (a App) gateBaseline(ctx context.Context, in gateInput) baselineJudge {
 			return done(gateError("base", ctx.Err()))
 		}
 	}
-	// both runs go under that one slot: baseIn was copied while in.slots was set, and a base run that took a second slot
-	// held both and kept NOP waiting for the whole base suite (a2dlc-ie2s)
+	// both runs take at most one slot each under the maxTestRuns pool; baseIn/in clear slots so a.run does not double-take.
 	in.slots, baseIn.slots = nil, nil
-	type ran struct {
-		g               contract.Gate
-		base, candidate run
+	type suiteRes struct {
+		r      run
+		cached bool
+		err    error
 	}
-	ch := make(chan ran, 1)
+	baseCh := make(chan suiteRes, 1)
+	candCh := make(chan suiteRes, 1)
+	candCtx, cancelCand := context.WithCancel(ctx)
+	var candOnce sync.Once
+	startCand := func() {
+		candOnce.Do(func() {
+			go func() {
+				if slots != nil {
+					select {
+					case slots <- struct{}{}:
+					case <-candCtx.Done():
+						candCh <- suiteRes{err: candCtx.Err()}
+						return
+					}
+					defer func() { <-slots }()
+				}
+				r, cached, err := a.suite(candCtx, in, cmd, in.tree, digest, candEnv)
+				candCh <- suiteRes{r: r, cached: cached, err: err}
+			}()
+		})
+	}
 	go func() {
-		if slots != nil {
-			defer func() { <-slots }()
+		var releaseBase sync.Once
+		relBase := func() {
+			if slots != nil {
+				releaseBase.Do(func() { <-slots })
+			}
 		}
-		g := contract.Gate{Status: contract.GateRan}
-		base, cached, err := a.suite(ctx, baseIn, cmd, in.baseSha, digest, baseEnv)
-		if err != nil {
-			ch <- ran{g: gateError("base", err)}
-			return
+		defer relBase()
+		r, cached, err := a.suite(ctx, baseIn, cmd, in.baseSha, digest, baseEnv)
+		relBase()
+		baseCh <- suiteRes{r: r, cached: cached, err: err}
+		if err == nil {
+			startCand()
 		}
-		g.Cached = cached
-		candidate, cached, err := a.suite(ctx, in, cmd, in.tree, digest, candEnv)
-		if err != nil {
-			ch <- ran{g: gateError("candidate", err)}
-			return
-		}
-		g.CandidateCached = cached
-		ch <- ran{g, base, candidate}
 	}()
 	return func(alreadyJudged map[string]bool) (contract.Gate, []contract.TestResult) {
-		r := <-ch
-		g, base, candidate := r.g, r.base, r.candidate
-		if g.Status != contract.GateRan {
-			return g, nil
+		startCand()
+		b := <-baseCh
+		if b.err != nil {
+			cancelCand()
+			<-candCh
+			return gateError("base", b.err), nil
 		}
+		c := <-candCh
+		cancelCand()
+		if c.err != nil {
+			return gateError("candidate", c.err), nil
+		}
+		g := contract.Gate{Status: contract.GateRan, Cached: b.cached, CandidateCached: c.cached}
+		base, candidate := b.r, c.r
 		newOnes := newReds(base.cases, candidate.cases, alreadyJudged)
 		if len(newOnes) == 0 {
 			return g, nil
@@ -632,13 +665,24 @@ func (a App) gateBaseline(ctx context.Context, in gateInput) baselineJudge {
 		}
 		var baseRuns, candRuns []map[string]junit.Case
 		for i := 0; i < k; i++ {
-			x, err := a.run(ctx, baseIn, cmd, in.baseSha, nil, nil, baseEnv)
-			if err != nil {
-				return gateError(fmt.Sprintf("re-run %d on the base", i+1), err), nil
+			var x, y run
+			var errB, errC error
+			var wg sync.WaitGroup
+			wg.Add(2)
+			go func() {
+				defer wg.Done()
+				x, errB = a.run(ctx, baseIn, cmd, in.baseSha, nil, nil, baseEnv)
+			}()
+			go func() {
+				defer wg.Done()
+				y, errC = a.run(ctx, in, cmd, in.tree, nil, nil, candEnv)
+			}()
+			wg.Wait()
+			if errB != nil {
+				return gateError(fmt.Sprintf("re-run %d on the base", i+1), errB), nil
 			}
-			y, err := a.run(ctx, in, cmd, in.tree, nil, nil, candEnv)
-			if err != nil {
-				return gateError(fmt.Sprintf("re-run %d on the candidate", i+1), err), nil
+			if errC != nil {
+				return gateError(fmt.Sprintf("re-run %d on the candidate", i+1), errC), nil
 			}
 			baseRuns, candRuns = append(baseRuns, x.cases), append(candRuns, y.cases)
 		}
