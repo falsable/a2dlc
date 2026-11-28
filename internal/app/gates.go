@@ -760,13 +760,21 @@ func suiteKey(tree string, in gateInput, cmd, digest string) string {
 // rolesPath is the roles file that internal/run reads from the working directory.
 const rolesPath = ".a2dlc/roles.json"
 
-// suiteTree is the tree suiteKey takes: the tree of treeish without the roles file. The roles file configures who builds and who
-// writes tests, it is read from the working directory and not from a commit, and a consumer may commit another one before each
-// step (the factory writes one per lane, with that lane's budget and test hashes). With it in the key, a base that changed
-// only that file would run the whole suite twice again. The run still sees the file: a suite that read .a2dlc/roles.json would
-// get the cached answer of a tree with another roles file.
+// suiteIgnoredPaths are orchestrator setup files (roles, test guards, project map) that do not alter test execution.
+// Stripping all of them in suiteTree lets commits with or without factory setup files share the same suite cache entry.
+var suiteIgnoredPaths = []string{
+	rolesPath,
+	".a2dlc/factory-guard.py",
+	".a2dlc/factory-guard-files.json",
+	".a2dlc/project-map.md",
+}
+
+// suiteTree is the tree suiteKey takes: the tree of treeish without orchestrator setup files. The roles file configures
+// who builds and who writes tests, and guard/map files are setup artifacts; none are read by the test suite, and a
+// consumer commits them before running a lane while publishers strip them before opening a PR. Removing all of them keeps
+// base and candidate cache keys identical with or without setup files.
 func (a App) suiteTree(treeish string) (string, error) {
-	return a.Repo.TreeWithout(treeish, rolesPath)
+	return a.Repo.TreeWithout(treeish, suiteIgnoredPaths...)
 }
 
 // suite is the run of the baseline command on treeish (a commit or a tree): from the cache when the same tree content already

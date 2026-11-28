@@ -1193,3 +1193,53 @@ func TestGateBaselineOverlapsBaseAndCandidateAfterNOP(t *testing.T) {
 		t.Fatalf("peak test runs %d exceeded maxTestRuns %d", tf.peak, maxTestRuns)
 	}
 }
+
+// TestSuiteTreeIgnoresOrchestratorSetupFiles verifies that suiteTree strips all orchestrator setup files
+// (roles.json, factory-guard.py, factory-guard-files.json, project-map.md) so a commit with or without setup files
+// shares the same suite() cache entry.
+func TestSuiteTreeIgnoresOrchestratorSetupFiles(t *testing.T) {
+	t.Setenv("A2DLC_CACHE_DIR", t.TempDir())
+	a, _, tf, dir := gatesRepo(t)
+	write(t, dir, "src/lib/f.ts", "export const f = 1\nIMPL old\nIMPL added\n")
+	write(t, dir, "tests/n.t", "test_added uses:added\n")
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "plain")
+	plainSHA := strings.TrimSpace(git(t, dir, "rev-parse", "HEAD"))
+
+	for _, f := range suiteIgnoredPaths {
+		write(t, dir, f, "setup\n")
+	}
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "with setup files")
+	setupSHA := strings.TrimSpace(git(t, dir, "rev-parse", "HEAD"))
+
+	tPlain, err := a.suiteTree(plainSHA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tSetup, err := a.suiteTree(setupSHA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tPlain != tSetup {
+		t.Fatalf("suiteTree differs across setup files: plain=%s setup=%s", tPlain, tSetup)
+	}
+
+	in := gateInput{
+		cfg:     contract.TestsConfig{Image: "fake"},
+		baseSha: plainSHA,
+		tree:    setupSHA,
+		tests:   []string{"tests/n.t"},
+		sources: []string{"src/lib/f.ts"},
+	}
+	if _, hit, err := a.suite(context.Background(), in, "baseline", setupSHA, "", nil); err != nil || hit {
+		t.Fatalf("first suite run: hit=%v err=%v", hit, err)
+	}
+	before := len(tf.runs)
+	if _, hit, err := a.suite(context.Background(), in, "baseline", plainSHA, "", nil); err != nil || !hit {
+		t.Fatalf("second suite run on stripped tree: hit=%v err=%v", hit, err)
+	}
+	if len(tf.runs) != before {
+		t.Fatalf("stripped tree re-ran test runner (%d -> %d)", before, len(tf.runs))
+	}
+}
