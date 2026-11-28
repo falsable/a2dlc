@@ -167,8 +167,9 @@ func (m *Machine) measureMutants(ctx context.Context, d app.DiffMutable, overlay
 	}
 	sort.Strings(rep.Tests)
 	withoutRunning := "" // the reason no mutant runs in this round
+	warm := m.app.WarmTestsFor(ctx, m.baseSha)
 	if len(rep.Tests) > 0 {
-		clean, err := m.app.RunTests(ctx, d.Tree, ov, rep.Tests, d.Sources)
+		clean, err := m.app.RunTestsWarm(ctx, warm, d.Tree, ov, rep.Tests, d.Sources)
 		switch {
 		case err != nil:
 			return rep, err
@@ -226,7 +227,7 @@ func (m *Machine) measureMutants(ctx context.Context, d app.DiffMutable, overlay
 					}
 					mu := d.Mutants[i]
 					ovWithMu := append(append([]app.OverlayFile{}, ov...), app.OverlayFile{Path: mu.File, Content: mu.Content})
-					c, err := m.app.RunTests(wctx, d.Tree, ovWithMu, rep.Tests, d.Sources)
+					c, err := m.app.RunTestsWarm(wctx, warm, d.Tree, ovWithMu, rep.Tests, d.Sources)
 					if err != nil {
 						errMu.Lock()
 						if firstErr == nil {

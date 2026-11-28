@@ -207,7 +207,7 @@ func (a App) VerifyPolicy(commit string) (VerifyReport, error) {
 		u := unjudgedOf(v)
 		rep.Warnings = append(rep.Warnings, u.summary())
 		if hit := u.guarded(cfg, files); len(hit) > 0 {
-			rep.Blocked = append(rep.Blocked, "the verdict is INCONCLUSIVE and leaves critical or protected code unjudged ("+strings.Join(truncate(hit, 10), ", ")+"): run a2dlc check again or write a waiver")
+			rep.Blocked = append(rep.Blocked, "the verdict is INCONCLUSIVE and leaves critical or protected code unjudged ("+strings.Join(truncate(hit, 10), ", ")+"): run a2dlc check again (a waiver cannot cover an INCONCLUSIVE target)")
 		}
 	}
 	return rep, nil

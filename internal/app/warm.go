@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -38,6 +39,14 @@ func warmVolume(repoDir, image string) string {
 	return "a2dlc-warm-" + hex.EncodeToString(h[:])[:16]
 }
 
+func (a App) warmRepoDir() string {
+	if common, err := a.Repo.CommonDir(); err == nil && common != "" {
+		return common
+	}
+	abs, _ := filepath.Abs(a.Repo.Dir)
+	return abs
+}
+
 func plainPaths(paths []string) bool {
 	for _, p := range paths {
 		if strings.ContainsAny(p, "\n\r") {
@@ -45,6 +54,41 @@ func plainPaths(paths []string) bool {
 		}
 	}
 	return true
+}
+
+const (
+	warmLockStale = 10 * time.Minute
+	warmLockPoll  = 100 * time.Millisecond
+)
+
+// withWarmLock serializes updates to one warm volume across concurrent lanes so two workers on the same repo do not
+// race while writing the shared Docker volume. A lock older than warmLockStale is broken.
+func (a App) withWarmLock(ctx context.Context, vol string, fn func() *warmTree) *warmTree {
+	cacheDir := a.cacheDir()
+	if cacheDir == "" || os.MkdirAll(cacheDir, 0o755) != nil {
+		return fn()
+	}
+	lockPath := filepath.Join(cacheDir, vol+".lock")
+	for {
+		f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if err == nil {
+			_ = f.Close()
+			defer os.Remove(lockPath)
+			return fn()
+		}
+		if !errors.Is(err, os.ErrExist) {
+			return fn()
+		}
+		if info, serr := os.Stat(lockPath); serr == nil && time.Since(info.ModTime()) > warmLockStale {
+			_ = os.Remove(lockPath)
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(warmLockPoll):
+		}
+	}
 }
 
 // syncWarm brings the warm volume to the base tree and returns it, or nil when the runner has no warm trees or anything goes
@@ -62,43 +106,48 @@ func (a App) syncWarmFor(ctx context.Context, runner any, image, baseSha string)
 		return nil
 	}
 	defer func(t0 time.Time) { timerOf(ctx).sync(time.Since(t0)) }(time.Now())
-	want, err := a.Repo.CommitTree(baseSha)
+	want, err := a.suiteTree(baseSha)
 	if err != nil {
-		return nil
-	}
-	vol := warmVolume(a.Repo.Dir, image)
-	have, err := w.WarmTree(ctx, image, vol)
-	if err != nil {
-		return nil
-	}
-	if have == want {
-		return &warmTree{vol, want}
-	}
-	dir, err := os.MkdirTemp("", "a2dlc-warm-*")
-	if err != nil {
-		return nil
-	}
-	defer os.RemoveAll(dir)
-	var deleted []string
-	full := true
-	if have != "" && a.Repo.HasTree(have) {
-		if changed, del, err := a.Repo.Delta(have, want); err == nil && len(changed) <= warmDeltaMax && plainPaths(changed) && plainPaths(del) {
-			if a.Repo.ExportPaths(want, dir, changed) == nil {
-				full, deleted = false, del
-			}
-		}
-	}
-	if full {
-		os.RemoveAll(dir)
-		if os.MkdirAll(dir, 0o755) != nil || a.Repo.Export(want, dir) != nil {
+		want, err = a.Repo.CommitTree(baseSha)
+		if err != nil {
 			return nil
 		}
 	}
-	if err := w.SyncWarm(ctx, image, vol, want, dir, deleted, full); err != nil {
-		fmt.Fprintf(os.Stderr, "a2dlc: warm tree not used: %v\n", err)
-		return nil
-	}
-	return &warmTree{vol, want}
+	vol := warmVolume(a.warmRepoDir(), image)
+	return a.withWarmLock(ctx, vol, func() *warmTree {
+		have, err := w.WarmTree(ctx, image, vol)
+		if err != nil {
+			return nil
+		}
+		if have == want {
+			return &warmTree{vol, want}
+		}
+		dir, err := os.MkdirTemp("", "a2dlc-warm-*")
+		if err != nil {
+			return nil
+		}
+		defer os.RemoveAll(dir)
+		var deleted []string
+		full := true
+		if have != "" && a.Repo.HasTree(have) {
+			if changed, del, err := a.Repo.Delta(have, want); err == nil && len(changed) <= warmDeltaMax && plainPaths(changed) && plainPaths(del) {
+				if a.Repo.ExportPaths(want, dir, changed) == nil {
+					full, deleted = false, del
+				}
+			}
+		}
+		if full {
+			os.RemoveAll(dir)
+			if os.MkdirAll(dir, 0o755) != nil || a.Repo.Export(want, dir) != nil {
+				return nil
+			}
+		}
+		if err := w.SyncWarm(ctx, image, vol, want, dir, deleted, full); err != nil {
+			fmt.Fprintf(os.Stderr, "a2dlc: warm tree not used: %v\n", err)
+			return nil
+		}
+		return &warmTree{vol, want}
+	})
 }
 
 // attachWarmImages syncs warm volumes for the given images (when A2DLC_WARM_TREE=1 and runner supports WarmSyncer) and

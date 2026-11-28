@@ -148,11 +148,29 @@ type TestsRun struct {
 	Reason string
 }
 
+// WarmTestsHandle holds a pre-synced warm base volume for repeated Stage 5 test runs (one handle per mutation round).
+type WarmTestsHandle struct{ warm *warmTree }
+
+// WarmTestsFor prepares the warm base volume for baseSha (when A2DLC_WARM_TREE=1) so Stage 5 mutant runs reuse it
+// without exporting or uploading the repository for each mutant.
+func (a App) WarmTestsFor(ctx context.Context, baseSha string) *WarmTestsHandle {
+	cfg, err := a.config()
+	if err != nil || cfg.Tests == nil {
+		return nil
+	}
+	return &WarmTestsHandle{warm: a.syncWarmFor(ctx, a.Tests, cfg.Tests.Image, baseSha)}
+}
+
 // RunTests runs config.tests.command with the test files overlaid on a clean copy of treeish with overlay on top (the
 // last file with the same path wins). changed goes in $A2DLC_CHANGED. A run without JUnit, without any testcase, or
 // red without an identifiable test is not judged (Reason): it never counts as green. Without tests it does not run:
 // the command with an empty $A2DLC_TESTS would run the whole suite.
 func (a App) RunTests(ctx context.Context, treeish string, overlay []OverlayFile, tests, changed []string) (TestsRun, error) {
+	return a.RunTestsWarm(ctx, nil, treeish, overlay, tests, changed)
+}
+
+// RunTestsWarm is RunTests using an optional pre-synced warm base volume and setting A2DLC_STAGE=5.
+func (a App) RunTestsWarm(ctx context.Context, h *WarmTestsHandle, treeish string, overlay []OverlayFile, tests, changed []string) (TestsRun, error) {
 	var out TestsRun
 	// The working tree's config, not the base's: RunTests takes no base, and the caller (a2dlc run, Stage 5) owns the
 	// choice; it is listed in the lite-core needs.
@@ -172,7 +190,13 @@ func (a App) RunTests(ctx context.Context, treeish string, overlay []OverlayFile
 	for _, f := range overlay {
 		overlaid[f.Path] = f.Content
 	}
-	c, err := a.run(ctx, gateInput{cfg: *cfg.Tests, tree: treeish}, cfg.Tests.Command, treeish, overlaid, nil, envTests(tests, changed))
+	var warm *warmTree
+	if h != nil {
+		warm = h.warm
+	}
+	env := envTests(tests, changed)
+	env[EnvStage] = "5"
+	c, err := a.run(ctx, gateInput{cfg: *cfg.Tests, tree: treeish, warm: warm}, cfg.Tests.Command, treeish, overlaid, nil, env)
 	if err == nil {
 		err = c.readable()
 	}

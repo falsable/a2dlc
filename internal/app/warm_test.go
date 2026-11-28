@@ -203,3 +203,40 @@ func TestWarmTreeIsOffByDefault(t *testing.T) {
 		t.Fatalf("warm tree used while off: syncs %v, warm runs %d", wf.syncs, len(wf.seen))
 	}
 }
+
+// TestWarmTreeSharesVolumeAcrossSetupFilesAndStage5RunTests verifies that syncWarmFor ignores orchestrator setup files
+// (so sibling worktrees share the warm volume on the same base commit) and that Stage 5's WarmTestsFor/RunTestsWarm
+// reuses the warm volume while passing A2DLC_STAGE=5.
+func TestWarmTreeSharesVolumeAcrossSetupFilesAndStage5RunTests(t *testing.T) {
+	t.Setenv("A2DLC_CACHE_DIR", t.TempDir())
+	a, wf, dir := warmRepo(t)
+	git(t, dir, "checkout", "--", ".")
+	base := strings.TrimSpace(git(t, dir, "rev-parse", "HEAD"))
+	write(t, dir, ".a2dlc/roles.json", `{"schema_version":1,"roles":{}}`)
+	write(t, dir, ".a2dlc/factory-guard.py", "# guard\n")
+	git(t, dir, "add", ".a2dlc/roles.json", ".a2dlc/factory-guard.py")
+	git(t, dir, "commit", "-qm", "with setup files")
+	setupCommit := strings.TrimSpace(git(t, dir, "rev-parse", "HEAD"))
+
+	h1 := a.WarmTestsFor(context.Background(), base)
+	h2 := a.WarmTestsFor(context.Background(), setupCommit)
+	if h1 == nil || h1.warm == nil || h2 == nil || h2.warm == nil {
+		t.Fatalf("expected non-nil WarmTestsHandle: h1=%v h2=%v", h1, h2)
+	}
+	if h1.warm.volume != h2.warm.volume || h1.warm.tree != h2.warm.tree {
+		t.Fatalf("warm handle differed across setup files: %+v vs %+v", h1.warm, h2.warm)
+	}
+	if len(wf.syncs) != 1 || wf.syncs[0] != "full" {
+		t.Fatalf("expected second syncWarmFor with setup files to reuse warm volume, got syncs=%v", wf.syncs)
+	}
+	tr, err := a.RunTestsWarm(context.Background(), h2, setupCommit, nil, []string{"tests/a.t"}, []string{"src/lib/f.ts"})
+	if err != nil || tr.Reason != "" {
+		t.Fatalf("RunTestsWarm: %+v err=%v", tr, err)
+	}
+	if len(wf.seen) != 1 {
+		t.Fatalf("expected 1 warm run, got %d", len(wf.seen))
+	}
+	if n := len(wf.fakeTests.stages); n == 0 || wf.fakeTests.stages[n-1] != "5" {
+		t.Fatalf("expected A2DLC_STAGE=5, got %v", wf.fakeTests.stages)
+	}
+}

@@ -128,6 +128,11 @@ func TestVerifyPolicyFreshInconclusiveOnCriticalCodeBlocks(t *testing.T) {
 	if !has(rep.Blocked, "INCONCLUSIVE and leaves critical or protected code unjudged (src/lib/f.ts, src/lib/f.ts::f)") {
 		t.Fatalf("%+v", rep)
 	}
+	for _, b := range rep.Blocked {
+		if strings.Contains(b, "write a waiver") {
+			t.Fatalf("verifypolicy still suggests a waiver on INCONCLUSIVE critical code: %q", b)
+		}
+	}
 }
 
 // A symbol-level critical_code entry tells the symbols of a target apart; where the receipt names only the file, it counts
