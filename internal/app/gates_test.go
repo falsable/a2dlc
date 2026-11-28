@@ -881,6 +881,24 @@ func TestGateNOPJudgesAPassingNewTestByChangeKind(t *testing.T) {
 	}
 }
 
+// agencia-ia-3fgy: the builder put a new fixture in a conftest.py that tests.paths does not match. The stubbed base kept
+// its old conftest.py, so the new tests errored there for the missing fixture instead of meeting the stub.
+func TestGateNOPTakesTestSupportOutsideTestsPathsFromTheCandidate(t *testing.T) {
+	a, _, _, dir := gatesRepo(t)
+	base := strings.TrimSpace(git(t, dir, "rev-parse", "HEAD"))
+	write(t, dir, "conftest.py", "fixture\n")
+	write(t, dir, "tests/new.t", "newcase loads:conftest.py\n")
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "candidate test and fixture")
+	head := strings.TrimSpace(git(t, dir, "rev-parse", "HEAD"))
+	cfg, _ := a.config()
+	_, res := a.gateNOP(context.Background(), gateInput{cfg: *cfg.Tests, baseSha: base, tree: head, tests: []string{"tests/new.t"},
+		sources: []string{"conftest.py"}, changeKind: "refactor"})
+	if len(res) != 1 || res[0].Verdict != contract.PASS {
+		t.Fatalf("the stubbed base ran without the candidate's conftest.py: %+v", res)
+	}
+}
+
 // The suite cache key carries the image digest: a moved tag is another environment.
 func TestCacheKeyCarriesTheImageDigest(t *testing.T) {
 	in := gateInput{cfg: contract.TestsConfig{Image: "tests:1"}}

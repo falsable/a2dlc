@@ -294,6 +294,15 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	for f, b := range in.overlay {
 		overlaid[f] = b
 	}
+	// Test code outside tests.paths (a conftest.py with a new fixture, a helper under tests/) is not the change: the stubbed
+	// base takes it from the candidate with the tests, or a new test errors there for a missing fixture and proves nothing.
+	fromCandidate := append([]string{}, in.tests...)
+	for _, f := range in.sources {
+		if isTestFile(f) {
+			fromCandidate = append(fromCandidate, f)
+			delete(overlaid, f)
+		}
+	}
 	var inBase []string
 	for _, f := range in.tests {
 		if _, err := a.Repo.Blob(in.baseSha, f); err == nil {
@@ -322,7 +331,7 @@ func (a App) gateNOP(ctx context.Context, in gateInput) (contract.Gate, []contra
 	}()
 	go func() {
 		defer wg.Done()
-		r, err := a.run(withLabel(ctx, "base_with_stubs"), in, in.cfg.Command, in.baseSha, overlaid, in.tests, env)
+		r, err := a.run(withLabel(ctx, "base_with_stubs"), in, in.cfg.Command, in.baseSha, overlaid, fromCandidate, env)
 		if err == nil && !r.junit {
 			err = fmt.Errorf("did not leave JUnit (exit %d): %s", r.exit, r.log)
 		}

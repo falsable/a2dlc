@@ -98,10 +98,10 @@ func TestPythonNoneTypeAttributeErrorIsAValidBaseFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	for msg, want := range map[string]bool{
-		"AttributeError: 'NoneType' object has no attribute 'text'":                               false,
-		"AttributeError: 'NoneType' object has no attribute 'messages'":                           false,
+		"AttributeError: 'NoneType' object has no attribute 'text'":                                 false,
+		"AttributeError: 'NoneType' object has no attribute 'messages'":                             false,
 		"AttributeError: module 'app.infrastructure.tenant_llm' has no attribute 'require_allowed'": true,
-		"AttributeError: 'TenantLLMPatch' object has no attribute 'allowed_providers'":             true,
+		"AttributeError: 'TenantLLMPatch' object has no attribute 'allowed_providers'":              true,
 	} {
 		if got := isInvalid(msg); got != want {
 			t.Errorf("%q: invalid=%v, want %v", msg, got, want)
