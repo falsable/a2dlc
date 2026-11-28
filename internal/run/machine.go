@@ -45,6 +45,8 @@ type Options struct {
 	// AcceptContractSig is the path to the SSH signature or acceptance envelope for AcceptContract;
 	// when empty, <AcceptContract>.sig is used (unless AcceptContract is a self-contained envelope).
 	AcceptContractSig string
+	// FromStage, when non-empty on resume, forces execution to restart at that stage ID (keeping earlier done stages).
+	FromStage string
 }
 
 // Machine is a run over a slice: its folder, its state, its ledger and the configured roles.
@@ -92,6 +94,10 @@ func Run(ctx context.Context, a app.App, l Launcher, opts Options) (contract.Run
 	redo := false // a stage that runs again leaves the later ones stale (a new candidate requires another verdict)
 	for i := range m.state.Stages {
 		s := &m.state.Stages[i]
+		if !redo && opts.FromStage != "" && s.ID == opts.FromStage {
+			redo = true
+			m.state.Outcome = nil
+		}
 		accepting := m.acceptedContract != nil && s.ID == "1"
 		if !accepting && !redo && s.Status == contract.StageDone && m.artifactIntact(s) {
 			continue
@@ -167,6 +173,9 @@ func open(a app.App, l Launcher, opts Options) (*Machine, error) {
 	}
 	if !sliceValid(opts.Slice) {
 		return nil, fmt.Errorf("--slice %q: lowercase letters, digits, dot, underscore and hyphen, up to 100", opts.Slice)
+	}
+	if opts.FromStage != "" && !validStageID(opts.FromStage) {
+		return nil, fmt.Errorf("--from-stage %q: expected one of %s", opts.FromStage, strings.Join(contract.Stages, ", "))
 	}
 	m.dir = filepath.Join(a.Repo.Dir, filepath.FromSlash(pathRun), opts.Slice)
 	base := opts.Base
@@ -256,6 +265,15 @@ func open(a app.App, l Launcher, opts Options) (*Machine, error) {
 		m.acceptedContract = vc
 	}
 	return m, nil
+}
+
+func validStageID(id string) bool {
+	for _, s := range contract.Stages {
+		if s == id {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Machine) readRoles() error {

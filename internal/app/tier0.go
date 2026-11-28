@@ -298,8 +298,12 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 		}
 	}
 	sort.Strings(ids)
-	if len(ids) > 0 && baseSha != "" && cfg.Tests.Tier0Command == contract.Tier0CommandBaseline && cfg.Tests.BaselineCommand != "" {
-		ids = a.filterPreexistingBaseReds(ctx, cfg, baseSha, files, c.cases, ids)
+	if len(ids) > 0 && baseSha != "" && cfg.Tests.BaselineCommand != "" {
+		changedTests, _ := partition(cfg.Tests.Paths, unique(files))
+		if cfg.Tests.Tier0Command == contract.Tier0CommandBaseline ||
+			(cfg.Tests.Tier0Command == contract.Tier0CommandChangedTests && len(changedTests) == 0) {
+			ids = a.filterPreexistingBaseReds(ctx, cfg, baseSha, files, c.cases, ids)
+		}
 	}
 	for i, id := range ids {
 		x := c.cases[id]
@@ -342,19 +346,33 @@ func (a App) testsTier0(ctx context.Context, resp contract.Tier0Response, cfg co
 
 // tier0Run is the run of step 4. By default it is tests.command with every changed file in $A2DLC_CHANGED. With
 // tests.tier0_command "baseline" (RFC-0004) it runs baseline_command (or falls back to tests.command when
-// baseline_command is omitted) through the same cache: the run on the tree of the builder's last round is then the one
-// Stage 4 takes for the candidate, instead of running the whole suite again on the same tree. An image without a digest
-// cannot key that cache, so the run is not kept.
+// baseline_command is omitted) through the same cache. With "changed_tests", it runs tests.command over changed test
+// files when any test file changed (leaving impacted suite tests to Stage 4), or falls back when none changed.
 func (a App) tier0Run(ctx context.Context, cfg contract.Config, baseSha, tree string, files []string, cov *accumulated,
 	export func() error, baseDir, candDir *string) (run, error) {
 	t := *cfg.Tests
-	if t.Tier0Command != contract.Tier0CommandBaseline {
-		selectedTests := a.selectTier0Tests(ctx, cfg, baseSha, tree, files, export, baseDir, candDir)
-		c, err := a.run(ctx, gateInput{cfg: t, tree: tree, cov: cov}, t.Command, tree, nil, nil, envTests(selectedTests, unique(files)))
+	runCommandWith := func(selected []string) (run, error) {
+		c, err := a.run(ctx, gateInput{cfg: t, tree: tree, cov: cov}, t.Command, tree, nil, nil, envTests(selected, unique(files)))
 		if err == nil {
 			err = c.readable()
 		}
 		return c, err
+	}
+	if t.Tier0Command == contract.Tier0CommandChangedTests {
+		changed, _, err := a.Repo.Changed(baseSha, tree)
+		if err != nil {
+			return run{}, err
+		}
+		changedTests, _ := partition(t.Paths, changed)
+		if len(changedTests) > 0 {
+			sort.Strings(changedTests)
+			return runCommandWith(changedTests)
+		}
+		if t.BaselineCommand == "" {
+			return runCommandWith(a.selectTier0Tests(ctx, cfg, baseSha, tree, files, export, baseDir, candDir))
+		}
+	} else if t.Tier0Command != contract.Tier0CommandBaseline {
+		return runCommandWith(a.selectTier0Tests(ctx, cfg, baseSha, tree, files, export, baseDir, candDir))
 	}
 	cmd := t.BaselineCommand
 	if cmd == "" {

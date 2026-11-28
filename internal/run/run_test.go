@@ -586,3 +586,41 @@ func TestRunDoesNotEnterVerdictTreeHash(t *testing.T) {
 		t.Fatalf("verify after run: err=%v probs=%q", err, problems)
 	}
 }
+
+// TestRunFromStage4RejudgesWithoutRebuildingStage3 verifies --from-stage restarts at Stage 4 on resume,
+// keeping the candidate built in Stage 3 without launching the builder again, and rejects unknown stage IDs.
+func TestRunFromStage4RejudgesWithoutRebuildingStage3(t *testing.T) {
+	a, _, eng := repoBuilder(t)
+	var requests []contract.BuilderRequest
+	launcherFake := &fakeLauncher{script: fakeBuilder(t, &requests, func(pl contract.BuilderRequest) map[string]string {
+		return map[string]string{"src/f.py": "def f(x):\n    return x * 2\n"}
+	})}
+	eng.diverge = func(_, _ string) *contract.Counterexample {
+		return &contract.Counterexample{Args: "1", Old: "1", New: "2"}
+	}
+	st1, err := Run(context.Background(), a, launcherFake, Options{Slice: "fs4.v1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st1.Outcome == nil || *st1.Outcome != contract.FAIL || len(launcherFake.seen) == 0 {
+		t.Fatalf("first run: outcome=%v err=%v seen=%d", st1.Outcome, err, len(launcherFake.seen))
+	}
+	seenBefore := len(launcherFake.seen)
+
+	if _, err := Run(context.Background(), a, launcherFake, Options{Slice: "fs4.v1", FromStage: "unknown"}); err == nil {
+		t.Fatal("expected error for unknown --from-stage")
+	}
+
+	// Simulate an a2dlc/engine fix and re-run from Stage 4: builder must not run again, outcome must update to PASS.
+	eng.diverge = nil
+	st2, err := Run(context.Background(), a, launcherFake, Options{Slice: "fs4.v1", FromStage: "4"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(launcherFake.seen) != seenBefore {
+		t.Fatalf("builder ran again on --from-stage 4: seen=%d (was %d)", len(launcherFake.seen), seenBefore)
+	}
+	if st2.Outcome == nil || *st2.Outcome != contract.PASS || st2.Stages[6].Status != contract.StageDone {
+		t.Fatalf("rejudged run: outcome=%v s4=%+v", st2.Outcome, st2.Stages[6])
+	}
+}

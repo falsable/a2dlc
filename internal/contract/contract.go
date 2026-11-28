@@ -70,8 +70,9 @@ const (
 
 // Values of TestsConfig.Tier0Command (RFC-0004): which command step 4 of Tier 0 runs.
 const (
-	Tier0CommandTests    = "command"
-	Tier0CommandBaseline = "baseline"
+	Tier0CommandTests        = "command"
+	Tier0CommandBaseline     = "baseline"
+	Tier0CommandChangedTests = "changed_tests"
 )
 
 type Config struct {

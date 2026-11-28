@@ -199,9 +199,9 @@ func (a App) configAt(commit string) (contract.Config, error) {
 	}
 	if c.Tests != nil {
 		switch c.Tests.Tier0Command {
-		case "", contract.Tier0CommandTests, contract.Tier0CommandBaseline:
+		case "", contract.Tier0CommandTests, contract.Tier0CommandBaseline, contract.Tier0CommandChangedTests:
 		default:
-			return c, fmt.Errorf("%s: tests.tier0_command %q is not %s or %s", pathConfig, c.Tests.Tier0Command, contract.Tier0CommandTests, contract.Tier0CommandBaseline)
+			return c, fmt.Errorf("%s: tests.tier0_command %q is not %s, %s or %s", pathConfig, c.Tests.Tier0Command, contract.Tier0CommandTests, contract.Tier0CommandBaseline, contract.Tier0CommandChangedTests)
 		}
 		switch c.Tests.Tier0Coverage {
 		case "", contract.Tier0CoverageFeedback, contract.Tier0CoverageOnce:

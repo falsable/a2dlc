@@ -432,3 +432,50 @@ func TestTier0CheapFindingsDoNotWaitForTheTests(t *testing.T) {
 		t.Fatalf("%v %+v, test runs %v", err, r, st.cmds)
 	}
 }
+
+// TestTier0ChangedTestsRunsOnlyChangedTestsAndFallsBackWhenNone verifies tests.tier0_command "changed_tests":
+// when test files changed, Tier 0 runs tests.command only over those changed test files; when only source files
+// changed, it falls back to baseline_command (with preexisting base reds filtered).
+func TestTier0ChangedTestsRunsOnlyChangedTestsAndFallsBackWhenNone(t *testing.T) {
+	t.Setenv("A2DLC_CACHE_DIR", t.TempDir())
+	a, _, dir := suiteRepo(t)
+	cfg := strings.Replace(gatesConfig, `"command":"nop","baseline_command":"baseline"`, `"command":"run-changed","baseline_command":"baseline","tier0_command":"changed_tests"`, 1)
+	write(t, dir, ".a2dlc/config.json", cfg)
+	write(t, dir, "tests/pre.py", "def test_pre(): pass\n")
+	git(t, dir, "add", "-A")
+	git(t, dir, "commit", "-qm", "changed_tests setup")
+
+	// 1. New test file present: Tier 0 runs command (not baseline) with only tests/new.py in A2DLC_TESTS.
+	st1 := &digestScriptedTests{scriptedTests: &scriptedTests{script: []engine.TestRun{
+		junitRun(0, "tests.new test_ok"),
+	}}}
+	a.Tests = st1
+	candWithTest := candidateOf(t, a, map[string]string{
+		"src/lib/f.ts": "export const f = 2\nIMPL old\n",
+		"tests/new.py": "def test_ok(): pass\n",
+	})
+	r1, _, err := a.Tier0With(context.Background(), "HEAD", candWithTest, nil, withTests)
+	if err != nil || !r1.OK || !r1.Reviewed {
+		t.Fatalf("with changed test: err=%v r=%+v", err, r1)
+	}
+	if len(st1.cmds) != 1 || st1.cmds[0] != "run-changed" || st1.envs[0]["A2DLC_TESTS"] != "tests/new.py" {
+		t.Fatalf("expected run-changed with A2DLC_TESTS=tests/new.py, got cmds=%v envs=%v", st1.cmds, st1.envs)
+	}
+
+	// 2. Source-only change (no test file changed): falls back to baseline and still filters preexisting base reds.
+	st2 := &digestScriptedTests{scriptedTests: &scriptedTests{script: []engine.TestRun{
+		junitRun(1, "tests.pre test_pre:preexisting"),
+		junitRun(1, "tests.pre test_pre:preexisting"),
+	}}}
+	a.Tests = st2
+	candSourceOnly := candidateOf(t, a, map[string]string{
+		"src/lib/f.ts": "export const f = 2\nIMPL old\n",
+	})
+	r2, _, err := a.Tier0With(context.Background(), "HEAD", candSourceOnly, nil, withTests)
+	if err != nil || !r2.OK || !r2.Reviewed || len(r2.Findings) != 0 {
+		t.Fatalf("source-only fallback: err=%v r=%+v", err, r2)
+	}
+	if len(st2.cmds) != 2 || st2.cmds[0] != "baseline" || st2.cmds[1] != "baseline" {
+		t.Fatalf("expected baseline fallback + base filter run, got cmds=%v", st2.cmds)
+	}
+}

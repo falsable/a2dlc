@@ -245,13 +245,15 @@ func run(args []string) int {
 		z3Image := fs.String("z3-image", "a2dlc-engine-z3:0.1", "z3 engine image for Stage 1.5 (empty: Z3 is skipped)")
 		acceptContract := fs.String("accept-contract", "", "human-signed S* contract JSON (resolves Stage 1/1.5 S* escalations)")
 		acceptContractSig := fs.String("accept-contract-sig", "", "SSH signature or acceptance envelope for --accept-contract (default: <path>.sig)")
+		fromStage := fs.String("from-stage", "", "on resume, re-run from this stage onward while keeping earlier stages (e.g. 4)")
 		asJSON := fs.Bool("json", false, "print the run's state as JSON instead of the stage lines, for an agent")
 		if fs.Parse(args[1:]) != nil || *slice == "" || (*acceptContract == "" && *acceptContractSig != "") {
 			fmt.Fprintln(os.Stderr, "a2dlc run: missing --slice (or --accept-contract-sig without --accept-contract)")
 			return 64
 		}
 		opts := a2run.Options{Slice: *slice, Mode: *mode, Base: *base, Intent: *intent, MaxCostUSD: *cost, MaxRounds: *rounds,
-			MaxInner: *inner, MaxSpecRounds: *specRounds, AcceptContract: *acceptContract, AcceptContractSig: *acceptContractSig}
+			MaxInner: *inner, MaxSpecRounds: *specRounds, AcceptContract: *acceptContract, AcceptContractSig: *acceptContractSig,
+			FromStage: *fromStage}
 		if *z3Image != "" {
 			opts.Z3 = engine.Z3{Image: *z3Image}
 		}
